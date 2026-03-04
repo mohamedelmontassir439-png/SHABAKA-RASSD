@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>شبكة رصد — الصفقات العمومية المغربية</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Outfit:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --dark:#1a0a00;
+  --brown:#8B4513;
+  --brown2:#A0522D;
+  --light:#f9f5f0;
+  --border:#e8d5b7;
+  --gold:#C8860A;
+}
+body{font-family:'Cairo','Outfit',sans-serif;background:var(--light);color:var(--dark);
+  background-image:radial-gradient(circle at 20% 20%,rgba(139,69,19,.06) 0%,transparent 50%),
+    radial-gradient(circle at 80% 80%,rgba(26,10,0,.06) 0%,transparent 50%);
+}
+a{text-decoration:none;color:inherit}
+
+/* Navbar */
+nav{background:var(--dark);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:64px;position:sticky;top:0;z-index:100;box-shadow:0 2px 20px rgba(0,0,0,.3)}
+.logo{font-size:20px;font-weight:900;color:white;display:flex;align-items:center;gap:8px}
+.logo span{color:var(--gold)}
+.nav-links{display:flex;gap:8px}
+.nav-links a{color:rgba(255,255,255,.8);padding:8px 16px;border-radius:8px;font-size:14px;font-weight:600;transition:.2s}
+.nav-links a:hover{background:rgba(255,255,255,.1);color:white}
+.btn-nav{background:var(--brown)!important;color:white!important;padding:8px 20px!important;border-radius:8px!important}
+
+/* Hero */
+.hero{background:linear-gradient(135deg,#1a0a00 0%,#3d1a00 50%,#1a0a00 100%);
+  padding:80px 32px;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;
+  background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E")}
+.badge{display:inline-flex;align-items:center;gap:8px;background:rgba(200,134,10,.2);
+  border:1px solid rgba(200,134,10,.4);color:var(--gold);padding:6px 16px;border-radius:20px;font-size:13px;margin-bottom:24px}
+.pulse{width:8px;height:8px;background:var(--gold);border-radius:50%;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
+.hero h1{font-size:clamp(28px,5vw,52px);font-weight:900;color:white;line-height:1.2;margin-bottom:20px}
+.hero h1 span{color:var(--gold)}
+.hero p{font-size:18px;color:rgba(255,255,255,.75);max-width:600px;margin:0 auto 36px;line-height:1.7}
+.hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.btn-primary{background:var(--brown);color:white;padding:14px 32px;border-radius:10px;font-size:16px;font-weight:700;transition:.2s;box-shadow:0 4px 20px rgba(139,69,19,.4)}
+.btn-primary:hover{background:var(--brown2);transform:translateY(-2px)}
+.btn-secondary{background:rgba(255,255,255,.1);color:white;padding:14px 32px;border-radius:10px;font-size:16px;font-weight:600;border:1px solid rgba(255,255,255,.2);transition:.2s}
+.btn-secondary:hover{background:rgba(255,255,255,.15)}
+
+/* Stats bar */
+.stats-bar{background:var(--dark);padding:28px 32px;display:flex;gap:0;justify-content:center;flex-wrap:wrap}
+.stat-item{padding:16px 40px;text-align:center;border-left:1px solid rgba(255,255,255,.1)}
+.stat-item:last-child{border-left:none}
+.stat-num{font-size:28px;font-weight:900;color:var(--gold)}
+.stat-lbl{font-size:13px;color:rgba(255,255,255,.6);margin-top:4px}
+
+/* Sections */
+.section{padding:60px 32px;max-width:1100px;margin:0 auto}
+.section-title{font-size:26px;font-weight:900;color:var(--dark);margin-bottom:8px}
+.section-title span{color:var(--brown)}
+.section-sub{color:#888;font-size:15px;margin-bottom:36px}
+
+/* Cards grid */
+.grid-3{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px}
+.grid-4{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
+
+/* Tender card */
+.tender-card{background:white;border-radius:12px;padding:20px;border:1px solid var(--border);
+  transition:.2s;cursor:pointer}
+.tender-card:hover{transform:translateY(-3px);box-shadow:0 8px 30px rgba(139,69,19,.12);border-color:var(--brown)}
+.tender-badge{display:inline-block;background:var(--light);color:var(--brown);
+  padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700;margin-bottom:10px}
+.tender-title{font-size:14px;font-weight:700;color:var(--dark);margin-bottom:8px;line-height:1.5}
+.tender-meta{font-size:12px;color:#888;display:flex;gap:12px;flex-wrap:wrap}
+.tender-meta span{display:flex;align-items:center;gap:4px}
+.tender-deadline{color:#dc2626;font-weight:700;font-size:12px;margin-top:8px}
+
+/* Steps */
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:24px}
+.step{background:white;border-radius:14px;padding:28px;border:1px solid var(--border);text-align:center;transition:.2s}
+.step:hover{border-color:var(--brown);box-shadow:0 6px 24px rgba(139,69,19,.1)}
+.step-num{width:52px;height:52px;background:linear-gradient(135deg,var(--dark),var(--brown));
+  color:white;border-radius:14px;display:flex;align-items:center;justify-content:center;
+  font-size:22px;margin:0 auto 16px}
+.step h3{font-size:16px;font-weight:700;margin-bottom:8px}
+.step p{font-size:13px;color:#666;line-height:1.6}
+
+/* Region cards */
+.region-card{background:white;border-radius:10px;padding:14px 16px;border:1px solid var(--border);
+  display:flex;justify-content:space-between;align-items:center;transition:.2s}
+.region-card:hover{border-color:var(--brown);transform:translateX(-2px)}
+.region-name{font-size:13px;font-weight:700}
+.region-count{background:var(--light);color:var(--brown);padding:3px 10px;border-radius:12px;font-size:12px;font-weight:700}
+
+/* Pricing */
+.pricing{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px}
+.plan{background:white;border-radius:16px;padding:32px;border:2px solid var(--border);text-align:center;transition:.2s}
+.plan.featured{border-color:var(--brown);background:linear-gradient(135deg,#fdf6ee,white);
+  box-shadow:0 8px 40px rgba(139,69,19,.15);transform:scale(1.02)}
+.plan-badge{background:var(--brown);color:white;padding:4px 16px;border-radius:20px;font-size:12px;font-weight:700;display:inline-block;margin-bottom:16px}
+.plan-price{font-size:40px;font-weight:900;color:var(--dark);margin:16px 0 8px}
+.plan-price span{font-size:16px;color:#888;font-weight:400}
+.plan ul{list-style:none;text-align:right;margin:20px 0 28px;display:flex;flex-direction:column;gap:10px}
+.plan ul li{font-size:14px;color:#444;display:flex;align-items:center;gap:8px}
+.plan ul li::before{content:'✓';color:var(--brown);font-weight:900;flex-shrink:0}
+.btn-plan{display:block;padding:13px;border-radius:10px;font-size:15px;font-weight:700;transition:.2s}
+.btn-plan.primary{background:var(--brown);color:white}
+.btn-plan.primary:hover{background:var(--brown2)}
+.btn-plan.secondary{background:var(--light);color:var(--dark);border:1px solid var(--border)}
+
+/* CTA */
+.cta{background:linear-gradient(135deg,var(--dark),#3d1a00);padding:60px 32px;text-align:center;margin-top:60px}
+.cta h2{font-size:30px;font-weight:900;color:white;margin-bottom:12px}
+.cta p{color:rgba(255,255,255,.7);font-size:16px;margin-bottom:28px}
+
+/* Footer */
+footer{background:var(--dark);color:rgba(255,255,255,.5);text-align:center;padding:24px;font-size:13px}
+footer span{color:var(--gold)}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">📡 شبكة <span>رصد</span></div>
+  <div class="nav-links">
+    <a href="/tenders">الصفقات</a>
+    <a href="/login">دخول</a>
+    <a href="/register" class="btn-nav">تسجيل مجاني</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="badge"><div class="pulse"></div>مباشر — يتجدد يومياً</div>
+  <h1>راقب <span>الصفقات العمومية</span><br>المغربية بذكاء</h1>
+  <p>نظام تنبيه ذكي يرسل لك الصفقات المناسبة لمجالك وجهتك فور نشرها — وفّر وقتك وفز بالصفقات</p>
+  <div class="hero-btns">
+    <a href="/register" class="btn-primary">🚀 ابدأ مجاناً الآن</a>
+    <a href="/tenders" class="btn-secondary">📋 تصفح الصفقات</a>
+  </div>
+</section>
+
+<div class="stats-bar">
+  <div class="stat-item"><div class="stat-num">{{ stats.tenders }}+</div><div class="stat-lbl">صفقة نشطة</div></div>
+  <div class="stat-item"><div class="stat-num">12</div><div class="stat-lbl">جهة مغربية</div></div>
+  <div class="stat-item"><div class="stat-num">{{ stats.contractors }}+</div><div class="stat-lbl">مقاول مسجل</div></div>
+  <div class="stat-item"><div class="stat-num">يومياً</div><div class="stat-lbl">تحديث البيانات</div></div>
+</div>
+
+<div class="section">
+  <div class="section-title">كيف يعمل <span>شبكة رصد</span>؟</div>
+  <div class="section-sub">3 خطوات بسيطة للحصول على الصفقات المناسبة</div>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">📝</div>
+      <h3>سجّل ملفك</h3>
+      <p>أدخل اسمك ومجالك والجهات التي تعمل فيها. التسجيل مجاني ويستغرق دقيقتين.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">🔍</div>
+      <h3>نرصد لك</h3>
+      <p>نظامنا يفحص البوابة الرسمية يومياً ويصفي الصفقات حسب ملفك الشخصي.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">🔔</div>
+      <h3>تصلك التنبيهات</h3>
+      <p>تصلك الصفقات المناسبة عبر الإيميل وتيليغرام مع شرح مبسط وبنود المطلوبة.</p>
+    </div>
+  </div>
+</div>
+
+{% if recent %}
+<div style="background:white;padding:60px 32px;border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="section-title">آخر <span>الصفقات المنشورة</span></div>
+    <div class="section-sub">صفقات نشطة تم رصدها مؤخراً</div>
+    <div class="grid-3">
+      {% for t in recent %}
+      <a href="/tender/{{ t.id }}" class="tender-card">
+        <div class="tender-badge">{{ t.domaine }}</div>
+        <div class="tender-title">{{ t.objet[:80] }}{% if t.objet|length > 80 %}...{% endif %}</div>
+        <div class="tender-meta">
+          <span>🏢 {{ (t.acheteur or '—')[:30] }}</span>
+          <span>🗺️ {{ (t.region or '—')[:20] }}</span>
+        </div>
+        {% if t.date_limite %}
+        <div class="tender-deadline">⏰ آخر أجل: {{ t.date_limite }}</div>
+        {% endif %}
+      </a>
+      {% endfor %}
+    </div>
+    <div style="text-align:center;margin-top:28px">
+      <a href="/tenders" class="btn-primary" style="display:inline-block">عرض جميع الصفقات →</a>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<div class="section">
+  <div class="section-title">تغطية <span>12 جهة مغربية</span></div>
+  <div class="section-sub">نرصد الصفقات في جميع جهات المملكة</div>
+  <div class="grid-4">
+    {% for r in top_regions %}
+    <a href="/tenders?region={{ r.region }}" class="region-card">
+      <div class="region-name">{{ REGIONS.get(r.region, {}).get('ar', r.region) }}</div>
+      <div class="region-count">{{ r.cnt }}</div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+<div style="background:white;padding:60px 32px;border-top:1px solid var(--border)">
+  <div style="max-width:800px;margin:0 auto">
+    <div class="section-title" style="text-align:center">اختر <span>خطتك</span></div>
+    <div class="section-sub" style="text-align:center">ابدأ مجاناً وطوّر عند الحاجة</div>
+    <div class="pricing">
+      <div class="plan">
+        <div style="font-size:24px;margin-bottom:8px">🆓</div>
+        <div style="font-size:18px;font-weight:700">مجاني</div>
+        <div class="plan-price">0 <span>درهم</span></div>
+        <ul>
+          <li>تصفح الصفقات</li>
+          <li>فلترة بالجهة والمجال</li>
+          <li>التسجيل في النظام</li>
+          <li style="color:#bbb;text-decoration:line-through">تنبيهات فورية</li>
+          <li style="color:#bbb;text-decoration:line-through">تفاصيل كاملة</li>
+        </ul>
+        <a href="/register" class="btn-plan secondary">ابدأ مجاناً</a>
+      </div>
+      <div class="plan featured">
+        <div class="plan-badge">⭐ الأكثر طلباً</div>
+        <div style="font-size:18px;font-weight:700">Premium</div>
+        <div class="plan-price">99 <span>درهم/شهر</span></div>
+        <ul>
+          <li>كل مزايا المجاني</li>
+          <li>تنبيهات فورية عبر الإيميل</li>
+          <li>تنبيهات تيليغرام</li>
+          <li>شرح مبسط للصفقات</li>
+          <li>قائمة موردين مقترحين</li>
+          <li>بنود ومتطلبات مستخرجة</li>
+        </ul>
+        <a href="/upgrade" class="btn-plan primary">اشترك الآن</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="cta">
+  <h2>ابدأ اليوم — مجاناً</h2>
+  <p>انضم لمئات المقاولين الذين يستخدمون شبكة رصد للفوز بالصفقات</p>
+  <a href="/register" class="btn-primary" style="display:inline-block">إنشاء حساب مجاني →</a>
+</div>
+
+<footer>
+  <p>📡 <span>شبكة رصد</span> — مراقبة الصفقات العمومية المغربية © 2026</p>
+</footer>
+
+</body>
+</html>

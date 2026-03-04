@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>الصفقات — شبكة رصد</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--dark:#1a0a00;--brown:#8B4513;--light:#f9f5f0;--border:#e8d5b7;--gold:#C8860A}
+body{font-family:'Cairo',sans-serif;background:var(--light);color:var(--dark)}
+a{text-decoration:none;color:inherit}
+nav{background:var(--dark);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:60px}
+.logo{font-size:18px;font-weight:900;color:white}.logo span{color:var(--gold)}
+.nav-links a{color:rgba(255,255,255,.8);padding:8px 14px;border-radius:8px;font-size:14px;font-weight:600}
+.nav-links a:hover{background:rgba(255,255,255,.1);color:white}
+.container{max-width:1100px;margin:0 auto;padding:28px 24px}
+.page-header{background:linear-gradient(135deg,var(--dark),#3d1a00);padding:28px 24px;margin-bottom:0}
+.page-header h1{font-size:22px;font-weight:900;color:white}
+.page-header p{color:rgba(255,255,255,.6);font-size:14px;margin-top:4px}
+
+/* Filters */
+.filters{background:white;padding:20px 24px;border-bottom:1px solid var(--border);display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.filters form{display:flex;gap:10px;flex-wrap:wrap;width:100%;align-items:center}
+select,input[type=text]{padding:9px 14px;border:1.5px solid var(--border);border-radius:8px;font-family:'Cairo',sans-serif;font-size:13px;background:white;color:var(--dark);outline:none}
+select:focus,input:focus{border-color:var(--brown)}
+.btn-filter{background:var(--brown);color:white;padding:9px 20px;border:none;border-radius:8px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:700;cursor:pointer}
+.btn-filter:hover{background:#A0522D}
+.btn-reset{background:var(--light);color:var(--dark);padding:9px 16px;border:1.5px solid var(--border);border-radius:8px;font-family:'Cairo',sans-serif;font-size:13px;cursor:pointer}
+
+/* Results info */
+.results-info{padding:14px 24px;background:var(--light);border-bottom:1px solid var(--border);font-size:13px;color:#666}
+.results-info strong{color:var(--brown)}
+
+/* Tender list */
+.tenders-list{display:flex;flex-direction:column;gap:12px;padding:20px 24px}
+.tender-item{background:white;border-radius:12px;padding:20px 22px;border:1px solid var(--border);
+  display:flex;gap:16px;transition:.2s;cursor:pointer}
+.tender-item:hover{border-color:var(--brown);box-shadow:0 4px 20px rgba(139,69,19,.1);transform:translateX(-2px)}
+.tender-item.cancelled{opacity:.6;border-style:dashed}
+.domain-icon{width:44px;height:44px;background:linear-gradient(135deg,var(--dark),var(--brown));
+  border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.tender-body{flex:1;min-width:0}
+.tender-title{font-size:14px;font-weight:700;color:var(--dark);margin-bottom:8px;line-height:1.5}
+.tender-meta{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:#777}
+.tender-meta span{display:flex;align-items:center;gap:4px}
+.tender-badges{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.badge{padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700}
+.badge-domain{background:#fdf6ee;color:var(--brown)}
+.badge-region{background:#f5f0e8;color:#5D2E0C}
+.badge-cancelled{background:#fef2f2;color:#dc2626}
+.badge-active{background:#f0fdf4;color:#16a34a}
+.deadline{color:#dc2626;font-size:12px;font-weight:700;margin-top:6px}
+.tender-arrow{color:#ccc;font-size:18px;align-self:center;flex-shrink:0}
+
+/* Domain icons map */
+.di-road::before{content:'🛣️'}.di-build::before{content:'🏗️'}.di-water::before{content:'💧'}
+.di-elec::before{content:'⚡'}.di-it::before{content:'💻'}.di-med::before{content:'🏥'}
+.di-study::before{content:'📐'}.di-clean::before{content:'🧹'}.di-mob::before{content:'🪑'}
+.di-trans::before{content:'🚛'}.di-food::before{content:'🍽️'}.di-other::before{content:'📋'}
+
+/* Pagination */
+.pagination{display:flex;justify-content:center;gap:8px;padding:24px;flex-wrap:wrap}
+.page-btn{padding:8px 14px;border-radius:8px;border:1.5px solid var(--border);
+  background:white;color:var(--dark);font-family:'Cairo',sans-serif;font-size:13px;cursor:pointer;font-weight:600}
+.page-btn.active{background:var(--brown);color:white;border-color:var(--brown)}
+.page-btn:hover:not(.active){border-color:var(--brown);color:var(--brown)}
+
+/* Empty */
+.empty{text-align:center;padding:60px 24px;color:#aaa}
+.empty div{font-size:48px;margin-bottom:16px}
+</style>
+</head>
+<body>
+<nav>
+  <div class="logo">📡 شبكة <span>رصد</span></div>
+  <div class="nav-links">
+    <a href="/">الرئيسية</a>
+    <a href="/login">دخول</a>
+    <a href="/register">تسجيل</a>
+  </div>
+</nav>
+
+<div class="page-header">
+  <h1>📋 الصفقات العمومية</h1>
+  <p>تصفح وفلتر الصفقات حسب الجهة والمجال والحالة</p>
+</div>
+
+<div class="filters">
+  <form method="get" action="/tenders">
+    <select name="statut">
+      <option value="actif" {% if statut=="actif" %}selected{% endif %}>✅ الصفقات النشطة</option>
+      <option value="annule" {% if statut=="annule" %}selected{% endif %}>❌ الصفقات الملغاة</option>
+      <option value="" {% if statut=="" %}selected{% endif %}>📋 الكل</option>
+    </select>
+    <select name="region">
+      <option value="">🗺️ جميع الجهات</option>
+      {% for r, data in REGIONS.items() %}
+      <option value="{{ r }}" {% if region==r %}selected{% endif %}>{{ data.ar }}</option>
+      {% endfor %}
+    </select>
+    <select name="domaine">
+      <option value="">📂 جميع المجالات</option>
+      {% for d in DOMAINS_FR.keys() %}
+      <option value="{{ d }}" {% if domaine==d %}selected{% endif %}>{{ d }}</option>
+      {% endfor %}
+    </select>
+    <input type="text" name="q" value="{{ q }}" placeholder="🔍 بحث بالعنوان أو الجهة المشترية..." style="flex:1;min-width:200px">
+    <button type="submit" class="btn-filter">بحث</button>
+    <a href="/tenders"><button type="button" class="btn-reset">إعادة</button></a>
+  </form>
+</div>
+
+<div class="results-info">
+  تم العثور على <strong>{{ total }}</strong> صفقة
+  {% if region %} في جهة <strong>{{ REGIONS.get(region, {}).get('ar', region) }}</strong>{% endif %}
+  {% if domaine %} — مجال <strong>{{ domaine }}</strong>{% endif %}
+  {% if q %} — بحث: <strong>"{{ q }}"</strong>{% endif %}
+</div>
+
+<div class="tenders-list">
+  {% if tenders %}
+    {% for t in tenders %}
+    {% set icons = {"Travaux routiers":"🛣️","Construction":"🏗️","Eau & Assainissement":"💧","Électricité":"⚡","Informatique":"💻","Équipements médicaux":"🏥","Études & Conseil":"📐","Nettoyage & Sécurité":"🧹","Mobilier & Équipements":"🪑","Transport":"🚛","Alimentation":"🍽️"} %}
+    <a href="/tender/{{ t.id }}" class="tender-item {% if t.statut == 'annule' %}cancelled{% endif %}">
+      <div class="domain-icon">{{ icons.get(t.domaine, '📋') }}</div>
+      <div class="tender-body">
+        <div class="tender-title">{{ t.objet[:100] }}{% if t.objet|length > 100 %}...{% endif %}</div>
+        <div class="tender-meta">
+          {% if t.acheteur %}<span>🏢 {{ t.acheteur[:40] }}</span>{% endif %}
+          {% if t.region %}<span>🗺️ {{ REGIONS.get(t.region, {}).get('ar', t.region) }}</span>{% endif %}
+          {% if t.montant %}<span>💰 {{ t.montant[:20] }}</span>{% endif %}
+          {% if t.date_extraction %}<span>📅 {{ t.date_extraction[:10] }}</span>{% endif %}
+        </div>
+        <div class="tender-badges">
+          <span class="badge badge-domain">{{ t.domaine }}</span>
+          {% if t.statut == 'annule' %}
+            <span class="badge badge-cancelled">❌ ملغاة</span>
+          {% else %}
+            <span class="badge badge-active">✅ نشطة</span>
+          {% endif %}
+        </div>
+        {% if t.date_limite %}<div class="deadline">⏰ آخر أجل: {{ t.date_limite }}</div>{% endif %}
+      </div>
+      <div class="tender-arrow">←</div>
+    </a>
+    {% endfor %}
+  {% else %}
+    <div class="empty">
+      <div>🔍</div>
+      <p>لا توجد صفقات تطابق معايير البحث</p>
+    </div>
+  {% endif %}
+</div>
+
+{% if pages > 1 %}
+<div class="pagination">
+  {% if page > 1 %}<a href="?page={{ page-1 }}&statut={{ statut }}&region={{ region }}&domaine={{ domaine }}&q={{ q }}"><button class="page-btn">السابق</button></a>{% endif %}
+  {% for p in range(1, pages+1) %}
+    {% if p >= page-2 and p <= page+2 %}
+    <a href="?page={{ p }}&statut={{ statut }}&region={{ region }}&domaine={{ domaine }}&q={{ q }}">
+      <button class="page-btn {% if p==page %}active{% endif %}">{{ p }}</button>
+    </a>
+    {% endif %}
+  {% endfor %}
+  {% if page < pages %}<a href="?page={{ page+1 }}&statut={{ statut }}&region={{ region }}&domaine={{ domaine }}&q={{ q }}"><button class="page-btn">التالي</button></a>{% endif %}
+</div>
+{% endif %}
+
+</body>
+</html>
