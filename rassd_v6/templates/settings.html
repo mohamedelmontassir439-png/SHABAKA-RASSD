@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Paramètres{% endblock %}
+{% block body %}
+<div style="max-width:760px;margin:0 auto;padding:40px 32px 64px">
+  <div class="flex items-center justify-between mb-32">
+    <div>
+      <div class="section-eyebrow">Compte</div>
+      <h2 style="font-size:26px;margin:0">Paramètres</h2>
+    </div>
+    <a href="/dashboard" class="btn btn-ghost btn-sm">← Dashboard</a>
+  </div>
+
+  {% if success %}<div class="form-success" style="margin-bottom:24px">{{ success }}</div>{% endif %}
+  {% if error   %}<div class="form-error"   style="margin-bottom:24px">{{ error }}</div>{% endif %}
+
+  <form method="post" action="/settings">
+    <!-- PROFILE -->
+    <div class="card" style="margin-bottom:20px">
+      <div style="padding:14px 20px;border-bottom:1px solid var(--border);background:var(--bg-3)">
+        <span style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.6px">Profil</span>
+      </div>
+      <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group mb-0">
+          <label class="form-label">Nom complet *</label>
+          <input type="text" name="nom" value="{{ c.nom }}" class="form-input" required>
+        </div>
+        <div class="form-group mb-0">
+          <label class="form-label">Entreprise</label>
+          <input type="text" name="entreprise" value="{{ c.entreprise or '' }}" class="form-input">
+        </div>
+        <div class="form-group mb-0">
+          <label class="form-label">Téléphone</label>
+          <input type="text" name="phone" value="{{ c.phone or '' }}" class="form-input">
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTIFICATIONS -->
+    <div class="card" style="margin-bottom:20px">
+      <div style="padding:14px 20px;border-bottom:1px solid var(--border);background:var(--bg-3)">
+        <span style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.6px">Canaux de notification</span>
+      </div>
+      <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group mb-0">
+          <label class="form-label">📧 Email (automatique)</label>
+          <input type="email" value="{{ c.email }}" class="form-input" disabled style="opacity:.5">
+        </div>
+        <div class="form-group mb-0">
+          <label class="form-label">📱 WhatsApp</label>
+          <input type="text" name="whatsapp" value="{{ c.whatsapp or '' }}" class="form-input" placeholder="0612345678 ou 212612345678">
+          <div style="font-size:10px;color:var(--text-3);margin-top:4px">Format international: 212XXXXXXXXX</div>
+        </div>
+        <div class="form-group mb-0">
+          <label class="form-label">✈️ Telegram Chat ID</label>
+          <input type="text" name="telegram" value="{{ c.telegram or '' }}" class="form-input" placeholder="123456789">
+        </div>
+      </div>
+      <div style="padding:0 20px 20px">
+        <label class="form-label" style="margin-bottom:8px">Canaux actifs</label>
+        <div class="flex gap-8" style="flex-wrap:wrap">
+          {% set channels = c.notif_channels|default('["email"]') %}
+          <label class="cb-item"><input type="checkbox" name="notif_channels" value="email" {% if '"email"' in channels %}checked{% endif %}> 📧 Email</label>
+          <label class="cb-item"><input type="checkbox" name="notif_channels" value="whatsapp" {% if '"whatsapp"' in channels %}checked{% endif %}> 📱 WhatsApp</label>
+          <label class="cb-item"><input type="checkbox" name="notif_channels" value="telegram" {% if '"telegram"' in channels %}checked{% endif %}> ✈️ Telegram</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- FILTERS -->
+    <div class="card" style="margin-bottom:20px">
+      <div style="padding:14px 20px;border-bottom:1px solid var(--border);background:var(--bg-3)">
+        <span style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.6px">Filtres & Préférences</span>
+      </div>
+      <div style="padding:20px">
+        <div class="form-group">
+          <label class="form-label">Types de marchés</label>
+          <div class="flex gap-8" style="flex-wrap:wrap">
+            {% set tf = c.type_filters|default('["PUBLIC","SEMI_PUBLIC","PRIVATE"]') %}
+            <label class="cb-item"><input type="checkbox" name="type_filters" value="PUBLIC" {% if '"PUBLIC"' in tf %}checked{% endif %}> 🏛 Public</label>
+            <label class="cb-item"><input type="checkbox" name="type_filters" value="SEMI_PUBLIC" {% if '"SEMI_PUBLIC"' in tf %}checked{% endif %}> 🏢 Semi-Public</label>
+            <label class="cb-item"><input type="checkbox" name="type_filters" value="PRIVATE" {% if '"PRIVATE"' in tf %}checked{% endif %}> 📰 Privé</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mots-clés personnalisés</label>
+          <input type="text" name="keywords" value="{{ c.keywords or '' }}" class="form-input" placeholder="construction, informatique, nettoyage…">
+          <div style="font-size:10px;color:var(--text-3);margin-top:4px">Séparés par des virgules</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Secteurs cibles</label>
+          <div class="cb-grid">
+            {% set doms = c.domaines|default('[]') %}
+            {% for code,name in DOMAINS_FR.items() %}
+            <label class="cb-item {% if code in doms %}checked{% endif %}"><input type="checkbox" name="domaines" value="{{ code }}" {% if code in doms %}checked{% endif %}> {{ name[:26] }}</label>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="form-group mb-0">
+          <label class="form-label">Régions cibles</label>
+          <div class="cb-grid">
+            {% set regs = c.regions|default('[]') %}
+            {% for r in REGIONS_LIST %}
+            <label class="cb-item {% if r in regs %}checked{% endif %}"><input type="checkbox" name="regions" value="{{ r }}" {% if r in regs %}checked{% endif %}> {{ r[:30] }}</label>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PASSWORD -->
+    <div class="card" style="margin-bottom:24px">
+      <div style="padding:14px 20px;border-bottom:1px solid var(--border);background:var(--bg-3)">
+        <span style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.6px">Sécurité</span>
+      </div>
+      <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-group mb-0">
+          <label class="form-label">Mot de passe actuel</label>
+          <input type="password" name="password" class="form-input" placeholder="••••••••">
+        </div>
+        <div class="form-group mb-0">
+          <label class="form-label">Nouveau mot de passe</label>
+          <input type="password" name="password_new" class="form-input" placeholder="Min. 8 caractères">
+        </div>
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-gold btn-lg">Enregistrer les modifications →</button>
+  </form>
+</div>
+{% endblock %}

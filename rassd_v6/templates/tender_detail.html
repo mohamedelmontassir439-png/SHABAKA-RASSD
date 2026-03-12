@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}{{ tender.objet[:60] }}{% endblock %}
+{% block body %}
+<div style="max-width:900px;margin:0 auto;padding:40px 32px 64px">
+
+  <!-- BREADCRUMB -->
+  <div class="flex items-center gap-8 mb-24" style="font-size:12px;color:var(--text-3)">
+    <a href="/" style="color:var(--text-3)">Modern Business</a>
+    <span>/</span>
+    <a href="/tenders" style="color:var(--text-3)">Opportunités</a>
+    <span>/</span>
+    <span style="color:var(--text-2)">#{{ tender.id }}</span>
+  </div>
+
+  <!-- HEADER -->
+  <div class="flex items-center gap-8 mb-16">
+    {% if tender.type_marche == 'PUBLIC' %}<span class="tag tag-public">🏛 Marché Public</span>
+    {% elif tender.type_marche == 'SEMI_PUBLIC' %}<span class="tag tag-semi">🏢 Semi-Public</span>
+    {% else %}<span class="tag tag-private">📰 Secteur Privé</span>{% endif %}
+    {% if tender.statut == 'actif' %}<span class="tag tag-active">✓ Actif</span>
+    {% elif tender.statut == 'expire' %}<span class="tag tag-expired">Expiré</span>
+    {% else %}<span class="tag" style="background:rgba(100,100,100,.1);color:var(--text-3)">Annulé</span>{% endif %}
+    {% if tender.source_name %}<span class="tag tag-gold">{{ tender.source_name }}</span>{% endif %}
+  </div>
+
+  <h1 style="font-size:clamp(20px,3vw,30px);color:var(--text);margin-bottom:20px;line-height:1.2">{{ tender.objet }}</h1>
+
+  <!-- ACTIONS -->
+  <div class="flex items-center gap-10 mb-32" style="flex-wrap:wrap">
+    {% if tender.url %}
+    <a href="{{ tender.url }}" target="_blank" class="btn btn-gold">Voir la source officielle ↗</a>
+    {% endif %}
+    {% if contractor %}
+    <button id="saveBtn" onclick="toggleSave('{{ tender.id }}',this)" data-saved="{{ '1' if is_saved else '0' }}"
+      class="btn btn-ghost" style="color:{{ 'var(--gold)' if is_saved else 'var(--text-2)' }}">
+      {{ '★ Sauvegardé' if is_saved else '☆ Sauvegarder' }}
+    </button>
+    {% else %}
+    <a href="/login" class="btn btn-ghost">☆ Sauvegarder</a>
+    {% endif %}
+  </div>
+
+  <!-- DETAILS CARD -->
+  <div class="card" style="margin-bottom:24px">
+    <div style="padding:20px 22px;border-bottom:1px solid var(--border);background:var(--bg-3)">
+      <span style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px">Détails de l'opportunité</span>
+    </div>
+    <div style="padding:0">
+      {% set fields = [
+        ('Organisme / Acheteur', tender.acheteur, '🏛'),
+        ('Région', tender.region, '📍'),
+        ('Secteur', DOMAINS_FR.get(tender.domaine,'—') if tender.domaine else '—', '🏷'),
+        ('Montant estimé', tender.montant, '💰'),
+        ('Date de publication', tender.date_publication, '📅'),
+        ('Date limite', tender.date_limite, '⏰'),
+        ('Source', tender.source_name, '📡'),
+        ('Référence', tender.id, '#'),
+      ] %}
+      {% for label, val, icon in fields %}
+      {% if val %}
+      <div style="display:flex;align-items:flex-start;gap:12px;padding:13px 22px;border-bottom:1px solid var(--border)">
+        <span style="width:18px;text-align:center;font-size:13px;flex-shrink:0;margin-top:1px">{{ icon }}</span>
+        <div style="min-width:160px;font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;padding-top:1px">{{ label }}</div>
+        <div style="font-size:13px;color:{{ 'var(--red)' if label == 'Date limite' else 'var(--text)' }};font-weight:{{ '700' if label == 'Date limite' else '400' }};font-family:{{ 'var(--mono)' if label == 'Référence' else 'var(--font)' }}">{{ val }}</div>
+      </div>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- DESCRIPTION -->
+  {% if tender.description and tender.description|length > 30 %}
+  <div class="card" style="margin-bottom:24px">
+    <div style="padding:16px 22px;border-bottom:1px solid var(--border);background:var(--bg-3)">
+      <span style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px">Contenu extrait</span>
+    </div>
+    <div style="padding:22px;font-size:13px;color:var(--text-2);line-height:1.75;white-space:pre-wrap;max-height:360px;overflow-y:auto">{{ tender.description[:1500] }}</div>
+  </div>
+  {% endif %}
+
+  <!-- RELATED -->
+  {% if related %}
+  <div style="margin-top:40px">
+    <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px">Opportunités similaires</div>
+    <div class="card" style="overflow:hidden">
+      {% for r in related %}
+      <a href="/tender/{{ r.id }}" class="tender-row" style="display:grid;text-decoration:none">
+        <div>
+          <span class="tender-title">{{ r.objet[:70] }}</span>
+          <span class="tender-sub">{{ r.acheteur[:40] if r.acheteur else r.source_name }}</span>
+        </div>
+        <div>
+          {% if r.type_marche == 'PUBLIC' %}<span class="tag tag-public">Public</span>
+          {% elif r.type_marche == 'SEMI_PUBLIC' %}<span class="tag tag-semi">Semi</span>
+          {% else %}<span class="tag tag-private">Privé</span>{% endif %}
+        </div>
+        <div class="tender-date urgent">{{ r.date_limite or '—' }}</div>
+        <div style="font-size:11px;color:var(--text-3)">{{ r.region or '—' }}</div>
+        <span style="color:var(--text-3);font-size:13px">→</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Admin{% endblock %}
+{% block body %}
+<div style="max-width:1120px;margin:0 auto;padding:32px 32px 64px">
+  <div class="flex items-center justify-between mb-28">
+    <div>
+      <div class="section-eyebrow">Panneau Admin</div>
+      <h2 style="font-size:24px;margin:0">Modern Business — Admin</h2>
+    </div>
+    <div class="flex gap-8">
+      <a href="/admin/scrape?pwd={{ pwd }}" class="btn btn-gold btn-sm" onclick="this.textContent='⏳ Scraping…'">▶ Lancer scraper</a>
+      <a href="/admin/heal?pwd={{ pwd }}" class="btn btn-ghost btn-sm">🤖 AI Heal</a>
+      <a href="/admin/cleanup?pwd={{ pwd }}" class="btn btn-ghost btn-sm">🗑 Cleanup</a>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stat-grid mb-28">
+    <div class="stat-cell"><div class="stat-num">{{ stats.active }}</div><div class="stat-lbl">Actives</div></div>
+    <div class="stat-cell"><div class="stat-num" style="color:#6b9de8">{{ stats.public }}</div><div class="stat-lbl">Public</div></div>
+    <div class="stat-cell"><div class="stat-num" style="color:#e8a84a">{{ stats.semi }}</div><div class="stat-lbl">Semi-pub</div></div>
+    <div class="stat-cell"><div class="stat-num" style="color:#c39bd3">{{ stats.private }}</div><div class="stat-lbl">Privé</div></div>
+    <div class="stat-cell"><div class="stat-num">{{ stats.contractors }}</div><div class="stat-lbl">Comptes</div></div>
+    <div class="stat-cell"><div class="stat-num" style="color:var(--gold)">{{ stats.pro_plus }}</div><div class="stat-lbl">Pro+</div></div>
+    <div class="stat-cell"><div class="stat-num">{{ stats.notifs }}</div><div class="stat-lbl">Alertes</div></div>
+    <div class="stat-cell"><div class="stat-num" style="color:{{ 'var(--red)' if stats.errors > 0 else 'var(--green)' }}">{{ stats.errors }}</div><div class="stat-lbl">Erreurs</div></div>
+    <div class="stat-cell"><div class="stat-num" style="color:#f5c842">{{ stats.contacts }}</div><div class="stat-lbl">Contacts</div></div>
+    <div class="stat-cell"><div class="stat-num">{{ stats.wa_sessions }}</div><div class="stat-lbl">WhatsApp</div></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px">
+
+    <!-- SOURCES -->
+    <div class="card">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg-3)">
+        <span style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px">Sources — {{ by_source|length }} actives</span>
+      </div>
+      {% for s in by_source %}
+      <div style="display:flex;justify-content:space-between;padding:9px 16px;border-bottom:1px solid var(--border);font-size:12px">
+        <span style="color:var(--text-2)">{{ s.source_name[:30] }}</span>
+        <span style="font-family:var(--mono);color:var(--gold)">{{ s.cnt }}</span>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- SCRAPER -->
+    <div class="card">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg-3);display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px">Scraper Status</span>
+        {% if scrape_stats.running %}<span class="tag tag-active">En cours…</span>{% else %}<span style="font-size:11px;color:var(--text-3)">Inactif</span>{% endif %}
+      </div>
+      <div style="padding:16px;font-size:12px;color:var(--text-2)">
+        <div class="flex justify-between mb-8"><span>Trouvés</span><span class="mono" style="color:var(--gold)">{{ scrape_stats.total_found }}</span></div>
+        <div class="flex justify-between mb-8"><span>Sauvegardés</span><span class="mono">{{ scrape_stats.total_saved }}</span></div>
+        <div class="flex justify-between mb-8"><span>Erreurs</span><span class="mono" style="color:var(--red)">{{ scrape_stats.errors }}</span></div>
+        <div class="flex justify-between mb-12"><span>Source active</span><span class="mono" style="color:var(--text-3)">{{ scrape_stats.active_source or '—' }}</span></div>
+        <div style="font-size:10px;color:var(--text-3);border-top:1px solid var(--border);padding-top:10px;max-height:160px;overflow-y:auto">
+          {% for log in scrape_log[-20:] %}
+          <div style="margin-bottom:2px;font-family:var(--mono)">{{ log }}</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTACTS -->
+  {% if contacts %}
+  <div class="card mb-24">
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg-3)">
+      <span style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.6px">Contacts commerciaux ({{ stats.contacts }} nouveaux)</span>
+    </div>
+    <table class="table">
+      <tr><th>Nom</th><th>Email</th><th>Téléphone</th><th>Plan</th><th>Date</th></tr>
+      {% for c in contacts %}
+      <tr>
+        <td style="color:var(--text)">{{ c.nom }}</td>
+        <td>{{ c.email }}</td>
+        <td>{{ c.phone }}</td>
+        <td><span class="tag tag-gold">{{ c.plan }}</span></td>
+        <td class="mono" style="font-size:11px">{{ c.created_at[:10] }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- CONTRACTORS -->
+  <div class="card mb-24">
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg-3);display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px">Comptes récents</span>
+    </div>
+    <table class="table">
+      <tr><th>ID</th><th>Nom</th><th>Email</th><th>Plan</th><th>WhatsApp</th><th>Alertes</th><th>Activé</th></tr>
+      {% for c in contractors %}
+      <tr>
+        <td class="mono" style="font-size:11px;color:var(--text-3)">{{ c.id }}</td>
+        <td style="color:var(--text)">{{ c.nom }}</td>
+        <td style="color:var(--text-2)">{{ c.email }}</td>
+        <td>
+          <span class="tag {{ 'tag-gold' if c.plan != 'free' else 'tag-active' }}">{{ c.plan }}</span>
+          <a href="/admin/activate?pwd={{ pwd }}&contractor_id={{ c.id }}&plan=pro" style="font-size:10px;color:var(--gold);margin-left:8px">→Pro</a>
+        </td>
+        <td style="font-size:11px;color:{{ 'var(--green)' if c.whatsapp else 'var(--text-3)' }}">{{ '✓' if c.whatsapp else '—' }}</td>
+        <td class="mono" style="font-size:11px">{{ c.notifs_sent }}</td>
+        <td class="mono" style="font-size:11px;color:var(--text-3)">{{ c.created_at[:10] }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+
+  <!-- ERRORS -->
+  {% if errors %}
+  <div class="card mb-24">
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:rgba(192,57,43,.08)">
+      <span style="font-size:10px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.6px">Erreurs non résolues ({{ errors|length }})</span>
+    </div>
+    <table class="table">
+      <tr><th>Route</th><th>Erreur</th><th>Occurrences</th><th>Dernière</th><th>Action</th></tr>
+      {% for e in errors %}
+      <tr>
+        <td class="mono" style="font-size:11px;color:var(--gold)">{{ e.route }}</td>
+        <td style="font-size:11px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ e.error }}</td>
+        <td class="mono" style="color:var(--red)">{{ e.count }}</td>
+        <td class="mono" style="font-size:11px;color:var(--text-3)">{{ e.last_seen[:16] }}</td>
+        <td><a href="/admin/resolve_error?pwd={{ pwd }}&error_id={{ e.id }}" style="font-size:11px;color:var(--green)">✓ Résoudre</a></td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- BROADCAST -->
+  <div class="card">
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg-3)">
+      <span style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px">Diffusion</span>
+    </div>
+    <div style="padding:20px">
+      <form method="post" action="/admin/broadcast" style="display:flex;gap:12px;flex-wrap:wrap">
+        <input type="hidden" name="pwd" value="{{ pwd }}">
+        <textarea name="message" class="form-input" style="flex:1;min-width:300px;height:80px" placeholder="Message à diffuser…"></textarea>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <select name="channel" class="form-select" style="min-width:140px">
+            <option value="email">Email</option>
+            <option value="whatsapp">WhatsApp</option>
+            <option value="telegram">Telegram</option>
+            <option value="all">Tous</option>
+          </select>
+          <button type="submit" class="btn btn-gold btn-sm">Envoyer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

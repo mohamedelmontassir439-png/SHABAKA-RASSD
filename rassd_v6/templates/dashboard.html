@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block body %}
+<div style="max-width:1120px;margin:0 auto;padding:36px 32px 64px">
+
+  <!-- HEADER -->
+  <div class="flex items-center justify-between mb-32">
+    <div>
+      <div class="section-eyebrow">{{ c.plan|upper }}</div>
+      <h2 style="font-size:26px;margin:0">Bonjour, {{ c.nom.split()[0] }} 👋</h2>
+    </div>
+    <div class="flex items-center gap-8">
+      <a href="/tenders" class="btn btn-gold btn-sm">Explorer →</a>
+      <a href="/settings" class="btn btn-ghost btn-sm">⚙ Paramètres</a>
+    </div>
+  </div>
+
+  <!-- STAT BAND -->
+  <div class="stat-grid mb-32">
+    <div class="stat-cell">
+      <div class="stat-num">{{ matching|length }}</div>
+      <div class="stat-lbl">Correspondances</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-num">{{ saved|length }}</div>
+      <div class="stat-lbl">Sauvegardés</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-num">{{ notifs_count }}</div>
+      <div class="stat-lbl">Alertes reçues</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-num">{{ plan.limits.notifs - c.notifs_sent if plan.limits else 0 }}</div>
+      <div class="stat-lbl">Alertes restantes</div>
+    </div>
+    {% for item in stats_by_type %}
+    <div class="stat-cell">
+      <div class="stat-num" style="font-size:22px;color:{{ '#6b9de8' if item.type_marche=='PUBLIC' else ('#e8a84a' if item.type_marche=='SEMI_PUBLIC' else '#c39bd3') }}">{{ item.cnt }}</div>
+      <div class="stat-lbl">{{ item.type_marche.replace('_',' ') }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:24px">
+    <!-- MATCHING TENDERS -->
+    <div>
+      <div class="flex items-center justify-between mb-14">
+        <div style="font-size:13px;font-weight:700;color:var(--text)">Opportunités correspondantes</div>
+        <a href="/tenders" style="font-size:12px;color:var(--gold)">Tout voir →</a>
+      </div>
+      <div class="card" style="overflow:hidden">
+        {% if matching %}
+        {% for t in matching %}
+        <a href="/tender/{{ t.id }}" class="tender-row" style="display:grid;text-decoration:none">
+          <div>
+            <span class="tender-title">{{ t.objet[:65] }}</span>
+            <span class="tender-sub">{{ t.acheteur[:35] if t.acheteur else t.source_name }}</span>
+          </div>
+          <div>{% if t.type_marche=='PUBLIC' %}<span class="tag tag-public">Public</span>
+          {% elif t.type_marche=='SEMI_PUBLIC' %}<span class="tag tag-semi">Semi</span>
+          {% else %}<span class="tag tag-private">Privé</span>{% endif %}</div>
+          <div class="tender-date urgent">{{ t.date_limite or '—' }}</div>
+          <div style="font-size:11px;color:var(--text-3)">{{ t.region or '—' }}</div>
+          <span style="color:var(--text-3)">→</span>
+        </a>
+        {% endfor %}
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-icon">🎯</div>
+          <div style="color:var(--text-3);font-size:13px">Configurez vos secteurs et régions dans <a href="/settings" style="color:var(--gold)">Paramètres</a></div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div style="display:flex;flex-direction:column;gap:20px">
+
+      <!-- PLAN -->
+      <div class="card card-gold" style="padding:20px">
+        <div style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Plan actuel</div>
+        <div style="font-family:var(--serif);font-size:22px;font-weight:700;color:var(--text);margin-bottom:12px">{{ plan.name_fr or c.plan|upper }}</div>
+        {% set pct = ((c.notifs_sent / plan.limits.notifs) * 100)|int if plan.limits and plan.limits.notifs > 0 else 0 %}
+        <div style="font-size:11px;color:var(--text-3);margin-bottom:6px">Alertes: {{ c.notifs_sent }}/{{ plan.limits.notifs }}</div>
+        <div style="height:4px;background:var(--border);border-radius:2px;overflow:hidden">
+          <div style="height:100%;width:{{ pct }}%;background:linear-gradient(90deg,var(--gold),var(--gold-dim));transition:.3s"></div>
+        </div>
+        {% if c.plan == 'free' %}
+        <a href="/contact" class="btn btn-gold btn-sm w-full" style="justify-content:center;margin-top:14px;font-size:12px">Passer au Pro →</a>
+        {% endif %}
+      </div>
+
+      <!-- CHANNELS -->
+      <div class="card" style="padding:20px">
+        <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Canaux d'alerte</div>
+        {% set channels = c.notif_channels|default('["email"]') %}
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div class="flex items-center gap-8">
+            <span style="font-size:14px">📧</span>
+            <span style="font-size:12px;color:{{ 'var(--green)' if c.email else 'var(--text-3)' }}">Email {{ '✓' if c.email else '✗' }}</span>
+          </div>
+          <div class="flex items-center gap-8">
+            <span style="font-size:14px">📱</span>
+            <span style="font-size:12px;color:{{ 'var(--green)' if c.whatsapp else 'var(--text-3)' }}">WhatsApp {{ '✓' if c.whatsapp else '—' }}</span>
+          </div>
+          <div class="flex items-center gap-8">
+            <span style="font-size:14px">✈️</span>
+            <span style="font-size:12px;color:{{ 'var(--green)' if c.telegram else 'var(--text-3)' }}">Telegram {{ '✓' if c.telegram else '—' }}</span>
+          </div>
+        </div>
+        {% if not c.whatsapp %}
+        <a href="/settings" style="font-size:11px;color:var(--gold);margin-top:10px;display:block">+ Ajouter WhatsApp</a>
+        {% endif %}
+      </div>
+
+      <!-- SAVED -->
+      <div class="card" style="padding:20px">
+        <div class="flex items-center justify-between mb-12">
+          <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:1px">Sauvegardés</div>
+          <a href="/saved" style="font-size:11px;color:var(--gold)">Voir tout →</a>
+        </div>
+        {% if saved %}
+        {% for t in saved[:4] %}
+        <a href="/tender/{{ t.id }}" style="display:block;padding:8px 0;border-bottom:1px solid var(--border);text-decoration:none">
+          <div style="font-size:12px;color:var(--text);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.objet[:45] }}</div>
+          <div style="font-size:10px;color:var(--text-3);margin-top:2px">📅 {{ t.date_limite or '—' }}</div>
+        </a>
+        {% endfor %}
+        {% else %}
+        <div style="font-size:12px;color:var(--text-3)">Aucune opportunité sauvegardée</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
