@@ -1,22 +1,22 @@
-"""
+﻿"""
 Modern Business v1.0
-══════════════════════════════════════════════════════
-Intelligence Platform — Opportunités d'Affaires Maroc
-══════════════════════════════════════════════════════
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+Intelligence Platform â€” OpportunitÃ©s d'Affaires Maroc
+â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 Sources: marchespublics.gov.ma + bo.gov.ma + ONCF/ONEE/OCP
-       + Le Matin + L'Économiste + La Vie Eco
+       + Le Matin + L'Ã‰conomiste + La Vie Eco
 WhatsApp: Meta Cloud API (officiel)
 Auth: Signed session cookies
 """
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # IMPORTS
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 from fastapi import FastAPI, Request, Form, HTTPException, Header, Response
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from fastapi.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from contextlib import asynccontextmanager
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -37,9 +37,9 @@ try:
     import urllib3; urllib3.disable_warnings()
 except: pass
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # LOGGING
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 class JsonLog(logging.Formatter):
     def format(self, r):
         d = {"ts": datetime.utcnow().isoformat()+"Z", "level": r.levelname, "msg": r.getMessage()}
@@ -51,11 +51,11 @@ logger.setLevel(logging.INFO)
 _h = logging.StreamHandler(); _h.setFormatter(JsonLog())
 logger.addHandler(_h)
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # CONFIG
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 BRAND_NAME     = "Modern Business"
-BRAND_TAGLINE  = "Intelligence des Marchés — المغرب"
+BRAND_TAGLINE  = "Intelligence des MarchÃ©s â€” Ø§Ù„Ù…ØºØ±Ø¨"
 
 GMAIL_USER     = os.getenv("GMAIL_USER",   "mohamedelmontassir439@gmail.com")
 GMAIL_PASS     = os.getenv("GMAIL_PASS",   "nvzdanptagoovjxr")
@@ -84,22 +84,22 @@ if SENTRY_DSN:
         sentry_sdk.init(dsn=SENTRY_DSN, traces_sample_rate=0.05, environment="production")
     except: pass
 
-# ══════════════════════════════════════════════════════
-# PLANS — Manual payment (contact sales)
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# PLANS â€” Manual payment (contact sales)
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 PLANS = {
-    "free":       {"name":"مجاني",     "name_fr":"Starter",  "price":0,   "limits":{"notifs":10,   "saves":5,    "ai":2,   "export":False}},
-    "pro":        {"name":"پرو",       "name_fr":"Pro",      "price":299, "limits":{"notifs":500,  "saves":200,  "ai":100, "export":True}},
-    "enterprise": {"name":"مؤسسي",    "name_fr":"Enterprise","price":899, "limits":{"notifs":9999,"saves":9999, "ai":9999,"export":True}},
+    "free":       {"name":"Ù…Ø¬Ø§Ù†ÙŠ",     "name_fr":"Starter",  "price":0,   "limits":{"notifs":10,   "saves":5,    "ai":2,   "export":False}},
+    "pro":        {"name":"Ù¾Ø±Ùˆ",       "name_fr":"Pro",      "price":299, "limits":{"notifs":500,  "saves":200,  "ai":100, "export":True}},
+    "enterprise": {"name":"Ù…Ø¤Ø³Ø³ÙŠ",    "name_fr":"Enterprise","price":899, "limits":{"notifs":9999,"saves":9999, "ai":9999,"export":True}},
 }
 
-# ══════════════════════════════════════════════════════
-# SCRAPER SOURCES — 16 sources totales
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# SCRAPER SOURCES â€” 16 sources totales
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 SCRAPER_SOURCES = {
     # PUBLIC
     "marchespublics": {
-        "name": "Marchés Publics Maroc",
+        "name": "MarchÃ©s Publics Maroc",
         "url":  "https://www.marchespublics.gov.ma",
         "type": "PUBLIC",
         "active": True,
@@ -153,62 +153,62 @@ SCRAPER_SOURCES = {
         "type": "SEMI_PUBLIC",
         "active": True,
     },
-    # PRESS — PRIVATE & SEMI-PUBLIC
+    # PRESS â€” PRIVATE & SEMI-PUBLIC
     "lematin": {
-        "name": "Le Matin — Appels d'Offres",
+        "name": "Le Matin â€” Appels d'Offres",
         "url":  "https://www.lematin.ma/annonces/appel-offres",
         "type": "PRIVATE",
         "active": True,
     },
     "leconomiste": {
-        "name": "L'Économiste",
+        "name": "L'Ã‰conomiste",
         "url":  "https://www.leconomiste.com/appels-doffres",
         "type": "PRIVATE",
         "active": True,
     },
     "lavieeco": {
-        "name": "La Vie Éco",
+        "name": "La Vie Ã‰co",
         "url":  "https://www.lavieeco.com/appels-doffres",
         "type": "PRIVATE",
         "active": True,
     },
 }
 
-# ══════════════════════════════════════════════════════
-# DATA — REGIONS & DOMAINS
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# DATA â€” REGIONS & DOMAINS
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 REGIONS = {
-    "Rabat-Salé-Kénitra":        ["rabat","salé","kénitra","sale","kenitra","témara","skhirat"],
+    "Rabat-SalÃ©-KÃ©nitra":        ["rabat","salÃ©","kÃ©nitra","sale","kenitra","tÃ©mara","skhirat"],
     "Casablanca-Settat":         ["casablanca","settat","mohammedia","benslimane","berrechid","el jadida"],
     "Marrakech-Safi":            ["marrakech","safi","essaouira","el kelaa","chichaoua"],
-    "Fès-Meknès":                ["fès","fez","meknès","meknes","ifrane","taounate","taza"],
-    "Tanger-Tétouan-Al Hoceima": ["tanger","tétouan","tetouan","al hoceima","chefchaouen","larache"],
+    "FÃ¨s-MeknÃ¨s":                ["fÃ¨s","fez","meknÃ¨s","meknes","ifrane","taounate","taza"],
+    "Tanger-TÃ©touan-Al Hoceima": ["tanger","tÃ©touan","tetouan","al hoceima","chefchaouen","larache"],
     "Oriental":                  ["oujda","nador","berkane","taourirt","guercif","figuig"],
-    "Béni Mellal-Khénifra":     ["béni mellal","beni mellal","khénifra","azilal"],
-    "Drâa-Tafilalet":            ["errachidia","ouarzazate","zagora","tinghir","midelt"],
+    "BÃ©ni Mellal-KhÃ©nifra":     ["bÃ©ni mellal","beni mellal","khÃ©nifra","azilal"],
+    "DrÃ¢a-Tafilalet":            ["errachidia","ouarzazate","zagora","tinghir","midelt"],
     "Souss-Massa":               ["agadir","tiznit","taroudant","chtouka","inezgane"],
     "Guelmim-Oued Noun":         ["guelmim","tan-tan","sidi ifni","assa"],
-    "Laâyoune-Sakia El Hamra":  ["laâyoune","laayoune","boujdour","tarfaya"],
+    "LaÃ¢youne-Sakia El Hamra":  ["laÃ¢youne","laayoune","boujdour","tarfaya"],
     "Dakhla-Oued Ed-Dahab":     ["dakhla","aousserd"],
 }
 REGIONS_LIST = list(REGIONS.keys())
 
 DOMAINS_FR = {
-    "T101":"Bâtiment & Construction",   "T201":"Génie Civil & Infrastructure",
-    "T301":"Travaux Hydrauliques",       "T401":"Voirie & Réseaux Divers",
-    "T501":"Aménagement & Paysage",      "P801":"Fournitures Bureautiques & IT",
-    "P811":"Matériels & Équipements Médicaux","P821":"Véhicules & Transport",
-    "P831":"Alimentation & Restauration","P841":"Matériaux de Construction",
-    "P851":"Équipements Industriels",    "S901":"Systèmes Informatiques & SI",
-    "S911":"Études & Ingénierie",        "S921":"Formation & Conseil",
-    "S931":"Nettoyage & Maintenance",    "S941":"Sécurité & Gardiennage",
-    "S951":"Communication & Médias",     "S961":"Juridique & Audit",
-    "S971":"Environnement & Développement Durable",
+    "T101":"BÃ¢timent & Construction",   "T201":"GÃ©nie Civil & Infrastructure",
+    "T301":"Travaux Hydrauliques",       "T401":"Voirie & RÃ©seaux Divers",
+    "T501":"AmÃ©nagement & Paysage",      "P801":"Fournitures Bureautiques & IT",
+    "P811":"MatÃ©riels & Ã‰quipements MÃ©dicaux","P821":"VÃ©hicules & Transport",
+    "P831":"Alimentation & Restauration","P841":"MatÃ©riaux de Construction",
+    "P851":"Ã‰quipements Industriels",    "S901":"SystÃ¨mes Informatiques & SI",
+    "S911":"Ã‰tudes & IngÃ©nierie",        "S921":"Formation & Conseil",
+    "S931":"Nettoyage & Maintenance",    "S941":"SÃ©curitÃ© & Gardiennage",
+    "S951":"Communication & MÃ©dias",     "S961":"Juridique & Audit",
+    "S971":"Environnement & DÃ©veloppement Durable",
 }
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # SESSION
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 SESSION_COOKIE = "mb_session"
 COOKIE_TTL     = 60*60*24*30  # 30 days
 
@@ -237,9 +237,9 @@ def get_session_id(request: Request) -> Optional[int]:
 def delete_session(response: Response):
     response.delete_cookie(SESSION_COOKIE)
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # RATE LIMITER
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 _rl: dict = defaultdict(list)
 _rl_lock = threading.Lock()
 
@@ -259,9 +259,9 @@ def rl(request: Request, key: str, max_c=60, win=60):
     if not rate_limit(get_ip(request), key, max_c, win):
         raise HTTPException(429, "Too many requests")
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # SECURITY HEADERS
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 class SecMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, req, call_next):
         resp = await call_next(req)
@@ -279,9 +279,9 @@ class SecMiddleware(BaseHTTPMiddleware):
 METRICS = defaultdict(int)
 def metric(k: str, v=1): METRICS[k] += v
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # DATABASE
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 def get_db():
     Path(DB_PATH).parent.mkdir(parents=True, exist_ok=True)
     db = sqlite3.connect(DB_PATH, check_same_thread=False, timeout=20)
@@ -431,9 +431,9 @@ def init_db():
     db.commit(); db.close()
     logger.info("DB initialized")
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # HELPERS
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 def hash_pw(pw: str) -> str:
     return hashlib.sha256((pw + SECRET_KEY[:16]).encode()).hexdigest()
 
@@ -456,25 +456,25 @@ def classify_region(text: str) -> str:
 def classify_domain(text: str) -> str:
     txt = text.lower()
     kw_map = {
-        "T101":["bâtiment","construction","maçonnerie","béton","btp","بناء"],
-        "T201":["route","autoroute","pont","génie civil","طريق","جسر"],
-        "T301":["hydraulique","eau","assainissement","barrage","ماء","تطهير"],
-        "T401":["réseau","électricité","éclairage","شبكة","كهرباء"],
-        "T501":["aménagement","jardin","espaces verts","تهيئة"],
-        "P801":["informatique","matériel","fournitures","bureau","معلوميات","logiciel"],
-        "P811":["médical","santé","hôpital","équipements médicaux","طبي"],
-        "P821":["véhicule","voiture","transport","bus","سيارة"],
-        "P831":["alimentation","restaurant","traiteur","غذاء","مطعم"],
-        "P841":["matériaux","ciment","fer","acier","مواد البناء"],
-        "P851":["industrie","machine","atelier","صناعة","آلات"],
-        "S901":["système d'information","application","développement","برمجيات"],
-        "S911":["étude","mission","ingénierie","bureau d'études","دراسة"],
-        "S921":["formation","coaching","conseil","consulting","تكوين"],
-        "S931":["nettoyage","entretien","maintenance","نظافة","صيانة"],
-        "S941":["sécurité","gardiennage","surveillance","حراسة"],
-        "S951":["communication","publicité","impression","تواصل","إعلام"],
-        "S961":["juridique","audit","comptabilité","قانوني"],
-        "S971":["environnement","déchets","recyclage","بيئة"],
+        "T101":["bÃ¢timent","construction","maÃ§onnerie","bÃ©ton","btp","Ø¨Ù†Ø§Ø¡"],
+        "T201":["route","autoroute","pont","gÃ©nie civil","Ø·Ø±ÙŠÙ‚","Ø¬Ø³Ø±"],
+        "T301":["hydraulique","eau","assainissement","barrage","Ù…Ø§Ø¡","ØªØ·Ù‡ÙŠØ±"],
+        "T401":["rÃ©seau","Ã©lectricitÃ©","Ã©clairage","Ø´Ø¨ÙƒØ©","ÙƒÙ‡Ø±Ø¨Ø§Ø¡"],
+        "T501":["amÃ©nagement","jardin","espaces verts","ØªÙ‡ÙŠØ¦Ø©"],
+        "P801":["informatique","matÃ©riel","fournitures","bureau","Ù…Ø¹Ù„ÙˆÙ…ÙŠØ§Øª","logiciel"],
+        "P811":["mÃ©dical","santÃ©","hÃ´pital","Ã©quipements mÃ©dicaux","Ø·Ø¨ÙŠ"],
+        "P821":["vÃ©hicule","voiture","transport","bus","Ø³ÙŠØ§Ø±Ø©"],
+        "P831":["alimentation","restaurant","traiteur","ØºØ°Ø§Ø¡","Ù…Ø·Ø¹Ù…"],
+        "P841":["matÃ©riaux","ciment","fer","acier","Ù…ÙˆØ§Ø¯ Ø§Ù„Ø¨Ù†Ø§Ø¡"],
+        "P851":["industrie","machine","atelier","ØµÙ†Ø§Ø¹Ø©","Ø¢Ù„Ø§Øª"],
+        "S901":["systÃ¨me d'information","application","dÃ©veloppement","Ø¨Ø±Ù…Ø¬ÙŠØ§Øª"],
+        "S911":["Ã©tude","mission","ingÃ©nierie","bureau d'Ã©tudes","Ø¯Ø±Ø§Ø³Ø©"],
+        "S921":["formation","coaching","conseil","consulting","ØªÙƒÙˆÙŠÙ†"],
+        "S931":["nettoyage","entretien","maintenance","Ù†Ø¸Ø§ÙØ©","ØµÙŠØ§Ù†Ø©"],
+        "S941":["sÃ©curitÃ©","gardiennage","surveillance","Ø­Ø±Ø§Ø³Ø©"],
+        "S951":["communication","publicitÃ©","impression","ØªÙˆØ§ØµÙ„","Ø¥Ø¹Ù„Ø§Ù…"],
+        "S961":["juridique","audit","comptabilitÃ©","Ù‚Ø§Ù†ÙˆÙ†ÙŠ"],
+        "S971":["environnement","dÃ©chets","recyclage","Ø¨ÙŠØ¦Ø©"],
     }
     for code, words in kw_map.items():
         if any(w in txt for w in words): return code
@@ -536,9 +536,9 @@ def save_tender(t: dict) -> bool:
         except: pass
         return False
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # SCRAPERS
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 SCRAPE_LOG   = []
 SCRAPE_STATS = {"running":False,"active_source":"","total_found":0,"total_saved":0,"errors":0,"started":"","sources_done":[]}
 
@@ -563,9 +563,9 @@ def get_session():
     })
     return s
 
-# ──────────────────────────────────────────────────────
-# SOURCE 1 — marchespublics.gov.ma (PUBLIC)
-# ──────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# SOURCE 1 â€” marchespublics.gov.ma (PUBLIC)
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def parse_pmmp(html: str, tid: str) -> dict:
     from bs4 import BeautifulSoup as BS
     soup = BS(html, 'html.parser')
@@ -588,7 +588,7 @@ def parse_pmmp(html: str, tid: str) -> dict:
             if 6 < len(txt) < 500: objet = txt; break
     if not objet: objet = in_table("objet") or full[:200]
 
-    acheteur   = in_table("maître d") or in_table("organisme") or in_table("acheteur") or ""
+    acheteur   = in_table("maÃ®tre d") or in_table("organisme") or in_table("acheteur") or ""
     date_pub   = extract_date(in_table("publication") or "")
     date_lim   = extract_date(in_table("remise") or in_table("limite") or "")
     montant    = in_table("montant") or ""
@@ -598,15 +598,15 @@ def parse_pmmp(html: str, tid: str) -> dict:
 
     region  = classify_region(acheteur + " " + full[:600])
     domaine = classify_domain(objet + " " + full[:400])
-    statut  = "annule" if any(k in full.lower() for k in ["annulé","infructueux","sans suite"]) else ("expire" if is_expired(date_lim) else "actif")
+    statut  = "annule" if any(k in full.lower() for k in ["annulÃ©","infructueux","sans suite"]) else ("expire" if is_expired(date_lim) else "actif")
 
     return {
-        "id": f"pmmp_{tid}", "objet": objet[:400] or f"Marché #{tid}",
+        "id": f"pmmp_{tid}", "objet": objet[:400] or f"MarchÃ© #{tid}",
         "acheteur": acheteur[:300], "region": region, "domaine": domaine,
         "montant": montant[:80], "date_publication": date_pub, "date_limite": date_lim,
         "description": full[:2000], "statut": statut,
         "url": f"https://www.marchespublics.gov.ma/bdc/entreprise/consultation/show/{tid}",
-        "source_key": "marchespublics", "source_name": "Marchés Publics Maroc",
+        "source_key": "marchespublics", "source_name": "MarchÃ©s Publics Maroc",
         "type_marche": "PUBLIC", "date_extraction": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "score": 90,
     }
@@ -614,7 +614,7 @@ def parse_pmmp(html: str, tid: str) -> dict:
 def scrape_marchespublics() -> list:
     import requests as rq
     new_tenders = []; s = get_session()
-    src = "marchespublics"; slog("▶ Starting", src)
+    src = "marchespublics"; slog("â–¶ Starting", src)
     SCRAPE_STATS["active_source"] = src
 
     SHOW_URLS = [
@@ -701,14 +701,14 @@ def scrape_marchespublics() -> list:
     slog(f"Done: {SCRAPE_STATS['total_saved']} saved", src)
     return new_tenders
 
-# ──────────────────────────────────────────────────────
-# SOURCE 2 — bo.gov.ma (Bulletin Officiel)
-# ──────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# SOURCE 2 â€” bo.gov.ma (Bulletin Officiel)
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def scrape_bo() -> list:
     from bs4 import BeautifulSoup as BS
     import requests as rq
     new_tenders = []; s = get_session()
-    src = "bo_maroc"; slog("▶ Starting", src)
+    src = "bo_maroc"; slog("â–¶ Starting", src)
     SCRAPE_STATS["active_source"] = src
 
     bo_urls = [
@@ -730,7 +730,7 @@ def scrape_bo() -> list:
 
             # Look for tender notices (avis d'appel d'offres)
             patterns = [
-                r'(?:appel[s]?\s+d[\'\s]offre[s]?|avis[s]?\s+d[\'\s]appel|مناقصة|إعلان|طلب عروض)[^\n\.]{10,300}',
+                r'(?:appel[s]?\s+d[\'\s]offre[s]?|avis[s]?\s+d[\'\s]appel|Ù…Ù†Ø§Ù‚ØµØ©|Ø¥Ø¹Ù„Ø§Ù†|Ø·Ù„Ø¨ Ø¹Ø±ÙˆØ¶)[^\n\.]{10,300}',
             ]
             found_notices = []
             for pat in patterns:
@@ -769,9 +769,9 @@ def scrape_bo() -> list:
     slog(f"Done: {len(new_tenders)} new", src)
     return new_tenders
 
-# ──────────────────────────────────────────────────────
-# SOURCE 3 — Semi-public (ONCF, ONEE, OCP, RAM, ONDA, CDG, LYDEC)
-# ──────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# SOURCE 3 â€” Semi-public (ONCF, ONEE, OCP, RAM, ONDA, CDG, LYDEC)
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 SEMI_PUBLIC_SOURCES = {
     "oncf":  {"url":"https://www.oncf.ma/fr/appels-doffres",     "name":"ONCF",   "selectors":[".field-item","article",".view-content",".views-row"]},
     "onee":  {"url":"https://www.onee.ma/fr/appels-doffres",     "name":"ONEE",   "selectors":[".node","article",".field-title"]},
@@ -786,7 +786,7 @@ def scrape_semi_public_source(key: str, cfg: dict) -> list:
     from bs4 import BeautifulSoup as BS
     import requests as rq
     new_tenders = []; s = get_session()
-    slog(f"▶ Starting {cfg['name']}", key)
+    slog(f"â–¶ Starting {cfg['name']}", key)
 
     db = get_db()
     known = set(r[0] for r in db.execute("SELECT id FROM tenders WHERE source_key=?", (key,)).fetchall())
@@ -805,12 +805,12 @@ def scrape_semi_public_source(key: str, cfg: dict) -> list:
             if items: break
         if not items:
             # Fallback: search for tender keywords in text
-            items = soup.find_all(['li','p','div'], string=re.compile(r'appel|offre|tender|marché|مناقصة', re.I))
+            items = soup.find_all(['li','p','div'], string=re.compile(r'appel|offre|tender|marchÃ©|Ù…Ù†Ø§Ù‚ØµØ©', re.I))
 
         for el in items[:40]:
             txt = el.get_text(' ', strip=True)
             if len(txt) < 30: continue
-            if not re.search(r'appel|offre|tender|marché|مناقصة|adjudication', txt, re.I): continue
+            if not re.search(r'appel|offre|tender|marchÃ©|Ù…Ù†Ø§Ù‚ØµØ©|adjudication', txt, re.I): continue
 
             tid = f"{key}_{hashlib.md5(txt[:100].encode()).hexdigest()[:12]}"
             if tid in known: continue
@@ -846,13 +846,13 @@ def scrape_semi_public_source(key: str, cfg: dict) -> list:
         slog(f"Done: {len(new_tenders)} new from {cfg['name']}", key)
 
     except rq.exceptions.SSLError:
-        slog(f"SSL error — retrying without verify", key)
+        slog(f"SSL error â€” retrying without verify", key)
         try:
             r = rq.get(cfg["url"], timeout=20, verify=False, headers={"User-Agent": random.choice(["Mozilla/5.0"])})
             soup = BS(r.text, 'html.parser')
             full = soup.get_text(' ', strip=True)
             # Extract any tender-like content
-            matches = re.findall(r'(?:appel[s]? d[\'\s]offre[s]?|مناقصة)[^\n]{10,200}', full, re.I)
+            matches = re.findall(r'(?:appel[s]? d[\'\s]offre[s]?|Ù…Ù†Ø§Ù‚ØµØ©)[^\n]{10,200}', full, re.I)
             for m in matches[:10]:
                 tid = f"{key}_{hashlib.md5(m.encode()).hexdigest()[:12]}"
                 if tid not in known:
@@ -875,9 +875,9 @@ def scrape_all_semi_public() -> list:
         time.sleep(random.uniform(2, 4))
     return new_tenders
 
-# ──────────────────────────────────────────────────────
-# SOURCE 4 — Press (Le Matin, L'Économiste, La Vie Éco)
-# ──────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# SOURCE 4 â€” Press (Le Matin, L'Ã‰conomiste, La Vie Ã‰co)
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 PRESS_SOURCES = {
     "lematin": {
         "name": "Le Matin", "type": "PRIVATE",
@@ -889,7 +889,7 @@ PRESS_SOURCES = {
         "selectors": [".article-title","h2 a","h3 a",".title a",".announcement-title",".field-title"],
     },
     "leconomiste": {
-        "name": "L'Économiste", "type": "PRIVATE",
+        "name": "L'Ã‰conomiste", "type": "PRIVATE",
         "urls": [
             "https://www.leconomiste.com/appels-doffres",
             "https://www.leconomiste.com/categorie/appels-doffres",
@@ -897,7 +897,7 @@ PRESS_SOURCES = {
         "selectors": ["h2 a","h3 a",".article-title",".content-title",".field-title"],
     },
     "lavieeco": {
-        "name": "La Vie Éco", "type": "PRIVATE",
+        "name": "La Vie Ã‰co", "type": "PRIVATE",
         "urls": [
             "https://www.lavieeco.com/appels-doffres/",
             "https://www.lavieeco.com/categorie/appels-doffres/",
@@ -910,13 +910,13 @@ def scrape_press_source(key: str, cfg: dict) -> list:
     from bs4 import BeautifulSoup as BS
     import requests as rq
     new_tenders = []; s = get_session()
-    slog(f"▶ Starting {cfg['name']}", key)
+    slog(f"â–¶ Starting {cfg['name']}", key)
 
     db = get_db()
     known = set(r[0] for r in db.execute("SELECT id FROM tenders WHERE source_key=?", (key,)).fetchall())
     db.close()
 
-    tender_kw = re.compile(r'appel|offre|avis|adjudication|consultation|soumission|مناقصة|طلب عروض', re.I)
+    tender_kw = re.compile(r'appel|offre|avis|adjudication|consultation|soumission|Ù…Ù†Ø§Ù‚ØµØ©|Ø·Ù„Ø¨ Ø¹Ø±ÙˆØ¶', re.I)
 
     for page_url in cfg["urls"]:
         try:
@@ -952,7 +952,7 @@ def scrape_press_source(key: str, cfg: dict) -> list:
                                     detail_txt = dsoup.get_text(' ', strip=True)[:2000]
                                     if not date_lim: date_lim = extract_date(detail_txt)
                                     # Try to extract acheteur
-                                    for m in re.finditer(r'(?:maître|organisme|acheteur|société|groupe|office|direction)[:\s]+([A-Za-zÀ-ÿ\s]{5,60})', detail_txt, re.I):
+                                    for m in re.finditer(r'(?:maÃ®tre|organisme|acheteur|sociÃ©tÃ©|groupe|office|direction)[:\s]+([A-Za-zÃ€-Ã¿\s]{5,60})', detail_txt, re.I):
                                         acheteur = m.group(1).strip()[:100]; break
                                 time.sleep(0.5)
                             except: pass
@@ -995,9 +995,9 @@ def scrape_all_press() -> list:
         time.sleep(random.uniform(3, 5))
     return new_tenders
 
-# ──────────────────────────────────────────────────────
-# MASTER SCRAPER — runs all sources
-# ──────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# MASTER SCRAPER â€” runs all sources
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 def run_all_scrapers() -> list:
     start = time.time()
     all_new = []
@@ -1006,11 +1006,11 @@ def run_all_scrapers() -> list:
         "errors": 0, "started": datetime.now().strftime("%H:%M:%S"),
         "sources_done": [], "active_source": ""
     })
-    slog("═══ Master scraper started ═══")
+    slog("â•â•â• Master scraper started â•â•â•")
 
     # 1. marchespublics.gov.ma
     try:
-        slog("Phase 1/4 — marchespublics.gov.ma")
+        slog("Phase 1/4 â€” marchespublics.gov.ma")
         new = scrape_marchespublics()
         all_new += new
         SCRAPE_STATS["sources_done"].append(f"marchespublics (+{len(new)})")
@@ -1021,7 +1021,7 @@ def run_all_scrapers() -> list:
 
     # 2. Bulletin Officiel
     try:
-        slog("Phase 2/4 — Bulletin Officiel")
+        slog("Phase 2/4 â€” Bulletin Officiel")
         new = scrape_bo()
         all_new += new
         SCRAPE_STATS["sources_done"].append(f"bo_maroc (+{len(new)})")
@@ -1032,7 +1032,7 @@ def run_all_scrapers() -> list:
 
     # 3. Semi-public (ONCF, ONEE, OCP, etc.)
     try:
-        slog("Phase 3/4 — Semi-public sources (7 sources)")
+        slog("Phase 3/4 â€” Semi-public sources (7 sources)")
         new = scrape_all_semi_public()
         all_new += new
         SCRAPE_STATS["sources_done"].append(f"semi_public (+{len(new)})")
@@ -1041,9 +1041,9 @@ def run_all_scrapers() -> list:
 
     time.sleep(2)
 
-    # 4. Press (Le Matin, L'Économiste, La Vie Éco)
+    # 4. Press (Le Matin, L'Ã‰conomiste, La Vie Ã‰co)
     try:
-        slog("Phase 4/4 — Presse spécialisée (3 sources)")
+        slog("Phase 4/4 â€” Presse spÃ©cialisÃ©e (3 sources)")
         new = scrape_all_press()
         all_new += new
         SCRAPE_STATS["sources_done"].append(f"press (+{len(new)})")
@@ -1080,17 +1080,17 @@ def run_all_scrapers() -> list:
     except: pass
 
     SCRAPE_STATS["running"] = False
-    slog(f"═══ Done in {duration:.0f}s | {SCRAPE_STATS['total_saved']} saved | {SCRAPE_STATS['errors']} errors ═══")
+    slog(f"â•â•â• Done in {duration:.0f}s | {SCRAPE_STATS['total_saved']} saved | {SCRAPE_STATS['errors']} errors â•â•â•")
     metric("scrape_runs")
     return all_new
 
-# ══════════════════════════════════════════════════════
-# WHATSAPP — Meta Cloud API (Official)
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# WHATSAPP â€” Meta Cloud API (Official)
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 WA_API_URL = "https://graph.facebook.com/v19.0"
 
 async def wa_send_text(to_phone: str, message: str) -> bool:
-    """WhatsApp disabled — returns False"""
+    """WhatsApp disabled â€” returns False"""
     return False
     import httpx
     phone = re.sub(r'\D', '', to_phone)
@@ -1149,7 +1149,7 @@ async def wa_send_template(to_phone: str, template_name: str, params: list = Non
     except: return False
 
 async def wa_handle_message(phone: str, message_text: str, msg_type: str = "text"):
-    """Handle incoming WhatsApp message — conversational bot"""
+    """Handle incoming WhatsApp message â€” conversational bot"""
     text = message_text.strip().lower()
     db = get_db()
 
@@ -1170,47 +1170,47 @@ async def wa_handle_message(phone: str, message_text: str, msg_type: str = "text
     response = ""
 
     # Commands
-    if text in ["/start","start","مرحبا","مرحباً","bonjour","سلام"]:
+    if text in ["/start","start","Ù…Ø±Ø­Ø¨Ø§","Ù…Ø±Ø­Ø¨Ø§Ù‹","bonjour","Ø³Ù„Ø§Ù…"]:
         response = (
-            f"🏢 *{BRAND_NAME}*\n"
-            f"_Intelligence des Marchés Maroc_\n\n"
-            f"{'━'*30}\n\n"
-            f"📋 */tenders* — آخر الصفقات\n"
-            f"🔍 */search [كلمة]* — بحث\n"
-            f"📊 */stats* — الإحصائيات\n"
-            f"📍 */region [جهة]* — صفقات الجهة\n"
-            f"💼 */type* — PUBLIC / SEMI / PRIVATE\n"
-            f"❓ */help* — قائمة الأوامر\n\n"
-            f"🌐 {SITE_URL}"
+            f"ðŸ¢ *{BRAND_NAME}*\n"
+            f"_Intelligence des MarchÃ©s Maroc_\n\n"
+            f"{'â”'*30}\n\n"
+            f"ðŸ“‹ */tenders* â€” Ø¢Ø®Ø± Ø§Ù„ØµÙÙ‚Ø§Øª\n"
+            f"ðŸ” */search [ÙƒÙ„Ù…Ø©]* â€” Ø¨Ø­Ø«\n"
+            f"ðŸ“Š */stats* â€” Ø§Ù„Ø¥Ø­ØµØ§Ø¦ÙŠØ§Øª\n"
+            f"ðŸ“ */region [Ø¬Ù‡Ø©]* â€” ØµÙÙ‚Ø§Øª Ø§Ù„Ø¬Ù‡Ø©\n"
+            f"ðŸ’¼ */type* â€” PUBLIC / SEMI / PRIVATE\n"
+            f"â“ */help* â€” Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø£ÙˆØ§Ù…Ø±\n\n"
+            f"ðŸŒ {SITE_URL}"
         )
-    elif text in ["/help","help","مساعدة"]:
+    elif text in ["/help","help","Ù…Ø³Ø§Ø¹Ø¯Ø©"]:
         response = (
-            f"*الأوامر المتاحة:*\n\n"
-            f"• */tenders* — آخر 5 صفقات نشيطة\n"
-            f"• */search بناء* — بحث عن صفقات البناء\n"
-            f"• */public* — الصفقات العمومية فقط\n"
-            f"• */semi* — الشركات شبه العمومية\n"
-            f"• */private* — القطاع الخاص (الجرائد)\n"
-            f"• */stats* — إحصائيات المنصة\n"
-            f"• */region casablanca* — صفقات منطقة\n"
-            f"• */register* — إنشاء حساب\n\n"
-            f"أرسل أي كلمة للبحث مباشرة!"
+            f"*Ø§Ù„Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ù…ØªØ§Ø­Ø©:*\n\n"
+            f"â€¢ */tenders* â€” Ø¢Ø®Ø± 5 ØµÙÙ‚Ø§Øª Ù†Ø´ÙŠØ·Ø©\n"
+            f"â€¢ */search Ø¨Ù†Ø§Ø¡* â€” Ø¨Ø­Ø« Ø¹Ù† ØµÙÙ‚Ø§Øª Ø§Ù„Ø¨Ù†Ø§Ø¡\n"
+            f"â€¢ */public* â€” Ø§Ù„ØµÙÙ‚Ø§Øª Ø§Ù„Ø¹Ù…ÙˆÙ…ÙŠØ© ÙÙ‚Ø·\n"
+            f"â€¢ */semi* â€” Ø§Ù„Ø´Ø±ÙƒØ§Øª Ø´Ø¨Ù‡ Ø§Ù„Ø¹Ù…ÙˆÙ…ÙŠØ©\n"
+            f"â€¢ */private* â€” Ø§Ù„Ù‚Ø·Ø§Ø¹ Ø§Ù„Ø®Ø§Øµ (Ø§Ù„Ø¬Ø±Ø§Ø¦Ø¯)\n"
+            f"â€¢ */stats* â€” Ø¥Ø­ØµØ§Ø¦ÙŠØ§Øª Ø§Ù„Ù…Ù†ØµØ©\n"
+            f"â€¢ */region casablanca* â€” ØµÙÙ‚Ø§Øª Ù…Ù†Ø·Ù‚Ø©\n"
+            f"â€¢ */register* â€” Ø¥Ù†Ø´Ø§Ø¡ Ø­Ø³Ø§Ø¨\n\n"
+            f"Ø£Ø±Ø³Ù„ Ø£ÙŠ ÙƒÙ„Ù…Ø© Ù„Ù„Ø¨Ø­Ø« Ù…Ø¨Ø§Ø´Ø±Ø©!"
         )
-    elif text.startswith("/tenders") or text in ["tenders","صفقات","عروض"]:
+    elif text.startswith("/tenders") or text in ["tenders","ØµÙÙ‚Ø§Øª","Ø¹Ø±ÙˆØ¶"]:
         db = get_db()
         rows = db.execute("SELECT objet,acheteur,date_limite,type_marche,source_name FROM tenders WHERE statut='actif' ORDER BY date_extraction DESC LIMIT 5").fetchall()
         db.close()
         if rows:
-            response = f"📋 *آخر الصفقات النشيطة*\n{'━'*28}\n\n"
+            response = f"ðŸ“‹ *Ø¢Ø®Ø± Ø§Ù„ØµÙÙ‚Ø§Øª Ø§Ù„Ù†Ø´ÙŠØ·Ø©*\n{'â”'*28}\n\n"
             for i, r in enumerate(rows, 1):
-                icon = "🏛" if r["type_marche"] == "PUBLIC" else ("🏢" if r["type_marche"] == "SEMI_PUBLIC" else "📰")
+                icon = "ðŸ›" if r["type_marche"] == "PUBLIC" else ("ðŸ¢" if r["type_marche"] == "SEMI_PUBLIC" else "ðŸ“°")
                 response += f"{i}. {icon} *{r['objet'][:60]}*\n"
-                if r["acheteur"]: response += f"   🏛 {r['acheteur'][:40]}\n"
-                if r["date_limite"]: response += f"   📅 Limite: _{r['date_limite']}_\n"
-                response += f"   📡 _{r['source_name']}_\n\n"
-            response += f"🔗 Voir tout: {SITE_URL}/tenders"
+                if r["acheteur"]: response += f"   ðŸ› {r['acheteur'][:40]}\n"
+                if r["date_limite"]: response += f"   ðŸ“… Limite: _{r['date_limite']}_\n"
+                response += f"   ðŸ“¡ _{r['source_name']}_\n\n"
+            response += f"ðŸ”— Voir tout: {SITE_URL}/tenders"
         else:
-            response = "Aucune opportunité active pour le moment."
+            response = "Aucune opportunitÃ© active pour le moment."
 
     elif text.startswith("/search ") or text.startswith("search "):
         q = text.replace("/search ","").replace("search ","").strip()
@@ -1220,37 +1220,37 @@ async def wa_handle_message(phone: str, message_text: str, msg_type: str = "text
                              (f"%{q}%", f"%{q}%")).fetchall()
             db.close()
             if rows:
-                response = f"🔍 *نتائج: {q}*\n{'━'*28}\n\n"
+                response = f"ðŸ” *Ù†ØªØ§Ø¦Ø¬: {q}*\n{'â”'*28}\n\n"
                 for r in rows:
-                    response += f"• *{r['objet'][:70]}*\n  📅 {r['date_limite'] or '—'}\n\n"
+                    response += f"â€¢ *{r['objet'][:70]}*\n  ðŸ“… {r['date_limite'] or 'â€”'}\n\n"
             else:
-                response = f"لا نتائج لـ _{q}_. جرب كلمة أخرى."
+                response = f"Ù„Ø§ Ù†ØªØ§Ø¦Ø¬ Ù„Ù€ _{q}_. Ø¬Ø±Ø¨ ÙƒÙ„Ù…Ø© Ø£Ø®Ø±Ù‰."
         else:
-            response = "استخدم: /search [كلمة]\nمثال: /search بناء"
+            response = "Ø§Ø³ØªØ®Ø¯Ù…: /search [ÙƒÙ„Ù…Ø©]\nÙ…Ø«Ø§Ù„: /search Ø¨Ù†Ø§Ø¡"
 
-    elif text in ["/public","public","عمومي"]:
+    elif text in ["/public","public","Ø¹Ù…ÙˆÙ…ÙŠ"]:
         db = get_db()
         count = db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif' AND type_marche='PUBLIC'").fetchone()[0]
         rows  = db.execute("SELECT objet,date_limite FROM tenders WHERE statut='actif' AND type_marche='PUBLIC' ORDER BY date_extraction DESC LIMIT 4").fetchall()
         db.close()
-        response = f"🏛 *الصفقات العمومية* ({count} نشيطة)\n{'━'*28}\n\n"
-        for r in rows: response += f"• {r['objet'][:60]}\n  📅 {r['date_limite'] or '—'}\n\n"
+        response = f"ðŸ› *Ø§Ù„ØµÙÙ‚Ø§Øª Ø§Ù„Ø¹Ù…ÙˆÙ…ÙŠØ©* ({count} Ù†Ø´ÙŠØ·Ø©)\n{'â”'*28}\n\n"
+        for r in rows: response += f"â€¢ {r['objet'][:60]}\n  ðŸ“… {r['date_limite'] or 'â€”'}\n\n"
 
-    elif text in ["/semi","semi","شبه عمومي"]:
+    elif text in ["/semi","semi","Ø´Ø¨Ù‡ Ø¹Ù…ÙˆÙ…ÙŠ"]:
         db = get_db()
         count = db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif' AND type_marche='SEMI_PUBLIC'").fetchone()[0]
         rows  = db.execute("SELECT objet,acheteur,date_limite FROM tenders WHERE statut='actif' AND type_marche='SEMI_PUBLIC' ORDER BY date_extraction DESC LIMIT 4").fetchall()
         db.close()
-        response = f"🏢 *شبه العمومية* ({count} نشيطة)\n{'━'*28}\n\n"
-        for r in rows: response += f"• {r['objet'][:60]}\n  🏢 {r['acheteur'][:30]}\n  📅 {r['date_limite'] or '—'}\n\n"
+        response = f"ðŸ¢ *Ø´Ø¨Ù‡ Ø§Ù„Ø¹Ù…ÙˆÙ…ÙŠØ©* ({count} Ù†Ø´ÙŠØ·Ø©)\n{'â”'*28}\n\n"
+        for r in rows: response += f"â€¢ {r['objet'][:60]}\n  ðŸ¢ {r['acheteur'][:30]}\n  ðŸ“… {r['date_limite'] or 'â€”'}\n\n"
 
-    elif text in ["/private","private","خاص","الجرائد"]:
+    elif text in ["/private","private","Ø®Ø§Øµ","Ø§Ù„Ø¬Ø±Ø§Ø¦Ø¯"]:
         db = get_db()
         count = db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif' AND type_marche='PRIVATE'").fetchone()[0]
         rows  = db.execute("SELECT objet,source_name,date_limite FROM tenders WHERE statut='actif' AND type_marche='PRIVATE' ORDER BY date_extraction DESC LIMIT 4").fetchall()
         db.close()
-        response = f"📰 *القطاع الخاص* ({count} نشيطة)\n{'━'*28}\n\n"
-        for r in rows: response += f"• {r['objet'][:60]}\n  📰 {r['source_name']}\n  📅 {r['date_limite'] or '—'}\n\n"
+        response = f"ðŸ“° *Ø§Ù„Ù‚Ø·Ø§Ø¹ Ø§Ù„Ø®Ø§Øµ* ({count} Ù†Ø´ÙŠØ·Ø©)\n{'â”'*28}\n\n"
+        for r in rows: response += f"â€¢ {r['objet'][:60]}\n  ðŸ“° {r['source_name']}\n  ðŸ“… {r['date_limite'] or 'â€”'}\n\n"
 
     elif text.startswith("/region ") or text.startswith("region "):
         q = text.replace("/region ","").replace("region ","").strip()
@@ -1258,13 +1258,13 @@ async def wa_handle_message(phone: str, message_text: str, msg_type: str = "text
         matched = db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif' AND region LIKE ?", (f"%{q}%",)).fetchone()[0]
         rows = db.execute("SELECT objet,date_limite FROM tenders WHERE statut='actif' AND region LIKE ? LIMIT 4", (f"%{q}%",)).fetchall()
         db.close()
-        response = f"📍 *{q}* — {matched} صفقة\n{'━'*28}\n\n"
+        response = f"ðŸ“ *{q}* â€” {matched} ØµÙÙ‚Ø©\n{'â”'*28}\n\n"
         if rows:
-            for r in rows: response += f"• {r['objet'][:60]}\n  📅 {r['date_limite'] or '—'}\n\n"
+            for r in rows: response += f"â€¢ {r['objet'][:60]}\n  ðŸ“… {r['date_limite'] or 'â€”'}\n\n"
         else:
-            response += "لا توجد صفقات في هذه المنطقة حالياً."
+            response += "Ù„Ø§ ØªÙˆØ¬Ø¯ ØµÙÙ‚Ø§Øª ÙÙŠ Ù‡Ø°Ù‡ Ø§Ù„Ù…Ù†Ø·Ù‚Ø© Ø­Ø§Ù„ÙŠØ§Ù‹."
 
-    elif text in ["/stats","stats","إحصائيات"]:
+    elif text in ["/stats","stats","Ø¥Ø­ØµØ§Ø¦ÙŠØ§Øª"]:
         db = get_db()
         total   = db.execute("SELECT COUNT(*) FROM tenders").fetchone()[0]
         active  = db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif'").fetchone()[0]
@@ -1273,26 +1273,26 @@ async def wa_handle_message(phone: str, message_text: str, msg_type: str = "text
         private = db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif' AND type_marche='PRIVATE'").fetchone()[0]
         db.close()
         response = (
-            f"📊 *{BRAND_NAME} — Statistiques*\n{'━'*28}\n\n"
-            f"✅ Actives:    *{active}*\n"
-            f"🏛 Public:     *{public}*\n"
-            f"🏢 Semi-pub:   *{semi}*\n"
-            f"📰 Privé:      *{private}*\n"
-            f"📦 Total:      *{total}*\n\n"
-            f"🔄 16 sources surveillées\n"
-            f"⏰ Mise à jour toutes les {SCRAPE_HOURS}h\n\n"
-            f"🌐 {SITE_URL}"
+            f"ðŸ“Š *{BRAND_NAME} â€” Statistiques*\n{'â”'*28}\n\n"
+            f"âœ… Actives:    *{active}*\n"
+            f"ðŸ› Public:     *{public}*\n"
+            f"ðŸ¢ Semi-pub:   *{semi}*\n"
+            f"ðŸ“° PrivÃ©:      *{private}*\n"
+            f"ðŸ“¦ Total:      *{total}*\n\n"
+            f"ðŸ”„ 16 sources surveillÃ©es\n"
+            f"â° Mise Ã  jour toutes les {SCRAPE_HOURS}h\n\n"
+            f"ðŸŒ {SITE_URL}"
         )
-    elif text in ["/register","register","تسجيل","inscription"]:
+    elif text in ["/register","register","ØªØ³Ø¬ÙŠÙ„","inscription"]:
         response = (
-            f"🆓 *Créer votre compte*\n{'━'*28}\n\n"
+            f"ðŸ†“ *CrÃ©er votre compte*\n{'â”'*28}\n\n"
             f"Inscrivez-vous gratuitement sur:\n"
-            f"👉 {SITE_URL}/register\n\n"
-            f"✅ 10 alertes gratuites/mois\n"
-            f"✅ Filtres par région & secteur\n"
-            f"✅ Alertes Email + WhatsApp\n\n"
+            f"ðŸ‘‰ {SITE_URL}/register\n\n"
+            f"âœ… 10 alertes gratuites/mois\n"
+            f"âœ… Filtres par rÃ©gion & secteur\n"
+            f"âœ… Alertes Email + WhatsApp\n\n"
             f"Pour le plan *Pro* (299 DH/mois):\n"
-            f"📞 Contactez-nous directement"
+            f"ðŸ“ž Contactez-nous directement"
         )
     else:
         # Free search for any text
@@ -1302,19 +1302,19 @@ async def wa_handle_message(phone: str, message_text: str, msg_type: str = "text
                              (f"%{text}%", f"%{text}%")).fetchall()
             db.close()
             if rows:
-                response = f"🔍 *نتائج: '{text}'*\n\n"
+                response = f"ðŸ” *Ù†ØªØ§Ø¦Ø¬: '{text}'*\n\n"
                 for r in rows:
-                    icon = "🏛" if r["type_marche"]=="PUBLIC" else ("🏢" if r["type_marche"]=="SEMI_PUBLIC" else "📰")
-                    response += f"{icon} {r['objet'][:70]}\n📅 {r['date_limite'] or '—'}\n\n"
-                response += f"🔗 {SITE_URL}/tenders?q={text}"
+                    icon = "ðŸ›" if r["type_marche"]=="PUBLIC" else ("ðŸ¢" if r["type_marche"]=="SEMI_PUBLIC" else "ðŸ“°")
+                    response += f"{icon} {r['objet'][:70]}\nðŸ“… {r['date_limite'] or 'â€”'}\n\n"
+                response += f"ðŸ”— {SITE_URL}/tenders?q={text}"
             else:
                 response = (
-                    f"لم أجد نتائج لـ _{text}_\n\n"
-                    f"أرسل */help* لقائمة الأوامر\n"
-                    f"أو تصفح: {SITE_URL}/tenders"
+                    f"Ù„Ù… Ø£Ø¬Ø¯ Ù†ØªØ§Ø¦Ø¬ Ù„Ù€ _{text}_\n\n"
+                    f"Ø£Ø±Ø³Ù„ */help* Ù„Ù‚Ø§Ø¦Ù…Ø© Ø§Ù„Ø£ÙˆØ§Ù…Ø±\n"
+                    f"Ø£Ùˆ ØªØµÙØ­: {SITE_URL}/tenders"
                 )
         else:
-            response = f"أرسل */help* لرؤية الأوامر المتاحة."
+            response = f"Ø£Ø±Ø³Ù„ */help* Ù„Ø±Ø¤ÙŠØ© Ø§Ù„Ø£ÙˆØ§Ù…Ø± Ø§Ù„Ù…ØªØ§Ø­Ø©."
 
     # Update session
     try:
@@ -1327,9 +1327,9 @@ async def wa_handle_message(phone: str, message_text: str, msg_type: str = "text
     if response:
         await wa_send_text(phone, response)
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # NOTIFICATIONS
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 async def send_email(to: str, subject: str, body: str) -> bool:
     if not to: return False
     if MAILGUN_KEY and MAILGUN_DOMAIN:
@@ -1397,26 +1397,26 @@ async def notify_all(new_tenders: list):
         channels = json.loads(c.get("notif_channels") or '["email"]')
         for t in matching:
             objet = t.get("objet","")[:70]
-            type_label = {"PUBLIC":"🏛 عمومي","SEMI_PUBLIC":"🏢 شبه عمومي","PRIVATE":"📰 خاص"}.get(t.get("type_marche",""),"")
+            type_label = {"PUBLIC":"ðŸ› Ø¹Ù…ÙˆÙ…ÙŠ","SEMI_PUBLIC":"ðŸ¢ Ø´Ø¨Ù‡ Ø¹Ù…ÙˆÙ…ÙŠ","PRIVATE":"ðŸ“° Ø®Ø§Øµ"}.get(t.get("type_marche",""),"")
             if "email" in channels and c.get("email"):
                 body = f"""<div dir="rtl" style="font-family:Georgia,serif;max-width:600px;margin:0 auto;background:#0d0d0d;color:#fff;border-radius:12px;overflow:hidden">
 <div style="background:#1a1a1a;padding:24px;border-bottom:1px solid #2a2a2a">
   <div style="font-size:11px;color:#888;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px">MODERN BUSINESS</div>
-  <div style="font-size:18px;font-weight:700;color:#f5c842">Nouvelle Opportunité</div>
+  <div style="font-size:18px;font-weight:700;color:#f5c842">Nouvelle OpportunitÃ©</div>
 </div>
 <div style="padding:24px">
   <h2 style="font-size:16px;color:#fff;margin:0 0 16px;line-height:1.4">{objet}</h2>
   <table style="width:100%;font-size:12px;border-collapse:collapse">
     <tr><td style="padding:6px 0;color:#888;width:35%">Type</td><td style="color:#f5c842">{type_label}</td></tr>
-    <tr><td style="padding:6px 0;color:#888">Organisme</td><td style="color:#fff">{t.get('acheteur','—')[:50]}</td></tr>
-    <tr><td style="padding:6px 0;color:#888">Région</td><td style="color:#fff">{t.get('region','—')}</td></tr>
-    <tr><td style="padding:6px 0;color:#888">Source</td><td style="color:#888">{t.get('source_name','—')}</td></tr>
-    <tr><td style="padding:6px 0;color:#888">Date limite</td><td style="color:#ef4444;font-weight:700">{t.get('date_limite','—')}</td></tr>
+    <tr><td style="padding:6px 0;color:#888">Organisme</td><td style="color:#fff">{t.get('acheteur','â€”')[:50]}</td></tr>
+    <tr><td style="padding:6px 0;color:#888">RÃ©gion</td><td style="color:#fff">{t.get('region','â€”')}</td></tr>
+    <tr><td style="padding:6px 0;color:#888">Source</td><td style="color:#888">{t.get('source_name','â€”')}</td></tr>
+    <tr><td style="padding:6px 0;color:#888">Date limite</td><td style="color:#ef4444;font-weight:700">{t.get('date_limite','â€”')}</td></tr>
   </table>
-  <a href="{SITE_URL}/tender/{t.get('id','')}" style="display:inline-block;margin-top:20px;padding:10px 24px;background:#f5c842;color:#000;border-radius:6px;text-decoration:none;font-size:13px;font-weight:700">Voir l'opportunité →</a>
+  <a href="{SITE_URL}/tender/{t.get('id','')}" style="display:inline-block;margin-top:20px;padding:10px 24px;background:#f5c842;color:#000;border-radius:6px;text-decoration:none;font-size:13px;font-weight:700">Voir l'opportunitÃ© â†’</a>
 </div>
 <div style="padding:16px 24px;border-top:1px solid #2a2a2a;font-size:10px;color:#555;text-align:center">
-  {BRAND_NAME} — <a href="{SITE_URL}/unsubscribe?email={c.get('email','')}" style="color:#555">Se désabonner</a>
+  {BRAND_NAME} â€” <a href="{SITE_URL}/unsubscribe?email={c.get('email','')}" style="color:#555">Se dÃ©sabonner</a>
 </div></div>"""
                 ok = await send_email(c["email"], f"[{BRAND_NAME}] {objet}", body)
                 if ok:
@@ -1428,21 +1428,21 @@ async def notify_all(new_tenders: list):
                         db.commit(); db.close()
                     except: pass
             if "whatsapp" in channels and c.get("whatsapp"):
-                msg = (f"🏢 *{BRAND_NAME}*\n{type_label}\n\n"
+                msg = (f"ðŸ¢ *{BRAND_NAME}*\n{type_label}\n\n"
                        f"*{objet}*\n\n"
-                       f"🏛 {t.get('acheteur','—')[:50]}\n"
-                       f"📍 {t.get('region','—')}\n"
-                       f"📰 {t.get('source_name','')}\n"
-                       f"📅 Limite: *{t.get('date_limite','—')}*\n\n"
-                       f"🔗 {SITE_URL}/tender/{t.get('id','')}")
+                       f"ðŸ› {t.get('acheteur','â€”')[:50]}\n"
+                       f"ðŸ“ {t.get('region','â€”')}\n"
+                       f"ðŸ“° {t.get('source_name','')}\n"
+                       f"ðŸ“… Limite: *{t.get('date_limite','â€”')}*\n\n"
+                       f"ðŸ”— {SITE_URL}/tender/{t.get('id','')}")
                 await wa_send_text(c["whatsapp"], msg)
             if "telegram" in channels and c.get("telegram"):
-                msg = (f"🏢 <b>{BRAND_NAME}</b> | {type_label}\n\n"
+                msg = (f"ðŸ¢ <b>{BRAND_NAME}</b> | {type_label}\n\n"
                        f"<b>{objet}</b>\n\n"
-                       f"🏛 {t.get('acheteur','—')[:50]}\n"
-                       f"📍 {t.get('region','—')}\n"
-                       f"📅 <b>{t.get('date_limite','—')}</b>\n\n"
-                       f"🔗 {SITE_URL}/tender/{t.get('id','')}")
+                       f"ðŸ› {t.get('acheteur','â€”')[:50]}\n"
+                       f"ðŸ“ {t.get('region','â€”')}\n"
+                       f"ðŸ“… <b>{t.get('date_limite','â€”')}</b>\n\n"
+                       f"ðŸ”— {SITE_URL}/tender/{t.get('id','')}")
                 await send_telegram(c["telegram"], msg)
             await asyncio.sleep(0.2)
 
@@ -1461,9 +1461,9 @@ async def scheduler_loop():
             SCRAPE_STATS["running"] = False; logger.error(f"[scheduler] {e}")
         await asyncio.sleep(600)
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # AI AGENT
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 async def ai_heal() -> dict:
     fixes = []
     try:
@@ -1494,9 +1494,9 @@ async def ai_heal() -> dict:
     except Exception as e:
         return {"status":"error","error":str(e)}
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # FASTAPI APP
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 @asynccontextmanager
 async def lifespan(app):
     for d in ["static","data","templates"]:
@@ -1520,13 +1520,13 @@ async def exc_handler(request: Request, exc: Exception):
             import sentry_sdk; sentry_sdk.capture_exception(exc)
         except: pass
     return HTMLResponse(open("templates/_error.html").read().replace("{{code}}","500").replace("{{msg}}","Erreur serveur") if os.path.exists("templates/_error.html") else
-        '<html><body style="background:#0d0d0d;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:Georgia"><div style="text-align:center"><div style="font-size:48px;margin-bottom:16px">⚠</div><h2>Erreur serveur</h2><p style="color:#888;margin:12px 0">L\'erreur a été enregistrée automatiquement.</p><a href="/" style="color:#f5c842">Retour →</a></div></body></html>',
+        '<html><body style="background:#0d0d0d;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:Georgia"><div style="text-align:center"><div style="font-size:48px;margin-bottom:16px">âš </div><h2>Erreur serveur</h2><p style="color:#888;margin:12px 0">L\'erreur a Ã©tÃ© enregistrÃ©e automatiquement.</p><a href="/" style="color:#f5c842">Retour â†’</a></div></body></html>',
         status_code=500)
 
 @app.exception_handler(404)
 async def not_found(request: Request, exc):
     return HTMLResponse(
-        '<html><body style="background:#0d0d0d;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:Georgia"><div style="text-align:center"><div style="font-size:48px;margin-bottom:16px">404</div><h2 style="color:#f5c842">Page introuvable</h2><p style="color:#888;margin:12px 0">Cette page n\'existe pas.</p><a href="/" style="color:#f5c842">Retour →</a></div></body></html>',
+        '<html><body style="background:#0d0d0d;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:Georgia"><div style="text-align:center"><div style="font-size:48px;margin-bottom:16px">404</div><h2 style="color:#f5c842">Page introuvable</h2><p style="color:#888;margin:12px 0">Cette page n\'existe pas.</p><a href="/" style="color:#f5c842">Retour â†’</a></div></body></html>',
         status_code=404)
 
 try: os.makedirs("static",exist_ok=True); app.mount("/static",StaticFiles(directory="static"),name="static")
@@ -1539,9 +1539,9 @@ def render(req, tpl, ctx={}):
     try: return templates.TemplateResponse(tpl, {"request":req,"BRAND":BRAND_NAME,"BRAND_TAGLINE":BRAND_TAGLINE,"SITE_URL":SITE_URL,"PLANS":PLANS,"DOMAINS_FR":DOMAINS_FR,"REGIONS_LIST":REGIONS_LIST,**ctx})
     except Exception as e: log_error(f"render:{tpl}",str(e),traceback.format_exc()); raise
 
-# ══════════════════════════════════════════════════════
-# ROUTES — PUBLIC
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# ROUTES â€” PUBLIC
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     db = get_db()
@@ -1628,7 +1628,7 @@ async def contact_post(request: Request, nom:str=Form(""), email:str=Form(""), p
         db.commit()
     finally: db.close()
     # Notify admin
-    asyncio.create_task(send_email(GMAIL_USER, f"[{BRAND_NAME}] New Contact: {nom} — {plan}",
+    asyncio.create_task(send_email(GMAIL_USER, f"[{BRAND_NAME}] New Contact: {nom} â€” {plan}",
         f"<b>Nom:</b> {nom}<br><b>Email:</b> {email}<br><b>Phone:</b> {phone}<br><b>Entreprise:</b> {entreprise}<br><b>Plan:</b> {plan}<br><b>Message:</b> {message}"))
     c=get_contractor(request)
     return render(request,"contact.html",{"contractor":c,"success":True,"error":""})
@@ -1644,11 +1644,11 @@ async def unsubscribe(request: Request, email:str=""):
         db=get_db()
         try: db.execute("UPDATE contractors SET actif=0 WHERE email=?",(email.lower(),)); db.commit()
         finally: db.close()
-    return HTMLResponse(f'<html lang="fr"><body style="background:#0d0d0d;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:Georgia;text-align:center"><div><h2 style="color:#f5c842">Désabonnement effectué</h2><p style="color:#888;margin:12px 0">Vous ne recevrez plus de messages.</p><a href="/" style="color:#f5c842">Retour →</a></div></body></html>')
+    return HTMLResponse(f'<html lang="fr"><body style="background:#0d0d0d;color:#fff;display:flex;align-items:center;justify-content:center;height:100vh;font-family:Georgia;text-align:center"><div><h2 style="color:#f5c842">DÃ©sabonnement effectuÃ©</h2><p style="color:#888;margin:12px 0">Vous ne recevrez plus de messages.</p><a href="/" style="color:#f5c842">Retour â†’</a></div></body></html>')
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # AUTH
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 @app.get("/register", response_class=HTMLResponse)
 async def reg_get(request: Request):
     return render(request,"register.html",{"error":"","success":""})
@@ -1657,14 +1657,14 @@ async def reg_get(request: Request):
 async def reg_post(request: Request, nom:str=Form(""), entreprise:str=Form(""), email:str=Form(""), phone:str=Form(""), whatsapp:str=Form(""), password:str=Form(""), domaines:list=Form([]), regions:list=Form([]), type_filters:list=Form(["PUBLIC","SEMI_PUBLIC","PRIVATE"])):
     rl(request,"register",8,3600)
     error=""
-    if not nom or not email or not password: error="Tous les champs obligatoires (*) doivent être remplis"
-    elif len(password)<8: error="Le mot de passe doit contenir au moins 8 caractères"
+    if not nom or not email or not password: error="Tous les champs obligatoires (*) doivent Ãªtre remplis"
+    elif len(password)<8: error="Le mot de passe doit contenir au moins 8 caractÃ¨res"
     elif not re.match(r'^[^@]+@[^@]+\.[^@]+$',email): error="Adresse email invalide"
     else:
         db=get_db()
         try:
             ex=db.execute("SELECT id FROM contractors WHERE email=?",(email.lower(),)).fetchone()
-            if ex: error="Cette adresse email est déjà utilisée"
+            if ex: error="Cette adresse email est dÃ©jÃ  utilisÃ©e"
             else:
                 wa_clean = re.sub(r'\D','',whatsapp or "")
                 if wa_clean.startswith('0'): wa_clean='212'+wa_clean[1:]
@@ -1679,10 +1679,10 @@ async def reg_post(request: Request, nom:str=Form(""), entreprise:str=Form(""), 
                 metric("registrations")
                 # Welcome email
                 asyncio.create_task(send_email(email,f"Bienvenue sur {BRAND_NAME} !",
-                    f'<div dir="ltr" style="font-family:Georgia;background:#0d0d0d;color:#fff;padding:32px;border-radius:12px"><h2 style="color:#f5c842">Bienvenue, {nom}!</h2><p style="color:#aaa">Votre compte {BRAND_NAME} est prêt.</p><a href="{SITE_URL}/dashboard" style="display:inline-block;margin-top:16px;padding:12px 24px;background:#f5c842;color:#000;border-radius:6px;font-weight:700;text-decoration:none">Accéder →</a></div>'))
+                    f'<div dir="ltr" style="font-family:Georgia;background:#0d0d0d;color:#fff;padding:32px;border-radius:12px"><h2 style="color:#f5c842">Bienvenue, {nom}!</h2><p style="color:#aaa">Votre compte {BRAND_NAME} est prÃªt.</p><a href="{SITE_URL}/dashboard" style="display:inline-block;margin-top:16px;padding:12px 24px;background:#f5c842;color:#000;border-radius:6px;font-weight:700;text-decoration:none">AccÃ©der â†’</a></div>'))
                 # Welcome WhatsApp
                 if wa_clean:
-                    asyncio.create_task(wa_send_text(wa_clean,f"🏢 *{BRAND_NAME}*\n\nBienvenue {nom}! Votre compte est activé.\n\n✅ Envoyez */tenders* pour voir les dernières opportunités.\n🌐 {SITE_URL}"))
+                    asyncio.create_task(wa_send_text(wa_clean,f"ðŸ¢ *{BRAND_NAME}*\n\nBienvenue {nom}! Votre compte est activÃ©.\n\nâœ… Envoyez */tenders* pour voir les derniÃ¨res opportunitÃ©s.\nðŸŒ {SITE_URL}"))
                 resp=RedirectResponse("/dashboard",status_code=302)
                 create_session(resp,cid); return resp
         except Exception as e: error=f"Erreur d'inscription: {e}"
@@ -1719,9 +1719,9 @@ async def logout(request: Request):
     resp=RedirectResponse("/",status_code=302)
     delete_session(resp); return resp
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # DASHBOARD
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request):
     c=get_contractor(request)
@@ -1758,11 +1758,11 @@ async def settings_post(request: Request, nom:str=Form(""), entreprise:str=Form(
                     json.dumps(domaines),json.dumps(regions),json.dumps(type_filters),json.dumps(notif_channels),c["id"]))
         if password and password_new:
             if not check_pw(password,c.get("password_hash","")): error="Mot de passe actuel incorrect"
-            elif len(password_new)<8: error="Le nouveau mot de passe doit contenir 8 caractères minimum"
+            elif len(password_new)<8: error="Le nouveau mot de passe doit contenir 8 caractÃ¨res minimum"
             else: db.execute("UPDATE contractors SET password_hash=? WHERE id=?",(hash_pw(password_new),c["id"]))
         db.commit(); c=get_contractor(request)
     finally: db.close()
-    return render(request,"settings.html",{"c":c,"success":"Paramètres sauvegardés ✓" if not error else "","error":error})
+    return render(request,"settings.html",{"c":c,"success":"ParamÃ¨tres sauvegardÃ©s âœ“" if not error else "","error":error})
 
 @app.get("/saved", response_class=HTMLResponse)
 async def saved_page(request: Request):
@@ -1774,15 +1774,15 @@ async def saved_page(request: Request):
     finally: db.close()
     return render(request,"saved.html",{"c":c,"saved":saved})
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # API
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 @app.post("/api/save")
 async def api_save(request: Request, tender_id:str=Form("")):
     c=get_contractor(request)
     if not c: return JSONResponse({"ok":False,"error":"Login required"},401)
     limit=PLANS.get(c.get("plan","free"),{}).get("limits",{}).get("saves",5)
-    if c.get("saves_count",0)>=limit: return JSONResponse({"ok":False,"error":"Limite atteinte — upgrade Pro"},403)
+    if c.get("saves_count",0)>=limit: return JSONResponse({"ok":False,"error":"Limite atteinte â€” upgrade Pro"},403)
     if not re.match(r'^[\w\-]{1,80}$',tender_id): raise HTTPException(400)
     db=get_db()
     try:
@@ -1880,9 +1880,9 @@ async def api_stats():
         })
     finally: db.close()
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # WHATSAPP WEBHOOK
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 @app.get("/whatsapp/webhook")
 async def wa_verify(request: Request):
     """Meta webhook verification"""
@@ -1891,7 +1891,7 @@ async def wa_verify(request: Request):
     token     = params.get("hub.verify_token")
     challenge = params.get("hub.challenge")
     if mode == "subscribe" and token == WA_VERIFY_TOKEN:
-        logger.info("[WhatsApp] Webhook verified ✓")
+        logger.info("[WhatsApp] Webhook verified âœ“")
         return Response(content=challenge, media_type="text/plain")
     raise HTTPException(403, "Verification failed")
 
@@ -1926,9 +1926,9 @@ async def wa_webhook(request: Request):
         logger.error(f"[WhatsApp webhook] {e}")
     return JSONResponse({"status": "ok"})
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # TELEGRAM WEBHOOK
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 @app.post("/telegram/webhook")
 async def tg_webhook(request: Request):
     try:
@@ -1938,16 +1938,16 @@ async def tg_webhook(request: Request):
         text=msg.get("text","").strip()
         if not chat_id: return {"ok":True}
         if text in ["/start","start"]:
-            await send_telegram(chat_id,f"🏢 <b>{BRAND_NAME}</b>\nIntelligence des Marchés Maroc\n\n/tenders — Dernières opportunités\n/stats — Statistiques\n/public /semi /private\n\n🌐 {SITE_URL}")
+            await send_telegram(chat_id,f"ðŸ¢ <b>{BRAND_NAME}</b>\nIntelligence des MarchÃ©s Maroc\n\n/tenders â€” DerniÃ¨res opportunitÃ©s\n/stats â€” Statistiques\n/public /semi /private\n\nðŸŒ {SITE_URL}")
         elif text=="/tenders":
             db=get_db()
             try: rows=db.execute("SELECT objet,acheteur,date_limite,type_marche FROM tenders WHERE statut='actif' ORDER BY date_extraction DESC LIMIT 5").fetchall()
             finally: db.close()
-            resp=f"📋 <b>Opportunités — {BRAND_NAME}</b>\n\n"
+            resp=f"ðŸ“‹ <b>OpportunitÃ©s â€” {BRAND_NAME}</b>\n\n"
             for r in rows:
-                icon="🏛" if r["type_marche"]=="PUBLIC" else ("🏢" if r["type_marche"]=="SEMI_PUBLIC" else "📰")
-                resp+=f"{icon} {r['objet'][:60]}\n📅 {r['date_limite'] or '—'}\n\n"
-            resp+=f"🔗 {SITE_URL}/tenders"
+                icon="ðŸ›" if r["type_marche"]=="PUBLIC" else ("ðŸ¢" if r["type_marche"]=="SEMI_PUBLIC" else "ðŸ“°")
+                resp+=f"{icon} {r['objet'][:60]}\nðŸ“… {r['date_limite'] or 'â€”'}\n\n"
+            resp+=f"ðŸ”— {SITE_URL}/tenders"
             await send_telegram(chat_id,resp)
         elif text=="/stats":
             db=get_db()
@@ -1957,13 +1957,13 @@ async def tg_webhook(request: Request):
                 semi=db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif' AND type_marche='SEMI_PUBLIC'").fetchone()[0]
                 priv=db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif' AND type_marche='PRIVATE'").fetchone()[0]
             finally: db.close()
-            await send_telegram(chat_id,f"📊 <b>{BRAND_NAME}</b>\n\n🏛 Public: <b>{pub}</b>\n🏢 Semi-pub: <b>{semi}</b>\n📰 Privé: <b>{priv}</b>\n\n✅ Total actif: <b>{active}</b>\n🌐 {SITE_URL}")
+            await send_telegram(chat_id,f"ðŸ“Š <b>{BRAND_NAME}</b>\n\nðŸ› Public: <b>{pub}</b>\nðŸ¢ Semi-pub: <b>{semi}</b>\nðŸ“° PrivÃ©: <b>{priv}</b>\n\nâœ… Total actif: <b>{active}</b>\nðŸŒ {SITE_URL}")
     except Exception as e: logger.error(f"[telegram] {e}")
     return {"ok":True}
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # ADMIN
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 def check_admin(pwd):
     if pwd!=ADMIN_PASS: metric("admin_failed"); raise HTTPException(403)
 
@@ -2042,7 +2042,7 @@ async def broadcast(pwd:str=Form(""), message:str=Form(""), channel:str=Form("em
     sent=0
     for c in ctors:
         if channel in ("email","all") and c.get("email"):
-            body=f'<div style="font-family:Georgia;background:#0d0d0d;color:#fff;padding:28px;border-radius:12px"><p style="color:#f5c842;font-weight:700">{BRAND_NAME}</p>{message}<hr style="border-color:#2a2a2a;margin:20px 0"><p style="font-size:10px;color:#555"><a href="{SITE_URL}/unsubscribe?email={c["email"]}" style="color:#555">Se désabonner</a></p></div>'
+            body=f'<div style="font-family:Georgia;background:#0d0d0d;color:#fff;padding:28px;border-radius:12px"><p style="color:#f5c842;font-weight:700">{BRAND_NAME}</p>{message}<hr style="border-color:#2a2a2a;margin:20px 0"><p style="font-size:10px;color:#555"><a href="{SITE_URL}/unsubscribe?email={c["email"]}" style="color:#555">Se dÃ©sabonner</a></p></div>'
             await send_email(c["email"],f"[{BRAND_NAME}] Message",body); sent+=1
         if channel in ("whatsapp","all") and c.get("whatsapp"):
             await wa_send_text(c["whatsapp"],message); sent+=1
@@ -2063,9 +2063,9 @@ async def cleanup(pwd:str=""):
     finally: db.close()
     return JSONResponse({"ok":True,"remaining":remaining})
 
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # MONITORING & SEO
-# ══════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 @app.get("/health")
 async def health():
     db=get_db()
@@ -2103,7 +2103,7 @@ async def robots():
     return Response(f"User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /dashboard\nDisallow: /api\nSitemap: {SITE_URL}/sitemap.xml",media_type="text/plain")
 
 
-# ── CONSENT (added) ──
+# â”€â”€ CONSENT (added) â”€â”€
 @app.post("/api/consent")
 async def api_consent(request: Request):
     c = get_contractor(request)
@@ -2112,3 +2112,4 @@ async def api_consent(request: Request):
         try: db.execute("UPDATE contractors SET cookie_consent=1 WHERE id=?", (c["id"],)); db.commit()
         finally: db.close()
     return JSONResponse({"ok": True})
+
