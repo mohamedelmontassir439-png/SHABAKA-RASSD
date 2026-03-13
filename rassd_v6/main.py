@@ -632,6 +632,7 @@ async def lifespan(app):
     try: init_db()
     except Exception as e: logger.error(f"[init_db] {e}")
     asyncio.create_task(scheduler_loop())
+    asyncio.create_task(digest_scheduler())
     logger.info(f"{BRAND} v2.0 started")
     yield
 
@@ -1149,3 +1150,331 @@ async def sitemap():
 async def robots():
     return Response(f"User-agent: *\nAllow: /\nDisallow: /admin\nSitemap: {SITE_URL}/sitemap.xml",
                     media_type="text/plain")
+
+
+# ══════════════════════════════════════════════════════
+# NOTIFICATION SYSTEM
+# ══════════════════════════════════════════════════════
+
+async def send_telegram_msg(chat_id: str, text: str):
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=10) as client:
+            await client.post(
+                f"https://api.telegram.org/bot{TELEGRAM_BOT}/sendMessage",
+                json={"chat_id": chat_id, "text": text, "parse_mode": "HTML"}
+            )
+    except Exception as e:
+        logger.error(f"[tg_notif] {e}")
+
+async def notify_all_members(new_tenders: list):
+    """Called after scrape — send notifications to all members"""
+    if not new_tenders:
+        return
+    db = get_db()
+    try:
+        members = [dict(r) for r in db.execute(
+            "SELECT email, nom, telegram FROM contractors WHERE actif=1"
+        ).fetchall()]
+    finally:
+        db.close()
+
+    # Build digest
+    lines = []
+    for t in new_tenders[:10]:
+        lines.append(f"• <b>{t['objet'][:60]}</b>\n  📍 {t.get('region','—')} | ⏰ {t.get('date_limite','—')}\n  🔗 {t.get('url','')}")
+
+    tg_msg = (
+        f"🏛 <b>Modern Business</b> — {len(new_tenders)} nouveau(x) marché(s)\n\n"
+        + "\n\n".join(lines[:5])
+        + f"\n\n🌐 {SITE_URL}"
+    )
+
+    email_body = f"""
+    <div style="font-family:Georgia;background:#0d0d0d;color:#fff;padding:28px;border-radius:10px;max-width:600px">
+      <h2 style="color:#c9a84c;margin-bottom:16px">🏛 {len(new_tenders)} nouveau(x) marché(s) public(s)</h2>
+      {"".join(f'<div style="border:1px solid #2a2a2a;border-radius:6px;padding:14px;margin-bottom:10px"><div style="font-size:14px;font-weight:700;color:#f0ede6;margin-bottom:6px">{t["objet"][:80]}</div><div style="font-size:12px;color:#888">📍 {t.get("region","—")} &nbsp;|&nbsp; ⏰ {t.get("date_limite","—")}</div><a href="{t.get("url","")}" style="display:inline-block;margin-top:8px;font-size:12px;color:#c9a84c">Voir le marché →</a></div>' for t in new_tenders[:8])}
+      <div style="margin-top:20px;text-align:center">
+        <a href="{SITE_URL}" style="padding:10px 24px;background:#c9a84c;color:#000;border-radius:6px;font-weight:700;text-decoration:none;font-size:13px">Voir tous les marchés →</a>
+      </div>
+    </div>"""
+
+    sent_email = 0
+    sent_tg = 0
+
+    for m in members:
+        # Email
+        asyncio.create_task(send_email(
+            m["email"],
+            f"🏛 {len(new_tenders)} nouveau(x) marché(s) — Modern Business",
+            email_body
+        ))
+        sent_email += 1
+
+        # Telegram
+        if m.get("telegram"):
+            asyncio.create_task(send_telegram_msg(m["telegram"], tg_msg))
+            sent_tg += 1
+
+    slog(f"📢 Notifications: {sent_email} emails + {sent_tg} Telegram")
+    metric("notifications_sent")
+
+
+@app.get("/admin/scrape")
+async def admin_scrape_v2(pwd: str = ""):
+    check_admin(pwd)
+    if SCRAPE_STATS.get("running"):
+        return JSONResponse({"ok": False, "msg": "Déjà en cours"})
+
+    async def run():
+        loop = asyncio.get_event_loop()
+        try:
+            new_tenders = await loop.run_in_executor(None, run_scraper)
+            # Send notifications after scrape
+            if new_tenders:
+                await notify_all_members(new_tenders)
+        finally:
+            SCRAPE_STATS["running"] = False
+
+    asyncio.create_task(run())
+    return JSONResponse({"ok": True, "msg": "Scraper démarré + notifications activées"})
+
+
+# Telegram: /tenders command
+@app.post("/telegram/webhook")
+async def tg_webhook_v2(request: Request):
+    try:
+        data = await request.json()
+        msg = data.get("message") or {}
+        chat_id = str(msg.get("chat", {}).get("id", ""))
+        text = msg.get("text", "").strip()
+        user_id = msg.get("from", {}).get("id")
+        if not chat_id:
+            return {"ok": True}
+
+        import httpx
+
+        if text in ["/start", "start"]:
+            reply = (
+                f"🏛 <b>Modern Business</b>\n"
+                f"Plateforme des marchés publics au Maroc\n\n"
+                f"Commandes disponibles:\n"
+                f"/tenders — Derniers marchés actifs\n"
+                f"/stats — Statistiques\n"
+                f"/help — Aide\n\n"
+                f"🌐 {SITE_URL}"
+            )
+
+        elif text == "/tenders":
+            db = get_db()
+            try:
+                rows = db.execute(
+                    "SELECT objet,region,date_limite,url FROM tenders WHERE statut='actif' ORDER BY date_extraction DESC LIMIT 5"
+                ).fetchall()
+            finally:
+                db.close()
+            if rows:
+                lines = [f"🏛 <b>Derniers marchés actifs</b>\n"]
+                for r in rows:
+                    lines.append(
+                        f"• <b>{r['objet'][:55]}</b>\n"
+                        f"  📍 {r['region'] or '—'} | ⏰ {r['date_limite'] or '—'}\n"
+                        f"  🔗 {r['url'] or SITE_URL}"
+                    )
+                reply = "\n\n".join(lines)
+            else:
+                reply = "Aucun marché actif pour le moment. Revenez bientôt!"
+
+        elif text == "/stats":
+            db = get_db()
+            try:
+                active = db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif'").fetchone()[0]
+                total  = db.execute("SELECT COUNT(*) FROM tenders").fetchone()[0]
+                members= db.execute("SELECT COUNT(*) FROM contractors").fetchone()[0]
+            finally:
+                db.close()
+            reply = (
+                f"📊 <b>Modern Business — Statistiques</b>\n\n"
+                f"✅ Marchés actifs: <b>{active}</b>\n"
+                f"📦 Total indexés: <b>{total}</b>\n"
+                f"🏢 Membres: <b>{members}</b>\n\n"
+                f"🌐 {SITE_URL}"
+            )
+
+        elif text == "/help":
+            reply = (
+                f"ℹ️ <b>Modern Business — Aide</b>\n\n"
+                f"/tenders — Voir les derniers marchés\n"
+                f"/stats — Statistiques de la plateforme\n"
+                f"/start — Menu principal\n\n"
+                f"Pour recevoir les alertes automatiques,\ninscrivez-vous sur {SITE_URL}"
+            )
+
+        else:
+            reply = f"Commande non reconnue. Envoyez /start pour le menu.\n🌐 {SITE_URL}"
+
+        async with httpx.AsyncClient(timeout=10) as client:
+            await client.post(
+                f"https://api.telegram.org/bot{TELEGRAM_BOT}/sendMessage",
+                json={"chat_id": chat_id, "text": reply, "parse_mode": "HTML"}
+            )
+    except Exception as e:
+        logger.error(f"[tg] {e}")
+    return {"ok": True}
+
+
+# Add telegram field to contractors
+@app.get("/admin/set_telegram")
+async def set_member_telegram(pwd: str = "", email: str = "", chat_id: str = ""):
+    """Admin: manually link telegram chat_id to a member"""
+    check_admin(pwd)
+    db = get_db()
+    try:
+        db.execute("UPDATE contractors SET telegram=? WHERE email=?", (chat_id, email))
+        db.commit()
+        ch = db.execute("SELECT changes()").fetchone()[0]
+    finally:
+        db.close()
+    return JSONResponse({"ok": True, "updated": ch})
+
+
+@app.get("/admin/test_notify")
+async def test_notify(pwd: str = ""):
+    """Test notification to all members"""
+    check_admin(pwd)
+    test_tender = [{
+        "id": "test_1",
+        "objet": "TEST — Marché de test Modern Business",
+        "region": "Rabat-Salé-Kénitra",
+        "date_limite": "31/12/2026",
+        "url": SITE_URL,
+        "domaine": "Informatique & SI",
+    }]
+    await notify_all_members(test_tender)
+    return JSONResponse({"ok": True, "msg": "Notification de test envoyée"})
+
+
+# ══════════════════════════════════════════════════════
+# DAILY DIGEST — كل صباح 08:00
+# ══════════════════════════════════════════════════════
+
+async def send_daily_digest():
+    """إشعار يومي صباحي بكل الصفقات الأمس"""
+    db = get_db()
+    try:
+        yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+        tenders = [dict(r) for r in db.execute(
+            "SELECT * FROM tenders WHERE date_extraction >= ? AND statut='actif' ORDER BY date_extraction DESC",
+            (yesterday,)
+        ).fetchall()]
+        members = [dict(r) for r in db.execute(
+            "SELECT email, nom, telegram FROM contractors WHERE actif=1"
+        ).fetchall()]
+    finally:
+        db.close()
+
+    if not tenders:
+        slog("[digest] Aucun nouveau marché hier — pas d'envoi")
+        return
+
+    # ── Email HTML complet ──
+    def tender_card(t):
+        return f"""
+        <div style="border:1px solid #2a2a2a;border-radius:8px;padding:18px;margin-bottom:14px;background:#141414">
+          <div style="font-size:15px;font-weight:700;color:#f0ede6;margin-bottom:10px;line-height:1.3">{t['objet']}</div>
+          <table style="width:100%;border-collapse:collapse;font-size:12px;color:#888">
+            {''.join(f'<tr><td style="padding:4px 0;color:#666;min-width:130px">{lbl}</td><td style="color:#aaa">{val}</td></tr>' for lbl,val in [
+              ('🏛 Organisme', t.get('acheteur') or '—'),
+              ('📍 Région', t.get('region') or '—'),
+              ('🏷 Secteur', t.get('domaine') or '—'),
+              ('💰 Montant', t.get('montant') or '—'),
+              ('📅 Publication', t.get('date_publication') or '—'),
+              ('⏰ Date limite', t.get('date_limite') or '—'),
+            ] if val and val != '—')}
+          </table>
+          {'<div style="margin-top:10px;font-size:12px;color:#999;line-height:1.6;border-top:1px solid #222;padding-top:10px">' + t.get("description","")[:300] + '…</div>' if t.get('description') else ''}
+          <a href="{t.get('url', SITE_URL)}" style="display:inline-block;margin-top:12px;padding:7px 16px;background:#c9a84c;color:#000;border-radius:5px;font-weight:700;text-decoration:none;font-size:12px">Voir le marché officiel →</a>
+        </div>"""
+
+    email_html = f"""
+    <div style="font-family:Georgia,serif;background:#0d0d0d;color:#fff;padding:32px;max-width:640px;margin:0 auto;border-radius:12px">
+      <div style="border-bottom:1px solid #2a2a2a;padding-bottom:20px;margin-bottom:24px">
+        <div style="font-size:22px;font-weight:700;color:#c9a84c">◆ Modern Business</div>
+        <div style="font-size:13px;color:#888;margin-top:4px">Résumé quotidien — {datetime.now().strftime('%d/%m/%Y')}</div>
+      </div>
+      <div style="font-size:16px;font-weight:700;color:#f0ede6;margin-bottom:6px">
+        🏛 {len(tenders)} nouveau(x) marché(s) public(s)
+      </div>
+      <div style="font-size:13px;color:#888;margin-bottom:24px">
+        Source: marchespublics.gov.ma — Mis à jour aujourd'hui
+      </div>
+      {"".join(tender_card(t) for t in tenders[:15])}
+      <div style="border-top:1px solid #2a2a2a;padding-top:20px;margin-top:8px;text-align:center">
+        <a href="{SITE_URL}" style="font-size:12px;color:#c9a84c">Accéder à la plateforme →</a>
+        <div style="font-size:10px;color:#444;margin-top:10px">Modern Business · marchespublics.gov.ma · {SITE_URL}</div>
+      </div>
+    </div>"""
+
+    # ── Telegram message ──
+    def tg_tender_block(t):
+        lines = [f"🏛 <b>{t['objet'][:70]}</b>"]
+        if t.get('acheteur'):    lines.append(f"   🏢 {t['acheteur'][:50]}")
+        if t.get('region'):      lines.append(f"   📍 {t['region']}")
+        if t.get('domaine'):     lines.append(f"   🏷 {t['domaine']}")
+        if t.get('montant'):     lines.append(f"   💰 {t['montant']}")
+        if t.get('date_limite'): lines.append(f"   ⏰ Limite: {t['date_limite']}")
+        if t.get('url'):         lines.append(f"   🔗 {t['url']}")
+        return "\n".join(lines)
+
+    tg_header = (
+        f"📋 <b>Modern Business — Résumé du {datetime.now().strftime('%d/%m/%Y')}</b>\n"
+        f"🏛 {len(tenders)} nouveau(x) marché(s) sur marchespublics.gov.ma\n"
+        f"{'━'*30}\n\n"
+    )
+    tg_footer = f"\n\n🌐 {SITE_URL}"
+
+    # Telegram limit 4096 chars — split if needed
+    tg_blocks = [tg_tender_block(t) for t in tenders[:8]]
+
+    # ── Send to all members ──
+    sent_e = sent_t = 0
+    for m in members:
+        asyncio.create_task(send_email(
+            m["email"],
+            f"🏛 {len(tenders)} nouveau(x) marché(s) — {datetime.now().strftime('%d/%m/%Y')} — Modern Business",
+            email_html
+        ))
+        sent_e += 1
+
+        if m.get("telegram"):
+            tg_msg = tg_header + "\n\n".join(tg_blocks[:5]) + tg_footer
+            asyncio.create_task(send_telegram_msg(m["telegram"], tg_msg))
+            sent_t += 1
+
+    slog(f"📰 Digest envoyé: {sent_e} emails + {sent_t} Telegram ({len(tenders)} marchés)")
+    metric("digest_sent")
+
+
+async def digest_scheduler():
+    """Envoie le digest chaque matin à 08:00"""
+    while True:
+        now = datetime.now()
+        # Calculer le prochain 08:00
+        next_run = now.replace(hour=8, minute=0, second=0, microsecond=0)
+        if now >= next_run:
+            next_run += timedelta(days=1)
+        wait_sec = (next_run - now).total_seconds()
+        slog(f"[digest] Prochain envoi dans {wait_sec/3600:.1f}h ({next_run.strftime('%d/%m %H:%M')})")
+        await asyncio.sleep(wait_sec)
+        try:
+            await send_daily_digest()
+        except Exception as e:
+            logger.error(f"[digest] {e}")
+
+
+@app.get("/admin/test_digest")
+async def test_digest(pwd: str = ""):
+    """Test: envoyer le digest maintenant"""
+    check_admin(pwd)
+    asyncio.create_task(send_daily_digest())
+    return JSONResponse({"ok": True, "msg": "Digest envoyé à tous les membres"})
