@@ -231,6 +231,7 @@ def init_db():
         "ALTER TABLE contractors ADD COLUMN verified INTEGER DEFAULT 0",
         "ALTER TABLE contractors ADD COLUMN rating_avg REAL DEFAULT 0",
         "ALTER TABLE contractors ADD COLUMN rating_count INTEGER DEFAULT 0",
+        "ALTER TABLE contractors ADD COLUMN telegram TEXT DEFAULT ''",
     ]:
         try: db.execute(sql)
         except: pass
@@ -377,13 +378,41 @@ def parse_pmmp(html: str, tid: str) -> dict:
                         if v and len(v) > 1: return v[:300]
             return ""
 
-        objet = ""
-        for sel in ['h1','h2','.consultation-title','.objet-marche']:
-            el = soup.select_one(sel)
-            if el:
-                txt = el.get_text(strip=True)
-                if 6 < len(txt) < 500: objet = txt; break
-        if not objet: objet = in_table("objet") or full[:200]
+        def find_objet():
+            # Try specific selectors for marchespublics.gov.ma
+            for sel in [
+                '.consultation-title', '.objet', '#objet',
+                'td.objet', '.marche-objet', '.ao-title',
+                'h1', 'h2', 'h3',
+            ]:
+                el = soup.select_one(sel)
+                if el:
+                    txt = el.get_text(strip=True)
+                    # Skip navigation/header text
+                    skip = ['accueil','liste des avis','connexion','menu','navigation','breadcrumb']
+                    if 10 < len(txt) < 500 and not any(s in txt.lower() for s in skip):
+                        return txt
+            # Try table rows
+            v = in_table("objet du marché") or in_table("objet") or in_table("intitulé") or in_table("désignation")
+            if v and len(v) > 10:
+                return v
+            # Try meta description
+            meta = soup.find('meta', {'name': 'description'})
+            if meta and meta.get('content') and len(meta['content']) > 15:
+                content = meta['content'].strip()
+                skip = ['marchespublics','portail','bienvenue']
+                if not any(s in content.lower() for s in skip):
+                    return content[:300]
+            # Last resort: find meaningful text blocks
+            for tag in soup.find_all(['p','div','span','td']):
+                txt = tag.get_text(strip=True)
+                skip = ['accueil','liste des avis','connexion','menu','©','cookie','javascript']
+                if 20 < len(txt) < 400 and not any(s in txt.lower() for s in skip):
+                    if any(kw in txt.lower() for kw in ['travaux','fourniture','service','étude','prestation','marché','appel','consultation','accord']):
+                        return txt
+            return ""
+
+        objet = find_objet()
 
         acheteur = in_table("maître d") or in_table("organisme") or in_table("acheteur") or ""
         date_pub = extract_date(in_table("publication") or "")
@@ -413,8 +442,8 @@ def parse_pmmp(html: str, tid: str) -> dict:
                 "date_publication": "", "date_limite": ""}
 
 SHOW_URLS = [
-    "https://www.marchespublics.gov.ma/bdc/entreprise/consultation/show/",
     "https://www.marchespublics.gov.ma/pmmp/consultation/show/",
+    "https://www.marchespublics.gov.ma/bdc/entreprise/consultation/show/",
 ]
 LIST_URLS = [
     "https://www.marchespublics.gov.ma/bdc/entreprise/consultation/",
@@ -1203,44 +1232,28 @@ async def notify_all_members(new_tenders: list):
     sent_tg = 0
 
     for m in members:
-        # Email
-        asyncio.create_task(send_email(
-            m["email"],
-            f"🏛 {len(new_tenders)} nouveau(x) marché(s) — Modern Business",
-            email_body
-        ))
-        sent_email += 1
+        try:
+            asyncio.create_task(send_email(
+                m["email"],
+                f"🏛 {len(new_tenders)} nouveau(x) marché(s) — Modern Business",
+                email_body
+            ))
+            sent_email += 1
+        except Exception as e:
+            logger.error(f"[notify email] {e}")
 
-        # Telegram
-        if m.get("telegram"):
-            asyncio.create_task(send_telegram_msg(m["telegram"], tg_msg))
-            sent_tg += 1
+        try:
+            if m.get("telegram"):
+                asyncio.create_task(send_telegram_msg(str(m["telegram"]), tg_msg))
+                sent_tg += 1
+        except Exception as e:
+            logger.error(f"[notify tg] {e}")
 
     slog(f"📢 Notifications: {sent_email} emails + {sent_tg} Telegram")
     metric("notifications_sent")
 
 
-@app.get("/admin/scrape")
-async def admin_scrape_v2(pwd: str = ""):
-    check_admin(pwd)
-    if SCRAPE_STATS.get("running"):
-        return JSONResponse({"ok": False, "msg": "Déjà en cours"})
 
-    async def run():
-        loop = asyncio.get_event_loop()
-        try:
-            new_tenders = await loop.run_in_executor(None, run_scraper)
-            # Send notifications after scrape
-            if new_tenders:
-                await notify_all_members(new_tenders)
-        finally:
-            SCRAPE_STATS["running"] = False
-
-    asyncio.create_task(run())
-    return JSONResponse({"ok": True, "msg": "Scraper démarré + notifications activées"})
-
-
-# Telegram: /tenders command
 @app.post("/telegram/webhook")
 async def tg_webhook_v2(request: Request):
     try:
