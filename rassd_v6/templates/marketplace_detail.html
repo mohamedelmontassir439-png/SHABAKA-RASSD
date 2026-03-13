@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}{{ post.titre[:50] }}{% endblock %}
+{% block body %}
+<div style="max-width:800px;margin:0 auto;padding:36px 28px 64px">
+  <div class="flex items-center gap-8 mb-20" style="font-size:12px;color:var(--text3)">
+    <a href="/marketplace" style="color:var(--text3)">Marketplace</a><span>/</span>
+    <span style="color:var(--text2)">#{{ post.id }}</span>
+  </div>
+  <div class="flex items-center gap-8 mb-16">
+    <span class="tag {{ 'tag-gold' if post.type=='offre' else ('tag-blue' if post.type=='recherche' else 'tag-green') }}">
+      {{ '🤝 Sous-traitance' if post.type=='offre' else ('🔍 Partenaire' if post.type=='recherche' else '🏢 Groupement') }}
+    </span>
+    {% if post.verified %}<span class="tag tag-green">✓ Vérifié</span>{% endif %}
+  </div>
+  <h1 style="font-size:clamp(18px,2.5vw,26px);color:var(--text);margin-bottom:20px;line-height:1.25">{{ post.titre }}</h1>
+  <div class="card mb-20">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);background:var(--bg3)">
+      <span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px">Informations</span>
+    </div>
+    {% for label,val in [('Entreprise',post.entreprise or post.contractor_nom),('Secteur',post.secteur),('Ville',post.ville),('Budget',post.budget),('Contact',post.contact),('Publié le',post.created_at[:10]),('Vues',post.views)] %}
+    {% if val %}
+    <div style="display:flex;gap:12px;padding:11px 20px;border-bottom:1px solid var(--border)">
+      <div style="min-width:120px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;padding-top:1px">{{ label }}</div>
+      <div style="font-size:13px;color:var(--text)">{{ val }}</div>
+    </div>
+    {% endif %}
+    {% endfor %}
+    <!-- Rating -->
+    <div style="display:flex;gap:12px;padding:11px 20px">
+      <div style="min-width:120px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;padding-top:1px">Note</div>
+      <div>
+        {% if post.rating_avg and post.rating_avg > 0 %}
+        <span style="color:var(--gold);font-size:16px">★</span>
+        <span style="font-size:14px;font-weight:700;color:var(--text)">{{ '%.1f'|format(post.rating_avg) }}</span>
+        <span style="font-size:12px;color:var(--text3)">/5 ({{ post.rating_count }} avis)</span>
+        {% else %}<span style="font-size:12px;color:var(--text3)">Pas encore noté</span>{% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="card mb-20">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);background:var(--bg3)">
+      <span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px">Description</span>
+    </div>
+    <div style="padding:20px;font-size:13px;color:var(--text2);line-height:1.8;white-space:pre-wrap">{{ post.description }}</div>
+  </div>
+
+  <!-- RATINGS -->
+  {% if ratings %}
+  <div class="card mb-20">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);background:var(--bg3)">
+      <span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px">Évaluations ({{ ratings|length }})</span>
+    </div>
+    {% for r in ratings %}
+    <div style="padding:14px 20px;border-bottom:1px solid var(--border)">
+      <div class="flex items-center justify-between mb-6">
+        <span style="font-size:13px;font-weight:700;color:var(--text)">{{ r.from_nom }}</span>
+        <div>
+          {% for i in range(5) %}
+          <span style="color:{{ 'var(--gold)' if i < r.score else 'var(--text3)' }};font-size:14px">★</span>
+          {% endfor %}
+        </div>
+      </div>
+      {% if r.comment %}<div style="font-size:12px;color:var(--text3)">{{ r.comment }}</div>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- RATE FORM -->
+  {% if can_rate and not already_rated %}
+  <div class="card">
+    <div style="padding:16px 20px;border-bottom:1px solid var(--border);background:var(--bg3)">
+      <span style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.6px">Évaluer ce prestataire</span>
+    </div>
+    <div style="padding:20px">
+      <form method="post" action="/marketplace/rate/{{ post.contractor_id }}">
+        <div class="form-group">
+          <label class="form-label">Note (1 à 5)</label>
+          <select name="score" class="form-select" style="max-width:200px">
+            <option value="5">★★★★★ Excellent</option>
+            <option value="4">★★★★☆ Très bien</option>
+            <option value="3">★★★☆☆ Bien</option>
+            <option value="2">★★☆☆☆ Passable</option>
+            <option value="1">★☆☆☆☆ Insuffisant</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Commentaire (optionnel)</label>
+          <textarea name="comment" class="form-textarea" rows="3" placeholder="Votre expérience de collaboration…"></textarea>
+        </div>
+        <button type="submit" class="btn btn-gold btn-sm">Soumettre l'évaluation →</button>
+      </form>
+    </div>
+  </div>
+  {% elif already_rated %}
+  <div style="text-align:center;padding:16px;font-size:12px;color:var(--text3)">✓ Vous avez déjà évalué ce prestataire</div>
+  {% elif not contractor %}
+  <div style="text-align:center;padding:16px"><a href="/login" class="btn btn-gold btn-sm">Connectez-vous pour évaluer →</a></div>
+  {% endif %}
+</div>
+{% endblock %}

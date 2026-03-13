@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Annuaire{% endblock %}
+{% block body %}
+<div style="max-width:1100px;margin:0 auto;padding:36px 28px 64px">
+  <div class="flex items-center justify-between mb-24 flex-wrap gap-12">
+    <div>
+      <div style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:2px;margin-bottom:6px">Annuaire</div>
+      <h2 style="font-size:24px;margin:0">Entreprises & Prestataires</h2>
+    </div>
+    <a href="/marketplace" class="btn btn-ghost btn-sm">← Marketplace</a>
+  </div>
+  <form method="get" action="/contractors" class="flex items-center gap-8 flex-wrap mb-20">
+    <input name="q" value="{{ q }}" placeholder="Nom, entreprise, ville…" class="form-input" style="flex:1;min-width:200px">
+    <select name="secteur_f" class="form-select" style="min-width:180px">
+      <option value="">Tous secteurs</option>
+      {% for s in SECTEURS %}<option value="{{ s }}" {% if secteur_f==s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+    </select>
+    <button type="submit" style="padding:9px 18px;background:var(--gold);color:#000;border:none;border-radius:var(--r);font-size:13px;font-weight:700;cursor:pointer">Chercher</button>
+  </form>
+  {% if contractors_list %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px">
+    {% for c in contractors_list %}
+    <div class="card" style="padding:18px;transition:.15s">
+      <div class="flex items-center justify-between mb-10">
+        <div style="font-size:14px;font-weight:700;color:var(--text)">{{ c.entreprise or c.nom }}</div>
+        {% if c.verified %}<span class="tag tag-green">✓</span>{% endif %}
+      </div>
+      {% if c.entreprise %}<div style="font-size:12px;color:var(--text3);margin-bottom:6px">{{ c.nom }}</div>{% endif %}
+      <div class="flex items-center gap-12 mb-10" style="font-size:11px;color:var(--text3);flex-wrap:wrap">
+        {% if c.secteur %}<span>🏷 {{ c.secteur[:24] }}</span>{% endif %}
+        {% if c.ville %}<span>📍 {{ c.ville }}</span>{% endif %}
+      </div>
+      {% if c.rating_avg and c.rating_avg > 0 %}
+      <div class="flex items-center gap-6">
+        <span style="color:var(--gold);font-size:14px">★</span>
+        <span style="font-size:13px;font-weight:700;color:var(--text)">{{ '%.1f'|format(c.rating_avg) }}</span>
+        <span style="font-size:11px;color:var(--text3)">({{ c.rating_count }} avis)</span>
+      </div>
+      {% else %}<span style="font-size:11px;color:var(--text3)">Nouveau membre</span>{% endif %}
+      <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:10px;font-size:11px;color:var(--text3)">
+        Membre depuis {{ c.created_at[:7] if c.created_at else '2026' }}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty"><div class="empty-icon">🏢</div><div style="color:var(--text3)">Aucune entreprise trouvée</div></div>
+  {% endif %}
+</div>
+{% endblock %}

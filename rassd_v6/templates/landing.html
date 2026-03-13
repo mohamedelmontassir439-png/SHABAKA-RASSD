@@ -1,88 +1,32 @@
 {% extends "base.html" %}
-{% block title %}Modern Business{% endblock %}
+{% block title %}Modern Business — Marchés Publics Maroc{% endblock %}
 {% block head %}
 <style>
-/* HERO */
-.hero{
-  position:relative;min-height:calc(100vh - var(--nav-h));
-  display:flex;align-items:center;
-  padding:80px 32px;overflow:hidden;
-}
-.hero::before{
-  content:'';position:absolute;inset:0;
-  background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(201,168,76,.07),transparent),
-             radial-gradient(ellipse 50% 40% at 80% 80%,rgba(45,108,223,.05),transparent);
-  pointer-events:none;
-}
-.hero-grid{
-  position:absolute;inset:0;opacity:.03;
-  background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);
-  background-size:60px 60px;
-}
-.hero-inner{max-width:1120px;margin:0 auto;width:100%;position:relative;z-index:1}
-.hero-eyebrow{
-  display:inline-flex;align-items:center;gap:8px;
-  padding:5px 14px;background:rgba(201,168,76,.08);
-  border:1px solid rgba(201,168,76,.2);border-radius:99px;
-  font-size:11px;font-weight:700;color:var(--gold);
-  text-transform:uppercase;letter-spacing:1.5px;margin-bottom:24px;
-}
-.hero h1{
-  font-size:clamp(40px,6vw,72px);color:var(--text);
-  max-width:840px;line-height:1.03;letter-spacing:-2px;
-  margin-bottom:20px;
-}
+.hero{position:relative;min-height:calc(100vh - var(--nav));display:flex;align-items:center;padding:80px 28px;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 50% at 50% 0%,rgba(201,168,76,.06),transparent),radial-gradient(ellipse 40% 30% at 80% 80%,rgba(45,108,223,.04),transparent);pointer-events:none}
+.hero-grid{position:absolute;inset:0;opacity:.025;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:56px 56px}
+.hero-inner{max-width:1100px;margin:0 auto;width:100%;position:relative;z-index:1}
+.hero-pill{display:inline-flex;align-items:center;gap:7px;padding:5px 14px;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);border-radius:99px;font-size:11px;font-weight:700;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:22px}
+.hero h1{font-size:clamp(38px,5.5vw,68px);color:var(--text);max-width:800px;line-height:1.04;letter-spacing:-1.8px;margin-bottom:18px}
 .hero h1 em{font-style:normal;color:var(--gold)}
-.hero-sub{
-  font-size:16px;color:var(--text-2);max-width:520px;
-  line-height:1.7;margin-bottom:36px;
-}
-.hero-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:56px}
-.hero-meta{display:flex;align-items:center;gap:24px;flex-wrap:wrap}
-.hero-meta-item{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-3)}
-.hero-meta-num{font-family:var(--serif);font-size:20px;font-weight:700;color:var(--text)}
+.hero-sub{font-size:15px;color:var(--text2);max-width:500px;line-height:1.75;margin-bottom:32px}
+.hero-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:52px}
+.hero-trust{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.trust-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text3)}
+.trust-num{font-family:var(--serif);font-size:18px;font-weight:700;color:var(--text)}
 
-/* SOURCE MARQUEE */
-.marquee-wrap{
-  border-top:1px solid var(--border);border-bottom:1px solid var(--border);
-  background:var(--bg-2);padding:14px 0;overflow:hidden;position:relative;
-}
-.marquee-wrap::before,.marquee-wrap::after{
-  content:'';position:absolute;top:0;width:120px;height:100%;z-index:2;
-}
-.marquee-wrap::before{left:0;background:linear-gradient(90deg,var(--bg-2),transparent)}
-.marquee-wrap::after{right:0;background:linear-gradient(-90deg,var(--bg-2),transparent)}
-.marquee-track{display:flex;gap:0;animation:marqueeMove 30s linear infinite;width:max-content}
-@keyframes marqueeMove{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-.marquee-item{
-  display:inline-flex;align-items:center;gap:8px;
-  padding:0 24px;font-size:12px;color:var(--text-3);
-  border-right:1px solid var(--border);white-space:nowrap;
-}
-.marquee-item span{font-weight:700;color:var(--text-2)}
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden}
+.feat{background:var(--bg2);padding:26px 22px;transition:.15s}
+.feat:hover{background:var(--bg3)}
+.feat-icon{font-size:20px;margin-bottom:12px}
+.feat-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px}
+.feat-desc{font-size:12px;color:var(--text3);line-height:1.65}
 
-/* FEATURES */
-.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden}
-.feature-cell{background:var(--bg-2);padding:28px 24px;transition:.15s}
-.feature-cell:hover{background:var(--bg-3)}
-.feature-icon{font-size:22px;margin-bottom:14px}
-.feature-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:7px}
-.feature-desc{font-size:12px;color:var(--text-3);line-height:1.65}
-
-/* TENDERS PREVIEW */
-.preview-header{
-  padding:14px 20px;
-  background:var(--bg-3);border-bottom:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;
-}
-.preview-title{font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.8px}
-
-/* TYPE BREAKDOWN */
-.type-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden}
-.type-cell{padding:20px;background:var(--bg-2);text-align:center}
-.type-num{font-family:var(--serif);font-size:36px;font-weight:700;letter-spacing:-1px}
-.type-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-top:4px;color:var(--text-3)}
-.type-dot{width:6px;height:6px;border-radius:50%;display:inline-block;margin-left:6px}
+.how-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
+.how-step{text-align:center;padding:24px 16px}
+.how-num{font-family:var(--serif);font-size:48px;font-weight:700;color:rgba(201,168,76,.2);line-height:1;margin-bottom:10px}
+.how-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px}
+.how-desc{font-size:12px;color:var(--text3);line-height:1.6}
 </style>
 {% endblock %}
 {% block body %}
@@ -91,180 +35,122 @@
 <section class="hero">
   <div class="hero-grid"></div>
   <div class="hero-inner">
-
-    <div class="hero-eyebrow">
-      <span class="live-dot"></span>
-      Surveillance active — 16 sources
-    </div>
-
-    <h1>
-      Intelligence des<br>
-      <em>Marchés Maroc</em>
-    </h1>
-
-    <p class="hero-sub">
-      Accédez aux appels d'offres publics, semi-publics et privés
-      du Maroc en temps réel. ONCF, ONEE, OCP, Le Matin, L'Économiste et plus encore.
-    </p>
-
+    <div class="hero-pill"><span class="live-dot"></span> marchespublics.gov.ma en temps réel</div>
+    <h1>Votre veille sur les<br><em>Marchés Publics</em><br>du Maroc</h1>
+    <p class="hero-sub">Accédez aux appels d'offres officiels, connectez-vous avec d'autres entreprises et développez votre réseau d'affaires au Maroc.</p>
     <div class="hero-actions">
-      <a href="/register" class="btn btn-gold btn-lg">Commencer gratuitement →</a>
-      <a href="/tenders" class="btn btn-ghost btn-lg">Voir les opportunités</a>
-      <a href="/contact" class="btn btn-outline-gold btn-lg">Contacter un conseiller</a>
+      <a href="/register" class="btn btn-gold btn-lg">Créer un compte gratuit →</a>
+      <a href="/marketplace" class="btn btn-ghost btn-lg">Voir le marketplace</a>
+      <a href="/contact" class="btn btn-ghost btn-lg">Nous contacter</a>
     </div>
-
-    <div class="hero-meta">
-      <div class="hero-meta-item">
-        <div class="hero-meta-num">{{ stats.active }}</div>
-        <div>Opportunités<br>actives</div>
-      </div>
-      <div style="width:1px;height:32px;background:var(--border)"></div>
-      <div class="hero-meta-item">
-        <div class="hero-meta-num">{{ stats.sources }}</div>
-        <div>Sources<br>surveillées</div>
-      </div>
-      <div style="width:1px;height:32px;background:var(--border)"></div>
-      <div class="hero-meta-item">
-        <div class="hero-meta-num">24/7</div>
-        <div>Mise à jour<br>continue</div>
-      </div>
-      <div style="width:1px;height:32px;background:var(--border)"></div>
-      <div class="hero-meta-item">
-        <div class="hero-meta-num">{{ stats.contractors }}+</div>
-        <div>Entreprises<br>inscrites</div>
-      </div>
+    <div class="hero-trust">
+      <div class="trust-item"><div class="trust-num">{{ stats.active }}</div><span>Marchés actifs</span></div>
+      <div style="width:1px;height:28px;background:var(--border)"></div>
+      <div class="trust-item"><div class="trust-num">{{ stats.members }}</div><span>Entreprises inscrites</span></div>
+      <div style="width:1px;height:28px;background:var(--border)"></div>
+      <div class="trust-item"><div class="trust-num">{{ stats.posts }}</div><span>Offres marketplace</span></div>
+      <div style="width:1px;height:28px;background:var(--border)"></div>
+      <div class="trust-item"><div class="trust-num">24/7</div><span>Surveillance</span></div>
     </div>
   </div>
 </section>
 
-<!-- SOURCE MARQUEE -->
-<div class="marquee-wrap">
-  <div class="marquee-track">
-    {% for items in [["marchespublics.gov.ma","PUBLIC"],["bo.gov.ma","PUBLIC"],["ONCF","SEMI-PUBLIC"],["ONEE","SEMI-PUBLIC"],["OCP Group","SEMI-PUBLIC"],["RAM","SEMI-PUBLIC"],["ONDA","SEMI-PUBLIC"],["CDG","SEMI-PUBLIC"],["LYDEC","SEMI-PUBLIC"],["Le Matin","PRIVÉ"],["L'Économiste","PRIVÉ"],["La Vie Éco","PRIVÉ"],["marchespublics.gov.ma","PUBLIC"],["bo.gov.ma","PUBLIC"],["ONCF","SEMI-PUBLIC"],["ONEE","SEMI-PUBLIC"],["OCP Group","SEMI-PUBLIC"],["RAM","SEMI-PUBLIC"],["ONDA","SEMI-PUBLIC"],["CDG","SEMI-PUBLIC"],["LYDEC","SEMI-PUBLIC"],["Le Matin","PRIVÉ"],["L'Économiste","PRIVÉ"],["La Vie Éco","PRIVÉ"]] %}
-    <div class="marquee-item">
-      <span>{{ items[0] }}</span>
-      <span style="padding:1px 6px;background:rgba(201,168,76,.1);color:var(--gold);border-radius:3px;font-size:9px;font-weight:700">{{ items[1] }}</span>
-    </div>
+<!-- MARQUEE -->
+<div style="border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--bg2);padding:12px 0;overflow:hidden;position:relative">
+  <div style="display:flex;animation:marqueeMove 25s linear infinite;width:max-content">
+    {% for x in range(2) %}
+    {% for t in ["Marchés Publics","marchespublics.gov.ma","Appels d'Offres","Qualification BTP","Résultats","CPS","Etat de Synthèse","Marchés Prévisionnels","Surveillance 24/7","PME Maroc","BTP","Informatique","Hydraulique"] %}
+    <span style="display:inline-flex;align-items:center;padding:0 20px;border-right:1px solid var(--border);font-size:12px;color:var(--text3);white-space:nowrap">{{ t }}</span>
+    {% endfor %}
     {% endfor %}
   </div>
 </div>
-
-<!-- STATS -->
-<div style="max-width:1120px;margin:64px auto;padding:0 32px">
-  <div class="type-bar">
-    <div class="type-cell">
-      <div class="type-num" style="color:#6b9de8">{{ stats.public }}</div>
-      <div class="type-lbl">Marchés <span class="type-dot" style="background:#2d6cdf"></span> Publics</div>
-      <div style="font-size:11px;color:var(--text-3);margin-top:6px">marchespublics.gov.ma · bo.gov.ma</div>
-    </div>
-    <div class="type-cell" style="border-left:1px solid var(--border);border-right:1px solid var(--border)">
-      <div class="type-num" style="color:#e8a84a">{{ stats.semi }}</div>
-      <div class="type-lbl">Semi-Publics <span class="type-dot" style="background:#d4892a"></span></div>
-      <div style="font-size:11px;color:var(--text-3);margin-top:6px">ONCF · ONEE · OCP · RAM · ONDA · CDG · LYDEC</div>
-    </div>
-    <div class="type-cell">
-      <div class="type-num" style="color:#c39bd3">{{ stats.private }}</div>
-      <div class="type-lbl">Secteur <span class="type-dot" style="background:#9b59b6"></span> Privé</div>
-      <div style="font-size:11px;color:var(--text-3);margin-top:6px">Le Matin · L'Économiste · La Vie Éco</div>
-    </div>
-  </div>
-</div>
-
-<!-- RECENT TENDERS -->
-<div style="max-width:1120px;margin:0 auto 64px;padding:0 32px">
-  <div class="flex items-center justify-between mb-16">
-    <div>
-      <div class="section-eyebrow">En direct</div>
-      <div style="font-family:var(--serif);font-size:24px;font-weight:700;color:var(--text)">Dernières opportunités</div>
-    </div>
-    <a href="/tenders" class="btn btn-ghost btn-sm">Tout voir →</a>
-  </div>
-  <div class="card" style="overflow:hidden">
-    <div class="preview-header">
-      <span class="preview-title">Opportunités actives</span>
-      <div class="flex items-center gap-8">
-        <span class="live-dot"></span>
-        <span style="font-size:11px;color:var(--text-3)">Temps réel</span>
-      </div>
-    </div>
-    {% for t in recent %}
-    <a href="/tender/{{ t.id }}" class="tender-row" style="display:grid;text-decoration:none">
-      <div>
-        <span class="tender-title">{{ t.objet[:70] }}</span>
-        <span class="tender-sub">{{ t.acheteur[:40] if t.acheteur else t.source_name }}</span>
-      </div>
-      <div class="source-icon">
-        {% if t.type_marche == 'PUBLIC' %}<span class="tag tag-public">Public</span>
-        {% elif t.type_marche == 'SEMI_PUBLIC' %}<span class="tag tag-semi">Semi-pub</span>
-        {% else %}<span class="tag tag-private">Privé</span>{% endif %}
-      </div>
-      <div class="tender-date {% if t.date_limite %}urgent{% endif %}">{{ t.date_limite or '—' }}</div>
-      <div style="font-size:11px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.region or '—' }}</div>
-      <div style="font-size:16px;color:var(--text-3);text-align:center">→</div>
-    </a>
-    {% else %}
-    <div class="empty-state">
-      <div class="empty-icon">📋</div>
-      <div style="color:var(--text-3)">Lancement du scraper en cours…</div>
-    </div>
-    {% endfor %}
-  </div>
-  <div class="flex items-center justify-between mt-16" style="font-size:12px;color:var(--text-3)">
-    <span>{{ stats.total }} opportunités indexées au total</span>
-    <a href="/tenders" class="btn btn-gold btn-sm">Explorer toutes les opportunités →</a>
-  </div>
-</div>
+<style>@keyframes marqueeMove{from{transform:translateX(0)}to{transform:translateX(-50%)}}</style>
 
 <!-- FEATURES -->
-<div style="background:var(--bg-2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:64px 32px">
-  <div style="max-width:1120px;margin:0 auto">
-    <div style="text-align:center;margin-bottom:48px">
-      <div class="section-eyebrow" style="justify-content:center;display:flex">Pourquoi Modern Business</div>
-      <div class="section-headline" style="text-align:center">La plateforme la plus complète du Maroc</div>
+<div style="padding:72px 28px;background:var(--bg2);border-bottom:1px solid var(--border)">
+  <div style="max-width:1100px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:44px">
+      <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px">Services</div>
+      <h2 style="font-size:clamp(24px,3vw,38px);color:var(--text);letter-spacing:-.8px">Tout ce dont vous avez besoin</h2>
     </div>
     <div class="features-grid">
-      <div class="feature-cell">
-        <div class="feature-icon">🏛</div>
-        <div class="feature-title">100% des marchés publics</div>
-        <div class="feature-desc">marchespublics.gov.ma + Bulletin Officiel — source officielle du Royaume</div>
+      <div class="feat">
+        <div class="feat-icon">🏛</div>
+        <div class="feat-title">Marchés Publics Officiels</div>
+        <div class="feat-desc">Surveillance automatique du portail officiel marchespublics.gov.ma — tous les appels d'offres publics du Maroc.</div>
       </div>
-      <div class="feature-cell">
-        <div class="feature-icon">🏢</div>
-        <div class="feature-title">7 entreprises semi-publiques</div>
-        <div class="feature-desc">ONCF, ONEE, OCP, RAM, ONDA, CDG, LYDEC — accès direct aux appels d'offres</div>
+      <div class="feat">
+        <div class="feat-icon">🤝</div>
+        <div class="feat-title">Marketplace B2B</div>
+        <div class="feat-desc">Publiez vos offres de sous-traitance, cherchez des partenaires, évaluez et soyez évalué par la communauté.</div>
       </div>
-      <div class="feature-cell">
-        <div class="feature-icon">📰</div>
-        <div class="feature-title">Presse économique</div>
-        <div class="feature-desc">Le Matin, L'Économiste, La Vie Éco — AO privés et semi-publics non officiels</div>
+      <div class="feat">
+        <div class="feat-icon">📋</div>
+        <div class="feat-title">Annuaire Entreprises</div>
+        <div class="feat-desc">Trouvez des partenaires qualifiés par secteur, région et note. Accédez à l'annuaire complet des PME marocaines.</div>
       </div>
-      <div class="feature-cell">
-        <div class="feature-icon">📱</div>
-        <div class="feature-title">WhatsApp & Telegram</div>
-        <div class="feature-desc">Alertes instantanées sur votre téléphone dès qu'une opportunité est détectée</div>
+      <div class="feat">
+        <div class="feat-icon">🤖</div>
+        <div class="feat-title">Assistant IA 24/7</div>
+        <div class="feat-desc">Chatbot intelligent pour répondre à toutes vos questions sur les marchés publics, procédures et qualification.</div>
       </div>
-      <div class="feature-cell">
-        <div class="feature-icon">🎯</div>
-        <div class="feature-title">Filtres intelligents</div>
-        <div class="feature-desc">Région, secteur, type, budget — uniquement ce qui correspond à votre activité</div>
+      <div class="feat">
+        <div class="feat-icon">📧</div>
+        <div class="feat-title">Alertes Email</div>
+        <div class="feat-desc">Recevez les nouveaux appels d'offres correspondant à votre secteur directement dans votre boîte mail.</div>
       </div>
-      <div class="feature-cell">
-        <div class="feature-icon">📊</div>
-        <div class="feature-title">Export & API</div>
-        <div class="feature-desc">Exportez en CSV ou intégrez via API REST — pour vos outils internes</div>
+      <div class="feat">
+        <div class="feat-icon">⭐</div>
+        <div class="feat-title">Système d'Évaluation</div>
+        <div class="feat-desc">Notez vos partenaires et clients. Construisez votre réputation en ligne dans l'écosystème des marchés publics.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HOW IT WORKS -->
+<div style="padding:72px 28px">
+  <div style="max-width:1100px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:44px">
+      <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px">Comment ça marche</div>
+      <h2 style="font-size:clamp(22px,2.5vw,34px);color:var(--text);letter-spacing:-.6px">Simple, rapide, efficace</h2>
+    </div>
+    <div class="how-grid">
+      <div class="how-step">
+        <div class="how-num">01</div>
+        <div class="how-title">Inscription gratuite</div>
+        <div class="how-desc">Créez votre profil entreprise en 2 minutes. Aucune carte requise.</div>
+      </div>
+      <div class="how-step">
+        <div class="how-num">02</div>
+        <div class="how-title">Alertes automatiques</div>
+        <div class="how-desc">Recevez par email les marchés correspondant à votre secteur.</div>
+      </div>
+      <div class="how-step">
+        <div class="how-num">03</div>
+        <div class="how-title">Publiez sur le Marketplace</div>
+        <div class="how-desc">Proposez votre capacité ou cherchez des sous-traitants qualifiés.</div>
+      </div>
+      <div class="how-step">
+        <div class="how-num">04</div>
+        <div class="how-title">Développez votre réseau</div>
+        <div class="how-desc">Évaluez vos partenaires et construisez votre réputation B2B.</div>
       </div>
     </div>
   </div>
 </div>
 
 <!-- CTA -->
-<div style="max-width:1120px;margin:80px auto;padding:0 32px;text-align:center">
-  <div class="gold-line" style="margin:0 auto 20px"></div>
-  <div class="section-headline">Prêt à ne manquer aucune opportunité?</div>
-  <p style="margin:0 auto 32px;max-width:460px">Créez votre compte gratuit et commencez à surveiller les appels d'offres qui correspondent à votre secteur.</p>
-  <div class="flex items-center gap-12" style="justify-content:center;flex-wrap:wrap">
-    <a href="/register" class="btn btn-gold btn-lg">Créer un compte gratuit</a>
-    <a href="/contact" class="btn btn-ghost btn-lg">Parler à un conseiller</a>
+<div style="background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:64px 28px;text-align:center">
+  <div style="max-width:500px;margin:0 auto">
+    <div style="width:36px;height:2px;background:var(--gold);margin:0 auto 18px"></div>
+    <h2 style="font-size:clamp(22px,2.5vw,32px);color:var(--text);margin-bottom:12px;letter-spacing:-.6px">Rejoignez la communauté</h2>
+    <p style="font-size:13px;margin-bottom:28px">{{ stats.members }} entreprises font confiance à Modern Business pour leur veille marchés.</p>
+    <div class="flex items-center gap-10" style="justify-content:center;flex-wrap:wrap">
+      <a href="/register" class="btn btn-gold btn-lg">S'inscrire gratuitement →</a>
+      <a href="/marketplace" class="btn btn-ghost btn-lg">Explorer le marketplace</a>
+    </div>
   </div>
 </div>
 

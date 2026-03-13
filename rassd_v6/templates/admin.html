@@ -1,154 +1,261 @@
 {% extends "base.html" %}
 {% block title %}Admin{% endblock %}
+{% block head %}
+<style>
+.scraper-terminal{background:#0a0a0a;border:1px solid #1a1a1a;border-radius:8px;padding:16px;font-family:var(--mono);font-size:11px;color:#4ecb82;height:320px;overflow-y:auto;line-height:1.7}
+.scraper-terminal::-webkit-scrollbar{width:4px}
+.scraper-terminal::-webkit-scrollbar-thumb{background:#2a2a2a}
+.progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin:8px 0}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));transition:width .5s;border-radius:2px}
+.tender-admin-row{display:grid;grid-template-columns:1fr 120px 90px 90px 32px;gap:12px;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);transition:.1s;background:var(--bg2)}
+.tender-admin-row:hover{background:var(--bg3)}
+</style>
+{% endblock %}
 {% block body %}
-<div style="max-width:1120px;margin:0 auto;padding:32px 32px 64px">
-  <div class="flex items-center justify-between mb-28">
+<div style="max-width:1100px;margin:0 auto;padding:28px 28px 64px">
+
+  <div class="flex items-center justify-between mb-24">
     <div>
-      <div class="section-eyebrow">Panneau Admin</div>
-      <h2 style="font-size:24px;margin:0">Modern Business — Admin</h2>
+      <div style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px">Administration</div>
+      <h2 style="font-size:22px;margin:0">Modern Business — Admin</h2>
     </div>
     <div class="flex gap-8">
-      <a href="/admin/scrape?pwd={{ pwd }}" class="btn btn-gold btn-sm" onclick="this.textContent='⏳ Scraping…'">▶ Lancer scraper</a>
-      <a href="/admin/heal?pwd={{ pwd }}" class="btn btn-ghost btn-sm">🤖 AI Heal</a>
+      <button id="scrapeBtn" onclick="startScrape()" class="btn btn-gold btn-sm">▶ Lancer le scraper</button>
       <a href="/admin/cleanup?pwd={{ pwd }}" class="btn btn-ghost btn-sm">🗑 Cleanup</a>
     </div>
   </div>
 
   <!-- STATS -->
-  <div class="stat-grid mb-28">
-    <div class="stat-cell"><div class="stat-num">{{ stats.active }}</div><div class="stat-lbl">Actives</div></div>
-    <div class="stat-cell"><div class="stat-num" style="color:#6b9de8">{{ stats.public }}</div><div class="stat-lbl">Public</div></div>
-    <div class="stat-cell"><div class="stat-num" style="color:#e8a84a">{{ stats.semi }}</div><div class="stat-lbl">Semi-pub</div></div>
-    <div class="stat-cell"><div class="stat-num" style="color:#c39bd3">{{ stats.private }}</div><div class="stat-lbl">Privé</div></div>
-    <div class="stat-cell"><div class="stat-num">{{ stats.contractors }}</div><div class="stat-lbl">Comptes</div></div>
-    <div class="stat-cell"><div class="stat-num" style="color:var(--gold)">{{ stats.pro_plus }}</div><div class="stat-lbl">Pro+</div></div>
-    <div class="stat-cell"><div class="stat-num">{{ stats.notifs }}</div><div class="stat-lbl">Alertes</div></div>
-    <div class="stat-cell"><div class="stat-num" style="color:{{ 'var(--red)' if stats.errors > 0 else 'var(--green)' }}">{{ stats.errors }}</div><div class="stat-lbl">Erreurs</div></div>
-    <div class="stat-cell"><div class="stat-num" style="color:#f5c842">{{ stats.contacts }}</div><div class="stat-lbl">Contacts</div></div>
-    <div class="stat-cell"><div class="stat-num">{{ stats.wa_sessions }}</div><div class="stat-lbl">WhatsApp</div></div>
+  <div class="stat-grid mb-24">
+    <div class="stat-cell"><div class="stat-num">{{ stats.total }}</div><div class="stat-lbl">Total Marchés</div></div>
+    <div class="stat-cell"><div class="stat-num" style="color:#4ecb82">{{ stats.active }}</div><div class="stat-lbl">Actifs</div></div>
+    <div class="stat-cell"><div class="stat-num" style="color:#e87070">{{ stats.expire }}</div><div class="stat-lbl">Expirés</div></div>
+    <div class="stat-cell"><div class="stat-num">{{ stats.contractors }}</div><div class="stat-lbl">Membres</div></div>
+    <div class="stat-cell"><div class="stat-num" style="color:var(--gold)">{{ stats.posts }}</div><div class="stat-lbl">Marketplace</div></div>
+    <div class="stat-cell"><div class="stat-num">{{ stats.ratings }}</div><div class="stat-lbl">Évaluations</div></div>
+    <div class="stat-cell"><div class="stat-num">{{ stats.chats }}</div><div class="stat-lbl">Sessions Chat</div></div>
+    <div class="stat-cell"><div class="stat-num" style="color:{{ 'var(--red)' if stats.errors > 0 else '#4ecb82' }}">{{ stats.errors }}</div><div class="stat-lbl">Erreurs</div></div>
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px">
+  <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:20px;margin-bottom:24px">
 
-    <!-- SOURCES -->
+    <!-- SCRAPER LIVE -->
     <div class="card">
-      <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg-3)">
-        <span style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px">Sources — {{ by_source|length }} actives</span>
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg3);display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px">Scraper — marchespublics.gov.ma</span>
+        <div class="flex items-center gap-8">
+          <span id="scrapeStatus" class="tag {% if scrape_stats.running %}tag-green{% else %}tag-gold{% endif %}">
+            {{ '⏳ En cours…' if scrape_stats.running else '⏸ En attente' }}
+          </span>
+        </div>
       </div>
-      {% for s in by_source %}
-      <div style="display:flex;justify-content:space-between;padding:9px 16px;border-bottom:1px solid var(--border);font-size:12px">
-        <span style="color:var(--text-2)">{{ s.source_name[:30] }}</span>
-        <span style="font-family:var(--mono);color:var(--gold)">{{ s.cnt }}</span>
-      </div>
-      {% endfor %}
-    </div>
-
-    <!-- SCRAPER -->
-    <div class="card">
-      <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg-3);display:flex;align-items:center;justify-content:space-between">
-        <span style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px">Scraper Status</span>
-        {% if scrape_stats.running %}<span class="tag tag-active">En cours…</span>{% else %}<span style="font-size:11px;color:var(--text-3)">Inactif</span>{% endif %}
-      </div>
-      <div style="padding:16px;font-size:12px;color:var(--text-2)">
-        <div class="flex justify-between mb-8"><span>Trouvés</span><span class="mono" style="color:var(--gold)">{{ scrape_stats.total_found }}</span></div>
-        <div class="flex justify-between mb-8"><span>Sauvegardés</span><span class="mono">{{ scrape_stats.total_saved }}</span></div>
-        <div class="flex justify-between mb-8"><span>Erreurs</span><span class="mono" style="color:var(--red)">{{ scrape_stats.errors }}</span></div>
-        <div class="flex justify-between mb-12"><span>Source active</span><span class="mono" style="color:var(--text-3)">{{ scrape_stats.active_source or '—' }}</span></div>
-        <div style="font-size:10px;color:var(--text-3);border-top:1px solid var(--border);padding-top:10px;max-height:160px;overflow-y:auto">
-          {% for log in scrape_log[-20:] %}
-          <div style="margin-bottom:2px;font-family:var(--mono)">{{ log }}</div>
+      <div style="padding:14px">
+        <!-- Progress -->
+        <div id="progressWrap" style="display:none;margin-bottom:12px">
+          <div class="flex justify-between mb-4" style="font-size:11px;color:var(--text3)">
+            <span id="progressLabel">Recherche des IDs…</span>
+            <span id="progressNums" class="mono">0 / 0</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+        </div>
+        <!-- Live counters -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:6px;overflow:hidden;margin-bottom:12px">
+          <div style="background:var(--bg3);padding:10px;text-align:center">
+            <div id="cntFound" class="mono" style="font-size:18px;font-weight:700;color:var(--gold)">{{ scrape_stats.found }}</div>
+            <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Trouvés</div>
+          </div>
+          <div style="background:var(--bg3);padding:10px;text-align:center">
+            <div id="cntSaved" class="mono" style="font-size:18px;font-weight:700;color:#4ecb82">{{ scrape_stats.saved }}</div>
+            <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Sauvegardés</div>
+          </div>
+          <div style="background:var(--bg3);padding:10px;text-align:center">
+            <div id="cntErrors" class="mono" style="font-size:18px;font-weight:700;color:#e87070">{{ scrape_stats.errors }}</div>
+            <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">Erreurs</div>
+          </div>
+          <div style="background:var(--bg3);padding:10px;text-align:center">
+            <div id="cntId" class="mono" style="font-size:18px;font-weight:700;color:var(--text2)">{{ scrape_stats.current_id or '—' }}</div>
+            <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">ID actuel</div>
+          </div>
+        </div>
+        <!-- Terminal -->
+        <div class="scraper-terminal" id="scrapeTerminal">
+          {% for log in scrape_log %}
+          <div>{{ log }}</div>
           {% endfor %}
+          {% if not scrape_log %}<div style="color:#3a3a3a">Terminal prêt — Appuyez sur ▶ Lancer le scraper</div>{% endif %}
         </div>
       </div>
     </div>
+
+    <!-- SCRAPE HISTORY + CONTRACTORS -->
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <!-- History -->
+      <div class="card">
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg3)">
+          <span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px">Historique des scrapes</span>
+        </div>
+        <table class="table">
+          <tr><th>Date</th><th>Trouvés</th><th>Sauvegardés</th><th>Durée</th></tr>
+          {% for r in scrape_hist %}
+          <tr>
+            <td class="mono" style="font-size:10px">{{ r.started_at }}</td>
+            <td class="mono" style="color:var(--gold)">{{ r.found }}</td>
+            <td class="mono" style="color:#4ecb82">{{ r.saved }}</td>
+            <td class="mono" style="font-size:10px;color:var(--text3)">{{ '%.0f'|format(r.duration_sec or 0) }}s</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4" style="text-align:center;color:var(--text3);padding:16px">Aucun historique</td></tr>
+          {% endfor %}
+        </table>
+      </div>
+
+      <!-- Members -->
+      <div class="card">
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg3)">
+          <span style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.6px">Membres récents</span>
+        </div>
+        <table class="table">
+          <tr><th>Nom</th><th>Email</th><th>Plan</th><th>Action</th></tr>
+          {% for c in contractors %}
+          <tr>
+            <td style="color:var(--text)">{{ c.nom[:20] }}</td>
+            <td style="font-size:11px;color:var(--text3)">{{ c.email[:22] }}</td>
+            <td><span class="tag {{ 'tag-gold' if c.plan!='free' else 'tag-blue' }}">{{ c.plan }}</span></td>
+            <td><a href="/admin/activate?pwd={{ pwd }}&contractor_id={{ c.id }}&plan=pro" style="font-size:10px;color:var(--gold)">→Pro</a></td>
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
+    </div>
   </div>
 
-  <!-- CONTACTS -->
-  {% if contacts %}
-  <div class="card mb-24">
-    <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg-3)">
-      <span style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.6px">Contacts commerciaux ({{ stats.contacts }} nouveaux)</span>
+  <!-- TENDERS TABLE (Admin only) -->
+  <div class="card">
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg3);display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.6px">Marchés extraits ({{ stats.total }} total)</span>
+      <span style="font-size:11px;color:var(--text3)">Visible ici uniquement</span>
     </div>
-    <table class="table">
-      <tr><th>Nom</th><th>Email</th><th>Téléphone</th><th>Plan</th><th>Date</th></tr>
-      {% for c in contacts %}
-      <tr>
-        <td style="color:var(--text)">{{ c.nom }}</td>
-        <td>{{ c.email }}</td>
-        <td>{{ c.phone }}</td>
-        <td><span class="tag tag-gold">{{ c.plan }}</span></td>
-        <td class="mono" style="font-size:11px">{{ c.created_at[:10] }}</td>
-      </tr>
+    <div style="overflow-x:auto">
+      <div class="tender-admin-row" style="background:var(--bg3);cursor:default">
+        <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Objet / Acheteur</div>
+        <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Région</div>
+        <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Statut</div>
+        <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">Date limite</div>
+        <div></div>
+      </div>
+      {% for t in tenders %}
+      <div class="tender-admin-row">
+        <div>
+          <a href="{{ t.url }}" target="_blank" style="font-size:12px;font-weight:600;color:var(--text);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:400px">{{ t.objet[:70] }}</a>
+          <div style="font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:400px">{{ t.acheteur[:50] or '—' }}</div>
+        </div>
+        <div style="font-size:11px;color:var(--text3)">{{ t.region or '—' }}</div>
+        <div>
+          {% if t.statut=='actif' %}<span class="tag tag-green">Actif</span>
+          {% elif t.statut=='expire' %}<span class="tag tag-red">Expiré</span>
+          {% else %}<span class="tag" style="background:rgba(100,100,100,.1);color:var(--text3);border:1px solid var(--border)">{{ t.statut }}</span>{% endif %}
+        </div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--text3)">{{ t.date_limite or '—' }}</div>
+        <a href="/admin/delete_tender?pwd={{ pwd }}&tid={{ t.id }}" onclick="return confirm('Supprimer ?')" style="font-size:13px;color:var(--text3);transition:.1s" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text3)'">✕</a>
+      </div>
+      {% else %}
+      <div class="empty"><div class="empty-icon">📋</div><div>Aucun marché — Lancez le scraper</div></div>
       {% endfor %}
-    </table>
-  </div>
-  {% endif %}
-
-  <!-- CONTRACTORS -->
-  <div class="card mb-24">
-    <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg-3);display:flex;justify-content:space-between;align-items:center">
-      <span style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px">Comptes récents</span>
     </div>
-    <table class="table">
-      <tr><th>ID</th><th>Nom</th><th>Email</th><th>Plan</th><th>WhatsApp</th><th>Alertes</th><th>Activé</th></tr>
-      {% for c in contractors %}
-      <tr>
-        <td class="mono" style="font-size:11px;color:var(--text-3)">{{ c.id }}</td>
-        <td style="color:var(--text)">{{ c.nom }}</td>
-        <td style="color:var(--text-2)">{{ c.email }}</td>
-        <td>
-          <span class="tag {{ 'tag-gold' if c.plan != 'free' else 'tag-active' }}">{{ c.plan }}</span>
-          <a href="/admin/activate?pwd={{ pwd }}&contractor_id={{ c.id }}&plan=pro" style="font-size:10px;color:var(--gold);margin-left:8px">→Pro</a>
-        </td>
-        <td style="font-size:11px;color:{{ 'var(--green)' if c.whatsapp else 'var(--text-3)' }}">{{ '✓' if c.whatsapp else '—' }}</td>
-        <td class="mono" style="font-size:11px">{{ c.notifs_sent }}</td>
-        <td class="mono" style="font-size:11px;color:var(--text-3)">{{ c.created_at[:10] }}</td>
-      </tr>
-      {% endfor %}
-    </table>
   </div>
 
   <!-- ERRORS -->
   {% if errors %}
-  <div class="card mb-24">
-    <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:rgba(192,57,43,.08)">
-      <span style="font-size:10px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.6px">Erreurs non résolues ({{ errors|length }})</span>
+  <div class="card mt-16">
+    <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:rgba(192,57,43,.06)">
+      <span style="font-size:10px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.6px">Erreurs ({{ errors|length }})</span>
     </div>
     <table class="table">
-      <tr><th>Route</th><th>Erreur</th><th>Occurrences</th><th>Dernière</th><th>Action</th></tr>
+      <tr><th>Route</th><th>Erreur</th><th>Nb</th><th>Action</th></tr>
       {% for e in errors %}
       <tr>
         <td class="mono" style="font-size:11px;color:var(--gold)">{{ e.route }}</td>
-        <td style="font-size:11px;max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ e.error }}</td>
+        <td style="font-size:11px;max-width:300px">{{ e.error[:80] }}</td>
         <td class="mono" style="color:var(--red)">{{ e.count }}</td>
-        <td class="mono" style="font-size:11px;color:var(--text-3)">{{ e.last_seen[:16] }}</td>
-        <td><a href="/admin/resolve_error?pwd={{ pwd }}&error_id={{ e.id }}" style="font-size:11px;color:var(--green)">✓ Résoudre</a></td>
+        <td><a href="/admin/resolve_error?pwd={{ pwd }}&error_id={{ e.id }}" style="font-size:11px;color:#4ecb82">✓</a></td>
       </tr>
       {% endfor %}
     </table>
   </div>
   {% endif %}
 
-  <!-- BROADCAST -->
-  <div class="card">
-    <div style="padding:12px 16px;border-bottom:1px solid var(--border);background:var(--bg-3)">
-      <span style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px">Diffusion</span>
-    </div>
-    <div style="padding:20px">
-      <form method="post" action="/admin/broadcast" style="display:flex;gap:12px;flex-wrap:wrap">
-        <input type="hidden" name="pwd" value="{{ pwd }}">
-        <textarea name="message" class="form-input" style="flex:1;min-width:300px;height:80px" placeholder="Message à diffuser…"></textarea>
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <select name="channel" class="form-select" style="min-width:140px">
-            <option value="email">Email</option>
-            <option value="whatsapp">WhatsApp</option>
-            <option value="telegram">Telegram</option>
-            <option value="all">Tous</option>
-          </select>
-          <button type="submit" class="btn btn-gold btn-sm">Envoyer</button>
-        </div>
-      </form>
-    </div>
-  </div>
 </div>
+
+<script>
+const ADMIN_PWD = '{{ pwd }}';
+let sseSource = null;
+
+async function startScrape(){
+  const btn = document.getElementById('scrapeBtn');
+  btn.disabled = true; btn.textContent = '⏳ En cours…';
+  document.getElementById('progressWrap').style.display = 'block';
+  document.getElementById('scrapeStatus').textContent = '⏳ En cours…';
+  document.getElementById('scrapeStatus').className = 'tag tag-green';
+
+  const terminal = document.getElementById('scrapeTerminal');
+  terminal.innerHTML = '<div style="color:#c9a84c">═══ Démarrage du scraper — marchespublics.gov.ma ═══</div>';
+
+  // Start scrape
+  const r = await fetch(`/admin/scrape?pwd=${ADMIN_PWD}`);
+  const d = await r.json();
+  if(!d.ok){ terminal.innerHTML += `<div style="color:#e87070">${d.msg}</div>`; btn.disabled=false; btn.textContent='▶ Lancer le scraper'; return; }
+
+  // SSE live stream
+  if(sseSource) sseSource.close();
+  sseSource = new EventSource(`/admin/scrape_stream?pwd=${ADMIN_PWD}`);
+
+  sseSource.onmessage = (e) => {
+    const data = JSON.parse(e.data);
+    if(data.log){
+      const div = document.createElement('div');
+      const color = data.log.includes('✓') ? '#4ecb82' : data.log.includes('═══') ? '#c9a84c' : data.log.includes('Erreur') ? '#e87070' : '#888';
+      div.style.color = color;
+      div.textContent = data.log;
+      terminal.appendChild(div);
+      terminal.scrollTop = terminal.scrollHeight;
+    }
+    if(data.stats){
+      const s = data.stats;
+      document.getElementById('cntFound').textContent = s.found || 0;
+      document.getElementById('cntSaved').textContent = s.saved || 0;
+      document.getElementById('cntErrors').textContent = s.errors || 0;
+      document.getElementById('cntId').textContent = s.current_id || '—';
+      if(s.max_id > 0){
+        const pct = Math.min(100, ((s.current_id / s.max_id) * 100));
+        document.getElementById('progressFill').style.width = pct + '%';
+        document.getElementById('progressLabel').textContent = `Scan #${s.current_id}`;
+        document.getElementById('progressNums').textContent = `${s.current_id} / ${s.max_id}`;
+      }
+    }
+    if(data.done){
+      sseSource.close();
+      btn.disabled = false; btn.textContent = '▶ Lancer le scraper';
+      document.getElementById('scrapeStatus').textContent = '✓ Terminé';
+      document.getElementById('scrapeStatus').className = 'tag tag-gold';
+      document.getElementById('progressFill').style.width = '100%';
+      const done = document.createElement('div');
+      done.style.color = '#c9a84c';
+      done.textContent = `═══ Terminé — ${data.stats?.saved || 0} nouveaux marchés sauvegardés ═══`;
+      terminal.appendChild(done);
+      terminal.scrollTop = terminal.scrollHeight;
+      setTimeout(()=>location.reload(), 2000);
+    }
+  };
+  sseSource.onerror = () => {
+    sseSource.close();
+    btn.disabled = false; btn.textContent = '▶ Lancer le scraper';
+  };
+}
+
+// Auto-update if scraper is running
+{% if scrape_stats.running %}
+document.getElementById('progressWrap').style.display = 'block';
+startScrape();
+{% endif %}
+</script>
 {% endblock %}
