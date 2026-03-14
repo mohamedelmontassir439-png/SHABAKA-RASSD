@@ -268,33 +268,146 @@ SECTEURS = [
     "Communication & Médias", "Juridique & Audit", "Autres",
 ]
 
-def classify_region(text):
+def clean_objet(text: str) -> str:
+    """Remove noise from tender title: #1, #01, lot numbers, etc."""
+    t = text.strip()
+    # Remove leading #1, #01, #001, LOT n°, etc.
+    t = re.sub(r'^#\d+\s*', '', t)
+    t = re.sub(r'^LOT\s+[N°n°\d]+\s*[:\-]?\s*', '', t, flags=re.I)
+    t = re.sub(r'^lot\s+\d+\s*[:\-]?\s*', '', t, flags=re.I)
+    t = re.sub(r'^\d+\s*[:\-]\s*', '', t)
+    # Remove trailing noise
+    t = re.sub(r'\s+', ' ', t).strip()
+    # Capitalize first letter
+    if t and t[0].islower(): t = t[0].upper() + t[1:]
+    return t
+
+def classify_region(text: str) -> str:
+    """Detect Moroccan region from text"""
     txt = text.lower()
     for region, kws in REGIONS.items():
         if any(k in txt for k in kws): return region
-    return ""
+    return "Maroc"
 
-def classify_domaine(text):
+DOMAINES_MAP = {
+    "Bâtiment & Construction": [
+        "bâtiment","construction","maçonnerie","béton","coffrage","charpente",
+        "toiture","carrelage","peinture","enduit","plâtrerie","menuiserie",
+        "façade","clôture","mur","dalle","fondation","gros oeuvre","btp",
+        "enseigne","rideau","grille","portail","porte","fenêtre","vitrerie",
+        "étanchéité","isolation","revêtement","parquet","faux plafond",
+    ],
+    "Génie Civil & Routes": [
+        "route","autoroute","pont","génie civil","chaussée","trottoir",
+        "terrassement","voirie","bordure","caniveau","pavage","bitume",
+        "asphalte","emprise","infrastructure","ouvrage d'art","plot","borne",
+        "poteaux","buse","tube","canalisation","drain","regard",
+    ],
+    "Hydraulique & Eau": [
+        "hydraulique","eau potable","assainissement","barrage","irrigation",
+        "réseau d'eau","station d'épuration","forage","pompage","adduction",
+        "réservoir","château d'eau","plomberie","robinetterie","cuve",
+    ],
+    "Informatique & SI": [
+        "informatique","logiciel","système d'information","application",
+        "réseau","serveur","ordinateur","pc","laptop","imprimante","scanner",
+        "toner","cartouche","câblage","switch","routeur","cybersécurité",
+        "maintenance informatique","développement","site web","data","cloud",
+        "caméra","surveillance","vidéo","sfp","fibre optique","vr","casque",
+    ],
+    "Fournitures & Équipements": [
+        "fournitures de bureau","papier","chemise","classeur","stylo",
+        "mobilier","bureau","chaise","fauteuil","armoire","étagère",
+        "table","banquette","chevalet","tableau","écran","projecteur",
+        "équipements","matériel","rame","agrafe","ramette",
+    ],
+    "Santé & Médical": [
+        "médical","santé","hôpital","clinique","médicament","dispositif médical",
+        "laboratoire","analyse","réactif","matériel médical","chirurgical",
+        "dentaire","pharmaceutique","infirmier","ambulance","stéthoscope",
+        "coloration","antiserum","boîte de pétri","salmonella","microbiologie",
+        "ziehl","neelsen","méthanol","lcms",
+    ],
+    "Nettoyage & Maintenance": [
+        "nettoyage","entretien","propreté","désinfection","maintenance",
+        "jardinage","espaces verts","déchets","lavage","savon","détergent",
+        "balai","mop","hygiène","pest control","dératisation",
+    ],
+    "Sécurité & Gardiennage": [
+        "sécurité","gardiennage","surveillance","agent de sécurité",
+        "contrôle d'accès","badge","alarme","incendie","extincteur",
+        "poste portatif","radio","talkie","drapeau",
+    ],
+    "Transport & Logistique": [
+        "transport","véhicule","camion","voiture","bus","minibus","taxi",
+        "location de véhicule","carburant","gasoil","essence","pneumatique",
+        "pièces de rechange","entretien véhicule","flotte","livraison",
+    ],
+    "Alimentation & Restauration": [
+        "alimentation","restauration","repas","traiteur","cuisine",
+        "denrée","produit alimentaire","viande","poisson","légume",
+        "boisson","eau minérale","café","thé","lait","filet de dinde",
+    ],
+    "Formation & Conseil": [
+        "formation","conseil","consultant","expertise","audit","étude",
+        "mission","assistance technique","accompagnement","coaching",
+        "séminaire","atelier","programme","évaluation","diagnostic",
+        "accréditation","certification","bureau d'études","tdr",
+    ],
+    "Communication & Médias": [
+        "communication","publicité","impression","imprimé","rapport",
+        "brochure","affiche","banner","signalétique","image de marque",
+        "vidéo","photo","audiovisuel","événementiel","médias",
+        "presse","journal","magazine",
+    ],
+    "Environnement": [
+        "environnement","écologie","énergie renouvelable","solaire","éolien",
+        "reboisement","plantation","déforestation","pollution","recyclage",
+        "décharge","collecte","ordures",
+    ],
+    "Juridique & Audit": [
+        "audit","juridique","notaire","avocat","huissier","contentieux",
+        "marché juridique","expertise judiciaire","comptabilité","commissaire",
+    ],
+}
+
+def classify_domaine(text: str) -> str:
+    """Classify tender by sector using comprehensive keyword matching"""
     txt = text.lower()
-    m = {
-        "Bâtiment & Construction":["bâtiment","construction","maçonnerie","béton","btp","بناء"],
-        "Génie Civil & Routes":["route","autoroute","pont","génie civil","طريق"],
-        "Hydraulique & Eau":["hydraulique","eau","assainissement","barrage","ماء"],
-        "Informatique & SI":["informatique","logiciel","système","application","réseau","معلوميات"],
-        "Fournitures & Équipements":["fournitures","équipements","matériels","مواد"],
-        "Santé & Médical":["médical","santé","hôpital","clinique","طبي"],
-        "Formation & Conseil":["formation","conseil","consultant","تكوين"],
-        "Nettoyage & Maintenance":["nettoyage","entretien","maintenance","نظافة"],
-        "Sécurité & Gardiennage":["sécurité","gardiennage","surveillance","حراسة"],
-        "Transport & Logistique":["transport","véhicule","camion","سيارة"],
-        "Alimentation & Restauration":["alimentation","restaurant","traiteur","غذاء"],
-        "Communication & Médias":["communication","publicité","impression","إعلام"],
-    }
-    for domaine, kws in m.items():
-        if any(k in txt for k in kws): return domaine
-    return "Autres"
+    scores = {}
+    for domaine, kws in DOMAINES_MAP.items():
+        score = sum(2 if len(kw) > 8 else 1 for kw in kws if kw in txt)
+        if score: scores[domaine] = score
+    if scores: return max(scores, key=scores.get)
+    return "Fournitures & Équipements"  # default (most common)
+
+ACHETEURS_REGIONS = {
+    "Rabat-Salé-Kénitra":        ["rabat","ministère","direction centrale","présidence","parlement","bank al-maghrib","bnrm","hcp","ofppt central","cnops","cnss siège","dgapr"],
+    "Casablanca-Settat":         ["casablanca","settat","mohammedia","berrechid","inzegane","lydec","cfca","onee casa","ram casa"],
+    "Marrakech-Safi":            ["marrakech","safi","essaouira","kelaa des sraghna","youssoufia"],
+    "Fès-Meknès":                ["fès","fez","meknès","meknes","ifrane","taza","boulemane","sefrou"],
+    "Tanger-Tétouan-Al Hoceima": ["tanger","tétouan","al hoceima","chefchaouen","larache","ouazzane"],
+    "Oriental":                  ["oujda","nador","berkane","taourirt","jerada","figuig"],
+    "Béni Mellal-Khénifra":     ["béni mellal","khénifra","azilal","fquih ben salah","khouribga"],
+    "Souss-Massa":               ["agadir","tiznit","taroudant","inezgane","aïn chock","ait melloul"],
+    "Drâa-Tafilalet":            ["errachidia","ouarzazate","zagora","midelt","tinghir"],
+    "Laâyoune":                  ["laayoune","boujdour","tarfaya"],
+    "Dakhla":                    ["dakhla","oued eddahab"],
+    "Guelmim":                   ["guelmim","tan-tan","sidi ifni","assa-zag"],
+}
+
+def classify_region(text: str) -> str:
+    txt = text.lower()
+    # Check geographical keywords first
+    for region, kws in REGIONS.items():
+        if any(k in txt for k in kws): return region
+    # Then check organisme names
+    for region, kws in ACHETEURS_REGIONS.items():
+        if any(k in txt for k in kws): return region
+    return "Maroc"
 
 def extract_date(text):
+    if not text: return ""
     m = re.search(r'(\d{2}[/\-\.]\d{2}[/\-\.]\d{4})', text)
     return m.group(1) if m else ""
 
@@ -427,18 +540,42 @@ def parse_pmmp(html: str, tid: str) -> dict:
         statut  = "annule" if any(k in full.lower() for k in ["annulé","infructueux","sans suite"]) \
                   else ("expire" if is_expired(date_lim) else "actif")
 
+        # Clean the objet
+        objet = clean_objet(objet) if objet else ""
+
+        # Extract acheteur better
+        if not acheteur:
+            acheteur = (in_table("maître d'ouvrage") or in_table("maître d'oeuvre") or
+                       in_table("organisme acheteur") or in_table("pouvoir adjudicateur") or "")
+        acheteur = acheteur.strip()
+
+        # Region from acheteur + full text
+        region  = classify_region(acheteur + " " + full[:600])
+        domaine = classify_domaine(objet + " " + (acheteur or "") + " " + full[:400])
+
+        statut = "annule" if any(k in full.lower() for k in ["annulé","infructueux","sans suite","déclaré infructueux"]) \
+                 else ("expire" if is_expired(date_lim) else "actif")
+
+        # Build clean description
+        desc_parts = []
+        if acheteur: desc_parts.append(f"Acheteur: {acheteur}")
+        if domaine:  desc_parts.append(f"Secteur: {domaine}")
+        if montant:  desc_parts.append(f"Montant estimé: {montant}")
+        desc_parts.append(full[:1500])
+        description = " | ".join(desc_parts[:2]) + "\n\n" + full[:1500]
+
         return {
-            "id": f"pmmp_{tid}",
+            "id": f"{prefix}_{tid}",
             "objet": objet[:400] or f"Marché #{tid}",
             "acheteur": acheteur[:200], "region": region, "domaine": domaine,
             "montant": montant[:60], "date_publication": date_pub,
-            "date_limite": date_lim, "description": full[:2000],
+            "date_limite": date_lim, "description": description[:2000],
             "statut": statut,
             "url": f"https://www.marchespublics.gov.ma/bdc/entreprise/consultation/show/{tid}",
         }
     except Exception as e:
-        return {"id": f"pmmp_{tid}", "objet": f"Marché #{tid}", "url": "", "statut": "actif",
-                "description": "", "acheteur": "", "region": "", "domaine": "", "montant": "",
+        return {"id": f"{prefix}_{tid}", "objet": f"Marché #{tid}", "url": f"https://www.marchespublics.gov.ma/bdc/entreprise/consultation/show/{tid}", "statut": "actif",
+                "description": "", "acheteur": "", "region": "Maroc", "domaine": "Fournitures & Équipements", "montant": "",
                 "date_publication": "", "date_limite": ""}
 
 SHOW_URLS = [
@@ -564,19 +701,7 @@ def run_scraper() -> list:
     return new_tenders
 
 LAST_SCRAPE = 0
-async def scheduler_loop():
-    global LAST_SCRAPE
-    await asyncio.sleep(45)
-    while True:
-        try:
-            if time.time() - LAST_SCRAPE >= SCRAPE_HOURS * 3600:
-                LAST_SCRAPE = time.time()
-                loop = asyncio.get_event_loop()
-                await loop.run_in_executor(None, run_scraper)
-        except Exception as e:
-            SCRAPE_STATS["running"] = False
-            logger.error(f"[scheduler] {e}")
-        await asyncio.sleep(600)
+# scheduler moved to scheduler_loop_v2
 
 # ══════════════════════════════════════════════════════
 # CHATBOT — Claude AI
@@ -660,7 +785,7 @@ async def lifespan(app):
         except: pass
     try: init_db()
     except Exception as e: logger.error(f"[init_db] {e}")
-    asyncio.create_task(scheduler_loop())
+    asyncio.create_task(scheduler_loop_v2())
     asyncio.create_task(digest_scheduler())
     logger.info(f"{BRAND} v2.0 started")
     yield
@@ -1196,61 +1321,134 @@ async def send_telegram_msg(chat_id: str, text: str):
     except Exception as e:
         logger.error(f"[tg_notif] {e}")
 
-async def notify_all_members(new_tenders: list):
-    """Called after scrape — send notifications to all members"""
-    if not new_tenders:
-        return
-    db = get_db()
-    try:
-        members = [dict(r) for r in db.execute(
-            "SELECT email, nom, telegram FROM contractors WHERE actif=1"
-        ).fetchall()]
-    finally:
-        db.close()
+def build_email_html(tenders: list, title: str) -> str:
+    """Build professional email HTML for tender notifications"""
+    def tender_row(t):
+        objet  = t.get("objet","")[:100]
+        acheteur = t.get("acheteur","") or "—"
+        region   = t.get("region","")  or "—"
+        domaine  = t.get("domaine","") or "—"
+        montant  = t.get("montant","") or ""
+        date_lim = t.get("date_limite","") or "—"
+        url      = t.get("url","") or SITE_URL
+        montant_html = f'<tr><td style="padding:3px 0;color:#888;min-width:120px;font-size:11px">💰 Montant estimé</td><td style="color:#c9a84c;font-size:11px;font-weight:700">{montant}</td></tr>' if montant else ""
+        return f"""
+        <div style="border:1px solid #2a2a2a;border-radius:8px;padding:16px 18px;margin-bottom:12px;background:#141414">
+          <div style="font-size:14px;font-weight:700;color:#f0ede6;margin-bottom:10px;line-height:1.4">{objet}</div>
+          <table style="width:100%;border-collapse:collapse">
+            <tr><td style="padding:3px 0;color:#888;min-width:120px;font-size:11px">🏢 Acheteur</td><td style="color:#aaa;font-size:11px">{acheteur[:60]}</td></tr>
+            <tr><td style="padding:3px 0;color:#888;font-size:11px">📍 Région</td><td style="color:#aaa;font-size:11px">{region}</td></tr>
+            <tr><td style="padding:3px 0;color:#888;font-size:11px">🏷 Secteur</td><td style="color:#aaa;font-size:11px">{domaine}</td></tr>
+            {montant_html}
+            <tr><td style="padding:3px 0;color:#888;font-size:11px">⏰ Date limite</td><td style="color:#e87070;font-size:11px;font-weight:700">{date_lim}</td></tr>
+          </table>
+          <a href="{url}" style="display:inline-block;margin-top:10px;padding:6px 14px;background:#c9a84c;color:#000;border-radius:5px;font-weight:700;text-decoration:none;font-size:11px">Voir le marché officiel →</a>
+        </div>"""
 
-    # Build digest
-    lines = []
-    for t in new_tenders[:10]:
-        lines.append(f"• <b>{t['objet'][:60]}</b>\n  📍 {t.get('region','—')} | ⏰ {t.get('date_limite','—')}\n  🔗 {t.get('url','')}")
-
-    tg_msg = (
-        f"🏛 <b>Modern Business</b> — {len(new_tenders)} nouveau(x) marché(s)\n\n"
-        + "\n\n".join(lines[:5])
-        + f"\n\n🌐 {SITE_URL}"
-    )
-
-    email_body = f"""
-    <div style="font-family:Georgia;background:#0d0d0d;color:#fff;padding:28px;border-radius:10px;max-width:600px">
-      <h2 style="color:#c9a84c;margin-bottom:16px">🏛 {len(new_tenders)} nouveau(x) marché(s) public(s)</h2>
-      {"".join(f'<div style="border:1px solid #2a2a2a;border-radius:6px;padding:14px;margin-bottom:10px"><div style="font-size:14px;font-weight:700;color:#f0ede6;margin-bottom:6px">{t["objet"][:80]}</div><div style="font-size:12px;color:#888">📍 {t.get("region","—")} &nbsp;|&nbsp; ⏰ {t.get("date_limite","—")}</div><a href="{t.get("url","")}" style="display:inline-block;margin-top:8px;font-size:12px;color:#c9a84c">Voir le marché →</a></div>' for t in new_tenders[:8])}
-      <div style="margin-top:20px;text-align:center">
-        <a href="{SITE_URL}" style="padding:10px 24px;background:#c9a84c;color:#000;border-radius:6px;font-weight:700;text-decoration:none;font-size:13px">Voir tous les marchés →</a>
+    cards = "".join(tender_row(t) for t in tenders[:12])
+    return f"""
+    <div style="font-family:Georgia,serif;background:#0d0d0d;color:#fff;padding:32px;max-width:640px;margin:0 auto;border-radius:12px">
+      <div style="border-bottom:2px solid #c9a84c;padding-bottom:16px;margin-bottom:22px">
+        <div style="font-size:20px;font-weight:700;color:#c9a84c">◆ Modern Business</div>
+        <div style="font-size:12px;color:#666;margin-top:3px">marchespublics.gov.ma — {datetime.now().strftime("%d/%m/%Y %H:%M")}</div>
+      </div>
+      <div style="font-size:17px;font-weight:700;color:#f0ede6;margin-bottom:4px">{title}</div>
+      <div style="font-size:12px;color:#888;margin-bottom:20px">Source officielle: marchespublics.gov.ma</div>
+      {cards}
+      <div style="border-top:1px solid #222;padding-top:18px;margin-top:6px;text-align:center">
+        <a href="{SITE_URL}" style="padding:10px 24px;background:#c9a84c;color:#000;border-radius:6px;font-weight:700;text-decoration:none;font-size:12px">Accéder à la plateforme →</a>
+        <div style="font-size:10px;color:#333;margin-top:12px">Modern Business · Se désinscrire: {SITE_URL}/contact</div>
       </div>
     </div>"""
 
-    sent_email = 0
-    sent_tg = 0
 
-    for m in members:
-        try:
-            asyncio.create_task(send_email(
-                m["email"],
-                f"🏛 {len(new_tenders)} nouveau(x) marché(s) — Modern Business",
-                email_body
-            ))
-            sent_email += 1
-        except Exception as e:
-            logger.error(f"[notify email] {e}")
+def build_tg_message(tenders: list, header: str) -> list:
+    """Build Telegram messages (split if >4096 chars)"""
+    messages = []
+    intro = f"🏛 <b>{header}</b>\n{datetime.now().strftime('%d/%m/%Y')} · marchespublics.gov.ma\n{'━'*28}\n\n"
+    current = intro
 
+    for t in tenders[:10]:
+        block = (
+            f"📋 <b>{t.get('objet','')[:65]}</b>\n"
+            f"   🏢 {t.get('acheteur','—')[:45]}\n"
+            f"   📍 {t.get('region','—')}  |  🏷 {t.get('domaine','—')[:25]}\n"
+        )
+        if t.get("montant"):
+            block += f"   💰 {t['montant']}\n"
+        block += f"   ⏰ Limite: <b>{t.get('date_limite','—')}</b>\n"
+        if t.get("url"):
+            block += f"   🔗 {t['url']}\n"
+        block += "\n"
+
+        if len(current) + len(block) > 3800:
+            messages.append(current.strip())
+            current = block
+        else:
+            current += block
+
+    if current.strip() != intro.strip():
+        current += f"\n🌐 {SITE_URL}"
+        messages.append(current.strip())
+
+    return messages
+
+
+async def notify_all_members(new_tenders: list):
+    """Send instant notifications after scrape"""
+    if not new_tenders:
+        return
+    try:
+        db = get_db()
         try:
+            members = []
+            for r in db.execute("SELECT email, nom FROM contractors WHERE actif=1").fetchall():
+                m = dict(r)
+                m["telegram"] = ""
+                members.append(m)
+            # Try to get telegram if column exists
+            try:
+                for r in db.execute("SELECT email, telegram FROM contractors WHERE actif=1 AND telegram != ''").fetchall():
+                    for m in members:
+                        if m["email"] == r["email"]:
+                            m["telegram"] = r["telegram"] or ""
+            except: pass
+        finally:
+            db.close()
+
+        if not members:
+            slog("📢 Aucun membre — pas de notification")
+            return
+
+        n = len(new_tenders)
+        email_html = build_email_html(new_tenders, f"🏛 {n} nouveau(x) marché(s) public(s)")
+        tg_msgs = build_tg_message(new_tenders, f"Modern Business — {n} nouveau(x) marché(s)")
+
+        sent_e = sent_t = 0
+        for m in members:
+            try:
+                await send_email(
+                    m["email"],
+                    f"🏛 {n} nouveau(x) marché(s) — {datetime.now().strftime('%d/%m/%Y')} — Modern Business",
+                    email_html
+                )
+                sent_e += 1
+            except Exception as e:
+                logger.error(f"[notify:email:{m['email']}] {e}")
+
             if m.get("telegram"):
-                asyncio.create_task(send_telegram_msg(str(m["telegram"]), tg_msg))
-                sent_tg += 1
-        except Exception as e:
-            logger.error(f"[notify tg] {e}")
+                for msg in tg_msgs:
+                    try:
+                        await send_telegram_msg(str(m["telegram"]), msg)
+                        sent_t += 1
+                    except Exception as e:
+                        logger.error(f"[notify:tg] {e}")
 
-    slog(f"📢 Notifications: {sent_email} emails + {sent_tg} Telegram")
-    metric("notifications_sent")
+        slog(f"📢 Notifications envoyées: {sent_e} emails + {sent_t} Telegram ({n} marchés)")
+        metric("notifications_sent")
+    except Exception as e:
+        logger.error(f"[notify_all_members] {e}")
+        slog(f"❌ Erreur notification: {e}")
 
 
 
@@ -1353,18 +1551,52 @@ async def set_member_telegram(pwd: str = "", email: str = "", chat_id: str = "")
 
 @app.get("/admin/test_notify")
 async def test_notify(pwd: str = ""):
-    """Test notification to all members"""
+    """Test complet: email + telegram"""
     check_admin(pwd)
-    test_tender = [{
-        "id": "test_1",
-        "objet": "TEST — Marché de test Modern Business",
-        "region": "Rabat-Salé-Kénitra",
-        "date_limite": "31/12/2026",
-        "url": SITE_URL,
-        "domaine": "Informatique & SI",
-    }]
-    await notify_all_members(test_tender)
-    return JSONResponse({"ok": True, "msg": "Notification de test envoyée"})
+    try:
+        test_tenders = [
+            {
+                "id": "test_1",
+                "objet": "Fourniture de matériel informatique (PC Bureau + Écran)",
+                "acheteur": "Commune Urbaine de Rabat — Direction des Achats",
+                "region": "Rabat-Salé-Kénitra",
+                "domaine": "Informatique & SI",
+                "montant": "250 000 DH",
+                "date_publication": datetime.now().strftime("%d/%m/%Y"),
+                "date_limite": (datetime.now() + timedelta(days=15)).strftime("%d/%m/%Y"),
+                "url": "https://www.marchespublics.gov.ma/bdc/entreprise/consultation/show/46205",
+                "description": "Fourniture de 20 PC bureau et écrans pour les services administratifs.",
+            },
+            {
+                "id": "test_2",
+                "objet": "Travaux d'entretien et de réparation des voiries communales",
+                "acheteur": "Ministère de l'Intérieur — Direction Régionale",
+                "region": "Casablanca-Settat",
+                "domaine": "Génie Civil & Routes",
+                "montant": "1 200 000 DH",
+                "date_publication": datetime.now().strftime("%d/%m/%Y"),
+                "date_limite": (datetime.now() + timedelta(days=21)).strftime("%d/%m/%Y"),
+                "url": "https://www.marchespublics.gov.ma/bdc/entreprise/consultation/",
+                "description": "Travaux d'entretien sur 12 km de voirie urbaine.",
+            },
+        ]
+        await notify_all_members(test_tenders)
+        return JSONResponse({"ok": True, "msg": f"Test envoyé à tous les membres ({len(test_tenders)} marchés)"})
+    except Exception as e:
+        logger.error(f"[test_notify] {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, 500)
+
+
+@app.get("/admin/test_digest")
+async def test_digest(pwd: str = ""):
+    """Test: envoyer le digest maintenant"""
+    check_admin(pwd)
+    try:
+        await send_daily_digest()
+        return JSONResponse({"ok": True, "msg": "Digest envoyé"})
+    except Exception as e:
+        logger.error(f"[test_digest] {e}")
+        return JSONResponse({"ok": False, "error": str(e)}, 500)
 
 
 # ══════════════════════════════════════════════════════
@@ -1372,100 +1604,65 @@ async def test_notify(pwd: str = ""):
 # ══════════════════════════════════════════════════════
 
 async def send_daily_digest():
-    """إشعار يومي صباحي بكل الصفقات الأمس"""
-    db = get_db()
+    """Digest quotidien 08:00 — toutes les nouvelles صفقات"""
     try:
-        yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
-        tenders = [dict(r) for r in db.execute(
-            "SELECT * FROM tenders WHERE date_extraction >= ? AND statut='actif' ORDER BY date_extraction DESC",
-            (yesterday,)
-        ).fetchall()]
-        members = [dict(r) for r in db.execute(
-            "SELECT email, nom, telegram FROM contractors WHERE actif=1"
-        ).fetchall()]
-    finally:
-        db.close()
+        db = get_db()
+        try:
+            yesterday = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+            tenders = [dict(r) for r in db.execute(
+                "SELECT * FROM tenders WHERE date_extraction >= ? AND statut='actif' ORDER BY date_extraction DESC",
+                (yesterday,)
+            ).fetchall()]
+            members = []
+            for r in db.execute("SELECT email, nom FROM contractors WHERE actif=1").fetchall():
+                m = dict(r); m["telegram"] = ""
+                members.append(m)
+            try:
+                for r in db.execute("SELECT email, telegram FROM contractors WHERE actif=1 AND telegram != ''").fetchall():
+                    for m in members:
+                        if m["email"] == r["email"]:
+                            m["telegram"] = r["telegram"] or ""
+            except: pass
+        finally:
+            db.close()
 
-    if not tenders:
-        slog("[digest] Aucun nouveau marché hier — pas d'envoi")
-        return
+        if not tenders:
+            slog("[digest] Aucun nouveau marché — pas d'envoi")
+            return
+        if not members:
+            slog("[digest] Aucun membre — pas d'envoi")
+            return
 
-    # ── Email HTML complet ──
-    def tender_card(t):
-        return f"""
-        <div style="border:1px solid #2a2a2a;border-radius:8px;padding:18px;margin-bottom:14px;background:#141414">
-          <div style="font-size:15px;font-weight:700;color:#f0ede6;margin-bottom:10px;line-height:1.3">{t['objet']}</div>
-          <table style="width:100%;border-collapse:collapse;font-size:12px;color:#888">
-            {''.join(f'<tr><td style="padding:4px 0;color:#666;min-width:130px">{lbl}</td><td style="color:#aaa">{val}</td></tr>' for lbl,val in [
-              ('🏛 Organisme', t.get('acheteur') or '—'),
-              ('📍 Région', t.get('region') or '—'),
-              ('🏷 Secteur', t.get('domaine') or '—'),
-              ('💰 Montant', t.get('montant') or '—'),
-              ('📅 Publication', t.get('date_publication') or '—'),
-              ('⏰ Date limite', t.get('date_limite') or '—'),
-            ] if val and val != '—')}
-          </table>
-          {'<div style="margin-top:10px;font-size:12px;color:#999;line-height:1.6;border-top:1px solid #222;padding-top:10px">' + t.get("description","")[:300] + '…</div>' if t.get('description') else ''}
-          <a href="{t.get('url', SITE_URL)}" style="display:inline-block;margin-top:12px;padding:7px 16px;background:#c9a84c;color:#000;border-radius:5px;font-weight:700;text-decoration:none;font-size:12px">Voir le marché officiel →</a>
-        </div>"""
+        n = len(tenders)
+        date_str = datetime.now().strftime("%d/%m/%Y")
+        email_html = build_email_html(tenders, f"Résumé quotidien du {date_str} — {n} marché(s)")
+        tg_msgs = build_tg_message(tenders, f"Résumé du {date_str} — {n} marché(s)")
 
-    email_html = f"""
-    <div style="font-family:Georgia,serif;background:#0d0d0d;color:#fff;padding:32px;max-width:640px;margin:0 auto;border-radius:12px">
-      <div style="border-bottom:1px solid #2a2a2a;padding-bottom:20px;margin-bottom:24px">
-        <div style="font-size:22px;font-weight:700;color:#c9a84c">◆ Modern Business</div>
-        <div style="font-size:13px;color:#888;margin-top:4px">Résumé quotidien — {datetime.now().strftime('%d/%m/%Y')}</div>
-      </div>
-      <div style="font-size:16px;font-weight:700;color:#f0ede6;margin-bottom:6px">
-        🏛 {len(tenders)} nouveau(x) marché(s) public(s)
-      </div>
-      <div style="font-size:13px;color:#888;margin-bottom:24px">
-        Source: marchespublics.gov.ma — Mis à jour aujourd'hui
-      </div>
-      {"".join(tender_card(t) for t in tenders[:15])}
-      <div style="border-top:1px solid #2a2a2a;padding-top:20px;margin-top:8px;text-align:center">
-        <a href="{SITE_URL}" style="font-size:12px;color:#c9a84c">Accéder à la plateforme →</a>
-        <div style="font-size:10px;color:#444;margin-top:10px">Modern Business · marchespublics.gov.ma · {SITE_URL}</div>
-      </div>
-    </div>"""
+        sent_e = sent_t = 0
+        for m in members:
+            try:
+                await send_email(
+                    m["email"],
+                    f"📋 Résumé marchés publics du {date_str} ({n} nouveaux) — Modern Business",
+                    email_html
+                )
+                sent_e += 1
+            except Exception as e:
+                logger.error(f"[digest:email] {e}")
 
-    # ── Telegram message ──
-    def tg_tender_block(t):
-        lines = [f"🏛 <b>{t['objet'][:70]}</b>"]
-        if t.get('acheteur'):    lines.append(f"   🏢 {t['acheteur'][:50]}")
-        if t.get('region'):      lines.append(f"   📍 {t['region']}")
-        if t.get('domaine'):     lines.append(f"   🏷 {t['domaine']}")
-        if t.get('montant'):     lines.append(f"   💰 {t['montant']}")
-        if t.get('date_limite'): lines.append(f"   ⏰ Limite: {t['date_limite']}")
-        if t.get('url'):         lines.append(f"   🔗 {t['url']}")
-        return "\n".join(lines)
+            if m.get("telegram"):
+                for msg in tg_msgs:
+                    try:
+                        await send_telegram_msg(str(m["telegram"]), msg)
+                        sent_t += 1
+                    except Exception as e:
+                        logger.error(f"[digest:tg] {e}")
 
-    tg_header = (
-        f"📋 <b>Modern Business — Résumé du {datetime.now().strftime('%d/%m/%Y')}</b>\n"
-        f"🏛 {len(tenders)} nouveau(x) marché(s) sur marchespublics.gov.ma\n"
-        f"{'━'*30}\n\n"
-    )
-    tg_footer = f"\n\n🌐 {SITE_URL}"
-
-    # Telegram limit 4096 chars — split if needed
-    tg_blocks = [tg_tender_block(t) for t in tenders[:8]]
-
-    # ── Send to all members ──
-    sent_e = sent_t = 0
-    for m in members:
-        asyncio.create_task(send_email(
-            m["email"],
-            f"🏛 {len(tenders)} nouveau(x) marché(s) — {datetime.now().strftime('%d/%m/%Y')} — Modern Business",
-            email_html
-        ))
-        sent_e += 1
-
-        if m.get("telegram"):
-            tg_msg = tg_header + "\n\n".join(tg_blocks[:5]) + tg_footer
-            asyncio.create_task(send_telegram_msg(m["telegram"], tg_msg))
-            sent_t += 1
-
-    slog(f"📰 Digest envoyé: {sent_e} emails + {sent_t} Telegram ({len(tenders)} marchés)")
-    metric("digest_sent")
+        slog(f"📰 Digest envoyé: {sent_e} emails + {sent_t} Telegram ({n} marchés)")
+        metric("digest_sent")
+    except Exception as e:
+        logger.error(f"[send_daily_digest] {e}")
+        slog(f"❌ Erreur digest: {e}")
 
 
 async def digest_scheduler():
@@ -1491,3 +1688,228 @@ async def test_digest(pwd: str = ""):
     check_admin(pwd)
     asyncio.create_task(send_daily_digest())
     return JSONResponse({"ok": True, "msg": "Digest envoyé à tous les membres"})
+
+
+# ══════════════════════════════════════════════════════
+# NOTIFICATION AGENT — مستقل + تشخيص كامل
+# ══════════════════════════════════════════════════════
+
+async def _tg_send_raw(chat_id: str, text: str) -> dict:
+    """Raw telegram send with full error reporting"""
+    import httpx
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            r = await client.post(
+                f"https://api.telegram.org/bot{TELEGRAM_BOT}/sendMessage",
+                json={"chat_id": chat_id, "text": text[:4096], "parse_mode": "HTML"},
+                timeout=15
+            )
+            data = r.json()
+            return {"ok": r.status_code == 200 and data.get("ok"), "status": r.status_code, "data": data}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+async def _email_send_raw(to: str, subject: str, html: str) -> dict:
+    """Raw email send with full error reporting"""
+    import asyncio, smtplib
+    from email.mime.multipart import MIMEMultipart
+    from email.mime.text import MIMEText
+    try:
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = f"Modern Business <{GMAIL_USER}>"
+        msg["To"] = to
+        msg.attach(MIMEText(html, "html", "utf-8"))
+
+        def _send():
+            s = smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=20)
+            s.login(GMAIL_USER, GMAIL_PASS)
+            s.sendmail(GMAIL_USER, to, msg.as_string())
+            s.quit()
+            return True
+
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, _send)
+        return {"ok": True}
+    except smtplib.SMTPAuthenticationError as e:
+        return {"ok": False, "error": f"AUTH_ERROR: {e} — Créer App Password sur myaccount.google.com/apppasswords"}
+    except smtplib.SMTPException as e:
+        return {"ok": False, "error": f"SMTP_ERROR: {e}"}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
+
+@app.get("/admin/diagnose")
+async def diagnose(pwd: str = ""):
+    """Full diagnostic — email + telegram + DB"""
+    check_admin(pwd)
+    results = {}
+
+    # 1. Config check
+    results["config"] = {
+        "GMAIL_USER": GMAIL_USER or "❌ MANQUANT",
+        "GMAIL_PASS": "✅ défini" if GMAIL_PASS else "❌ MANQUANT",
+        "TELEGRAM_BOT": "✅ défini" if TELEGRAM_BOT else "❌ MANQUANT",
+        "ANTHROPIC_KEY": "✅ défini" if ANTHROPIC_KEY else "⚠️ optionnel",
+    }
+
+    # 2. Telegram test
+    results["telegram_bot"] = {}
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.get(f"https://api.telegram.org/bot{TELEGRAM_BOT}/getMe")
+            d = r.json()
+            if d.get("ok"):
+                results["telegram_bot"] = {"ok": True, "username": d["result"].get("username")}
+            else:
+                results["telegram_bot"] = {"ok": False, "error": d}
+    except Exception as e:
+        results["telegram_bot"] = {"ok": False, "error": str(e)}
+
+    # 3. DB check
+    db = get_db()
+    try:
+        members = db.execute("SELECT id, email, nom FROM contractors WHERE actif=1").fetchall()
+        tenders_count = db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif'").fetchone()[0]
+        # Check telegram column
+        try:
+            tg_members = db.execute("SELECT COUNT(*) FROM contractors WHERE telegram != '' AND telegram IS NOT NULL").fetchone()[0]
+        except:
+            tg_members = "colonne manquante"
+        results["database"] = {
+            "members": len(members),
+            "members_list": [f"{m['email']}" for m in members[:10]],
+            "tenders_active": tenders_count,
+            "telegram_linked": tg_members,
+        }
+    finally:
+        db.close()
+
+    # 4. Email test (send to admin email)
+    results["email_test"] = await _email_send_raw(
+        GMAIL_USER,
+        "✅ Test Diagnostic — Modern Business",
+        f"""<div style="font-family:Arial;background:#0d0d0d;color:#fff;padding:24px;border-radius:8px">
+        <h2 style="color:#c9a84c">✅ Email fonctionne!</h2>
+        <p>Diagnostic envoyé le {datetime.now().strftime('%d/%m/%Y %H:%M')}</p>
+        <p>Membres: {results['database']['members']}</p>
+        <p>Marchés actifs: {results['database']['tenders_active']}</p>
+        </div>"""
+    )
+
+    return JSONResponse(results)
+
+
+@app.get("/admin/notify_agent")
+async def notify_agent(pwd: str = "", target_email: str = "", target_tg: str = ""):
+    """
+    NOTIFICATION AGENT — Envoie les dernières صفقات
+    target_email: email direct (optionnel, sinon tous les membres)
+    target_tg: chat_id telegram direct (optionnel)
+    """
+    check_admin(pwd)
+
+    # Get latest active tenders
+    db = get_db()
+    try:
+        tenders = [dict(r) for r in db.execute(
+            "SELECT * FROM tenders WHERE statut='actif' ORDER BY date_extraction DESC LIMIT 10"
+        ).fetchall()]
+        if target_email:
+            members = [{"email": target_email, "nom": "Test", "telegram": target_tg}]
+        else:
+            members = []
+            for r in db.execute("SELECT email, nom FROM contractors WHERE actif=1").fetchall():
+                m = dict(r); m["telegram"] = ""
+                members.append(m)
+            try:
+                for r in db.execute("SELECT email, telegram FROM contractors WHERE actif=1").fetchall():
+                    for m in members:
+                        if m["email"] == r["email"] and r["telegram"]:
+                            m["telegram"] = r["telegram"]
+            except: pass
+    finally:
+        db.close()
+
+    if not tenders:
+        return JSONResponse({"ok": False, "msg": "Aucun marché actif"})
+    if not members:
+        return JSONResponse({"ok": False, "msg": "Aucun membre inscrit"})
+
+    report = {"total_members": len(members), "total_tenders": len(tenders), "sent": [], "errors": []}
+
+    email_html = build_email_html(tenders, f"🏛 {len(tenders)} Marchés Publics Actifs")
+    tg_messages = build_tg_message(tenders, f"Modern Business — {len(tenders)} Marchés Actifs")
+
+    for m in members:
+        member_result = {"email": m["email"], "email_ok": False, "tg_ok": False}
+
+        # Send email
+        email_r = await _email_send_raw(
+            m["email"],
+            f"🏛 {len(tenders)} Marchés Publics — {datetime.now().strftime('%d/%m/%Y')} — Modern Business",
+            email_html
+        )
+        member_result["email_ok"] = email_r["ok"]
+        if not email_r["ok"]:
+            member_result["email_error"] = email_r.get("error", "")
+            report["errors"].append(f"EMAIL {m['email']}: {email_r.get('error','')}")
+
+        # Send Telegram if linked
+        if m.get("telegram"):
+            for msg in tg_messages:
+                tg_r = await _tg_send_raw(str(m["telegram"]), msg)
+                member_result["tg_ok"] = tg_r["ok"]
+                if not tg_r["ok"]:
+                    member_result["tg_error"] = tg_r.get("error") or str(tg_r.get("data",""))
+                    report["errors"].append(f"TG {m['telegram']}: {tg_r.get('error','')}")
+
+        report["sent"].append(member_result)
+
+    slog(f"🤖 Agent: {sum(1 for s in report['sent'] if s['email_ok'])} emails + {sum(1 for s in report['sent'] if s['tg_ok'])} TG")
+    metric("agent_notif")
+    return JSONResponse(report)
+
+
+@app.get("/admin/link_telegram")
+async def link_telegram(pwd: str = "", email: str = "", chat_id: str = ""):
+    """Lier un chat_id Telegram à un membre"""
+    check_admin(pwd)
+    if not email or not chat_id:
+        return JSONResponse({"ok": False, "msg": "email et chat_id requis"})
+    db = get_db()
+    try:
+        # Ensure column exists
+        try: db.execute("ALTER TABLE contractors ADD COLUMN telegram TEXT DEFAULT ''")
+        except: pass
+        db.execute("UPDATE contractors SET telegram=? WHERE email=?", (chat_id, email))
+        db.commit()
+        updated = db.execute("SELECT changes()").fetchone()[0]
+    finally:
+        db.close()
+
+    if updated:
+        # Test immediately
+        test_r = await _tg_send_raw(chat_id,
+            f"✅ <b>Telegram lié avec succès!</b>\n\nVous recevrez désormais les alertes marchés publics.\n🌐 {SITE_URL}")
+        return JSONResponse({"ok": True, "telegram_test": test_r})
+    return JSONResponse({"ok": False, "msg": f"Email {email} non trouvé"})
+
+
+# Override scheduler to use agent
+async def scheduler_loop_v2():
+    global LAST_SCRAPE
+    await asyncio.sleep(60)
+    while True:
+        try:
+            if time.time() - LAST_SCRAPE >= SCRAPE_HOURS * 3600:
+                LAST_SCRAPE = time.time()
+                loop = asyncio.get_event_loop()
+                new_tenders = await loop.run_in_executor(None, run_scraper)
+                if new_tenders:
+                    await notify_all_members(new_tenders)
+        except Exception as e:
+            SCRAPE_STATS["running"] = False
+            logger.error(f"[scheduler_v2] {e}")
+        await asyncio.sleep(600)
