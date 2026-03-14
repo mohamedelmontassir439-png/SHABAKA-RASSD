@@ -1,52 +1,42 @@
-const CACHE = 'mb-v2';
-const OFFLINE_URLS = ['/', '/marketplace', '/contractors', '/contact'];
+const CACHE = "mb3-v1";
+const STATIC = ["/","/marketplace","/annuaire","/contact"];
 
-self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(OFFLINE_URLS).catch(()=>{})));
+self.addEventListener("install", e => {
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(STATIC).catch(()=>{})));
   self.skipWaiting();
 });
-
-self.addEventListener('activate', e => {
+self.addEventListener("activate", e => {
   e.waitUntil(caches.keys().then(keys =>
-    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))
   ));
   self.clients.claim();
 });
-
-self.addEventListener('fetch', e => {
+self.addEventListener("fetch", e => {
+  if(e.request.method!=="GET") return;
   const url = e.request.url;
-  if(e.request.method !== 'GET') return;
-  if(url.includes('/admin') || url.includes('/api/') || url.includes('/static/sw')) return;
-
+  if(url.includes("/admin")||url.includes("/api/")||url.includes("sw.js")) return;
   e.respondWith(
-    fetch(e.request)
-      .then(resp => {
-        if(resp && resp.status === 200 && resp.type === 'basic'){
-          const clone = resp.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
-        }
-        return resp;
-      })
-      .catch(() => caches.match(e.request))
+    fetch(e.request).then(resp=>{
+      if(resp&&resp.status===200&&resp.type==="basic"){
+        const c=resp.clone();
+        caches.open(CACHE).then(ca=>ca.put(e.request,c));
+      }
+      return resp;
+    }).catch(()=>caches.match(e.request))
   );
 });
-
-// Push notifications (for future use)
-self.addEventListener('push', e => {
+self.addEventListener("push", e=>{
   if(!e.data) return;
-  const data = e.data.json();
-  e.waitUntil(
-    self.registration.showNotification(data.title || 'Modern Business', {
-      body: data.body || 'Nouvel appel d\'offres disponible',
-      icon: '/static/icon-192.png',
-      badge: '/static/icon-72.png',
-      tag: data.tag || 'mb-notif',
-      data: { url: data.url || '/' }
-    })
-  );
+  const d = e.data.json();
+  e.waitUntil(self.registration.showNotification(d.title||"Modern Business",{
+    body:d.body||"Nouveau marché disponible",
+    icon:"/static/icon-192.png",
+    badge:"/static/icon-192.png",
+    tag:d.tag||"mb-notif",
+    data:{url:d.url||"/"}
+  }));
 });
-
-self.addEventListener('notificationclick', e => {
+self.addEventListener("notificationclick",e=>{
   e.notification.close();
-  e.waitUntil(clients.openWindow(e.notification.data.url || '/'));
+  e.waitUntil(clients.openWindow(e.notification.data.url||"/"));
 });

@@ -3,19 +3,19 @@
 {% block body %}
 <div style="min-height:calc(100vh - var(--nav));display:flex;align-items:center;justify-content:center;padding:40px 20px">
   <div style="width:100%;max-width:360px">
-    <div style="text-align:center;margin-bottom:28px">
-      <div style="font-family:var(--serif);font-size:26px;font-weight:700;margin-bottom:5px">Connexion</div>
-      <div style="font-size:13px;color:var(--text3)">Accédez à votre espace</div>
+    <div class="text-center mb-24">
+      <div class="font-serif" style="font-size:24px;font-weight:700;margin-bottom:4px">Connexion</div>
+      <div class="text-sm text-muted">Accédez à votre espace</div>
     </div>
     {% if error %}<div class="form-error">{{ error }}</div>{% endif %}
-    <div class="card" style="padding:26px">
+    <div class="card p-24">
       <form method="post" action="/login">
         <div class="form-group"><label class="form-label">Email *</label><input type="email" name="email" class="form-input" placeholder="vous@entreprise.ma" required autofocus></div>
         <div class="form-group"><label class="form-label">Mot de passe *</label><input type="password" name="password" class="form-input" placeholder="••••••••" required></div>
-        <button type="submit" class="btn btn-gold w-full" style="padding:11px;font-size:14px;margin-top:6px">Se connecter →</button>
+        <button type="submit" class="btn btn-gold btn-full" style="padding:11px;font-size:14px;margin-top:4px">Se connecter →</button>
       </form>
     </div>
-    <div style="text-align:center;margin-top:18px;font-size:13px;color:var(--text3)">Pas encore inscrit ? <a href="/register" style="color:var(--gold);font-weight:600">Créer un compte</a></div>
+    <div class="text-center mt-16 text-sm text-muted">Pas encore inscrit ? <a href="/register" class="text-gold font-bold">Créer un compte</a></div>
   </div>
 </div>
 {% endblock %}

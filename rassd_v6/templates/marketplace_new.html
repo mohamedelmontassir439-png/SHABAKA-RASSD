@@ -1,55 +1,34 @@
 {% extends "base.html" %}
 {% block title %}Nouvelle annonce{% endblock %}
 {% block body %}
-<div style="max-width:680px;margin:0 auto;padding:40px 28px 64px">
-  <div class="flex items-center justify-between mb-28">
+<div style="max-width:640px;margin:0 auto;padding:36px 24px 64px">
+  <div class="flex items-center justify-between mb-24">
     <div>
-      <div style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px">Marketplace</div>
-      <h2 style="font-size:22px;margin:0">Publier une annonce</h2>
+      <div style="font-size:9px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px">Marketplace</div>
+      <h2 style="font-size:20px">Publier une annonce</h2>
     </div>
     <a href="/marketplace" class="btn btn-ghost btn-sm">← Retour</a>
   </div>
   {% if error %}<div class="form-error">{{ error }}</div>{% endif %}
-  <div class="card" style="padding:28px">
+  <div class="card p-24">
     <form method="post" action="/marketplace/new">
       <div class="form-group">
-        <label class="form-label">Type d'annonce *</label>
+        <label class="form-label">Type *</label>
         <select name="type_p" class="form-select">
           <option value="offre">🤝 Offre de sous-traitance</option>
           <option value="recherche">🔍 Recherche de partenaire</option>
           <option value="groupement">🏢 Proposition de groupement</option>
         </select>
       </div>
-      <div class="form-group">
-        <label class="form-label">Titre *</label>
-        <input type="text" name="titre" class="form-input" placeholder="Ex: Sous-traitance travaux de peinture — Casablanca" required minlength="10">
+      <div class="form-group"><label class="form-label">Titre *</label><input type="text" name="titre" class="form-input" placeholder="Ex: Sous-traitance travaux peinture — Casablanca" required minlength="10"></div>
+      <div class="grid-2">
+        <div class="form-group"><label class="form-label">Secteur</label><select name="secteur" class="form-select"><option value="">Sélectionner…</option>{% for s in SECTEURS_LIST %}<option value="{{ s }}">{{ s }}</option>{% endfor %}</select></div>
+        <div class="form-group"><label class="form-label">Région</label><select name="region" class="form-select"><option value="">Sélectionner…</option>{% for r in ["Rabat-Salé-Kénitra","Casablanca-Settat","Marrakech-Safi","Fès-Meknès","Tanger-Tétouan-Al Hoceima","Oriental","Béni Mellal-Khénifra","Souss-Massa","Drâa-Tafilalet","Laâyoune","Dakhla","Guelmim"] %}<option value="{{ r }}">{{ r }}</option>{% endfor %}</select></div>
+        <div class="form-group"><label class="form-label">Budget estimé</label><input type="text" name="budget" class="form-input" placeholder="500 000 — 2 000 000 DH"></div>
+        <div class="form-group"><label class="form-label">Contact</label><input type="text" name="contact" class="form-input" placeholder="Tél ou email public"></div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-        <div class="form-group">
-          <label class="form-label">Secteur</label>
-          <select name="secteur" class="form-select">
-            <option value="">Sélectionner…</option>
-            {% for s in SECTEURS %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Ville / Région</label>
-          <input type="text" name="ville" class="form-input" placeholder="Casablanca, Rabat…">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Budget estimé</label>
-          <input type="text" name="budget" class="form-input" placeholder="Ex: 500 000 — 2 000 000 DH">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Contact (optionnel)</label>
-          <input type="text" name="contact" class="form-input" placeholder="Tél ou email public">
-        </div>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Description *</label>
-        <textarea name="description" class="form-textarea" rows="5" placeholder="Décrivez votre offre ou besoin en détail: compétences, capacité, matériel, références…" required></textarea>
-      </div>
-      <button type="submit" class="btn btn-gold w-full" style="padding:12px">Publier l'annonce →</button>
+      <div class="form-group"><label class="form-label">Description *</label><textarea name="description" class="form-textarea" rows="5" placeholder="Décrivez votre offre: compétences, capacité, références…" required></textarea></div>
+      <button type="submit" class="btn btn-gold btn-full" style="padding:12px">Publier l'annonce →</button>
     </form>
   </div>
 </div>

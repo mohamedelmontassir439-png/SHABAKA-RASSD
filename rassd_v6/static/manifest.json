@@ -1,27 +1,41 @@
 {
   "name": "Modern Business",
-  "short_name": "ModernBiz",
-  "description": "Veille Marchés Publics Maroc",
+  "short_name": "ModBiz",
+  "description": "Intelligence des March\u00e9s Publics \u2014 Maroc",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0d0d0d",
-  "theme_color": "#0d0d0d",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
   "lang": "fr",
-  "orientation": "portrait",
-  "categories": ["business","productivity"],
-  "icons": [
-    {"src": "/static/icon-72.png",  "sizes": "72x72",   "type": "image/png", "purpose": "any maskable"},
-    {"src": "/static/icon-96.png",  "sizes": "96x96",   "type": "image/png", "purpose": "any maskable"},
-    {"src": "/static/icon-128.png", "sizes": "128x128", "type": "image/png", "purpose": "any maskable"},
-    {"src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
-    {"src": "/static/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  "orientation": "portrait-primary",
+  "categories": [
+    "business",
+    "productivity"
   ],
-  "screenshots": [
-    {"src": "/static/screenshot-mobile.png", "sizes": "390x844", "type": "image/png", "form_factor": "narrow"},
-    {"src": "/static/screenshot-desktop.png", "sizes": "1280x720", "type": "image/png", "form_factor": "wide"}
+  "icons": [
+    {
+      "src": "/static/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
   ],
   "shortcuts": [
-    {"name": "Marketplace", "url": "/marketplace", "description": "Voir les annonces"},
-    {"name": "Mon compte",  "url": "/dashboard",   "description": "Mon tableau de bord"}
+    {
+      "name": "Marketplace",
+      "url": "/marketplace",
+      "description": "Annonces B2B"
+    },
+    {
+      "name": "Dashboard",
+      "url": "/dashboard",
+      "description": "Mon espace"
+    }
   ]
 }
