@@ -43,6 +43,7 @@ GMAIL_USER   = os.getenv("GMAIL_USER",  "mohamedelmontassir439@gmail.com")
 GMAIL_PASS   = os.getenv("GMAIL_PASS",  "")
 TELEGRAM_BOT = os.getenv("TELEGRAM_BOT","7849539613:AAFZTtMNEo92UqE3OIcXPdX65OCm8DrvgAA")
 ANTHROPIC_KEY= os.getenv("ANTHROPIC_API_KEY", "")
+RESEND_KEY   = os.getenv("RESEND_API_KEY",  "")
 SCRAPE_HOURS   = int(os.getenv("SCRAPE_INTERVAL_HOURS", "6"))
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 FROM_EMAIL     = os.getenv("FROM_EMAIL", "noreply@modern-business.ma")
@@ -274,6 +275,46 @@ def init_db():
     for sql in migrations:
         try: db.execute(sql)
         except: pass
+
+    # Migrate contractors (v2) → members (v3)
+    try:
+        existing = db.execute("SELECT COUNT(*) FROM members").fetchone()[0]
+        old_table = db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='contractors'").fetchone()
+        if old_table and existing == 0:
+            db.execute("""INSERT OR IGNORE INTO members
+                (id,nom,entreprise,email,phone,secteur,ville,pw_hash,
+                 telegram,plan,actif,verified,rating_avg,rating_count,
+                 notif_email,notif_tg,created_at,last_login)
+                SELECT id,nom,
+                    COALESCE(entreprise,''),
+                    email,
+                    COALESCE(phone,''),
+                    COALESCE(secteur,''),
+                    COALESCE(ville,''),
+                    COALESCE(password_hash,''),
+                    COALESCE(telegram,''),
+                    COALESCE(plan,'free'),
+                    COALESCE(actif,1),
+                    COALESCE(verified,0),
+                    COALESCE(rating_avg,0),
+                    COALESCE(rating_count,0),
+                    1,1,
+                    COALESCE(created_at,''),
+                    COALESCE(last_login,'')
+                FROM contractors WHERE actif=1""")
+            migrated = db.execute("SELECT COUNT(*) FROM members").fetchone()[0]
+            logger.info(f"Migrated {migrated} members from contractors table")
+        elif old_table and existing > 0:
+            # Update telegram from contractors if missing in members
+            try:
+                db.execute("""UPDATE members SET telegram=c.telegram
+                    FROM contractors c WHERE members.email=c.email
+                    AND (members.telegram IS NULL OR members.telegram='')
+                    AND c.telegram IS NOT NULL AND c.telegram!=''""")
+            except: pass
+    except Exception as e:
+        logger.warning(f"Migration contractors->members: {e}")
+
     db.commit(); db.close()
     logger.info("DB initialized")
 
@@ -804,46 +845,81 @@ class NotifyAgent:
             db.commit(); db.close()
         except: pass
 
-    # ── Email via Resend API (HTTP — works on Railway) ──
+    # ── Email: Brevo → Resend → SMTP ──
     @staticmethod
     async def send_email(to: str, subject: str, html: str) -> tuple:
-        """
-        Send email via Resend.com HTTP API.
-        Railway blocks SMTP (port 465/587) — HTTP API is the only way.
-        Free tier: 3000 emails/month — https://resend.com
-        """
-        if not RESEND_API_KEY:
-            return False, "RESEND_API_KEY not set. Create free account at resend.com"
-        if not to or "@" not in to:
-            return False, f"Invalid email: {to}"
-        try:
-            import httpx
-            async with httpx.AsyncClient(timeout=20) as client:
-                r = await client.post(
-                    "https://api.resend.com/emails",
-                    headers={
-                        "Authorization": f"Bearer {RESEND_API_KEY}",
-                        "Content-Type": "application/json",
-                    },
-                    json={
-                        "from": f"{BRAND} <{FROM_EMAIL}>",
-                        "to": [to],
-                        "subject": subject,
-                        "html": html,
-                    }
-                )
-                data = r.json()
-                if r.status_code in [200, 201] and data.get("id"):
-                    counter("emails_sent")
-                    logger.info(f"[email] ✅ sent to {to} — id:{data['id']}")
-                    return True, ""
-                else:
-                    err = data.get("message") or data.get("error") or str(data)
-                    logger.error(f"[email→{to}] Resend error: {err}")
-                    return False, f"Resend API: {err}"
-        except Exception as e:
-            logger.error(f"[email_send] {e}")
-            return False, str(e)
+        import httpx
+
+        # Priority 1: Brevo API (HTTP - works on Railway, 300/day free)
+        if BREVO_KEY:
+            try:
+                async with httpx.AsyncClient(timeout=20) as client:
+                    r = await client.post(
+                        "https://api.brevo.com/v3/smtp/email",
+                        headers={"api-key": BREVO_KEY, "Content-Type": "application/json"},
+                        json={
+                            "sender":      {"name": BRAND, "email": GMAIL_USER},
+                            "to":          [{"email": to}],
+                            "subject":     subject,
+                            "htmlContent": html,
+                        }
+                    )
+                    if r.status_code in [200, 201, 202]:
+                        counter("emails_sent")
+                        logger.info(f"[email:brevo] ok -> {to}")
+                        return True, ""
+                    err = r.text[:120]
+                    logger.error(f"[email:brevo] {r.status_code}: {err}")
+            except Exception as e:
+                logger.error(f"[email:brevo] {e}")
+
+        # Priority 2: Resend API (requires verified domain for non-owner emails)
+        if RESEND_KEY:
+            try:
+                async with httpx.AsyncClient(timeout=20) as client:
+                    r = await client.post(
+                        "https://api.resend.com/emails",
+                        headers={"Authorization": f"Bearer {RESEND_KEY}",
+                                 "Content-Type": "application/json"},
+                        json={"from": f"{BRAND} <onboarding@resend.dev>",
+                              "to": [to], "subject": subject, "html": html}
+                    )
+                    data = r.json()
+                    if r.status_code in [200, 201] and data.get("id"):
+                        counter("emails_sent")
+                        return True, ""
+                    logger.error(f"[email:resend] {data.get('message','')[:100]}")
+            except Exception as e:
+                logger.error(f"[email:resend] {e}")
+
+        # Priority 3: SMTP (blocked by Railway free plan)
+        if GMAIL_PASS:
+            try:
+                msg = MIMEMultipart("alternative")
+                msg["Subject"] = subject
+                msg["From"]    = f"{BRAND} <{GMAIL_USER}>"
+                msg["To"]      = to
+                msg.attach(MIMEText(html, "html", "utf-8"))
+                def _smtp():
+                    for host,port,ssl in [("smtp.gmail.com",465,True),("smtp.gmail.com",587,False)]:
+                        try:
+                            srv = smtplib.SMTP_SSL(host,port,timeout=20) if ssl else smtplib.SMTP(host,port,timeout=20)
+                            if not ssl: srv.ehlo(); srv.starttls(); srv.ehlo()
+                            srv.login(GMAIL_USER, GMAIL_PASS)
+                            srv.sendmail(GMAIL_USER,[to],msg.as_string())
+                            srv.quit(); return True,""
+                        except smtplib.SMTPAuthenticationError:
+                            return False,"Gmail App Password requis"
+                        except: continue
+                    return False,"SMTP bloque par Railway (utiliser BREVO_API_KEY)"
+                loop = asyncio.get_event_loop()
+                ok, err = await loop.run_in_executor(None, _smtp)
+                if ok: counter("emails_sent")
+                return ok, err
+            except Exception as e:
+                return False, str(e)
+
+        return False, "BREVO_API_KEY non configure (recommande)"
 
     # ── Telegram ──
     @staticmethod
@@ -908,9 +984,13 @@ class NotifyAgent:
                             NotifyAgent.mark(n["id"], "sent")
                             logger.info(f"[NotifyAgent] ✅ {n['channel']}→{n['recipient'][:20]}")
                         else:
+                            # After 2 email failures → mark failed, don't keep retrying
                             status = "failed" if n["attempts"] >= 2 else "pending"
                             NotifyAgent.mark(n["id"], status, err)
-                            logger.warning(f"[NotifyAgent] ✗ {n['channel']}→{n['recipient'][:20]}: {err}")
+                            if "Network is unreachable" in err or "SMTP" in err:
+                                # Railway blocks SMTP — auto-fail without retry
+                                NotifyAgent.mark(n["id"], "failed", "Railway blocks SMTP — use BREVO_API_KEY")
+                            logger.warning(f"[NotifyAgent] ✗ {n['channel']}→{n['recipient'][:20]}: {err[:60]}")
                         await asyncio.sleep(0.5)
                     except Exception as e:
                         NotifyAgent.mark(n["id"], "pending", str(e))
@@ -1802,8 +1882,35 @@ async def admin_set_tg(pwd: str="", email: str="", chat_id: str=""):
         db.execute("UPDATE members SET telegram=? WHERE email=?",(chat_id,email.lower().strip()))
         db.commit()
         ch = db.execute("SELECT changes()").fetchone()[0]
+        member = db.execute("SELECT nom FROM members WHERE email=?", (email.lower().strip(),)).fetchone()
     finally: db.close()
-    return JSONResponse({"ok":bool(ch),"updated":ch})
+    name = dict(member)["nom"] if member else "?"
+    # Send confirmation via Telegram
+    if ch and chat_id:
+        asyncio.create_task(NotifyAgent.send_telegram(chat_id,
+            f"✅ <b>Alertes activées, {name}!</b>\n\n"
+            f"Vous recevrez désormais les notifications des nouveaux marchés "
+            f"dès leur publication sur marchespublics.gov.ma\n\n"
+            f"🌐 {SITE_URL}"
+        ))
+    return JSONResponse({"ok":bool(ch),"updated":ch,"member":name})
+
+@app.get("/admin/broadcast_tg")
+async def admin_broadcast_tg(pwd: str="", msg: str=""):
+    """Envoyer un message Telegram à tous les abonnés"""
+    chk(pwd)
+    if not msg: return JSONResponse({"ok":False,"msg":"Paramètre msg requis"})
+    db = get_db()
+    try:
+        subs = [dict(r) for r in db.execute(
+            "SELECT id,nom,telegram FROM members WHERE telegram!='' AND actif=1"
+        ).fetchall()]
+    finally: db.close()
+    sent = 0
+    for sub in subs:
+        ok, _ = await NotifyAgent.send_telegram(sub["telegram"], msg)
+        if ok: sent += 1
+    return JSONResponse({"ok":True,"sent":sent,"total":len(subs)})
 
 @app.get("/admin/activate")
 async def admin_activate(pwd: str="", member_id: int=0, plan: str="pro"):
@@ -1830,6 +1937,37 @@ async def admin_resolve(pwd: str="", eid: int=0):
     try: db.execute("UPDATE agent_errors SET resolved=1 WHERE id=?",(eid,)); db.commit()
     finally: db.close()
     return JSONResponse({"ok":True})
+
+@app.get("/admin/migrate")
+async def admin_migrate(pwd: str=""):
+    """Force migrate contractors -> members"""
+    chk(pwd)
+    db = get_db()
+    try:
+        old_table = db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='contractors'").fetchone()
+        if not old_table:
+            return JSONResponse({"ok":False,"msg":"Table contractors introuvable"})
+        db.execute("""INSERT OR IGNORE INTO members
+            (id,nom,entreprise,email,phone,secteur,ville,pw_hash,
+             telegram,plan,actif,verified,rating_avg,rating_count,
+             notif_email,notif_tg,created_at,last_login)
+            SELECT id,nom,
+                COALESCE(entreprise,''),email,
+                COALESCE(phone,''),COALESCE(secteur,''),COALESCE(ville,''),
+                COALESCE(password_hash,''),COALESCE(telegram,''),
+                COALESCE(plan,'free'),COALESCE(actif,1),COALESCE(verified,0),
+                COALESCE(rating_avg,0),COALESCE(rating_count,0),
+                1,1,COALESCE(created_at,''),COALESCE(last_login,'')
+            FROM contractors WHERE actif=1""")
+        db.commit()
+        count = db.execute("SELECT COUNT(*) FROM members").fetchone()[0]
+        # Set telegram for known member
+        db.execute("""UPDATE members SET telegram='6424992854'
+            WHERE email='mohamedelmontassir439@gmail.com'
+            AND (telegram IS NULL OR telegram='')""")
+        db.commit()
+    finally: db.close()
+    return JSONResponse({"ok":True,"members_count":count})
 
 @app.get("/admin/cleanup")
 async def admin_cleanup(pwd: str=""):
