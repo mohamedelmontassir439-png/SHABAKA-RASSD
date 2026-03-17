@@ -1940,34 +1940,53 @@ async def admin_resolve(pwd: str="", eid: int=0):
 
 @app.get("/admin/migrate")
 async def admin_migrate(pwd: str=""):
-    """Force migrate contractors -> members"""
+    """Force migrate contractors -> members + set known telegrams"""
     chk(pwd)
     db = get_db()
     try:
-        old_table = db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='contractors'").fetchone()
-        if not old_table:
-            return JSONResponse({"ok":False,"msg":"Table contractors introuvable"})
-        db.execute("""INSERT OR IGNORE INTO members
-            (id,nom,entreprise,email,phone,secteur,ville,pw_hash,
-             telegram,plan,actif,verified,rating_avg,rating_count,
-             notif_email,notif_tg,created_at,last_login)
-            SELECT id,nom,
-                COALESCE(entreprise,''),email,
-                COALESCE(phone,''),COALESCE(secteur,''),COALESCE(ville,''),
-                COALESCE(password_hash,''),COALESCE(telegram,''),
-                COALESCE(plan,'free'),COALESCE(actif,1),COALESCE(verified,0),
-                COALESCE(rating_avg,0),COALESCE(rating_count,0),
-                1,1,COALESCE(created_at,''),COALESCE(last_login,'')
-            FROM contractors WHERE actif=1""")
+        migrated = 0
+        # Try contractors table
+        old_table = db.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='contractors'"
+        ).fetchone()
+        if old_table:
+            db.execute("""INSERT OR IGNORE INTO members
+                (id,nom,entreprise,email,phone,secteur,ville,pw_hash,
+                 telegram,plan,actif,verified,rating_avg,rating_count,
+                 notif_email,notif_tg,created_at,last_login)
+                SELECT id,nom,COALESCE(entreprise,''),email,
+                    COALESCE(phone,''),COALESCE(secteur,''),COALESCE(ville,''),
+                    COALESCE(password_hash,''),COALESCE(telegram,''),
+                    COALESCE(plan,'free'),COALESCE(actif,1),COALESCE(verified,0),
+                    COALESCE(rating_avg,0),COALESCE(rating_count,0),
+                    1,1,COALESCE(created_at,''),COALESCE(last_login,'')
+                FROM contractors WHERE actif=1""")
+            db.commit()
+
+        # Always ensure known admins exist
+        known = [
+            ("mohamed el montassir","","mohamedelmontassir439@gmail.com","","","","","6424992854"),
+            ("AYOUB","","ayyoubelaarbi@gmail.com","","","","",""),
+        ]
+        for nom,ent,email,phone,sect,ville,pw,tg in known:
+            existing = db.execute("SELECT id FROM members WHERE email=?",(email,)).fetchone()
+            if not existing:
+                db.execute("""INSERT INTO members
+                    (nom,entreprise,email,phone,secteur,ville,pw_hash,
+                     telegram,plan,actif,notif_email,notif_tg,created_at)
+                    VALUES (?,?,?,?,?,?,?,?,'free',1,1,1,?)""",
+                    (nom,ent,email,phone,sect,ville,pw,tg,now_str()))
+            else:
+                if tg:
+                    db.execute("UPDATE members SET telegram=? WHERE email=? AND (telegram IS NULL OR telegram='')",
+                               (tg,email))
         db.commit()
-        count = db.execute("SELECT COUNT(*) FROM members").fetchone()[0]
-        # Set telegram for known member
-        db.execute("""UPDATE members SET telegram='6424992854'
-            WHERE email='mohamedelmontassir439@gmail.com'
-            AND (telegram IS NULL OR telegram='')""")
-        db.commit()
+
+        members = [dict(r) for r in db.execute(
+            "SELECT id,nom,email,telegram FROM members WHERE actif=1"
+        ).fetchall()]
     finally: db.close()
-    return JSONResponse({"ok":True,"members_count":count})
+    return JSONResponse({"ok":True,"members":members})
 
 @app.get("/admin/cleanup")
 async def admin_cleanup(pwd: str=""):
