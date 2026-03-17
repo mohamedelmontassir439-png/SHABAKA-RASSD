@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Mot de passe oublié{% endblock %}
+{% block body %}
+<div style="min-height:calc(100vh - var(--nav));display:flex;align-items:center;justify-content:center;padding:40px 20px">
+  <div style="width:100%;max-width:400px">
+    <div class="text-center mb-24">
+      <div class="font-serif" style="font-size:22px;font-weight:700;margin-bottom:4px">Mot de passe oublié</div>
+      <div class="text-sm text-muted">Recevez un lien de réinitialisation</div>
+    </div>
+    {% if sent %}
+    <div class="card p-24 text-center">
+      <div style="font-size:40px;margin-bottom:12px">📬</div>
+      <div class="font-bold mb-8">Lien envoyé!</div>
+      <div class="text-sm text-muted mb-16">Vérifiez votre email et Telegram (si configuré).<br>Le lien est valide 2 heures.</div>
+      <a href="/login" class="btn btn-gold btn-sm">Retour à la connexion →</a>
+    </div>
+    {% else %}
+    {% if error %}<div class="form-error">{{ error }}</div>{% endif %}
+    <div class="card p-24">
+      <form method="post" action="/forgot">
+        <div class="form-group"><label class="form-label">Email de votre compte *</label><input type="email" name="email" class="form-input" placeholder="vous@entreprise.ma" required autofocus></div>
+        <button type="submit" class="btn btn-gold btn-full" style="padding:11px">Envoyer le lien →</button>
+      </form>
+    </div>
+    <div class="text-center mt-16 text-sm text-muted"><a href="/login" class="text-muted">← Retour à la connexion</a></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

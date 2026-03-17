@@ -1,124 +1,100 @@
 {% extends "base.html" %}
-{% block title %}Opportunités{% endblock %}
+{% block title %}Marchés Publics{% endblock %}
+{% block head %}
+<style>
+.tender-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:18px;transition:.15s;display:block;}
+.tender-card:hover{border-color:var(--border2);background:var(--bg3);transform:translateY(-1px)}
+.code-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;font-family:var(--mono)}
+.code-t{background:rgba(201,168,76,.1);color:var(--gold);border:1px solid rgba(201,168,76,.2)}
+.code-p{background:rgba(45,108,207,.1);color:#6b9de8;border:1px solid rgba(45,108,207,.2)}
+.code-s{background:rgba(39,168,94,.1);color:#3ecb7a;border:1px solid rgba(39,168,94,.2)}
+</style>
+{% endblock %}
 {% block body %}
-<div style="max-width:1120px;margin:0 auto">
-
-<!-- PAGE HEADER -->
-<div class="page-header" style="padding-bottom:24px">
-  <div class="flex items-center justify-between flex-wrap gap-12">
+<div class="page">
+  <div class="flex items-center justify-between mb-20 flex-wrap gap-12">
     <div>
-      <div class="section-eyebrow">{{ total }} résultats</div>
-      <h2 style="font-size:28px;margin:0">Appels d'Offres</h2>
+      <div style="font-size:9px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:2px;margin-bottom:4px">marchespublics.gov.ma</div>
+      <h2 style="font-size:22px;margin:0">Marchés Publics — <span class="text-gold">{{ total }}</span> actifs</h2>
     </div>
-    <div class="flex items-center gap-8">
-      <span class="tag tag-public">🏛 {{ stats_public or '' }} Public</span>
-      <span class="tag tag-semi">🏢 Semi-pub</span>
-      <span class="tag tag-private">📰 Privé</span>
+    <div class="flex items-center gap-8 text-xs text-muted">
+      <span class="live-dot"></span> Mis à jour automatiquement
     </div>
   </div>
-</div>
 
-<!-- FILTERS -->
-<div class="filter-bar" style="border-radius:var(--r-lg) var(--r-lg) 0 0;border:1px solid var(--border);margin:0 32px;border-bottom:none;background:var(--bg-3)">
-  <form method="get" action="/tenders" class="flex items-center gap-8 flex-wrap w-full" style="display:flex">
-    <input name="q" value="{{ q }}" placeholder="Rechercher…" class="filter-input" style="min-width:200px">
-    <select name="type_filter" class="filter-input form-select" style="min-width:130px">
-      <option value="">Tous types</option>
-      <option value="PUBLIC" {% if type_filter=='PUBLIC' %}selected{% endif %}>🏛 Public</option>
-      <option value="SEMI_PUBLIC" {% if type_filter=='SEMI_PUBLIC' %}selected{% endif %}>🏢 Semi-Public</option>
-      <option value="PRIVATE" {% if type_filter=='PRIVATE' %}selected{% endif %}>📰 Privé</option>
+  <!-- FILTERS -->
+  <form method="get" action="/tenders" class="flex items-center gap-8 flex-wrap mb-20">
+    <input name="q" value="{{ q }}" placeholder="Rechercher un marché…" class="form-input flex-1" style="min-width:200px">
+    <select name="code_f" class="form-select" style="min-width:90px">
+      <option value="">Tous codes</option>
+      <optgroup label="T - Travaux">
+        {% for s in SECTEURS_LIST %}{% if s.startswith('T') %}<option value="{{ s[:4] }}" {% if code_f==s[:4] %}selected{% endif %}>{{ s[:4] }}</option>{% endif %}{% endfor %}
+      </optgroup>
+      <optgroup label="P - Produits">
+        {% for s in SECTEURS_LIST %}{% if s.startswith('P') %}<option value="{{ s[:4] }}" {% if code_f==s[:4] %}selected{% endif %}>{{ s[:4] }}</option>{% endif %}{% endfor %}
+      </optgroup>
+      <optgroup label="S - Services">
+        {% for s in SECTEURS_LIST %}{% if s.startswith('S') %}<option value="{{ s[:4] }}" {% if code_f==s[:4] %}selected{% endif %}>{{ s[:4] }}</option>{% endif %}{% endfor %}
+      </optgroup>
     </select>
-    <select name="region" class="filter-input form-select" style="min-width:180px">
+    <select name="region_f" class="form-select" style="min-width:160px">
       <option value="">Toutes régions</option>
-      {% for r in REGIONS_LIST %}
-      <option value="{{ r }}" {% if region==r %}selected{% endif %}>{{ r }}</option>
-      {% endfor %}
+      {% for r in regions %}<option value="{{ r }}" {% if region_f==r %}selected{% endif %}>{{ r }}</option>{% endfor %}
     </select>
-    <select name="domaine" class="filter-input form-select" style="min-width:200px">
-      <option value="">Tous secteurs</option>
-      {% for code,name in DOMAINS_FR.items() %}
-      <option value="{{ code }}" {% if domaine==code %}selected{% endif %}>{{ name }}</option>
-      {% endfor %}
-    </select>
-    <select name="source" class="filter-input form-select" style="min-width:140px">
-      <option value="">Toutes sources</option>
-      {% for key,src in SCRAPER_SOURCES.items() %}
-      <option value="{{ key }}" {% if source==key %}selected{% endif %}>{{ src.name }}</option>
-      {% endfor %}
-    </select>
-    <button type="submit" class="filter-btn">Filtrer</button>
-    {% if q or type_filter or region or domaine or source %}
-    <a href="/tenders" class="filter-clear">✕ Effacer</a>
-    {% endif %}
+    <button type="submit" class="btn btn-gold btn-sm">Filtrer</button>
+    {% if q or code_f or region_f %}<a href="/tenders" class="btn btn-ghost btn-sm">✕</a>{% endif %}
   </form>
-</div>
 
-<!-- TABLE HEADER -->
-<div style="margin:0 32px;border:1px solid var(--border);border-radius:0 0 var(--r-lg) var(--r-lg);overflow:hidden">
-  <div class="tender-row" style="background:var(--bg-3);border-bottom:1px solid var(--border);cursor:default" onmouseover="" onmouseout="">
-    <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px">Objet / Organisme</div>
-    <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px">Source</div>
-    <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px">Type</div>
-    <div style="font-size:10px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px">Date limite</div>
-    <div></div>
+  <!-- RESULTS -->
+  {% if tenders %}
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px">
+    {% for t in tenders %}
+    <a href="/tenders/{{ t.id }}" class="tender-card fade-up" style="animation-delay:{{ loop.index0*0.02 }}s">
+      <div class="flex items-center gap-8 mb-10 flex-wrap">
+        {% if t.domaine %}
+        <span class="code-badge {{ 'code-t' if t.domaine.startswith('T') else ('code-p' if t.domaine.startswith('P') else 'code-s') }}">{{ t.domaine[:4] }}</span>
+        {% endif %}
+        {% if t.type_marche %}<span class="tag tag-gray" style="font-size:9px">{{ t.type_marche }}</span>{% endif %}
+        {% if t.statut == 'actif' %}<span class="live-dot" style="margin-left:auto"></span>{% endif %}
+      </div>
+      <div class="font-bold mb-6" style="font-size:13px;line-height:1.35;color:var(--text)">{{ t.objet[:80] }}</div>
+      {% if t.acheteur %}<div class="text-xs text-muted mb-8 truncate">🏢 {{ t.acheteur[:55] }}</div>{% endif %}
+      <div class="flex items-center gap-12 text-xs text-muted flex-wrap mb-6">
+        {% if t.region %}<span>📍 {{ t.region }}</span>{% endif %}
+        {% if t.montant %}<span class="text-gold font-bold">💰 {{ t.montant }}</span>{% endif %}
+      </div>
+      <div class="flex items-center justify-between border-top" style="padding-top:8px">
+        <span class="text-xs text-muted">{{ t.date_extraction[:10] }}</span>
+        {% if t.date_limite %}<span class="text-xs" style="color:{% if t.statut=='expire' %}#e87070{% else %}#3ecb7a{% endif %}">⏰ {{ t.date_limite }}</span>{% endif %}
+      </div>
+    </a>
+    {% endfor %}
   </div>
 
-  {% for t in tenders %}
-  {% set is_saved = t.id in saved_ids %}
-  <div class="tender-row fade-up" style="animation-delay:{{ loop.index0 * 0.03 }}s">
-    <div>
-      <a href="/tender/{{ t.id }}" class="tender-title" style="color:var(--text)">{{ t.objet[:80] }}</a>
-      <div class="tender-sub">{{ t.acheteur[:45] if t.acheteur else '—' }} {% if t.region %} · {{ t.region }}{% endif %}</div>
-    </div>
-    <div class="source-icon">
-      <span style="font-size:11px;color:var(--text-3)">{{ t.source_name[:20] if t.source_name else '—' }}</span>
-    </div>
-    <div>
-      {% if t.type_marche == 'PUBLIC' %}<span class="tag tag-public">Public</span>
-      {% elif t.type_marche == 'SEMI_PUBLIC' %}<span class="tag tag-semi">Semi</span>
-      {% else %}<span class="tag tag-private">Privé</span>{% endif %}
-    </div>
-    <div class="tender-date {% if t.date_limite %}urgent{% endif %}">{{ t.date_limite or '—' }}</div>
-    <div class="flex items-center gap-8" style="justify-content:flex-end">
-      {% if contractor %}
-      <button onclick="toggleSave('{{ t.id }}',this)"
-        data-saved="{{ '1' if is_saved else '0' }}"
-        style="background:none;border:none;font-size:16px;color:{{ 'var(--gold)' if is_saved else 'var(--text-3)' }};padding:0;cursor:pointer;transition:.1s">
-        {{ '★' if is_saved else '☆' }}
-      </button>
-      {% endif %}
-      <a href="/tender/{{ t.id }}" style="font-size:13px;color:var(--text-3);transition:.1s" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--text-3)'">→</a>
-    </div>
+  <!-- PAGINATION -->
+  {% if pages > 1 %}
+  <div class="flex items-center justify-center gap-6 mt-32 flex-wrap">
+    {% if page > 1 %}<a href="?q={{ q }}&code_f={{ code_f }}&region_f={{ region_f }}&page={{ page-1 }}" class="btn btn-ghost btn-sm">← Préc</a>{% endif %}
+    <span class="text-sm text-muted">Page {{ page }} / {{ pages }}</span>
+    {% if page < pages %}<a href="?q={{ q }}&code_f={{ code_f }}&region_f={{ region_f }}&page={{ page+1 }}" class="btn btn-ghost btn-sm">Suiv →</a>{% endif %}
   </div>
+  {% endif %}
+
   {% else %}
-  <div class="empty-state">
-    <div class="empty-icon">🔍</div>
-    <div style="font-size:14px;font-weight:600;color:var(--text-2);margin-bottom:6px">Aucune opportunité trouvée</div>
-    <div style="color:var(--text-3);font-size:12px;margin-bottom:16px">Essayez d'autres critères de recherche</div>
-    <a href="/tenders" class="btn btn-ghost btn-sm">Réinitialiser les filtres</a>
+  <div class="empty">
+    <div class="empty-icon">🏛</div>
+    <div class="empty-text">Aucun marché trouvé</div>
+    <a href="/tenders" class="btn btn-ghost btn-sm">Effacer les filtres</a>
   </div>
-  {% endfor %}
-</div>
+  {% endif %}
 
-<!-- PAGINATION -->
-{% if pages > 1 %}
-<div class="pagination" style="padding:0 32px">
-  {% if page > 1 %}<a href="?q={{ q }}&type_filter={{ type_filter }}&region={{ region }}&domaine={{ domaine }}&source={{ source }}&page={{ page-1 }}" class="page-btn">←</a>{% endif %}
-  {% for p in range(1, pages+1) %}
-    {% if p == 1 or p == pages or (p >= page-2 and p <= page+2) %}
-      <a href="?q={{ q }}&type_filter={{ type_filter }}&region={{ region }}&domaine={{ domaine }}&source={{ source }}&page={{ p }}" class="page-btn {{ 'active' if p==page else '' }}">{{ p }}</a>
-    {% elif p == page-3 or p == page+3 %}
-      <span class="page-btn" style="pointer-events:none;border:none;color:var(--text-3)">…</span>
-    {% endif %}
-  {% endfor %}
-  {% if page < pages %}<a href="?q={{ q }}&type_filter={{ type_filter }}&region={{ region }}&domaine={{ domaine }}&source={{ source }}&page={{ page+1 }}" class="page-btn">→</a>{% endif %}
-</div>
-{% endif %}
-
-<!-- BOTTOM INFO -->
-<div style="padding:24px 32px;text-align:center;font-size:11px;color:var(--text-3)">
-  {{ total }} opportunité{{ 's' if total != 1 else '' }} — Page {{ page }}/{{ pages }} — Sources: marchespublics.gov.ma · bo.gov.ma · ONCF · ONEE · OCP · RAM · ONDA · CDG · LYDEC · Le Matin · L'Éco · La Vie Éco
-</div>
-
+  <!-- CTA Register -->
+  {% if not member %}
+  <div style="margin-top:48px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:24px;text-align:center">
+    <div class="font-bold mb-6" style="font-size:14px">🔔 Recevez les alertes sur votre secteur</div>
+    <div class="text-xs text-muted mb-16">Inscription gratuite — Notifications Telegram + Email dès publication</div>
+    <a href="/register" class="btn btn-gold btn-sm">S'inscrire gratuitement →</a>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

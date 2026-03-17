@@ -182,6 +182,17 @@ def init_db():
     );
     CREATE INDEX IF NOT EXISTS idx_m_email ON members(email);
 
+    -- Member notification filters
+    CREATE TABLE IF NOT EXISTS member_filters (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        member_id  INTEGER NOT NULL REFERENCES members(id),
+        type       TEXT NOT NULL,  -- 'secteur' | 'region' | 'keyword'
+        value      TEXT NOT NULL,
+        created_at TEXT DEFAULT ''
+    );
+    CREATE INDEX IF NOT EXISTS idx_mf_member ON member_filters(member_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_mf_uniq ON member_filters(member_id,type,value);
+
     -- Marketplace
     CREATE TABLE IF NOT EXISTS posts (
         id            INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -265,6 +276,7 @@ def init_db():
     # Migrations for existing DBs
     migrations = [
         "ALTER TABLE members ADD COLUMN telegram TEXT DEFAULT ''",
+        "ALTER TABLE members ADD COLUMN secteur TEXT DEFAULT ''",
         "ALTER TABLE members ADD COLUMN notif_email INTEGER DEFAULT 1",
         "ALTER TABLE members ADD COLUMN notif_tg INTEGER DEFAULT 1",
         "ALTER TABLE members ADD COLUMN rating_avg REAL DEFAULT 0",
@@ -364,91 +376,208 @@ ORG_REGIONS = {
     "Souss-Massa":               ["wilaya agadir","cra agadir","aéroport agadir"],
 }
 
+# ══════════════════════════════════════════════════════
+# CLASSIFICATION OFFICIELLE MARCHÉS PUBLICS MAROC
+# Source: Portail marchespublics.gov.ma
+# Codes T=Travaux, P=Produits, S=Services
+# ══════════════════════════════════════════════════════
 SECTEURS = {
-    "Bâtiment & Construction": [
-        "bâtiment","construction","maçonnerie","béton","coffrage","charpente","toiture",
-        "carrelage","peinture","enduit","plâtrerie","menuiserie","façade","clôture","mur",
-        "dalle","fondation","gros oeuvre","enseigne","rideau","grille","portail","porte",
-        "fenêtre","vitrerie","étanchéité","isolation","revêtement","parquet","faux plafond",
-        "rénovation","aménagement intérieur","cloison","plomberie bâtiment",
+    # ── TRAVAUX ──
+    "T101 - Constructions & Bâtiments": [
+        "bâtiment","construction","maçonnerie","béton","coffrage","fondation",
+        "gros oeuvre","dalle","mur","clôture","enseigne","façade","rénovation",
+        "aménagement","btp","ouvrages d'art","préfabriqué",
     ],
-    "Génie Civil & Routes": [
-        "route","autoroute","pont","génie civil","chaussée","trottoir","terrassement",
-        "voirie","bordure","caniveau","pavage","bitume","asphalte","infrastructure",
-        "ouvrage d'art","buse","drain","regard","dallage","emprise","géotechnique",
-        "stabilisation","compactage","tranchée","canalisation",
+    "T102 - Terrassements": [
+        "terrassement","remblai","déblai","excavation","nivellement","compactage",
+        "décapage","stabilisation","emprise",
     ],
-    "Hydraulique & Eau": [
-        "hydraulique","eau potable","assainissement","barrage","irrigation","réseau d'eau",
-        "station d'épuration","forage","pompage","adduction","réservoir","château d'eau",
-        "robinetterie","cuve","step","collecteur","égout","pluviométrie",
+    "T103 - Menuiserie & Métallerie": [
+        "menuiserie","métallerie","charpente","ferronnerie","portail","porte",
+        "fenêtre","rideau","grille","serrurerie","aluminium","acier",
     ],
-    "Informatique & Télécoms": [
-        "informatique","logiciel","système d'information","application","réseau","serveur",
-        "ordinateur","pc","laptop","imprimante","toner","cartouche","câblage","switch",
-        "routeur","cybersécurité","maintenance informatique","développement","site web",
-        "data","cloud","sfp","fibre optique","vr","casque","scanner","onduleur","ups",
-        "téléphonie","gsm","mobile","licence","erp","crm","base de données",
+    "T104 - Plomberie & Climatisation": [
+        "plomberie","chauffage","climatisation","ventilation","cvc","sanitaire",
+        "robinetterie","tuyauterie","chaudière","vmc","split","frigorigène",
     ],
-    "Fournitures de Bureau": [
-        "fournitures de bureau","papier","chemise","classeur","stylo","stylet",
-        "ramette","agrafe","enveloppe","cahier","registre","tampon","sceau",
+    "T105 - Peinture & Vitrerie": [
+        "peinture","vitrerie","décoration","enduit","lasure","vernis",
+        "revêtement mural","toile de verre","vitrage","miroir",
+    ],
+    "T106 - Étanchéité & Isolation": [
+        "étanchéité","isolation","imperméabilisation","toiture","terrasse",
+        "membrane","bitume","polystyrène","laine de roche",
+    ],
+    "T107 - Revêtements de sols": [
+        "revêtement","carrelage","parquet","moquette","sol","dallage",
+        "marbre","granit","faïence","linoléum",
+    ],
+    "T108 - Plâtrerie & Faux plafonds": [
+        "plâtrerie","faux plafond","cloison","doublage","staff","gyproc",
+        "plaque de plâtre","isolation acoustique",
+    ],
+    "T109 - Ascenseurs & Monte-charge": [
+        "ascenseur","monte-charge","élévateur","escalier mécanique",
+        "monte-plats","nacelle","plateforme élévatrice",
+    ],
+    "T110 - Génie Civil": [
+        "génie civil","infrastructure","ouvrage d'art","pont","viaduc",
+        "tunnel","mur de soutènement","gabion","géotechnique",
+    ],
+    "T111 - Espaces Verts": [
+        "espaces verts","jardinage","plantation","gazon","arbre","arbuste",
+        "taille","élagage","reboisement","parc","terrain de sport",
+    ],
+    "T112 - Aménagements Divers": [
+        "aménagement divers","mobilier urbain","signalétique","parking",
+        "clôture","portail","borne","voie piétonne",
+    ],
+    "T201 - Assainissement & Conduites": [
+        "assainissement","conduite","égout","collecteur","réseau","step",
+        "station d'épuration","canalisation","drain","regard",
+    ],
+    "T202 - Fondations Spéciales": [
+        "fondations spéciales","injection","sondage","forage","pieu",
+        "micropieu","palplanche","paroi moulée","consolidation",
+    ],
+    "T203 - Hydraulique & Eau Potable": [
+        "hydraulique","eau potable","adduction","réservoir","château d'eau",
+        "barrage","irrigation","pompage","traitement eau","station pompage",
+    ],
+    "T301 - Travaux Routiers": [
+        "route","voie","chaussée","trottoir","voirie","bitume","asphalte",
+        "enrobé","bordure","caniveau","signalisation","marquage","autoroute",
+    ],
+    "T401 - Électricité & Éclairage": [
+        "électricité","éclairage","câblage","tableau électrique","armoire",
+        "transformateur","groupe électrogène","ups","onduleur","éclairage public",
+    ],
+    "T402 - Sécurité & Télésurveillance": [
+        "sécurité électronique","télésurveillance","alarme","incendie","extincteur",
+        "détecteur","caméra","vidéosurveillance","cctv","contrôle accès","badge",
+    ],
+    "T403 - Télécommunications": [
+        "télécommunication","téléphonie","réseau","câblage structuré","fibre optique",
+        "switch","routeur","wifi","gsm","antenne","infrastructure réseau",
+    ],
+    # ── PRODUITS ──
+    "P802 - Équipements Électroniques": [
+        "électronique","équipements électroniques","composants","circuits",
+        "capteur","module","carte électronique",
+    ],
+    "P805 - Mobilier de Bureau": [
         "mobilier","bureau","chaise","fauteuil","armoire","étagère","table",
-        "banquette","chevalet","tableau blanc","tableau d'affichage",
+        "banquette","chevalet","tableau","rangement","open space",
     ],
-    "Matériel & Équipements": [
-        "matériel","équipements","machines","outillage","nacelle","grue","chariot",
-        "génératrice","groupe électrogène","climatiseur","ventilateur","pompe",
-        "compresseur","moteur","roulement","pièce de rechange","projecteur","écran",
+    "P813 - Équipements Médicaux": [
+        "médical","équipements médicaux","laboratoire","analyse","réactif",
+        "chirurgical","dentaire","pharmaceutique","seringue","perfusion",
+        "stéthoscope","pétri","microbiologie","méthanol","lcms",
     ],
-    "Santé & Médical": [
-        "médical","santé","hôpital","clinique","médicament","dispositif médical",
-        "laboratoire","analyse","réactif","chirurgical","dentaire","pharmaceutique",
-        "infirmier","ambulance","stéthoscope","coloration","antiserum","pétri",
-        "salmonella","microbiologie","ziehl","neelsen","méthanol","lcms",
-        "seringue","perfusion","masque médical","blouse","gant latex",
+    "P814 - Climatisation": [
+        "climatiseur","split","gainable","vrf","pompe chaleur","réfrigération",
+        "chambre froide","frigorigène","froid industriel",
     ],
-    "Nettoyage & Hygiène": [
-        "nettoyage","entretien","propreté","désinfection","savon","détergent",
-        "balai","serpillière","mop","hygiène","pest control","dératisation",
-        "désinsectisation","déchets","collecte ordures","lavage","nettoyage vitres",
+    "P815 - Matériel de Manutention": [
+        "manutention","chariot","grue","nacelle","élévateur","transpalette",
+        "chariot élévateur","convoyeur","engin","tracteur",
     ],
-    "Espaces Verts & Environnement": [
-        "jardinage","espaces verts","plantation","arbre","gazon","taille",
-        "élagage","reboisement","environnement","écologie","dépollution",
-        "recyclage","décharge","compostage",
+    "P816 - Matériel Roulant": [
+        "véhicule","voiture","camion","bus","minibus","ambulance","motocycle",
+        "remorque","carburant","gasoil","pièce rechange","pneumatique",
     ],
-    "Sécurité & Gardiennage": [
-        "sécurité","gardiennage","surveillance","agent de sécurité","contrôle d'accès",
-        "badge","alarme","incendie","extincteur","poste portatif","radio","talkie",
-        "détecteur","caméra de surveillance","vidéosurveillance","cctv",
+    "P818 - Informatique": [
+        "informatique","ordinateur","pc","laptop","serveur","imprimante",
+        "scanner","toner","cartouche","écran","onduleur","switch","réseau",
+        "logiciel","licence","erp","application","développement","cloud",
     ],
-    "Transport & Logistique": [
-        "transport","véhicule","camion","voiture","bus","minibus","location de véhicule",
-        "carburant","gasoil","essence","pneumatique","pièce de rechange auto",
-        "entretien véhicule","flotte","livraison","fret","douane","transitaire",
+    "P821 - Sécurité & Protection": [
+        "sécurité","équipements protection","epi","casque","gilet","gants",
+        "chaussure sécurité","harnais","équipements incendie","extincteur",
     ],
-    "Alimentation & Restauration": [
-        "alimentation","restauration","repas","traiteur","cuisine","denrée",
-        "produit alimentaire","viande","poisson","légume","boisson","eau minérale",
-        "café","thé","lait","filet de dinde","conserve","épicerie","catering",
+    "P825 - Fournitures de Bureau": [
+        "fournitures","papier","ramette","chemise","classeur","stylo","agrafe",
+        "enveloppe","cahier","registre","tampon","consommables bureau",
     ],
-    "Formation & Conseil": [
-        "formation","conseil","consultant","expertise","audit","étude","mission",
-        "assistance technique","accompagnement","coaching","séminaire","atelier",
-        "programme","évaluation","diagnostic","accréditation","certification",
-        "bureau d'études","tdr","ingénierie","maîtrise d'oeuvre",
+    "P831 - Combustibles": [
+        "carburant","gasoil","essence","fuel","lubrifiant","huile","gaz",
+        "combustible","fioul","énergie",
     ],
-    "Communication & Impression": [
-        "communication","publicité","impression","imprimé","rapport annuel","brochure",
-        "affiche","banner","signalétique","image de marque","vidéo institutionnelle",
-        "photo","audiovisuel","événementiel","médias","presse","journal","magazine",
-        "drapeau","badge","carte visite",
+    "P833 - Produits Pharmaceutiques": [
+        "médicament","pharmaceutique","produits chimiques","parachimique",
+        "réactif laboratoire","consommables médicaux","dmi",
     ],
-    "Juridique & Audit Financier": [
-        "audit","juridique","notaire","avocat","huissier","contentieux","comptabilité",
-        "commissaire aux comptes","expertise judiciaire","conseil juridique",
-        "assurance","contrat","litige","marché juridique",
+    "P834 - Alimentation": [
+        "alimentation","denrée","produit alimentaire","viande","poisson",
+        "légume","boisson","eau minérale","café","lait","restauration",
+        "traiteur","cuisine","catering","filet de dinde",
+    ],
+    "P836 - Imprimerie & Papeterie": [
+        "impression","imprimerie","papeterie","brochure","affiche","rapport",
+        "reprographie","sérigraphie","emballage","badge","carte visite",
+    ],
+    "P839 - Matériaux de Construction": [
+        "matériaux","ciment","sable","gravier","béton prêt","brique",
+        "parpaing","préfabriqué","acier","rond à béton","bois",
+    ],
+    "P841 - Hygiène & Nettoyage": [
+        "hygiène","nettoyage","savon","détergent","désinfectant","produits",
+        "balai","serpillière","sac poubelle","papier hygiénique",
+    ],
+    "P850 - Énergies Renouvelables": [
+        "solaire","photovoltaïque","énergie renouvelable","panneau solaire",
+        "éolien","biomasse","chauffe eau solaire","pompe chaleur",
+    ],
+    # ── SERVICES ──
+    "S901 - IT & Développement": [
+        "développement informatique","tic","système information","logiciel",
+        "application mobile","site web","base de données","erp","crm",
+        "cybersécurité","cloud","hébergement","intégration",
+    ],
+    "S902 - Études & Conseil": [
+        "étude","conseil","consultant","expertise","audit","diagnostic",
+        "assistance technique","accompagnement","mission","tdr","ingénierie",
+        "maîtrise oeuvre","bureau études",
+    ],
+    "S903 - Études BTP": [
+        "étude btp","topographie","géotechnique","béton armé","structure",
+        "plans","permis construire","dossier technique","métreur",
+    ],
+    "S906 - Maintenance & Entretien": [
+        "maintenance","entretien","réparation","dépannage","contrat maintenance",
+        "pmr","pme","curatif","préventif","astreinte",
+    ],
+    "S907 - Nettoyage": [
+        "nettoyage","propreté","hygiène","désinfection","dératisation",
+        "désinsectisation","lavage","nettoyage industriel","déchets",
+    ],
+    "S908 - Gardiennage": [
+        "gardiennage","sécurité","surveillance","agent sécurité","ronde",
+        "portier","accueil sécurisé","protection","interim",
+    ],
+    "S910 - Communication & Publicité": [
+        "communication","publicité","événementiel","médias","presse",
+        "audiovisuel","vidéo","photo","signalétique","relations publiques",
+    ],
+    "S911 - Restauration & Hébergement": [
+        "restauration","repas","traiteur","hébergement","hôtel","séminaire",
+        "réception","catering","self","cantine",
+    ],
+    "S913 - Formation": [
+        "formation","coaching","séminaire","atelier","certification",
+        "accréditation","programme formation","e-learning","stage",
+    ],
+    "S915 - Location Véhicules": [
+        "location véhicule","transport","taxi","navette","bus",
+        "location matériel roulant","flotte","chauffeur",
+    ],
+    "S918 - Traitement Déchets": [
+        "déchets","collecte ordures","recyclage","décharge","compostage",
+        "traitement déchets","élimination","valorisation",
+    ],
+    "S921 - Analyses Laboratoire": [
+        "analyse laboratoire","contrôle qualité","essais","tests","certification",
+        "accréditation laboratoire","mesures","analyses industrielles",
     ],
 }
 
@@ -1080,35 +1209,82 @@ class NotifyAgent:
 
     # ── Public methods ──
     @staticmethod
+    def match_tenders(tenders: list, filters: list) -> list:
+        """Filter tenders matching member preferences"""
+        if not filters:
+            return tenders  # No filters = receive all
+
+        secteurs = [f["value"].lower() for f in filters if f["type"] == "secteur"]
+        regions  = [f["value"].lower() for f in filters if f["type"] == "region"]
+        keywords = [f["value"].lower() for f in filters if f["type"] == "keyword"]
+
+        matched = []
+        for t in tenders:
+            t_sect = (t.get("domaine") or "").lower()
+            t_reg  = (t.get("region") or "").lower()
+            t_obj  = (t.get("objet") or "").lower()
+            t_desc = (t.get("description") or "").lower()
+            t_full = t_obj + " " + t_desc
+
+            # Match secteur
+            sect_match = not secteurs or any(s in t_sect or t_sect in s for s in secteurs)
+            # Match region
+            reg_match  = not regions  or any(r in t_reg  or t_reg  in r for r in regions)
+            # Match keyword (optional bonus)
+            kw_match   = not keywords or any(k in t_full for k in keywords)
+
+            if sect_match and reg_match and (not keywords or kw_match):
+                matched.append(t)
+
+        return matched
+
+    @staticmethod
     def notify_instant(tenders: list):
-        """Queue instant notifications for all subscribers"""
+        """
+        Smart notifications — each member receives only matching tenders.
+        Matching based on: secteur + region + keywords preferences.
+        """
         if not tenders: return
         db = get_db()
         try:
             subs = [dict(r) for r in db.execute(
                 "SELECT id,nom,email,telegram,notif_email,notif_tg FROM members WHERE actif=1"
             ).fetchall()]
+            # Load all filters
+            all_filters = [dict(r) for r in db.execute(
+                "SELECT member_id,type,value FROM member_filters"
+            ).fetchall()]
         finally: db.close()
 
         if not subs:
-            ScraperLog.add(f"[NotifyAgent] Aucun abonné")
+            ScraperLog.add("[NotifyAgent] Aucun abonné")
             return
-
-        n = len(tenders)
-        subj  = f"🏛 {n} nouveau(x) marché(s) — {datetime.now().strftime('%d/%m/%Y')} — Modern Business"
-        email_html = NotifyAgent.build_email(tenders, f"🏛 {n} nouveau(x) marché(s) public(s)")
-        tg_body    = NotifyAgent.build_telegram(tenders, f"Modern Business — {n} nouveau(x) marché(s)")
 
         eq = tq = 0
         for sub in subs:
-            if sub.get("notif_email", 1) and sub.get("email"):
-                NotifyAgent.enqueue(sub["id"], "email", sub["email"], subj, email_html)
-                eq += 1
+            # Get this member's filters
+            my_filters = [f for f in all_filters if f["member_id"] == sub["id"]]
+
+            # Match tenders to member profile
+            matched = NotifyAgent.match_tenders(tenders, my_filters)
+            if not matched:
+                continue
+
+            n = len(matched)
+            subj     = f"🏛 {n} marché(s) correspondant à votre profil — {datetime.now().strftime('%d/%m/%Y')}"
+            tg_intro = f"Modern Business — {n} marché(s) pour vous"
+
             if sub.get("notif_tg", 1) and sub.get("telegram"):
+                tg_body = NotifyAgent.build_telegram(matched, tg_intro)
                 NotifyAgent.enqueue(sub["id"], "telegram", sub["telegram"], "", tg_body)
                 tq += 1
 
-        ScraperLog.add(f"[NotifyAgent] {eq} emails + {tq} TG en file d'attente")
+            if sub.get("notif_email", 1) and sub.get("email"):
+                email_html = NotifyAgent.build_email(matched, f"🏛 {n} marché(s) correspondant à votre profil")
+                NotifyAgent.enqueue(sub["id"], "email", sub["email"], subj, email_html)
+                eq += 1
+
+        ScraperLog.add(f"[NotifyAgent] Smart match: {tq} TG + {eq} emails — {len(tenders)} marchés traités")
         counter("notifications_queued")
 
     @staticmethod
@@ -1495,16 +1671,17 @@ async def register_post(req: Request, nom:str=Form(""), entreprise:str=Form(""),
                 uid = db.execute("SELECT id FROM members WHERE email=?",(email.lower(),)).fetchone()[0]
                 db.close()
                 counter("registrations")
-                asyncio.create_task(asyncio.coroutine(lambda: None)())  # placeholder
-                NotifyAgent.enqueue(uid,"email",email,
-                    f"Bienvenue sur {BRAND}!",
-                    NotifyAgent.build_email([],f"Bienvenue, {nom}!").replace(
-                        '<div style="font-size:18px;font-weight:700;color:#f0ede6;margin-bottom:6px">Bienvenue, {nom}!</div>',
-                        f'<div style="font-size:18px;font-weight:700;color:#f0ede6;margin-bottom:16px">Bienvenue sur {BRAND}, {nom}! 🎉</div>'
-                        f'<div style="font-size:13px;color:#aaa;margin-bottom:22px">Votre compte est activé.<br>Accédez au marketplace et publiez vos annonces.</div>'
-                        f'<a href="{SITE_URL}/dashboard" style="display:inline-block;padding:10px 22px;background:#c9a84c;color:#000;border-radius:6px;font-weight:700;text-decoration:none">Accéder →</a>'
-                    )
-                )
+                welcome_html = f'''<!DOCTYPE html>
+<html><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:20px;background:#080808">
+<div style="font-family:Georgia,serif;background:#0d0d0d;color:#fff;padding:28px;max-width:500px;margin:0 auto;border-radius:10px">
+  <div style="font-size:18px;font-weight:700;color:#c9a84c;margin-bottom:14px">◆ Modern Business</div>
+  <h2 style="color:#f0ede6;margin-bottom:10px">Bienvenue, {nom}! 🎉</h2>
+  <p style="color:#aaa;font-size:13px;margin-bottom:20px">Votre compte est activé. Accédez au marketplace et publiez vos annonces.</p>
+  <a href="{SITE_URL}/dashboard" style="display:inline-block;padding:10px 22px;background:#c9a84c;color:#000;border-radius:6px;font-weight:700;text-decoration:none">Accéder à mon espace →</a>
+  <p style="color:#555;font-size:11px;margin-top:16px">Modern Business · {SITE_URL}</p>
+</div></body></html>'''
+                NotifyAgent.enqueue(uid, "email", email, f"Bienvenue sur {BRAND}!", welcome_html)
                 resp = RedirectResponse("/dashboard",302)
                 session_create(resp,uid)
                 return resp
@@ -1542,6 +1719,56 @@ async def logout():
     resp = RedirectResponse("/",302)
     session_delete(resp)
     return resp
+
+# ── FILTER ROUTES ──
+@app.get("/filters", response_class=HTMLResponse)
+async def filters_get(req: Request):
+    m = get_member(req)
+    if not m: return RedirectResponse("/login",302)
+    db = get_db()
+    try:
+        my_filters = [dict(r) for r in db.execute(
+            "SELECT * FROM member_filters WHERE member_id=? ORDER BY type,value",
+            (m["id"],)
+        ).fetchall()]
+    finally: db.close()
+    return render(req, "filters.html", {"m":m,"my_filters":my_filters})
+
+@app.post("/filters/add")
+async def filters_add(req: Request, ftype:str=Form(""), value:str=Form("")):
+    m = get_member(req)
+    if not m: return RedirectResponse("/login",302)
+    if ftype in ["secteur","region","keyword"] and value.strip():
+        db = get_db()
+        try:
+            db.execute("INSERT OR IGNORE INTO member_filters (member_id,type,value,created_at) VALUES (?,?,?,?)",
+                       (m["id"], ftype, value.strip()[:80], now_str()))
+            db.commit()
+        finally: db.close()
+    return RedirectResponse("/filters",302)
+
+@app.post("/filters/delete")
+async def filters_delete(req: Request, fid:int=Form(0)):
+    m = get_member(req)
+    if not m: return RedirectResponse("/login",302)
+    db = get_db()
+    try:
+        db.execute("DELETE FROM member_filters WHERE id=? AND member_id=?",(fid,m["id"]))
+        db.commit()
+    finally: db.close()
+    return RedirectResponse("/filters",302)
+
+@app.get("/api/my_filters")
+async def api_my_filters(req: Request):
+    m = get_member(req)
+    if not m: return JSONResponse({"error":"Non connecté"},401)
+    db = get_db()
+    try:
+        filters = [dict(r) for r in db.execute(
+            "SELECT id,type,value FROM member_filters WHERE member_id=?",(m["id"],)
+        ).fetchall()]
+    finally: db.close()
+    return JSONResponse({"filters":filters})
 
 # ── DASHBOARD ──
 @app.get("/dashboard", response_class=HTMLResponse)
@@ -1664,6 +1891,15 @@ async def tg_webhook(req: Request):
         async def reply(txt):
             await NotifyAgent.send_telegram(chat_id, txt)
 
+        # REGISTER shortcut
+        if text.lower() in ["/register", "/inscription"]:
+            await reply(
+                f"📝 Inscrivez-vous ici:\n{SITE_URL}/register\n\n"
+                f"Après inscription, revenez et envoyez:\n"
+                f"<code>/link votre@email.com</code>"
+            )
+            return {"ok": True}
+
         # AUTO-LINK: /link email@...
         if text.lower().startswith("/link ") and "@" in text:
             email = text.split()[1].strip().lower()
@@ -1694,13 +1930,80 @@ async def tg_webhook(req: Request):
                 f"Intelligence des Marchés Publics — Maroc\n\n"
                 f"<b>Commandes:</b>\n"
                 f"/link email@... — Activer les alertes 🔔\n"
-                f"/tenders — 5 derniers marchés actifs\n"
-                f"/stats — Statistiques\n"
-                f"/help — Aide\n\n"
-                f"💡 Pour recevoir les alertes automatiques:\n"
-                f"<code>/link votre-email-inscrit</code>\n\n"
+                f"/secteur [nom] — Filtrer par secteur 🏷\n"
+                f"/region [nom] — Filtrer par région 📍\n"
+                f"/mes_filtres — Voir mes filtres ⚙️\n"
+                f"/tenders — 5 derniers marchés\n"
+                f"/stats — Statistiques\n\n"
+                f"💡 Étapes:\n"
+                f"1️⃣ /link votre@email.com\n"
+                f"2️⃣ /secteur Bâtiment & Construction\n"
+                f"3️⃣ Recevez les marchés qui vous correspondent!\n\n"
                 f"🌐 {SITE_URL}"
             )
+        elif text.startswith("/secteur "):
+            # /secteur Bâtiment & Construction
+            val = text[9:].strip()
+            if val:
+                db = get_db()
+                try:
+                    row = db.execute("SELECT id,nom FROM members WHERE telegram=? AND actif=1",(chat_id,)).fetchone()
+                    if row:
+                        db.execute("INSERT OR IGNORE INTO member_filters (member_id,type,value,created_at) VALUES (?,?,?,?)",
+                                   (row["id"],"secteur",val,now_str()))
+                        db.commit()
+                        await tg_send(chat_id,f"✅ Filtre ajouté: <b>{val}</b>\nVous recevrez les marchés de ce secteur.\n\nUtilisez /mes_filtres pour voir tous vos filtres.")
+                    else:
+                        await tg_send(chat_id,f"❌ Compte non lié. Envoyez d'abord:\n/link votre@email.com")
+                except Exception as e:
+                    await tg_send(chat_id,f"Erreur: {e}")
+                finally: db.close()
+            return {"ok":True}
+
+        elif text.startswith("/region "):
+            val = text[8:].strip()
+            if val:
+                db = get_db()
+                try:
+                    row = db.execute("SELECT id FROM members WHERE telegram=? AND actif=1",(chat_id,)).fetchone()
+                    if row:
+                        db.execute("INSERT OR IGNORE INTO member_filters (member_id,type,value,created_at) VALUES (?,?,?,?)",
+                                   (row["id"],"region",val,now_str()))
+                        db.commit()
+                        await tg_send(chat_id,f"✅ Région ajoutée: <b>{val}</b>")
+                    else:
+                        await tg_send(chat_id,"❌ Compte non lié. Envoyez /link votre@email.com")
+                except Exception as e:
+                    await tg_send(chat_id,f"Erreur: {e}")
+                finally: db.close()
+            return {"ok":True}
+
+        elif text == "/mes_filtres":
+            db = get_db()
+            try:
+                row = db.execute("SELECT id FROM members WHERE telegram=? AND actif=1",(chat_id,)).fetchone()
+                if row:
+                    filters = db.execute("SELECT type,value FROM member_filters WHERE member_id=?",(row["id"],)).fetchall()
+                    if filters:
+                        lines = ["⚙️ <b>Vos filtres actifs</b>\n"]
+                        for f in filters:
+                            icon = "🏷" if f["type"]=="secteur" else ("📍" if f["type"]=="region" else "🔍")
+                            lines.append(f"{icon} {f['type']}: <b>{f['value']}</b>")
+                        lines.append(f"\n💡 Gérer sur {SITE_URL}/filters")
+                        await tg_send(chat_id,"\n".join(lines))
+                    else:
+                        await tg_send(chat_id,
+                            f"Aucun filtre — vous recevez <b>tous</b> les marchés.\n\n"
+                            f"Pour filtrer par secteur:\n<code>/secteur Bâtiment & Construction</code>\n\n"
+                            f"Pour filtrer par région:\n<code>/region Casablanca-Settat</code>\n\n"
+                            f"Gérer sur {SITE_URL}/filters")
+                else:
+                    await tg_send(chat_id,"❌ Compte non lié. Envoyez /link votre@email.com")
+            except Exception as e:
+                await tg_send(chat_id,f"Erreur: {e}")
+            finally: db.close()
+            return {"ok":True}
+
         elif text == "/tenders":
             db = get_db()
             try:
@@ -1740,9 +2043,14 @@ async def tg_webhook(req: Request):
             await reply(
                 f"ℹ️ <b>Modern Business — Aide</b>\n\n"
                 f"/start — Menu principal\n"
-                f"/link email — Activer alertes automatiques\n"
-                f"/tenders — Voir les derniers marchés\n"
+                f"/link email@... — Activer les alertes\n"
+                f"/secteur [nom] — Ajouter filtre secteur\n"
+                f"/region [nom] — Ajouter filtre région\n"
+                f"/mes_filtres — Voir mes filtres actifs\n"
+                f"/tenders — 5 derniers marchés actifs\n"
                 f"/stats — Statistiques\n\n"
+                f"🏷 Secteurs disponibles:\nBâtiment, Génie Civil, Hydraulique, Informatique,\n"
+                f"Santé, Transport, Alimentation, Formation...\n\n"
                 f"📩 {SITE_URL}/contact"
             )
         else:
@@ -1816,57 +2124,72 @@ async def scrape_stream(pwd: str=""):
 @app.get("/admin/test_notify")
 async def admin_test_notify(pwd: str="", chat_id: str=""):
     chk(pwd)
-    sample = [{
-        "objet":"Fourniture de matériel informatique — 20 PC bureau HP EliteDesk",
-        "acheteur":"Commune Urbaine de Rabat — Direction des Achats",
-        "region":"Rabat-Salé-Kénitra","domaine":"Informatique & Télécoms",
-        "type_marche":"Fournitures","montant":"280 000 DH",
-        "date_publication":datetime.now().strftime("%d/%m/%Y"),
-        "date_limite":(datetime.now()+timedelta(days=14)).strftime("%d/%m/%Y"),
-        "url":"https://www.marchespublics.gov.ma/bdc/entreprise/consultation/show/46205",
-    },{
-        "objet":"Travaux d'entretien voiries — Lot 3 Sud",
-        "acheteur":"Ministère de l'Intérieur — Direction Régionale Casablanca",
-        "region":"Casablanca-Settat","domaine":"Génie Civil & Routes",
-        "type_marche":"Travaux","montant":"1 200 000 DH",
-        "date_publication":datetime.now().strftime("%d/%m/%Y"),
-        "date_limite":(datetime.now()+timedelta(days=21)).strftime("%d/%m/%Y"),
-        "url":"https://www.marchespublics.gov.ma/bdc/entreprise/consultation/",
-    }]
-
-    results = {}
-
-    # Test email to admin
-    html = NotifyAgent.build_email(sample,"🧪 TEST — Modern Business Notification Agent")
-    ok, err = await NotifyAgent.send_email(
-        GMAIL_USER,
-        f"🧪 TEST Notifications — {datetime.now().strftime('%d/%m/%Y %H:%M')}",
-        html
-    )
-    results["email_admin"] = "✅ envoyé" if ok else f"❌ {err}"
-
-    # Test Telegram
-    if chat_id:
-        tg = NotifyAgent.build_telegram(sample,"🧪 TEST — Modern Business Notification Agent")
-        ok, err = await NotifyAgent.send_telegram(chat_id, tg)
-        results["telegram"] = "✅ envoyé" if ok else f"❌ {err}"
-
-    # Queue stats
-    db = get_db()
     try:
-        results["queue"] = {
-            "pending": db.execute("SELECT COUNT(*) FROM notif_queue WHERE status='pending'").fetchone()[0],
-            "sent":    db.execute("SELECT COUNT(*) FROM notif_queue WHERE status='sent'").fetchone()[0],
-            "failed":  db.execute("SELECT COUNT(*) FROM notif_queue WHERE status='failed'").fetchone()[0],
-        }
-        results["members"] = {
-            "total":         db.execute("SELECT COUNT(*) FROM members WHERE actif=1").fetchone()[0],
-            "with_telegram": db.execute("SELECT COUNT(*) FROM members WHERE telegram!='' AND actif=1").fetchone()[0],
-            "with_email":    db.execute("SELECT COUNT(*) FROM members WHERE email!='' AND actif=1").fetchone()[0],
-        }
-    finally: db.close()
+        sample = [
+            {
+                "objet": "Fourniture materiel informatique 20 PC bureau HP EliteDesk",
+                "acheteur": "Commune Urbaine de Rabat Direction des Achats",
+                "region": "Rabat-Sale-Kenitra",
+                "domaine": "Informatique et Telecoms",
+                "type_marche": "Fournitures",
+                "montant": "280 000 DH",
+                "date_publication": datetime.now().strftime("%d/%m/%Y"),
+                "date_limite": (datetime.now()+timedelta(days=14)).strftime("%d/%m/%Y"),
+                "url": "https://www.marchespublics.gov.ma/bdc/entreprise/consultation/show/46205",
+            },
+            {
+                "objet": "Travaux entretien voiries Lot 3 Sud",
+                "acheteur": "Ministere de l Interieur Direction Regionale Casablanca",
+                "region": "Casablanca-Settat",
+                "domaine": "Genie Civil Routes",
+                "type_marche": "Travaux",
+                "montant": "1 200 000 DH",
+                "date_publication": datetime.now().strftime("%d/%m/%Y"),
+                "date_limite": (datetime.now()+timedelta(days=21)).strftime("%d/%m/%Y"),
+                "url": "https://www.marchespublics.gov.ma/bdc/entreprise/consultation/",
+            },
+        ]
 
-    return JSONResponse({"ok":True,"results":results})
+        results = {}
+
+        # Test Telegram direct
+        if chat_id:
+            try:
+                tg_msg = NotifyAgent.build_telegram(sample, "TEST Modern Business Notification Agent")
+                ok, err = await NotifyAgent.send_telegram(chat_id, tg_msg)
+                results["telegram"] = "ok" if ok else f"error: {err}"
+            except Exception as e:
+                results["telegram"] = f"exception: {str(e)}"
+
+        # Test email
+        try:
+            html = NotifyAgent.build_email(sample, "TEST Modern Business Notification Agent")
+            ok, err = await NotifyAgent.send_email(
+                GMAIL_USER,
+                "TEST Notifications Modern Business",
+                html
+            )
+            results["email"] = "ok" if ok else f"error: {err[:100]}"
+        except Exception as e:
+            results["email"] = f"exception: {str(e)[:100]}"
+
+        # Queue stats
+        try:
+            db = get_db()
+            results["queue_pending"] = db.execute("SELECT COUNT(*) FROM notif_queue WHERE status='pending'").fetchone()[0]
+            results["queue_sent"]    = db.execute("SELECT COUNT(*) FROM notif_queue WHERE status='sent'").fetchone()[0]
+            results["queue_failed"]  = db.execute("SELECT COUNT(*) FROM notif_queue WHERE status='failed'").fetchone()[0]
+            results["members_total"] = db.execute("SELECT COUNT(*) FROM members WHERE actif=1").fetchone()[0]
+            results["members_tg"]    = db.execute("SELECT COUNT(*) FROM members WHERE telegram!='' AND actif=1").fetchone()[0]
+            db.close()
+        except Exception as e:
+            results["db_error"] = str(e)
+
+        return JSONResponse({"ok": True, "results": results})
+
+    except Exception as e:
+        logger.error(f"[test_notify] {e}\n{traceback.format_exc()}")
+        return JSONResponse({"ok": False, "error": str(e)}, 500)
 
 @app.get("/admin/test_digest")
 async def admin_test_digest(pwd: str=""):
@@ -2026,6 +2349,150 @@ async def admin_notify_status(pwd: str=""):
 # ══════════════════════════════════════════════════════
 # INFRA
 # ══════════════════════════════════════════════════════
+# ── PASSWORD RESET ──
+RESET_TOKENS: dict = {}  # token -> {email, expires}
+
+@app.get("/forgot", response_class=HTMLResponse)
+async def forgot_get(req: Request):
+    return render(req, "forgot.html", {"sent": False, "error": ""})
+
+@app.post("/forgot", response_class=HTMLResponse)
+async def forgot_post(req: Request, email: str = Form("")):
+    rl(req, "forgot", 3, 3600)
+    db = get_db()
+    try:
+        row = db.execute("SELECT id,nom FROM members WHERE email=? AND actif=1",
+                         (email.lower().strip(),)).fetchone()
+    finally: db.close()
+
+    if row:
+        token = secrets.token_urlsafe(32)
+        RESET_TOKENS[token] = {
+            "email":   email.lower().strip(),
+            "expires": datetime.now() + timedelta(hours=2)
+        }
+        reset_url = f"{SITE_URL}/reset?token={token}"
+        html = f"""<div style="font-family:Georgia;background:#0d0d0d;color:#fff;padding:28px;border-radius:10px;max-width:500px">
+        <div style="font-size:18px;font-weight:700;color:#c9a84c;margin-bottom:14px">◆ Modern Business</div>
+        <div style="font-size:15px;font-weight:700;margin-bottom:10px">Réinitialisation du mot de passe</div>
+        <div style="font-size:13px;color:#aaa;margin-bottom:20px">Bonjour {dict(row)['nom']}, cliquez ci-dessous pour réinitialiser votre mot de passe (valide 2h).</div>
+        <a href="{reset_url}" style="display:inline-block;padding:10px 22px;background:#c9a84c;color:#000;border-radius:6px;font-weight:700;text-decoration:none">Réinitialiser →</a>
+        <div style="font-size:11px;color:#555;margin-top:16px">Si vous n'avez pas fait cette demande, ignorez cet email.</div>
+        </div>"""
+        NotifyAgent.enqueue(None, "email", email, "Réinitialisation mot de passe — Modern Business", html)
+        # Also send via Telegram if linked
+        db = get_db()
+        try:
+            tg = db.execute("SELECT telegram FROM members WHERE email=?", (email.lower(),)).fetchone()
+            if tg and tg["telegram"]:
+                asyncio.create_task(NotifyAgent.send_telegram(tg["telegram"],
+                    f"🔑 <b>Réinitialisation mot de passe</b>\n\n"
+                    f"Cliquez ici (valide 2h):\n{reset_url}"))
+        finally: db.close()
+
+    return render(req, "forgot.html", {"sent": True, "error": ""})
+
+@app.get("/reset", response_class=HTMLResponse)
+async def reset_get(req: Request, token: str = ""):
+    data = RESET_TOKENS.get(token)
+    if not data or datetime.now() > data["expires"]:
+        return render(req, "forgot.html", {"sent": False, "error": "Lien expiré ou invalide. Recommencez."})
+    return render(req, "reset.html", {"token": token, "error": ""})
+
+@app.post("/reset", response_class=HTMLResponse)
+async def reset_post(req: Request, token: str = Form(""),
+                     password: str = Form(""), password2: str = Form("")):
+    data = RESET_TOKENS.get(token)
+    if not data or datetime.now() > data["expires"]:
+        return render(req, "forgot.html", {"sent": False, "error": "Lien expiré. Recommencez."})
+    if len(password) < 8:
+        return render(req, "reset.html", {"token": token, "error": "Minimum 8 caractères"})
+    if password != password2:
+        return render(req, "reset.html", {"token": token, "error": "Mots de passe différents"})
+    db = get_db()
+    try:
+        db.execute("UPDATE members SET pw_hash=? WHERE email=?",
+                   (hash_pw(password), data["email"]))
+        db.commit()
+    finally: db.close()
+    del RESET_TOKENS[token]
+    return RedirectResponse("/login?reset=1", 302)
+
+# ── TENDERS PUBLIC ──
+@app.get("/tenders", response_class=HTMLResponse)
+async def tenders_page(req: Request, code_f: str = "", region_f: str = "",
+                       q: str = "", page: int = 1):
+    per = 20; off = (page - 1) * per
+    db = get_db()
+    try:
+        conds = ["statut='actif'"]; params = []
+        if code_f:
+            conds.append("domaine LIKE ?"); params.append(f"{code_f}%")
+        if region_f:
+            conds.append("region=?"); params.append(region_f)
+        if q:
+            conds.append("(objet LIKE ? OR acheteur LIKE ?)")
+            params += [f"%{q[:80]}%"] * 2
+        w = " AND ".join(conds)
+        total = db.execute(f"SELECT COUNT(*) FROM tenders WHERE {w}", params).fetchone()[0]
+        rows  = [dict(r) for r in db.execute(
+            f"SELECT * FROM tenders WHERE {w} ORDER BY date_extraction DESC LIMIT ? OFFSET ?",
+            params + [per, off]).fetchall()]
+        regions = [r[0] for r in db.execute(
+            "SELECT DISTINCT region FROM tenders WHERE region!='' ORDER BY region").fetchall()]
+        # Code prefixes for filter
+        codes = [r[0] for r in db.execute(
+            "SELECT DISTINCT substr(domaine,1,4) FROM tenders WHERE domaine LIKE 'T%' OR domaine LIKE 'P%' OR domaine LIKE 'S%' ORDER BY 1 LIMIT 20"
+        ).fetchall()]
+    finally: db.close()
+    counter("pv:tenders")
+    return render(req, "tenders.html", {
+        "tenders": rows, "total": total, "page": page,
+        "pages": max(1, (total + per - 1) // per),
+        "code_f": code_f, "region_f": region_f, "q": q,
+        "regions": regions, "codes": codes,
+    })
+
+@app.get("/tenders/{tid}", response_class=HTMLResponse)
+async def tender_detail(req: Request, tid: str):
+    db = get_db()
+    try:
+        row = db.execute("SELECT * FROM tenders WHERE id=?", (tid,)).fetchone()
+        if not row: raise HTTPException(404)
+        t = dict(row)
+        db.execute("UPDATE tenders SET views=COALESCE(views,0)+1 WHERE id=?", (tid,))
+        db.commit()
+        related = [dict(r) for r in db.execute(
+            "SELECT * FROM tenders WHERE domaine=? AND id!=? AND statut='actif' ORDER BY date_extraction DESC LIMIT 5",
+            (t["domaine"], tid)).fetchall()]
+    finally: db.close()
+    counter("pv:tender_detail")
+    return render(req, "tender_detail.html", {"t": t, "related": related})
+
+# ── CLEANUP DUPLICATES ──
+@app.get("/admin/cleanup_tenders")
+async def admin_cleanup_tenders(pwd: str = ""):
+    """Remove tenders with generic/invalid titles"""
+    chk(pwd)
+    db = get_db()
+    try:
+        bad_patterns = [
+            "Liste des avis d'achat",
+            "ConsultationsRésultats",
+            "Accueil",
+            "Se connecter",
+        ]
+        deleted = 0
+        for p in bad_patterns:
+            db.execute("DELETE FROM tenders WHERE objet LIKE ?", (f"%{p}%",))
+            deleted += db.execute("SELECT changes()").fetchone()[0]
+        # Remove tenders with objet less than 10 chars
+        db.execute("DELETE FROM tenders WHERE length(objet) < 10")
+        deleted += db.execute("SELECT changes()").fetchone()[0]
+        db.commit()
+    finally: db.close()
+    return JSONResponse({"ok": True, "deleted": deleted})
+
 @app.get("/health")
 async def health():
     db = get_db()

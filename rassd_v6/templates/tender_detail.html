@@ -1,107 +1,113 @@
 {% extends "base.html" %}
-{% block title %}{{ tender.objet[:60] }}{% endblock %}
+{% block title %}{{ t.objet[:60] }}{% endblock %}
 {% block body %}
-<div style="max-width:900px;margin:0 auto;padding:40px 32px 64px">
-
-  <!-- BREADCRUMB -->
-  <div class="flex items-center gap-8 mb-24" style="font-size:12px;color:var(--text-3)">
-    <a href="/" style="color:var(--text-3)">Modern Business</a>
+<div style="max-width:860px;margin:0 auto;padding:28px 24px 64px">
+  <!-- Breadcrumb -->
+  <div class="flex items-center gap-8 mb-16 text-xs text-muted flex-wrap">
+    <a href="/tenders" class="text-muted">Marchés publics</a>
     <span>/</span>
-    <a href="/tenders" style="color:var(--text-3)">Opportunités</a>
-    <span>/</span>
-    <span style="color:var(--text-2)">#{{ tender.id }}</span>
+    {% if t.domaine %}<span>{{ t.domaine[:20] }}</span><span>/</span>{% endif %}
+    <span style="color:var(--text2)">#{{ t.id }}</span>
   </div>
 
-  <!-- HEADER -->
-  <div class="flex items-center gap-8 mb-16">
-    {% if tender.type_marche == 'PUBLIC' %}<span class="tag tag-public">🏛 Marché Public</span>
-    {% elif tender.type_marche == 'SEMI_PUBLIC' %}<span class="tag tag-semi">🏢 Semi-Public</span>
-    {% else %}<span class="tag tag-private">📰 Secteur Privé</span>{% endif %}
-    {% if tender.statut == 'actif' %}<span class="tag tag-active">✓ Actif</span>
-    {% elif tender.statut == 'expire' %}<span class="tag tag-expired">Expiré</span>
-    {% else %}<span class="tag" style="background:rgba(100,100,100,.1);color:var(--text-3)">Annulé</span>{% endif %}
-    {% if tender.source_name %}<span class="tag tag-gold">{{ tender.source_name }}</span>{% endif %}
-  </div>
-
-  <h1 style="font-size:clamp(20px,3vw,30px);color:var(--text);margin-bottom:20px;line-height:1.2">{{ tender.objet }}</h1>
-
-  <!-- ACTIONS -->
-  <div class="flex items-center gap-10 mb-32" style="flex-wrap:wrap">
-    {% if tender.url %}
-    <a href="{{ tender.url }}" target="_blank" class="btn btn-gold">Voir la source officielle ↗</a>
+  <!-- Header -->
+  <div class="flex items-center gap-8 mb-16 flex-wrap">
+    {% if t.domaine %}
+    <span style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:5px;font-size:10px;font-weight:700;font-family:var(--mono);
+      background:{{ 'rgba(201,168,76,.1)' if t.domaine.startswith('T') else ('rgba(45,108,207,.1)' if t.domaine.startswith('P') else 'rgba(39,168,94,.1)') }};
+      color:{{ 'var(--gold)' if t.domaine.startswith('T') else ('#6b9de8' if t.domaine.startswith('P') else '#3ecb7a') }}">
+      {{ t.domaine[:4] }} — {{ t.domaine[7:] if t.domaine[5:] else t.domaine }}
+    </span>
     {% endif %}
-    {% if contractor %}
-    <button id="saveBtn" onclick="toggleSave('{{ tender.id }}',this)" data-saved="{{ '1' if is_saved else '0' }}"
-      class="btn btn-ghost" style="color:{{ 'var(--gold)' if is_saved else 'var(--text-2)' }}">
-      {{ '★ Sauvegardé' if is_saved else '☆ Sauvegarder' }}
-    </button>
-    {% else %}
-    <a href="/login" class="btn btn-ghost">☆ Sauvegarder</a>
-    {% endif %}
+    {% if t.type_marche %}<span class="tag tag-gray">{{ t.type_marche }}</span>{% endif %}
+    {% if t.statut == 'actif' %}<span class="tag tag-green">● Actif</span>
+    {% elif t.statut == 'expire' %}<span class="tag tag-red">Expiré</span>
+    {% else %}<span class="tag tag-gray">{{ t.statut }}</span>{% endif %}
+    <span class="text-xs text-muted" style="margin-left:auto">{{ t.views or 0 }} vues</span>
   </div>
 
-  <!-- DETAILS CARD -->
-  <div class="card" style="margin-bottom:24px">
-    <div style="padding:20px 22px;border-bottom:1px solid var(--border);background:var(--bg-3)">
-      <span style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px">Détails de l'opportunité</span>
-    </div>
-    <div style="padding:0">
-      {% set fields = [
-        ('Organisme / Acheteur', tender.acheteur, '🏛'),
-        ('Région', tender.region, '📍'),
-        ('Secteur', DOMAINS_FR.get(tender.domaine,'—') if tender.domaine else '—', '🏷'),
-        ('Montant estimé', tender.montant, '💰'),
-        ('Date de publication', tender.date_publication, '📅'),
-        ('Date limite', tender.date_limite, '⏰'),
-        ('Source', tender.source_name, '📡'),
-        ('Référence', tender.id, '#'),
-      ] %}
-      {% for label, val, icon in fields %}
-      {% if val %}
-      <div style="display:flex;align-items:flex-start;gap:12px;padding:13px 22px;border-bottom:1px solid var(--border)">
-        <span style="width:18px;text-align:center;font-size:13px;flex-shrink:0;margin-top:1px">{{ icon }}</span>
-        <div style="min-width:160px;font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;padding-top:1px">{{ label }}</div>
-        <div style="font-size:13px;color:{{ 'var(--red)' if label == 'Date limite' else 'var(--text)' }};font-weight:{{ '700' if label == 'Date limite' else '400' }};font-family:{{ 'var(--mono)' if label == 'Référence' else 'var(--font)' }}">{{ val }}</div>
+  <h1 style="font-size:clamp(16px,2.5vw,22px);color:var(--text);margin-bottom:24px;line-height:1.35">{{ t.objet }}</h1>
+
+  <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:16px;margin-bottom:20px">
+    <!-- Info card -->
+    <div class="card overflow-hidden">
+      <div class="card-header card-gold-header">📋 Informations du marché</div>
+      {% for lbl,val,style in [
+        ("🏢 Acheteur",      t.acheteur,        ""),
+        ("📍 Région",        t.region,           ""),
+        ("🏷 Secteur",       t.domaine,          "font-family:var(--mono)"),
+        ("🔧 Type",          t.type_marche,      ""),
+        ("💰 Montant",       t.montant,          "color:var(--gold);font-weight:700"),
+        ("📅 Publication",   t.date_publication, "font-family:var(--mono)"),
+        ("⏰ Date limite",   t.date_limite,      "color:#e87070;font-weight:700"),
+        ("👁 Vues",          t.views,            "font-family:var(--mono)"),
+      ] %}{% if val %}
+      <div style="display:flex;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border)">
+        <div style="min-width:130px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;padding-top:2px;flex-shrink:0">{{ lbl }}</div>
+        <div style="font-size:12px;color:var(--text);{{ style }}">{{ val }}</div>
+      </div>
+      {% endif %}{% endfor %}
+      <!-- Source officielle -->
+      {% if t.url %}
+      <div style="padding:12px 14px">
+        <a href="{{ t.url }}" target="_blank" class="btn btn-gold btn-sm w-full">
+          Voir sur marchespublics.gov.ma →
+        </a>
       </div>
       {% endif %}
-      {% endfor %}
+    </div>
+
+    <!-- Actions -->
+    <div style="display:flex;flex-direction:column;gap:12px">
+      {% if not member %}
+      <div class="card p-20">
+        <div class="font-bold text-sm mb-8">🔔 Alertes automatiques</div>
+        <div class="text-xs text-muted mb-14">Recevez les marchés de ce secteur sur Telegram dès publication.</div>
+        <a href="/register" class="btn btn-gold btn-full mb-8">S'inscrire gratuitement →</a>
+        <a href="/login" class="btn btn-ghost btn-full text-xs">Déjà inscrit? Connexion</a>
+      </div>
+      {% else %}
+      <div class="card p-20">
+        <div class="font-bold text-sm mb-6">✅ Abonné</div>
+        <div class="text-xs text-muted">Vous recevez les alertes de ce secteur sur Telegram.</div>
+      </div>
+      {% endif %}
+      <!-- Share -->
+      <div class="card p-16">
+        <div class="font-bold text-xs text-muted mb-10" style="text-transform:uppercase;letter-spacing:.5px">Partager</div>
+        <button onclick="navigator.clipboard.writeText(window.location.href);this.textContent='✅ Copié!'" class="btn btn-ghost btn-sm w-full">📋 Copier le lien</button>
+      </div>
+      <!-- Source -->
+      <div class="card p-16">
+        <div class="font-bold text-xs text-muted mb-6" style="text-transform:uppercase;letter-spacing:.5px">Source officielle</div>
+        <div class="text-xs text-muted mb-8">marchespublics.gov.ma</div>
+        {% if t.url %}<a href="{{ t.url }}" target="_blank" class="btn btn-ghost btn-sm w-full">Ouvrir la source →</a>{% endif %}
+      </div>
     </div>
   </div>
 
-  <!-- DESCRIPTION -->
-  {% if tender.description and tender.description|length > 30 %}
-  <div class="card" style="margin-bottom:24px">
-    <div style="padding:16px 22px;border-bottom:1px solid var(--border);background:var(--bg-3)">
-      <span style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.6px">Contenu extrait</span>
-    </div>
-    <div style="padding:22px;font-size:13px;color:var(--text-2);line-height:1.75;white-space:pre-wrap;max-height:360px;overflow-y:auto">{{ tender.description[:1500] }}</div>
+  <!-- Description -->
+  {% if t.description and t.description|length > 30 %}
+  <div class="card mb-20">
+    <div class="card-header">📄 Détails extraits</div>
+    <div class="p-20 text-sm" style="color:var(--text2);line-height:1.85;white-space:pre-wrap;max-height:300px;overflow-y:auto">{{ t.description[:2000] }}</div>
   </div>
   {% endif %}
 
-  <!-- RELATED -->
+  <!-- Related -->
   {% if related %}
-  <div style="margin-top:40px">
-    <div style="font-size:11px;font-weight:700;color:var(--text-3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:14px">Opportunités similaires</div>
-    <div class="card" style="overflow:hidden">
+  <div>
+    <div class="font-bold text-sm mb-12">📂 Marchés similaires — {{ t.domaine[:20] }}</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px">
       {% for r in related %}
-      <a href="/tender/{{ r.id }}" class="tender-row" style="display:grid;text-decoration:none">
-        <div>
-          <span class="tender-title">{{ r.objet[:70] }}</span>
-          <span class="tender-sub">{{ r.acheteur[:40] if r.acheteur else r.source_name }}</span>
-        </div>
-        <div>
-          {% if r.type_marche == 'PUBLIC' %}<span class="tag tag-public">Public</span>
-          {% elif r.type_marche == 'SEMI_PUBLIC' %}<span class="tag tag-semi">Semi</span>
-          {% else %}<span class="tag tag-private">Privé</span>{% endif %}
-        </div>
-        <div class="tender-date urgent">{{ r.date_limite or '—' }}</div>
-        <div style="font-size:11px;color:var(--text-3)">{{ r.region or '—' }}</div>
-        <span style="color:var(--text-3);font-size:13px">→</span>
+      <a href="/tenders/{{ r.id }}" class="card p-16" style="display:block;transition:.15s">
+        <div class="text-xs text-muted mb-4 font-mono">{{ r.domaine[:4] }}</div>
+        <div class="font-bold text-sm mb-6" style="color:var(--text);line-height:1.3">{{ r.objet[:60] }}</div>
+        <div class="text-xs text-muted">⏰ {{ r.date_limite or '—' }}</div>
       </a>
       {% endfor %}
     </div>
   </div>
   {% endif %}
-
 </div>
 {% endblock %}

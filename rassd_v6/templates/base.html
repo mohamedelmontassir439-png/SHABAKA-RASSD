@@ -297,7 +297,9 @@ button,input,select,textarea{font-family:var(--font)}
   <div class="nav-links">
     <a href="/" class="nav-link {% if request.url.path=='/' %}active{% endif %}">Accueil</a>
     <a href="/marketplace" class="nav-link {% if 'marketplace' in request.url.path %}active{% endif %}">Marketplace</a>
+    <a href="/tenders" class="nav-link {% if 'tenders' in request.url.path %}active{% endif %}">Marchés</a>
     <a href="/annuaire" class="nav-link {% if 'annuaire' in request.url.path %}active{% endif %}">Annuaire</a>
+    <a href="/filters" class="nav-link {% if 'filters' in request.url.path %}active{% endif %}">Mes filtres</a>
     <a href="/contact" class="nav-link">Contact</a>
   </div>
   <div class="nav-right">
@@ -332,6 +334,7 @@ button,input,select,textarea{font-family:var(--font)}
         <div class="footer-col-title">Plateforme</div>
         <div class="footer-links">
           <a href="/">Accueil</a>
+          <a href="/tenders">Marchés publics</a>
           <a href="/marketplace">Marketplace</a>
           <a href="/annuaire">Annuaire</a>
         </div>
