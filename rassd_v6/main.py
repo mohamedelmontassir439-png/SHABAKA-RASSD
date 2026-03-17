@@ -43,7 +43,9 @@ GMAIL_USER   = os.getenv("GMAIL_USER",  "mohamedelmontassir439@gmail.com")
 GMAIL_PASS   = os.getenv("GMAIL_PASS",  "")
 TELEGRAM_BOT = os.getenv("TELEGRAM_BOT","7849539613:AAFZTtMNEo92UqE3OIcXPdX65OCm8DrvgAA")
 ANTHROPIC_KEY= os.getenv("ANTHROPIC_API_KEY", "")
-SCRAPE_HOURS = int(os.getenv("SCRAPE_INTERVAL_HOURS", "6"))
+SCRAPE_HOURS   = int(os.getenv("SCRAPE_INTERVAL_HOURS", "6"))
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
+FROM_EMAIL     = os.getenv("FROM_EMAIL", "noreply@modern-business.ma")
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s:%(message)s")
 logger = logging.getLogger("mb3")
@@ -802,45 +804,45 @@ class NotifyAgent:
             db.commit(); db.close()
         except: pass
 
-    # ── Email ──
+    # ── Email via Resend API (HTTP — works on Railway) ──
     @staticmethod
     async def send_email(to: str, subject: str, html: str) -> tuple:
-        if not GMAIL_PASS:
-            return False, "GMAIL_PASS not configured"
+        """
+        Send email via Resend.com HTTP API.
+        Railway blocks SMTP (port 465/587) — HTTP API is the only way.
+        Free tier: 3000 emails/month — https://resend.com
+        """
+        if not RESEND_API_KEY:
+            return False, "RESEND_API_KEY not set. Create free account at resend.com"
+        if not to or "@" not in to:
+            return False, f"Invalid email: {to}"
         try:
-            msg = MIMEMultipart("alternative")
-            msg["Subject"] = subject
-            msg["From"]    = f"{BRAND} <{GMAIL_USER}>"
-            msg["To"]      = to
-            msg.attach(MIMEText(html, "html", "utf-8"))
-
-            def _send():
-                errors = []
-                for host, port, use_ssl in [
-                    ("smtp.gmail.com", 465, True),
-                    ("smtp.gmail.com", 587, False),
-                ]:
-                    try:
-                        if use_ssl:
-                            srv = smtplib.SMTP_SSL(host, port, timeout=20)
-                        else:
-                            srv = smtplib.SMTP(host, port, timeout=20)
-                            srv.ehlo(); srv.starttls(); srv.ehlo()
-                        srv.login(GMAIL_USER, GMAIL_PASS)
-                        srv.sendmail(GMAIL_USER, [to], msg.as_string())
-                        srv.quit()
-                        return True, ""
-                    except smtplib.SMTPAuthenticationError:
-                        return False, "AUTH_FAILED: Activer App Password sur Google"
-                    except Exception as e:
-                        errors.append(str(e)[:60])
-                return False, " | ".join(errors)
-
-            loop = asyncio.get_event_loop()
-            ok, err = await loop.run_in_executor(None, _send)
-            if ok: counter("emails_sent")
-            return ok, err
+            import httpx
+            async with httpx.AsyncClient(timeout=20) as client:
+                r = await client.post(
+                    "https://api.resend.com/emails",
+                    headers={
+                        "Authorization": f"Bearer {RESEND_API_KEY}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "from": f"{BRAND} <{FROM_EMAIL}>",
+                        "to": [to],
+                        "subject": subject,
+                        "html": html,
+                    }
+                )
+                data = r.json()
+                if r.status_code in [200, 201] and data.get("id"):
+                    counter("emails_sent")
+                    logger.info(f"[email] ✅ sent to {to} — id:{data['id']}")
+                    return True, ""
+                else:
+                    err = data.get("message") or data.get("error") or str(data)
+                    logger.error(f"[email→{to}] Resend error: {err}")
+                    return False, f"Resend API: {err}"
         except Exception as e:
+            logger.error(f"[email_send] {e}")
             return False, str(e)
 
     # ── Telegram ──
