@@ -1,682 +1,401 @@
 """
-Modern Business — Multi-Site Scraper Agent v3.0
-══════════════════════════════════════════════════════════════════
-Sites: marocao.com | lesoffres.ma | aljady.ma | marchesprives.ma
-       marchespublics.gov.ma (already in main.py)
-
-Features:
-- Rotating User Agents + delays anti-blocking
-- AI scoring "easy to win" (rule-based + keyword analysis)
-- Duplicate detection (title hash)
-- ISO date normalization
-- Category auto-classification
-- WhatsApp via Twilio API
-══════════════════════════════════════════════════════════════════
+Modern Business — Multi-Source Scraper v1.0
+Sources: marchespublics.gov.ma + marocao.com + lesoffres.ma + aljady.ma + marchesprives.ma
+Features: rotating UA, AI classification, dedup, date normalization
 """
-import re, time, random, hashlib, logging, os
-from datetime import datetime, timedelta
+import re, time, random, logging, hashlib, json, os
+from datetime import datetime
 from typing import Optional
+from dataclasses import dataclass, asdict
 
-logger = logging.getLogger("multi_scraper")
+logger = logging.getLogger("mb.scraper")
 
-# ══════════════════════════════════════════════════════
-# ROTATING USER AGENTS
-# ══════════════════════════════════════════════════════
-USER_AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36",
+UA_LIST = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 Version/17.0 Safari/605.1.15",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:123.0) Gecko/20100101 Firefox/123.0",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_3) AppleWebKit/605.1.15 Version/17.3 Safari/605.1.15",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/122.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_3) AppleWebKit/605.1.15 Version/17.0 Mobile Safari/604.1",
 ]
 
-def get_session():
-    """HTTP session with anti-blocking"""
+@dataclass
+class Tender:
+    id: str = ""
+    source: str = ""
+    source_url: str = ""
+    objet: str = ""
+    description: str = ""
+    acheteur: str = ""
+    region: str = ""
+    domaine: str = ""
+    type_marche: str = ""
+    montant: str = ""
+    budget_min: float = 0.0
+    budget_max: float = 0.0
+    date_publication: str = ""
+    date_limite: str = ""
+    contact: str = ""
+    statut: str = "actif"
+    ai_score: int = 50
+    ai_category: str = ""
+    ai_reason: str = ""
+    date_extraction: str = ""
+
+def make_session():
     import requests
     s = requests.Session()
     s.verify = False
     s.headers.update({
-        "User-Agent":      random.choice(USER_AGENTS),
-        "Accept":          "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        "Accept-Language": "fr-FR,fr;q=0.9,ar;q=0.8,en;q=0.7",
-        "Accept-Encoding": "gzip, deflate, br",
-        "DNT":             "1",
-        "Connection":      "keep-alive",
-        "Upgrade-Insecure-Requests": "1",
+        "User-Agent": random.choice(UA_LIST),
+        "Accept": "text/html,application/xhtml+xml,*/*;q=0.8",
+        "Accept-Language": "fr-MA,fr;q=0.9,ar;q=0.8",
     })
     return s
 
-def random_delay(min_s=1.5, max_s=4.0):
-    """Human-like delay"""
-    time.sleep(random.uniform(min_s, max_s))
+def sleep_r(a=1.0, b=2.5): time.sleep(random.uniform(a, b))
+def make_id(src, title, url=""): return f"{src}_{hashlib.md5(f'{src}:{title}:{url}'.encode()).hexdigest()[:12]}"
 
-def safe_get(session, url: str, timeout=20, retries=3) -> Optional[object]:
-    """Resilient GET with retry + rotating UA"""
-    for attempt in range(retries):
-        try:
-            # Rotate UA on each retry
-            session.headers["User-Agent"] = random.choice(USER_AGENTS)
-            r = session.get(url, timeout=timeout, allow_redirects=True)
-            if r.status_code == 200:
-                return r
-            elif r.status_code == 429:
-                logger.warning(f"Rate limited on {url} — waiting 30s")
-                time.sleep(30)
-            elif r.status_code in [403, 406]:
-                logger.warning(f"Blocked {r.status_code} on {url}")
-                time.sleep(random.uniform(10, 20))
-            else:
-                logger.debug(f"HTTP {r.status_code} on {url}")
-                return None
-        except Exception as e:
-            logger.error(f"Attempt {attempt+1} failed for {url}: {e}")
-            if attempt < retries - 1:
-                time.sleep(random.uniform(3, 8))
-    return None
-
-# ══════════════════════════════════════════════════════
-# NORMALIZERS
-# ══════════════════════════════════════════════════════
-MONTH_MAP = {
-    "janvier":"01","février":"02","mars":"03","avril":"04","mai":"05","juin":"06",
-    "juillet":"07","août":"08","septembre":"09","octobre":"10","novembre":"11","décembre":"12",
-    "jan":"01","fév":"02","mar":"03","avr":"04","mai":"05","jun":"06",
-    "jul":"07","aoû":"08","sep":"09","oct":"10","nov":"11","déc":"12",
-    "يناير":"01","فبراير":"02","مارس":"03","أبريل":"04","ماي":"05","يونيو":"06",
-    "يوليوز":"07","غشت":"08","شتنبر":"09","أكتوبر":"10","نونبر":"11","دجنبر":"12",
-}
-
-def normalize_date(text: str) -> str:
-    """Convert any date string to ISO YYYY-MM-DD"""
-    if not text: return ""
-    text = text.strip()
-    # Already ISO
-    if re.match(r'\d{4}-\d{2}-\d{2}', text): return text[:10]
-    # DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
-    m = re.search(r'(\d{1,2})[/\-\.](\d{1,2})[/\-\.](\d{4})', text)
-    if m: return f"{m.group(3)}-{m.group(2).zfill(2)}-{m.group(1).zfill(2)}"
-    # "15 janvier 2025" or "15 jan 2025"
-    m = re.search(r'(\d{1,2})\s+([a-zéûôèàùâêîA-Zأ-ي]+)\s+(\d{4})', text, re.I)
+def normalize_date(raw):
+    if not raw: return ""
+    raw = raw.strip()
+    MONTHS_FR = {"janvier":"01","février":"02","mars":"03","avril":"04","mai":"05","juin":"06",
+                 "juillet":"07","août":"08","septembre":"09","octobre":"10","novembre":"11","décembre":"12"}
+    for fr, num in MONTHS_FR.items():
+        raw = raw.lower().replace(fr, num)
+    for fmt in ["%d/%m/%Y","%d-%m-%Y","%d.%m.%Y","%Y-%m-%d","%d/%m/%y","%d-%m-%y"]:
+        try: return datetime.strptime(raw.strip(), fmt).strftime("%Y-%m-%d")
+        except: pass
+    m = re.search(r'(\d{1,2})[/\-\.](\d{1,2})[/\-\.](\d{2,4})', raw)
     if m:
-        day, month_str, year = m.group(1), m.group(2).lower(), m.group(3)
-        month = MONTH_MAP.get(month_str, "")
-        if month: return f"{year}-{month}-{day.zfill(2)}"
-    # Relative: "dans 30 jours"
-    m = re.search(r'dans\s+(\d+)\s+jours?', text, re.I)
-    if m: return (datetime.now() + timedelta(days=int(m.group(1)))).strftime("%Y-%m-%d")
-    return text[:20]
+        d,mo,y = m.groups()
+        if len(y)==2: y="20"+y
+        try: return datetime(int(y),int(mo),int(d)).strftime("%Y-%m-%d")
+        except: pass
+    return ""
 
-def tender_hash(title: str, source: str) -> str:
-    """Unique ID for duplicate detection"""
-    clean = re.sub(r'\s+', ' ', title.lower().strip())[:80]
-    return hashlib.md5(f"{source}:{clean}".encode()).hexdigest()[:16]
+def extract_budget(text):
+    if not text: return 0.0,0.0,""
+    text = text.replace(" ","").replace(",",".")
+    m = re.search(r'(\d[\d.]+)\s*(?:dh|mad|dirham)', text, re.I)
+    if m:
+        try: v=float(m.group(1)); return v,v,f"{v:,.0f} DH"
+        except: pass
+    return 0.0,0.0,text[:60]
+
+def clean_text(t, n=500):
+    if not t: return ""
+    return re.sub(r'\s+',' ',t).strip()[:n]
+
+def is_expired(d):
+    if not d: return False
+    try: return datetime.strptime(d,"%Y-%m-%d").date() < datetime.now().date()
+    except: return False
 
 REGIONS_MAP = {
-    "Casablanca": ["casablanca","casa","anfa","ain chock","hay hassani"],
-    "Rabat":      ["rabat","salé","sale","témara","skhirat","kénitra","kenitra"],
-    "Marrakech":  ["marrakech","guéliz","hivernage","marrakesh"],
-    "Fès":        ["fès","fez","sefrou","ifrane"],
-    "Agadir":     ["agadir","inezgane","tiznit","taroudant"],
-    "Tanger":     ["tanger","tétouan","tetouan","al hoceima","chefchaouen"],
-    "Oujda":      ["oujda","nador","berkane"],
-    "Meknès":     ["meknès","meknes"],
-    "National":   ["national","maroc","toutes les régions","tout le maroc","royaume"],
+    "Rabat-Salé-Kénitra":["rabat","salé","kénitra","kenitra","témara"],
+    "Casablanca-Settat":["casablanca","settat","mohammedia","berrechid"],
+    "Marrakech-Safi":["marrakech","safi","essaouira"],
+    "Fès-Meknès":["fès","fez","meknès","meknes","ifrane","taza"],
+    "Tanger-Tétouan-Al Hoceima":["tanger","tétouan","al hoceima","chefchaouen"],
+    "Oriental":["oujda","nador","berkane"],
+    "Béni Mellal-Khénifra":["béni mellal","khénifra","azilal","khouribga"],
+    "Souss-Massa":["agadir","tiznit","taroudant"],
+    "Drâa-Tafilalet":["errachidia","ouarzazate","zagora"],
 }
 
-def normalize_region(text: str) -> str:
-    if not text: return "Maroc"
-    low = text.lower()
-    for region, kws in REGIONS_MAP.items():
-        if any(k in low for k in kws): return region
-    return text[:50].strip() or "Maroc"
+def detect_region(text):
+    t = text.lower()
+    for r,kws in REGIONS_MAP.items():
+        if any(k in t for k in kws): return r
+    return "Maroc"
 
-# Official Moroccan codes T/P/S
-CATEGORY_MAP = {
-    "T101 - Constructions & Bâtiments":   ["construction","bâtiment","btp","travaux","gros oeuvre","maçonnerie","rénovation","réhabilitation"],
-    "T110 - Génie Civil":                  ["génie civil","infrastructure","pont","viaduc","route","voirie","terrassement"],
-    "T201 - Assainissement":               ["assainissement","réseau","eau","hydraulique","forage","station"],
-    "T401 - Électricité":                  ["électricité","éclairage","câblage","électrique","solaire","énergie"],
-    "T402 - Sécurité & Télésurveillance":  ["sécurité","surveillance","alarme","cctv","caméra","gardiennage"],
-    "T403 - Télécommunications":            ["télécommunication","réseau","fibre","câblage","gsm","wifi"],
-    "P818 - Informatique":                  ["informatique","logiciel","système","application","web","cloud","erp","crm","développement","numérique","digital"],
-    "P813 - Médical":                       ["médical","santé","hôpital","laboratoire","pharmaceutique","équipement médical"],
-    "P816 - Véhicules & Transport":         ["véhicule","transport","camion","voiture","bus","carburant","flotte"],
-    "P825 - Fournitures Bureau":            ["fournitures","bureau","papier","mobilier","imprimante","consommables"],
-    "P834 - Alimentation":                  ["alimentation","restauration","traiteur","denrée","repas"],
-    "P841 - Nettoyage":                     ["nettoyage","hygiène","propreté","désinfection","entretien"],
-    "S902 - Études & Conseil":              ["étude","conseil","consultant","audit","expertise","formation","mission"],
-    "S906 - Maintenance":                   ["maintenance","entretien","réparation","contrat"],
-    "S907 - Nettoyage Services":            ["service nettoyage","facility"],
-    "S908 - Gardiennage":                   ["gardiennage","agent sécurité"],
-    "S913 - Formation":                     ["formation","séminaire","coaching","certification"],
+SECTEUR_KWS = {
+    "T101 - Constructions & Bâtiments":["bâtiment","construction","maçonnerie","béton","gros oeuvre","btp","rénovation"],
+    "T110 - Génie Civil":["génie civil","pont","infrastructure","ouvrage","géotechnique"],
+    "T201 - Assainissement":["assainissement","égout","step","collecteur","canalisation"],
+    "T203 - Hydraulique":["hydraulique","eau potable","adduction","barrage","forage","irrigation"],
+    "T301 - Travaux Routiers":["route","voirie","chaussée","trottoir","bitume","asphalte"],
+    "T401 - Électricité":["électricité","éclairage","câblage","tableau électrique"],
+    "T402 - Sécurité Électronique":["télésurveillance","alarme","incendie","caméra","cctv"],
+    "T403 - Télécommunications":["télécommunication","fibre optique","réseau","switch","routeur"],
+    "P816 - Matériel Roulant":["véhicule","voiture","camion","bus","carburant","gasoil"],
+    "P818 - Informatique":["informatique","ordinateur","pc","serveur","imprimante","logiciel","cloud"],
+    "P813 - Équipements Médicaux":["médical","hôpital","laboratoire","réactif","chirurgical"],
+    "P825 - Fournitures Bureau":["fournitures","papier","ramette","mobilier","bureau"],
+    "P834 - Alimentation":["alimentation","denrée","viande","restauration","traiteur"],
+    "P841 - Hygiène & Nettoyage":["nettoyage","propreté","désinfection","savon","détergent"],
+    "P850 - Énergies Renouvelables":["solaire","photovoltaïque","énergie renouvelable"],
+    "S901 - IT & Développement":["développement","application","site web","base de données","cybersécurité"],
+    "S902 - Études & Conseil":["étude","conseil","consultant","expertise","audit","bureau d'études"],
+    "S906 - Maintenance":["maintenance","entretien","réparation","dépannage"],
+    "S907 - Nettoyage Service":["nettoyage service","propreté service","dératisation"],
+    "S908 - Gardiennage":["gardiennage","sécurité","surveillance","agent"],
+    "S913 - Formation":["formation","coaching","séminaire","certification"],
 }
 
-def classify_category(text: str) -> str:
-    low = text.lower()
+def detect_secteur(title, desc=""):
+    text = (title+" "+desc).lower()
     scores = {}
-    for cat, kws in CATEGORY_MAP.items():
-        score = sum(2 if len(k) > 9 else 1 for k in kws if k in low)
-        if score: scores[cat] = score
-    return max(scores, key=scores.get) if scores else "P825 - Fournitures Bureau"
+    for s,kws in SECTEUR_KWS.items():
+        sc = sum(2 if len(k)>9 else 1 for k in kws if k in text)
+        if sc: scores[s]=sc
+    return max(scores,key=scores.get) if scores else "P825 - Fournitures Bureau"
 
-# ══════════════════════════════════════════════════════
-# AI SCORING — "Easy to Win" prediction
-# ══════════════════════════════════════════════════════
-def ai_score_tender(tender: dict) -> dict:
-    """
-    Rule-based AI scoring for tender win probability.
-    Returns score 0-100 + reasoning.
-    """
-    score = 50  # Base
-    reasons = []
+def detect_type(title):
+    t = title.lower()
+    if any(k in t for k in ["travaux","construction","réhabilitation","pose","démolition"]): return "Travaux"
+    if any(k in t for k in ["fourniture","livraison","achat","acquisition","matériel"]): return "Fournitures"
+    if any(k in t for k in ["service","prestation","maintenance","gardiennage","nettoyage"]): return "Services"
+    if any(k in t for k in ["étude","mission","audit","conseil","formation"]): return "Études & Conseil"
+    return "Fournitures"
 
-    title  = (tender.get("title") or "").lower()
-    desc   = (tender.get("description") or "").lower()
-    budget = tender.get("budget") or ""
-    region = tender.get("region") or ""
-    full   = title + " " + desc
 
-    # ── Positive signals (higher score = easier) ──
-    # Small budget → less competition
-    try:
-        bval = float(re.sub(r'[^\d.]', '', str(budget).replace(',','').replace(' ','')))
-        if bval < 100000:    score += 15; reasons.append("Budget < 100K DH")
-        elif bval < 500000:  score += 8;  reasons.append("Budget < 500K DH")
-        elif bval > 5000000: score -= 15; reasons.append("Grand budget (>5M)")
-    except: pass
+class AIClassifier:
+    PROMPT = """Analyse cet appel d'offres marocain pour PME.
+Titre: {title}
+Acheteur: {acheteur}
+Montant: {montant}
+Secteur: {secteur}
+Description: {desc}
 
-    # Simple/routine categories
-    easy_cats = ["nettoyage","fournitures","imprimerie","gardiennage","restauration","entretien","maintenance"]
-    if any(k in full for k in easy_cats):
-        score += 12; reasons.append("Catégorie accessible")
+Réponds UNIQUEMENT en JSON valide (sans markdown):
+{{"category":"{secteur}","score":<0-100 facilité PME>,"reason":"<80 mots max>","estimated_competition":"faible|moyen|fort"}}
 
-    # Specific city (less competition than national)
-    if region and region.lower() not in ["national","maroc","tout le maroc"]:
-        score += 8; reasons.append("Marché régional")
+Score: 80-100=facile(petit budget,services), 60-79=moyen, 40-59=technique, 20-39=gros lot, 0-19=très complexe"""
 
-    # Short description = simple tender
-    if len(desc) < 200:
-        score += 5; reasons.append("Description courte/simple")
-
-    # Deadline > 15 days (enough time to prepare)
-    dl = tender.get("deadline") or ""
-    if dl:
+    @staticmethod
+    async def classify(t, anthropic_key):
+        if not anthropic_key:
+            return {"category":t.domaine,"score":50,"reason":"IA non configurée","estimated_competition":"moyen"}
         try:
-            d = datetime.strptime(dl, "%Y-%m-%d")
-            days_left = (d - datetime.now()).days
-            if days_left > 30:  score += 10; reasons.append(f"{days_left}j pour préparer")
-            elif days_left < 7: score -= 20; reasons.append(f"Seulement {days_left}j restants")
-        except: pass
-
-    # ── Negative signals ──
-    hard = ["étude","ingénierie","conception","maîtrise d'oeuvre","expertise","audit"]
-    if any(k in full for k in hard):
-        score -= 10; reasons.append("Nécessite expertise spécialisée")
-
-    complex_kw = ["international","appel d'offres ouvert restreint","qualification","agréé"]
-    if any(k in full for k in complex_kw):
-        score -= 8; reasons.append("Procédure complexe")
-
-    # Source private = possibly less scrutiny
-    if tender.get("source") in ["marocao.com","lesoffres.ma","marchesprives.ma"]:
-        score += 5; reasons.append("Marché privé")
-
-    # Clamp
-    score = max(5, min(95, score))
-
-    # Label
-    if score >= 70:   label = "🟢 Facile"
-    elif score >= 45: label = "🟡 Moyen"
-    else:             label = "🔴 Difficile"
-
-    return {
-        "score":   score,
-        "label":   label,
-        "reasons": reasons[:3],
-    }
-
-# ══════════════════════════════════════════════════════
-# SITE SCRAPERS
-# ══════════════════════════════════════════════════════
-
-class MarocAOScraper:
-    """https://marocao.com — Annonces d'appels d'offres Maroc"""
-    BASE = "https://marocao.com"
-
-    @staticmethod
-    def scrape(log_fn=None) -> list:
-        from bs4 import BeautifulSoup as BS
-        results = []
-        s = get_session()
-        log = log_fn or logger.info
-        log("[marocao.com] Démarrage...")
-
-        for page in range(1, 6):
-            url = f"{MarocAOScraper.BASE}/appels-offres" + (f"?page={page}" if page > 1 else "")
-            try:
-                r = safe_get(s, url)
-                if not r: break
-                soup = BS(r.text, "html.parser")
-
-                # Try multiple card selectors
-                cards = (soup.select(".tender-card") or
-                         soup.select(".ao-item") or
-                         soup.select("article.post") or
-                         soup.select(".card") or
-                         soup.select("li.tender") or
-                         soup.select(".annonce"))
-
-                if not cards:
-                    # Fallback: parse all links with tender-like URLs
-                    cards = [a.parent for a in soup.find_all("a", href=True)
-                             if "/appel" in a.get("href","") or "/tender" in a.get("href","")
-                             or "/marche" in a.get("href","")]
-
-                if not cards:
-                    log(f"[marocao.com] Page {page}: aucune annonce")
-                    break
-
-                for card in cards[:20]:
-                    try:
-                        title_el = (card.find(["h1","h2","h3","h4",".title",".titre"]) or
-                                    card.find("a"))
-                        title = title_el.get_text(strip=True) if title_el else ""
-                        if not title or len(title) < 8: continue
-
-                        desc_el = card.find(["p",".description",".excerpt",".content"])
-                        desc = desc_el.get_text(strip=True)[:500] if desc_el else ""
-
-                        # Dates
-                        date_text = ""
-                        for pat in [".date",".deadline",".date-limite","time","[class*='date']"]:
-                            el = card.select_one(pat)
-                            if el: date_text = el.get_text(strip=True); break
-
-                        # Budget
-                        budget = ""
-                        full_text = card.get_text(" ")
-                        m = re.search(r'(\d[\d\s,.]*)\s*(?:DH|MAD|dirham)', full_text, re.I)
-                        if m: budget = m.group(0)[:60]
-
-                        # Link
-                        link_el = card.find("a", href=True)
-                        link = link_el["href"] if link_el else ""
-                        if link and not link.startswith("http"):
-                            link = MarocAOScraper.BASE + link
-
-                        t = {
-                            "id":          f"marocao_{tender_hash(title, 'marocao.com')}",
-                            "title":       title,
-                            "description": desc,
-                            "budget":      budget,
-                            "region":      normalize_region(full_text),
-                            "category":    classify_category(title + " " + desc),
-                            "deadline":    normalize_date(date_text),
-                            "source":      "marocao.com",
-                            "url":         link,
-                            "contact":     "",
-                        }
-                        t["ai"] = ai_score_tender(t)
-                        results.append(t)
-                    except Exception as e:
-                        logger.debug(f"[marocao card] {e}")
-
-                log(f"[marocao.com] Page {page}: +{len(cards)} → total {len(results)}")
-                random_delay(2, 4)
-            except Exception as e:
-                log(f"[marocao.com] Erreur page {page}: {e}")
-                break
-
-        log(f"[marocao.com] ✓ {len(results)} appels d'offres")
-        return results
-
-
-class LesOffresScraper:
-    """https://lesoffres.ma — Offres & marchés Maroc"""
-    BASE = "https://lesoffres.ma"
-
-    @staticmethod
-    def scrape(log_fn=None) -> list:
-        from bs4 import BeautifulSoup as BS
-        results = []
-        s = get_session()
-        log = log_fn or logger.info
-        log("[lesoffres.ma] Démarrage...")
-
-        urls_to_try = [
-            f"{LesOffresScraper.BASE}/appels-offres",
-            f"{LesOffresScraper.BASE}/offres",
-            f"{LesOffresScraper.BASE}/marches",
-            LesOffresScraper.BASE,
-        ]
-
-        for base_url in urls_to_try:
-            for page in range(1, 5):
-                url = base_url + (f"?page={page}" if page > 1 else "")
-                try:
-                    r = safe_get(s, url)
-                    if not r: continue
-                    soup = BS(r.text, "html.parser")
-
-                    items = (soup.select(".offre") or
-                             soup.select(".tender") or
-                             soup.select("article") or
-                             soup.select(".post") or
-                             soup.select(".item-offre") or
-                             soup.select(".offer-card"))
-
-                    if not items: continue
-
-                    for item in items[:25]:
-                        try:
-                            t_el = item.find(["h1","h2","h3","h4","a",".title"])
-                            title = t_el.get_text(strip=True) if t_el else ""
-                            if not title or len(title) < 8: continue
-
-                            desc_el = item.find(["p",".desc",".description",".summary"])
-                            desc = desc_el.get_text(strip=True)[:500] if desc_el else ""
-
-                            full = item.get_text(" ")
-                            date_t = ""
-                            for pat in [".date",".deadline","time",".expiry"]:
-                                el = item.select_one(pat)
-                                if el: date_t = el.get_text(strip=True); break
-                            if not date_t:
-                                m = re.search(r'\d{2}[/\-\.]\d{2}[/\-\.]\d{4}', full)
-                                if m: date_t = m.group(0)
-
-                            budget = ""
-                            mb = re.search(r'(\d[\d\s,.]{2,14})\s*(?:DH|MAD)', full, re.I)
-                            if mb: budget = mb.group(0)[:60]
-
-                            link_el = item.find("a", href=True)
-                            link = link_el["href"] if link_el else ""
-                            if link and not link.startswith("http"):
-                                link = LesOffresScraper.BASE + link
-
-                            # Contact info
-                            contact = ""
-                            for pat in [r'[\w.+-]+@[\w-]+\.[\w.]+', r'[+\d]{10,14}', r'0[56789]\d{8}']:
-                                cm = re.search(pat, full)
-                                if cm: contact = cm.group(0); break
-
-                            t = {
-                                "id":          f"lesoffres_{tender_hash(title,'lesoffres.ma')}",
-                                "title":       title,
-                                "description": desc,
-                                "budget":      budget,
-                                "region":      normalize_region(full),
-                                "category":    classify_category(title+" "+desc),
-                                "deadline":    normalize_date(date_t),
-                                "source":      "lesoffres.ma",
-                                "url":         link,
-                                "contact":     contact,
-                            }
-                            t["ai"] = ai_score_tender(t)
-                            results.append(t)
-                        except Exception as e:
-                            logger.debug(f"[lesoffres item] {e}")
-
-                    log(f"[lesoffres.ma] {url} page {page}: +{len(items)}")
-                    random_delay(1.5, 3.5)
-                    if len(results) > 50: break
-                except Exception as e:
-                    log(f"[lesoffres.ma] {e}")
-            if results: break
-
-        log(f"[lesoffres.ma] ✓ {len(results)} offres")
-        return results
-
-
-class AlJadyScraper:
-    """https://aljady.ma — Marchés & offres Maroc (Arabic/French)"""
-    BASE = "https://aljady.ma"
-
-    @staticmethod
-    def scrape(log_fn=None) -> list:
-        from bs4 import BeautifulSoup as BS
-        results = []
-        s = get_session()
-        log = log_fn or logger.info
-        log("[aljady.ma] Démarrage...")
-
-        urls = [
-            f"{AlJadyScraper.BASE}/tenders",
-            f"{AlJadyScraper.BASE}/marches",
-            f"{AlJadyScraper.BASE}/appels-offres",
-            f"{AlJadyScraper.BASE}/مناقصات",
-            AlJadyScraper.BASE,
-        ]
-
-        for url in urls:
-            try:
-                r = safe_get(s, url)
-                if not r: continue
-                soup = BS(r.text, "html.parser")
-
-                cards = (soup.select(".tender-item") or
-                         soup.select(".marche") or
-                         soup.select("article") or
-                         soup.select(".post-item") or
-                         soup.select(".content-item"))
-
-                for card in cards[:30]:
-                    try:
-                        t_el = card.find(["h1","h2","h3","h4","a"])
-                        title = t_el.get_text(strip=True) if t_el else ""
-                        if not title or len(title) < 5: continue
-
-                        desc_el = card.find(["p",".description",".excerpt"])
-                        desc = desc_el.get_text(strip=True)[:500] if desc_el else ""
-                        full = card.get_text(" ")
-
-                        date_t = ""
-                        dm = re.search(r'\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{4}', full)
-                        if dm: date_t = dm.group(0)
-
-                        budget = ""
-                        bm = re.search(r'(\d[\d\s,.]+)\s*(?:DH|MAD|درهم)', full, re.I)
-                        if bm: budget = bm.group(0)[:60]
-
-                        link_el = card.find("a", href=True)
-                        link = link_el["href"] if link_el else ""
-                        if link and not link.startswith("http"):
-                            link = AlJadyScraper.BASE + link
-
-                        # Detect Arabic text
-                        if re.search(r'[\u0600-\u06FF]', title):
-                            # Translate category for Arabic titles
-                            category = classify_category(title+" "+desc)
-                        else:
-                            category = classify_category(title+" "+desc)
-
-                        t = {
-                            "id":          f"aljady_{tender_hash(title,'aljady.ma')}",
-                            "title":       title,
-                            "description": desc,
-                            "budget":      budget,
-                            "region":      normalize_region(full),
-                            "category":    category,
-                            "deadline":    normalize_date(date_t),
-                            "source":      "aljady.ma",
-                            "url":         link,
-                            "contact":     "",
-                        }
-                        t["ai"] = ai_score_tender(t)
-                        results.append(t)
-                    except Exception as e:
-                        logger.debug(f"[aljady card] {e}")
-
-                if results:
-                    log(f"[aljady.ma] {url}: {len(results)} marchés")
-                    break
-                random_delay(2, 4)
-            except Exception as e:
-                log(f"[aljady.ma] {e}")
-
-        log(f"[aljady.ma] ✓ {len(results)} marchés")
-        return results
-
-
-class MarchesPrivesScraper:
-    """https://marchesprives.ma — Marchés privés Maroc"""
-    BASE = "https://marchesprives.ma"
-
-    @staticmethod
-    def scrape(log_fn=None) -> list:
-        from bs4 import BeautifulSoup as BS
-        results = []
-        s = get_session()
-        log = log_fn or logger.info
-        log("[marchesprives.ma] Démarrage...")
-
-        pages_to_try = [
-            f"{MarchesPrivesScraper.BASE}/marches",
-            f"{MarchesPrivesScraper.BASE}/appels-offres",
-            f"{MarchesPrivesScraper.BASE}/offres",
-            MarchesPrivesScraper.BASE,
-        ]
-
-        for url in pages_to_try:
-            for page in range(1, 4):
-                full_url = url + (f"?page={page}" if page > 1 else "")
-                try:
-                    r = safe_get(s, full_url)
-                    if not r: continue
-                    soup = BS(r.text, "html.parser")
-
-                    items = (soup.select(".marche-item") or
-                             soup.select(".offre-item") or
-                             soup.select("article") or
-                             soup.select(".tender") or
-                             soup.select(".post"))
-
-                    if not items: continue
-
-                    for item in items[:25]:
-                        try:
-                            t_el = item.find(["h1","h2","h3","h4","a",".title"])
-                            title = t_el.get_text(strip=True) if t_el else ""
-                            if not title or len(title) < 8: continue
-
-                            desc_el = item.find(["p",".description",".excerpt",".content"])
-                            desc = desc_el.get_text(strip=True)[:500] if desc_el else ""
-                            full = item.get_text(" ")
-
-                            # Date
-                            date_t = ""
-                            dm = re.search(r'\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{4}', full)
-                            if dm: date_t = dm.group(0)
-
-                            # Budget
-                            budget = ""
-                            bm = re.search(r'(\d[\d\s,.]{2,14})\s*(?:DH|MAD|dirham)', full, re.I)
-                            if bm: budget = bm.group(0)[:60]
-
-                            # Contact (private markets often show contact)
-                            contact = ""
-                            em = re.search(r'[\w.+-]+@[\w-]+\.[\w.]+', full)
-                            pm = re.search(r'(?:0[56789]|(?:\+212))\d{8}', full)
-                            if em: contact = em.group(0)
-                            elif pm: contact = pm.group(0)
-
-                            link_el = item.find("a", href=True)
-                            link = link_el["href"] if link_el else ""
-                            if link and not link.startswith("http"):
-                                link = MarchesPrivesScraper.BASE + link
-
-                            t = {
-                                "id":          f"prives_{tender_hash(title,'marchesprives.ma')}",
-                                "title":       title,
-                                "description": desc,
-                                "budget":      budget,
-                                "region":      normalize_region(full),
-                                "category":    classify_category(title+" "+desc),
-                                "deadline":    normalize_date(date_t),
-                                "source":      "marchesprives.ma",
-                                "url":         link,
-                                "contact":     contact,
-                            }
-                            t["ai"] = ai_score_tender(t)
-                            results.append(t)
-                        except Exception as e:
-                            logger.debug(f"[marchesprives item] {e}")
-
-                    log(f"[marchesprives.ma] Page {page}: +{len(items)}")
-                    random_delay(1.5, 3)
-                except Exception as e:
-                    log(f"[marchesprives.ma] {e}")
-            if results: break
-
-        log(f"[marchesprives.ma] ✓ {len(results)} marchés privés")
-        return results
-
-# ══════════════════════════════════════════════════════
-# MASTER MULTI-SCRAPER
-# ══════════════════════════════════════════════════════
-SCRAPERS = [
-    ("marocao.com",      MarocAOScraper.scrape),
-    ("lesoffres.ma",     LesOffresScraper.scrape),
-    ("aljady.ma",        AlJadyScraper.scrape),
-    ("marchesprives.ma", MarchesPrivesScraper.scrape),
-]
-
-def run_all_scrapers(db_save_fn, log_fn=None, known_ids: set = None) -> dict:
-    """
-    Run all scrapers, deduplicate, save new tenders.
-    
-    Args:
-        db_save_fn: function(tender_dict) -> bool  (returns True if new)
-        log_fn:     function(str) for logging
-        known_ids:  set of already known tender IDs
-    
-    Returns:
-        dict with stats per site
-    """
-    log = log_fn or logger.info
-    known = known_ids or set()
-    stats = {}
-    all_new = []
-
-    log("═══ Multi-Scraper démarré ═══")
-    log(f"Sites: {', '.join(s[0] for s in SCRAPERS)}")
-
-    for site_name, scraper_fn in SCRAPERS:
-        site_stats = {"found": 0, "new": 0, "errors": 0}
-        try:
-            tenders = scraper_fn(log_fn=log)
-            site_stats["found"] = len(tenders)
-
-            # Deduplicate + save
-            seen_in_run = set()
-            for t in tenders:
-                tid = t.get("id","")
-                if not tid or tid in known or tid in seen_in_run:
-                    continue
-                seen_in_run.add(tid)
-
-                try:
-                    is_new = db_save_fn(t)
-                    if is_new:
-                        site_stats["new"] += 1
-                        all_new.append(t)
-                        known.add(tid)
-                except Exception as e:
-                    site_stats["errors"] += 1
-                    logger.error(f"[save {site_name}] {e}")
-
-            log(f"[{site_name}] ✓ {site_stats['found']} trouvés | {site_stats['new']} nouveaux")
+            import httpx
+            prompt = AIClassifier.PROMPT.format(
+                title=t.objet[:200], acheteur=t.acheteur[:80],
+                montant=t.montant or "Non précisé", secteur=t.domaine,
+                desc=t.description[:300]
+            )
+            async with httpx.AsyncClient(timeout=20) as client:
+                r = await client.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={"x-api-key":anthropic_key,"anthropic-version":"2023-06-01","content-type":"application/json"},
+                    json={"model":"claude-haiku-4-5-20251001","max_tokens":300,
+                          "messages":[{"role":"user","content":prompt}]}
+                )
+                if r.status_code == 200:
+                    text = r.json()["content"][0]["text"].strip()
+                    text = re.sub(r'^```(?:json)?\s*|\s*```$','',text)
+                    return json.loads(text)
         except Exception as e:
-            site_stats["errors"] += 1
-            log(f"[{site_name}] ✗ Erreur: {e}")
+            logger.error(f"[AI] {e}")
+        return {"category":t.domaine,"score":50,"reason":"Erreur","estimated_competition":"moyen"}
 
-        stats[site_name] = site_stats
-        # Delay between sites
-        random_delay(3, 7)
+    @staticmethod
+    async def batch_classify(tenders, anthropic_key, max_b=8):
+        import asyncio
+        results = []
+        for t in tenders[:max_b]:
+            res = await AIClassifier.classify(t, anthropic_key)
+            t.ai_score = max(0,min(100,int(res.get("score",50))))
+            t.ai_category = res.get("category",t.domaine)
+            t.ai_reason = res.get("reason","")
+            results.append(t)
+            await asyncio.sleep(0.4)
+        for t in tenders[max_b:]:
+            t.ai_score=50; results.append(t)
+        return results
 
-    total_new = sum(s["new"] for s in stats.values())
-    log(f"═══ Multi-Scraper terminé: {total_new} nouveaux sur {len(SCRAPERS)} sites ═══")
 
-    return {"stats": stats, "new_tenders": all_new, "total_new": total_new}
+def _parse_generic(card, source, base_url):
+    try:
+        from bs4 import BeautifulSoup as BS
+        title_el = card.find(["h1","h2","h3","h4","strong"])
+        title = clean_text(title_el.get_text() if title_el else card.get_text()[:120])
+        if len(title) < 8: return None
+        link = card.find("a", href=True)
+        url = link["href"] if link else ""
+        if url and not url.startswith("http"): url = base_url + url
+        text = card.get_text(" ", strip=True)
+        date_m = re.search(r'(\d{2}[/\-\.]\d{2}[/\-\.]\d{4})', text)
+        date_lim = normalize_date(date_m.group(1) if date_m else "")
+        mon_m = re.search(r'(\d[\d\s,.]+)\s*(?:DH|MAD)', text, re.I)
+        bmin, bmax, montant = extract_budget(mon_m.group(0) if mon_m else "")
+        contact_m = re.search(r'(?:tél|tel|email|contact)[:\s]*([^\s,<]{5,50})', text, re.I)
+        return Tender(
+            id=make_id(source, title, url), source=source, source_url=url,
+            objet=title[:400], description=clean_text(text[:1200]),
+            region=detect_region(text), domaine=detect_secteur(title, text),
+            type_marche=detect_type(title), montant=montant,
+            budget_min=bmin, budget_max=bmax, date_limite=date_lim,
+            contact=contact_m.group(1).strip() if contact_m else "",
+            statut="expire" if is_expired(date_lim) else "actif",
+            date_extraction=datetime.now().strftime("%Y-%m-%d %H:%M"),
+        )
+    except: return None
+
+
+def _scrape_site(source, base_url, known, log_fn, paths=None):
+    from bs4 import BeautifulSoup as BS
+    s = make_session()
+    tenders = []
+    def log(m):
+        if log_fn: log_fn(f"[{source}] {m}")
+    if paths is None:
+        paths = ["/appels-offres","/offres","/marches","/marches-publics","/"]
+    found = None
+    for path in paths:
+        try:
+            r = s.get(base_url+path, timeout=15)
+            if r.status_code==200 and len(r.text)>1000:
+                found = base_url+path; break
+            sleep_r(0.5,1.2)
+        except: continue
+    if not found:
+        log("Inaccessible"); return []
+    log(f"Found at {found}")
+    for page in range(1,5):
+        url = found if page==1 else f"{found}?page={page}"
+        try:
+            r = s.get(url, timeout=20)
+            if r.status_code!=200: break
+            soup = BS(r.text,"html.parser")
+            cards = []
+            for sel in ["article",".offre",".offer",".tender",".marche",".item",".post",".card"]:
+                c = soup.select(sel)
+                if len(c)>1: cards=c; break
+            if not cards:
+                cards = soup.find_all("div", class_=re.compile(r'offre|offer|tender|marche|item|card',re.I))
+            new_on_page = 0
+            for card in cards[:15]:
+                t = _parse_generic(card, source, base_url)
+                if t and t.id not in known:
+                    tenders.append(t); known.add(t.id); new_on_page+=1
+                    log(f"✓ {t.objet[:55]}")
+            if new_on_page==0: break
+            sleep_r(1.5,3.0)
+        except Exception as e:
+            log(f"Page {page}: {e}"); break
+    log(f"Total: {len(tenders)}")
+    return tenders
+
+
+class MarchesPublicsScraper:
+    @classmethod
+    def scrape(cls, known, log_fn=None):
+        from bs4 import BeautifulSoup as BS
+        BASE = "https://www.marchespublics.gov.ma/bdc/entreprise/consultation"
+        s = make_session()
+        tenders = []
+        def log(m):
+            if log_fn: log_fn(f"[MarchesPublics] {m}")
+        ids_found = []
+        for page in range(1,12):
+            url = BASE+"/" if page==1 else f"{BASE}/?page={page}"
+            try:
+                r = s.get(url, timeout=20)
+                if r.status_code!=200: break
+                page_ids = list(set(re.findall(r'/show/(\d{3,7})', r.text)))
+                new = [i for i in page_ids if f"bdc_{i}" not in known]
+                if not new and page>1: break
+                ids_found.extend(new)
+                log(f"Page {page}: {len(new)} new IDs")
+                sleep_r(1.0,2.0)
+            except Exception as e:
+                log(f"Page {page}: {e}"); break
+        log(f"Fetching {len(ids_found)} tenders...")
+        for tid in ids_found[:80]:
+            try:
+                r = s.get(f"{BASE}/show/{tid}", timeout=15)
+                if r.status_code!=200: continue
+                if "Liste des avis d'achat" in r.text[:2000] and len(r.text)<20000: continue
+                t = cls._parse(r.text, tid)
+                if t: tenders.append(t); log(f"✓ #{tid} {t.objet[:50]}")
+                sleep_r(0.5,1.5)
+            except Exception as e:
+                log(f"#{tid}: {e}")
+        log(f"Done: {len(tenders)}")
+        return tenders
+
+    @staticmethod
+    def _parse(html, tid):
+        try:
+            from bs4 import BeautifulSoup as BS
+            soup = BS(html,"html.parser")
+            full = soup.get_text(" ",strip=True)
+            def cell(lbl):
+                for row in soup.find_all("tr"):
+                    cells=row.find_all(["td","th"])
+                    for i,c in enumerate(cells):
+                        if lbl.lower() in c.get_text().lower() and i+1<len(cells):
+                            v=cells[i+1].get_text(strip=True)
+                            if v and len(v)>1: return v[:400]
+                return ""
+            objet=""
+            for sel in [".consultation-title",".objet","h1","h2"]:
+                el=soup.select_one(sel)
+                if el:
+                    txt=el.get_text(strip=True)
+                    skip=["accueil","liste des avis","connexion"]
+                    if 8<len(txt)<600 and not any(s in txt.lower() for s in skip):
+                        objet=txt; break
+            if not objet:
+                for lbl in ["objet du marché","objet","intitulé"]:
+                    v=cell(lbl)
+                    if v and len(v)>8: objet=v; break
+            if not objet: return None
+            acheteur=(cell("maître d'ouvrage") or cell("organisme") or "").strip()
+            date_pub=normalize_date(cell("publication") or "")
+            date_lim=normalize_date(cell("remise") or cell("limite") or "")
+            mon_raw=cell("montant") or ""
+            if not mon_raw:
+                m=re.search(r'(\d[\d\s,.]+)\s*(?:DH|MAD)',full,re.I)
+                if m: mon_raw=m.group(0)[:80]
+            bmin,bmax,montant=extract_budget(mon_raw)
+            return Tender(
+                id=make_id("bdc",objet,tid),
+                source="marchespublics",
+                source_url=f"https://www.marchespublics.gov.ma/bdc/entreprise/consultation/show/{tid}",
+                objet=clean_text(objet,400),
+                description=clean_text(full,2000),
+                acheteur=acheteur[:200],
+                region=detect_region(acheteur+" "+full[:400]),
+                domaine=detect_secteur(objet,full[:300]),
+                type_marche=detect_type(objet),
+                montant=montant,budget_min=bmin,budget_max=bmax,
+                date_publication=date_pub,date_limite=date_lim,
+                statut="annule" if "annulé" in full.lower() else ("expire" if is_expired(date_lim) else "actif"),
+                date_extraction=datetime.now().strftime("%Y-%m-%d %H:%M"),
+            )
+        except Exception as e:
+            logger.error(f"[parse bdc #{tid}] {e}")
+            return None
+
+
+SCRAPERS = {
+    "marchespublics": MarchesPublicsScraper,
+    "marocao":    lambda known,log: _scrape_site("marocao","https://marocao.com",known,log),
+    "lesoffres":  lambda known,log: _scrape_site("lesoffres","https://lesoffres.ma",known,log),
+    "aljady":     lambda known,log: _scrape_site("aljady","https://aljady.ma",known,log),
+    "marchesprives": lambda known,log: _scrape_site("marchesprives","https://marchesprives.ma",known,log),
+}
+
+def run_all_scrapers(known, sources=None, log_fn=None):
+    if sources is None:
+        sources = list(SCRAPERS.keys())
+    all_tenders = []
+    seen = set(known)
+    for src in sources:
+        scraper = SCRAPERS.get(src)
+        if not scraper: continue
+        try:
+            if hasattr(scraper,'scrape'):
+                results = scraper.scrape(seen, log_fn)
+            else:
+                results = scraper(seen, log_fn)
+            for t in results:
+                if t.id not in seen:
+                    seen.add(t.id)
+                    all_tenders.append(t)
+        except Exception as e:
+            logger.error(f"[{src}] {e}")
+            if log_fn: log_fn(f"❌ {src}: {e}")
+    return all_tenders

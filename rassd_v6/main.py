@@ -20,6 +20,13 @@ from contextlib import asynccontextmanager
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
+# Multi-source scraper
+try:
+    from multi_scraper import run_all_scrapers, AIClassifier, Tender as MultiTender, SCRAPERS as MULTI_SCRAPERS
+    HAS_MULTI = True
+except ImportError:
+    HAS_MULTI = False
+
 from fastapi import FastAPI, Request, Form, HTTPException, Response
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
@@ -299,6 +306,13 @@ def init_db():
         "ALTER TABLE members ADD COLUMN rating_count INTEGER DEFAULT 0",
         "ALTER TABLE tenders ADD COLUMN type_marche TEXT DEFAULT ''",
         "ALTER TABLE tenders ADD COLUMN views INTEGER DEFAULT 0",
+        "ALTER TABLE tenders ADD COLUMN source TEXT DEFAULT 'marchespublics'",
+        "ALTER TABLE tenders ADD COLUMN contact TEXT DEFAULT ''",
+        "ALTER TABLE tenders ADD COLUMN budget_min REAL DEFAULT 0",
+        "ALTER TABLE tenders ADD COLUMN budget_max REAL DEFAULT 0",
+        "ALTER TABLE tenders ADD COLUMN ai_score INTEGER DEFAULT 50",
+        "ALTER TABLE tenders ADD COLUMN ai_category TEXT DEFAULT ''",
+        "ALTER TABLE tenders ADD COLUMN ai_reason TEXT DEFAULT ''",
         "ALTER TABLE tenders ADD COLUMN source TEXT DEFAULT 'marchespublics.gov.ma'",
         "ALTER TABLE tenders ADD COLUMN contact TEXT DEFAULT ''",
         "ALTER TABLE tenders ADD COLUMN ai_score INTEGER DEFAULT 0",
@@ -2729,6 +2743,126 @@ async def admin_cleanup_tenders(pwd: str = ""):
         db.commit()
     finally: db.close()
     return JSONResponse({"ok": True, "deleted": deleted})
+
+# ══════════════════════════════════════════════════════
+# REST API — Extended for multi-source
+# ══════════════════════════════════════════════════════
+
+@app.get("/api/v1/tenders")
+async def api_tenders(
+    source: str = "", code: str = "", region: str = "",
+    type_m: str = "", q: str = "", min_score: int = 0,
+    page: int = 1, per_page: int = 20
+):
+    """
+    GET /api/v1/tenders
+    Params: source, code (T/P/S prefix), region, type_m, q, min_score, page, per_page
+    """
+    per_page = min(per_page, 100)
+    off = (page - 1) * per_page
+    db = get_db()
+    try:
+        conds = ["statut='actif'"]; params = []
+        if source:    conds.append("source=?");           params.append(source)
+        if code:      conds.append("domaine LIKE ?");     params.append(f"{code}%")
+        if region:    conds.append("region LIKE ?");      params.append(f"%{region}%")
+        if type_m:    conds.append("type_marche=?");      params.append(type_m)
+        if min_score: conds.append("ai_score >= ?");      params.append(min_score)
+        if q:
+            conds.append("(objet LIKE ? OR description LIKE ? OR acheteur LIKE ?)")
+            params += [f"%{q}%"]*3
+        w = " AND ".join(conds)
+        total = db.execute(f"SELECT COUNT(*) FROM tenders WHERE {w}", params).fetchone()[0]
+        rows  = [dict(r) for r in db.execute(
+            f"SELECT id,objet,acheteur,region,domaine,type_marche,montant,date_limite,"
+            f"source,contact,ai_score,ai_category,ai_reason,url,date_extraction "
+            f"FROM tenders WHERE {w} ORDER BY ai_score DESC, date_extraction DESC LIMIT ? OFFSET ?",
+            params + [per_page, off]
+        ).fetchall()]
+    finally: db.close()
+    return JSONResponse({
+        "total": total, "page": page, "per_page": per_page,
+        "pages": max(1,(total+per_page-1)//per_page),
+        "tenders": rows,
+    })
+
+@app.get("/api/v1/tenders/new")
+async def api_tenders_new(hours: int = 24):
+    """GET /api/v1/tenders/new?hours=24 — Tenders added in last N hours"""
+    db = get_db()
+    try:
+        since = (datetime.now() - timedelta(hours=hours)).strftime("%Y-%m-%d %H:%M")
+        rows = [dict(r) for r in db.execute(
+            "SELECT id,objet,acheteur,region,domaine,source,ai_score,date_limite,url "
+            "FROM tenders WHERE date_extraction >= ? AND statut='actif' "
+            "ORDER BY ai_score DESC, date_extraction DESC LIMIT 50",
+            (since,)
+        ).fetchall()]
+    finally: db.close()
+    return JSONResponse({"count": len(rows), "since_hours": hours, "tenders": rows})
+
+@app.get("/api/v1/tenders/{tid}")
+async def api_tender_detail(tid: str):
+    """GET /api/v1/tenders/{id} — Full tender details"""
+    db = get_db()
+    try:
+        row = db.execute("SELECT * FROM tenders WHERE id=?", (tid,)).fetchone()
+        if not row: raise HTTPException(404, "Tender not found")
+        t = dict(row)
+        db.execute("UPDATE tenders SET views=COALESCE(views,0)+1 WHERE id=?", (tid,))
+        db.commit()
+    finally: db.close()
+    return JSONResponse(t)
+
+@app.get("/api/v1/sources")
+async def api_sources():
+    """GET /api/v1/sources — Stats per source"""
+    db = get_db()
+    try:
+        rows = [dict(r) for r in db.execute(
+            "SELECT source, COUNT(*) as total, "
+            "SUM(CASE WHEN statut='actif' THEN 1 ELSE 0 END) as active, "
+            "AVG(ai_score) as avg_score "
+            "FROM tenders GROUP BY source ORDER BY total DESC"
+        ).fetchall()]
+    finally: db.close()
+    return JSONResponse({
+        "sources": rows,
+        "available_scrapers": list(MULTI_SCRAPERS.keys()) if HAS_MULTI else ["marchespublics"],
+    })
+
+@app.get("/api/v1/tenders/easy")
+async def api_easy_tenders(min_score: int = 70, limit: int = 20):
+    """GET /api/v1/tenders/easy — Tenders easy to win (ai_score >= 70)"""
+    db = get_db()
+    try:
+        rows = [dict(r) for r in db.execute(
+            "SELECT id,objet,acheteur,region,domaine,source,montant,ai_score,ai_reason,date_limite,url "
+            "FROM tenders WHERE statut='actif' AND ai_score >= ? "
+            "ORDER BY ai_score DESC LIMIT ?",
+            (min_score, limit)
+        ).fetchall()]
+    finally: db.close()
+    return JSONResponse({"count": len(rows), "min_score": min_score, "tenders": rows})
+
+@app.get("/api/v1/stats")
+async def api_stats_v1():
+    """GET /api/v1/stats — Full platform stats"""
+    db = get_db()
+    try:
+        s = MonitorAgent.get_stats()
+        s["sources"] = [dict(r) for r in db.execute(
+            "SELECT source,COUNT(*) as total,SUM(CASE WHEN statut='actif' THEN 1 ELSE 0 END) as active "
+            "FROM tenders GROUP BY source ORDER BY total DESC"
+        ).fetchall()]
+        s["easy_to_win"] = db.execute(
+            "SELECT COUNT(*) FROM tenders WHERE statut='actif' AND ai_score >= 70"
+        ).fetchone()[0]
+        s["avg_ai_score"] = round(
+            db.execute("SELECT AVG(ai_score) FROM tenders WHERE statut='actif'").fetchone()[0] or 50, 1
+        )
+    finally: db.close()
+    return JSONResponse(s)
 
 @app.get("/health")
 async def health():
