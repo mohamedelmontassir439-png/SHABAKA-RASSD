@@ -1562,62 +1562,50 @@ async def scrape_scheduler():
 def _run_multi_scraper():
     """Run all external scrapers in thread"""
     try:
-        from multi_scraper import run_all_scrapers
         db = get_db()
         known = set(r[0] for r in db.execute("SELECT id FROM tenders").fetchall())
         db.close()
 
-        def save_multi(t: dict) -> bool:
-            # Map multi_scraper fields to our schema
-            mapped = {
-                "id":          t.get("id",""),
-                "objet":       t.get("title","") or t.get("objet",""),
-                "acheteur":    t.get("acheteur",""),
-                "region":      t.get("region",""),
-                "domaine":     t.get("category","") or t.get("domaine",""),
-                "montant":     t.get("budget","") or t.get("montant",""),
-                "date_limite": t.get("deadline","") or t.get("date_limite",""),
-                "description": t.get("description",""),
-                "statut":      "actif",
-                "url":         t.get("url",""),
-                "source":      t.get("source",""),
-                "contact":     t.get("contact",""),
-                "ai":          t.get("ai",{}),
+        # run_all_scrapers(known, sources, log_fn)
+        extra_sources = [s for s in MULTI_SCRAPERS.keys() if s != "marchespublics"]
+        tenders = run_all_scrapers(known, extra_sources, ScraperLog.add)
+
+        saved = 0
+        notify_list = []
+        for t in tenders:
+            td = {
+                "id":               t.id,
+                "objet":            t.objet,
+                "acheteur":         t.acheteur,
+                "region":           t.region,
+                "domaine":          t.domaine,
+                "type_marche":      t.type_marche,
+                "montant":          t.montant,
+                "date_publication": t.date_publication,
+                "date_limite":      t.date_limite,
+                "description":      t.description,
+                "statut":           t.statut,
+                "url":              t.source_url,
+                "source":           t.source,
+                "contact":          t.contact,
+                "budget_min":       t.budget_min,
+                "budget_max":       t.budget_max,
+                "ai_score":         t.ai_score,
+                "ai_category":      t.ai_category,
+                "ai_reason":        t.ai_reason,
             }
-            return ScraperAgent._save(mapped)
+            if ScraperAgent._save(td):
+                saved += 1
+                if t.statut == "actif":
+                    notify_list.append(td)
 
-        result = run_all_scrapers(
-            db_save_fn=save_multi,
-            log_fn=ScraperLog.add,
-            known_ids=known
-        )
-        total_new = result.get("total_new", 0)
-        ScraperLog.add(f"[MultiScraper] ✅ {total_new} nouveaux sur 4 sites")
+        ScraperLog.add(f"[MultiScraper] ✅ {saved} sauvegardés / {len(tenders)} trouvés")
+        if notify_list:
+            NotifyAgent.notify_instant(notify_list)
 
-        # Notify if new tenders
-        new_tenders = result.get("new_tenders", [])
-        if new_tenders:
-            # Convert to our format for notifications
-            formatted = [{
-                "id":       t.get("id",""),
-                "objet":    t.get("title","") or t.get("objet",""),
-                "acheteur": "",
-                "region":   t.get("region",""),
-                "domaine":  t.get("category",""),
-                "montant":  t.get("budget",""),
-                "date_limite": t.get("deadline",""),
-                "url":      t.get("url",""),
-                "source":   t.get("source",""),
-                "ai_score": t.get("ai",{}).get("score",0),
-                "ai_label": t.get("ai",{}).get("label",""),
-            } for t in new_tenders]
-            NotifyAgent.notify_instant(formatted)
-
-    except ImportError:
-        ScraperLog.add("[MultiScraper] multi_scraper.py non trouvé")
     except Exception as e:
         logger.error(f"[multi_scraper] {e}")
-        ScraperLog.add(f"[MultiScraper] ✗ {str(e)[:80]}")
+        ScraperLog.add(f"[MultiScraper] ✗ {str(e)[:100]}")
 
 async def digest_scheduler():
     while True:
