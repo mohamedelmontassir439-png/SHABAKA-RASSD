@@ -43,6 +43,13 @@ GMAIL_USER   = os.getenv("GMAIL_USER",  "mohamedelmontassir439@gmail.com")
 GMAIL_PASS   = os.getenv("GMAIL_PASS",  "")
 TELEGRAM_BOT = os.getenv("TELEGRAM_BOT","7849539613:AAFZTtMNEo92UqE3OIcXPdX65OCm8DrvgAA")
 ANTHROPIC_KEY= os.getenv("ANTHROPIC_API_KEY", "")
+GA_ID        = os.getenv("GA_ID",           "")   # Google Analytics
+GSC_TOKEN    = os.getenv("GSC_TOKEN",        "")   # Search Console
+TWILIO_SID   = os.getenv("TWILIO_SID",       "")   # Twilio Account SID
+TWILIO_TOKEN = os.getenv("TWILIO_TOKEN",     "")   # Twilio Auth Token
+TWILIO_FROM  = os.getenv("TWILIO_WHATSAPP",  "")   # whatsapp:+14155238886
+MULTI_SCRAPE = os.getenv("MULTI_SCRAPE",     "true").lower() == "true"   # Google Analytics
+GSC_TOKEN    = os.getenv("GSC_TOKEN",        "")   # Search Console verify
 RESEND_KEY   = os.getenv("RESEND_API_KEY",  "")
 SCRAPE_HOURS   = int(os.getenv("SCRAPE_INTERVAL_HOURS", "6"))
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
@@ -137,7 +144,7 @@ def init_db():
     Path(DB_PATH).parent.mkdir(parents=True, exist_ok=True)
     db = get_db()
     db.executescript("""
-    -- Tenders from marchespublics.gov.ma
+    -- Tenders from all sources
     CREATE TABLE IF NOT EXISTS tenders (
         id               TEXT PRIMARY KEY,
         objet            TEXT NOT NULL DEFAULT '',
@@ -151,6 +158,11 @@ def init_db():
         description      TEXT DEFAULT '',
         statut           TEXT DEFAULT 'actif',
         url              TEXT DEFAULT '',
+        source           TEXT DEFAULT 'marchespublics.gov.ma',
+        contact          TEXT DEFAULT '',
+        ai_score         INTEGER DEFAULT 0,
+        ai_label         TEXT DEFAULT '',
+        ai_reasons       TEXT DEFAULT '',
         date_extraction  TEXT DEFAULT '',
         views            INTEGER DEFAULT 0
     );
@@ -177,6 +189,8 @@ def init_db():
         rating_count  INTEGER DEFAULT 0,
         notif_email   INTEGER DEFAULT 1,
         notif_tg      INTEGER DEFAULT 1,
+        notif_wa      INTEGER DEFAULT 1,
+        whatsapp      TEXT DEFAULT '',
         created_at    TEXT DEFAULT '',
         last_login    TEXT DEFAULT ''
     );
@@ -277,12 +291,19 @@ def init_db():
     migrations = [
         "ALTER TABLE members ADD COLUMN telegram TEXT DEFAULT ''",
         "ALTER TABLE members ADD COLUMN secteur TEXT DEFAULT ''",
+        "ALTER TABLE members ADD COLUMN whatsapp TEXT DEFAULT ''",
+        "ALTER TABLE members ADD COLUMN notif_wa INTEGER DEFAULT 1",
         "ALTER TABLE members ADD COLUMN notif_email INTEGER DEFAULT 1",
         "ALTER TABLE members ADD COLUMN notif_tg INTEGER DEFAULT 1",
         "ALTER TABLE members ADD COLUMN rating_avg REAL DEFAULT 0",
         "ALTER TABLE members ADD COLUMN rating_count INTEGER DEFAULT 0",
         "ALTER TABLE tenders ADD COLUMN type_marche TEXT DEFAULT ''",
         "ALTER TABLE tenders ADD COLUMN views INTEGER DEFAULT 0",
+        "ALTER TABLE tenders ADD COLUMN source TEXT DEFAULT 'marchespublics.gov.ma'",
+        "ALTER TABLE tenders ADD COLUMN contact TEXT DEFAULT ''",
+        "ALTER TABLE tenders ADD COLUMN ai_score INTEGER DEFAULT 0",
+        "ALTER TABLE tenders ADD COLUMN ai_label TEXT DEFAULT ''",
+        "ALTER TABLE tenders ADD COLUMN ai_reasons TEXT DEFAULT ''",
     ]
     for sql in migrations:
         try: db.execute(sql)
@@ -784,17 +805,31 @@ class ScraperAgent:
     def _save(t: dict) -> bool:
         if not t or not t.get("id") or not t.get("objet"): return False
         try:
+            import json as _json
+            ai = t.get("ai") or {}
             db = get_db()
             db.execute("""INSERT OR IGNORE INTO tenders
                 (id,objet,acheteur,region,domaine,type_marche,montant,
-                 date_publication,date_limite,description,statut,url,date_extraction)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""", (
-                str(t.get("id",""))[:80],       str(t.get("objet",""))[:400],
-                str(t.get("acheteur",""))[:200], str(t.get("region",""))[:100],
-                str(t.get("domaine",""))[:80],   str(t.get("type_marche",""))[:40],
-                str(t.get("montant",""))[:80],   str(t.get("date_publication",""))[:20],
-                str(t.get("date_limite",""))[:20],str(t.get("description",""))[:2000],
-                str(t.get("statut","actif")),    str(t.get("url",""))[:400],
+                 date_publication,date_limite,description,statut,url,
+                 source,contact,ai_score,ai_label,ai_reasons,date_extraction)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (
+                str(t.get("id",""))[:80],
+                str(t.get("objet") or t.get("title",""))[:400],
+                str(t.get("acheteur",""))[:200],
+                str(t.get("region",""))[:100],
+                str(t.get("domaine") or t.get("category",""))[:80],
+                str(t.get("type_marche",""))[:40],
+                str(t.get("montant") or t.get("budget",""))[:80],
+                str(t.get("date_publication",""))[:20],
+                str(t.get("date_limite") or t.get("deadline",""))[:20],
+                str(t.get("description",""))[:2000],
+                str(t.get("statut","actif")),
+                str(t.get("url",""))[:400],
+                str(t.get("source","marchespublics.gov.ma"))[:80],
+                str(t.get("contact",""))[:120],
+                int(ai.get("score",0)),
+                str(ai.get("label",""))[:20],
+                _json.dumps(ai.get("reasons",[]))[:200],
                 datetime.now().strftime("%Y-%m-%d %H:%M"),
             ))
             db.commit()
@@ -1050,6 +1085,35 @@ class NotifyAgent:
 
         return False, "BREVO_API_KEY non configure (recommande)"
 
+    # ── WhatsApp via Twilio ──
+    @staticmethod
+    async def send_whatsapp(to: str, body: str) -> tuple:
+        """Send WhatsApp via Twilio — to must be 'whatsapp:+212XXXXXXXXX'"""
+        if not TWILIO_SID or not TWILIO_TOKEN or not TWILIO_FROM:
+            return False, "Twilio not configured"
+        try:
+            import httpx, base64
+            creds = base64.b64encode(f"{TWILIO_SID}:{TWILIO_TOKEN}".encode()).decode()
+            # Truncate for WhatsApp (1600 chars max)
+            body_t = body[:1500]
+            async with httpx.AsyncClient(timeout=20) as client:
+                r = await client.post(
+                    f"https://api.twilio.com/2010-04-01/Accounts/{TWILIO_SID}/Messages.json",
+                    headers={"Authorization": f"Basic {creds}"},
+                    data={"From": TWILIO_FROM, "To": to, "Body": body_t}
+                )
+                data = r.json()
+                if r.status_code in [200, 201]:
+                    counter("whatsapp_sent")
+                    logger.info(f"[whatsapp] ✅ → {to}")
+                    return True, ""
+                err = data.get("message", str(data))[:100]
+                logger.error(f"[whatsapp] ✗ {r.status_code}: {err}")
+                return False, err
+        except Exception as e:
+            logger.error(f"[whatsapp] {e}")
+            return False, str(e)
+
     # ── Telegram ──
     @staticmethod
     async def send_telegram(chat_id: str, text: str) -> tuple:
@@ -1104,6 +1168,10 @@ class NotifyAgent:
                             )
                         elif n["channel"] == "telegram":
                             ok, err = await NotifyAgent.send_telegram(
+                                n["recipient"], n["body"]
+                            )
+                        elif n["channel"] == "whatsapp":
+                            ok, err = await NotifyAgent.send_whatsapp(
                                 n["recipient"], n["body"]
                             )
                         else:
@@ -1450,21 +1518,92 @@ class ChatAgent:
 # ══════════════════════════════════════════════════════
 LAST_SCRAPE = 0.0
 
+LAST_MULTI_SCRAPE = 0.0
+
 async def scrape_scheduler():
     await asyncio.sleep(60)
-    global LAST_SCRAPE
+    global LAST_SCRAPE, LAST_MULTI_SCRAPE
     while True:
         try:
-            if time.time() - LAST_SCRAPE >= SCRAPE_HOURS * 3600:
-                LAST_SCRAPE = time.time()
+            now = time.time()
+            # Main scraper (marchespublics.gov.ma) — every SCRAPE_HOURS
+            if now - LAST_SCRAPE >= SCRAPE_HOURS * 3600:
+                LAST_SCRAPE = now
                 loop = asyncio.get_event_loop()
                 new = await loop.run_in_executor(None, ScraperAgent.run)
                 if new:
                     NotifyAgent.notify_instant(new)
+
+            # Multi-scraper (4 private sites) — every SCRAPE_HOURS*2
+            if MULTI_SCRAPE and now - LAST_MULTI_SCRAPE >= SCRAPE_HOURS * 2 * 3600:
+                LAST_MULTI_SCRAPE = now
+                loop = asyncio.get_event_loop()
+                await loop.run_in_executor(None, _run_multi_scraper)
+
         except Exception as e:
             ScraperState.running = False
             logger.error(f"[scheduler:scrape] {e}")
         await asyncio.sleep(600)
+
+def _run_multi_scraper():
+    """Run all external scrapers in thread"""
+    try:
+        from multi_scraper import run_all_scrapers
+        db = get_db()
+        known = set(r[0] for r in db.execute("SELECT id FROM tenders").fetchall())
+        db.close()
+
+        def save_multi(t: dict) -> bool:
+            # Map multi_scraper fields to our schema
+            mapped = {
+                "id":          t.get("id",""),
+                "objet":       t.get("title","") or t.get("objet",""),
+                "acheteur":    t.get("acheteur",""),
+                "region":      t.get("region",""),
+                "domaine":     t.get("category","") or t.get("domaine",""),
+                "montant":     t.get("budget","") or t.get("montant",""),
+                "date_limite": t.get("deadline","") or t.get("date_limite",""),
+                "description": t.get("description",""),
+                "statut":      "actif",
+                "url":         t.get("url",""),
+                "source":      t.get("source",""),
+                "contact":     t.get("contact",""),
+                "ai":          t.get("ai",{}),
+            }
+            return ScraperAgent._save(mapped)
+
+        result = run_all_scrapers(
+            db_save_fn=save_multi,
+            log_fn=ScraperLog.add,
+            known_ids=known
+        )
+        total_new = result.get("total_new", 0)
+        ScraperLog.add(f"[MultiScraper] ✅ {total_new} nouveaux sur 4 sites")
+
+        # Notify if new tenders
+        new_tenders = result.get("new_tenders", [])
+        if new_tenders:
+            # Convert to our format for notifications
+            formatted = [{
+                "id":       t.get("id",""),
+                "objet":    t.get("title","") or t.get("objet",""),
+                "acheteur": "",
+                "region":   t.get("region",""),
+                "domaine":  t.get("category",""),
+                "montant":  t.get("budget",""),
+                "date_limite": t.get("deadline",""),
+                "url":      t.get("url",""),
+                "source":   t.get("source",""),
+                "ai_score": t.get("ai",{}).get("score",0),
+                "ai_label": t.get("ai",{}).get("label",""),
+            } for t in new_tenders]
+            NotifyAgent.notify_instant(formatted)
+
+    except ImportError:
+        ScraperLog.add("[MultiScraper] multi_scraper.py non trouvé")
+    except Exception as e:
+        logger.error(f"[multi_scraper] {e}")
+        ScraperLog.add(f"[MultiScraper] ✗ {str(e)[:80]}")
 
 async def digest_scheduler():
     while True:
@@ -1518,6 +1657,8 @@ def render(req: Request, tmpl: str, ctx: dict = {}):
             "SECTEURS_LIST":SECTEURS_LIST,
             "member":       get_member(req),
             "now":          datetime.now(),
+            "GA_ID":        GA_ID,
+            "GSC_TOKEN":    GSC_TOKEN,
             **ctx
         })
     except Exception as e:
@@ -1874,6 +2015,81 @@ async def api_consent(): return JSONResponse({"ok":True})
 async def api_stats():
     return JSONResponse(MonitorAgent.get_stats())
 
+# ── REST API v1 — Public tenders ──
+@app.get("/api/v1/tenders")
+async def api_tenders(
+    q: str = "", category: str = "", region: str = "",
+    source: str = "", min_score: int = 0,
+    page: int = 1, per_page: int = 20
+):
+    """Public REST API — all active tenders"""
+    per_page = min(per_page, 100)
+    offset = (page - 1) * per_page
+    db = get_db()
+    try:
+        conds = ["statut='actif'"]; params = []
+        if q:        conds.append("(objet LIKE ? OR description LIKE ?)"); params += [f"%{q}%"]*2
+        if category: conds.append("domaine LIKE ?"); params.append(f"%{category}%")
+        if region:   conds.append("region LIKE ?");  params.append(f"%{region}%")
+        if source:   conds.append("source=?");       params.append(source)
+        if min_score > 0: conds.append("ai_score >= ?"); params.append(min_score)
+        w = " AND ".join(conds)
+        total = db.execute(f"SELECT COUNT(*) FROM tenders WHERE {w}", params).fetchone()[0]
+        rows = [dict(r) for r in db.execute(
+            f"SELECT id,objet,acheteur,region,domaine,type_marche,montant,"
+            f"date_publication,date_limite,statut,url,source,contact,"
+            f"ai_score,ai_label,date_extraction FROM tenders WHERE {w} "
+            f"ORDER BY date_extraction DESC LIMIT ? OFFSET ?",
+            params + [per_page, offset]).fetchall()]
+    finally: db.close()
+    return JSONResponse({
+        "total": total, "page": page, "per_page": per_page,
+        "pages": max(1, (total+per_page-1)//per_page),
+        "tenders": rows
+    })
+
+@app.get("/api/v1/tenders/new")
+async def api_tenders_new(hours: int = 24):
+    """Tenders added in the last N hours"""
+    since = (datetime.now() - timedelta(hours=hours)).strftime("%Y-%m-%d %H:%M")
+    db = get_db()
+    try:
+        rows = [dict(r) for r in db.execute(
+            "SELECT id,objet,region,domaine,montant,date_limite,url,source,ai_score,ai_label "
+            "FROM tenders WHERE statut='actif' AND date_extraction >= ? "
+            "ORDER BY date_extraction DESC LIMIT 100", (since,)).fetchall()]
+    finally: db.close()
+    return JSONResponse({"since": since, "count": len(rows), "tenders": rows})
+
+@app.get("/api/v1/tenders/filter")
+async def api_tenders_filter(city: str = "", category: str = "", score_min: int = 0):
+    """Filter tenders by city + category + AI score"""
+    db = get_db()
+    try:
+        conds = ["statut='actif'"]; params = []
+        if city:      conds.append("region LIKE ?");  params.append(f"%{city}%")
+        if category:  conds.append("domaine LIKE ?"); params.append(f"%{category}%")
+        if score_min: conds.append("ai_score >= ?");  params.append(score_min)
+        rows = [dict(r) for r in db.execute(
+            f"SELECT id,objet,region,domaine,montant,date_limite,url,source,"
+            f"contact,ai_score,ai_label,ai_reasons FROM tenders WHERE "
+            f"{' AND '.join(conds)} ORDER BY ai_score DESC,date_extraction DESC LIMIT 50",
+            params).fetchall()]
+    finally: db.close()
+    return JSONResponse({"count": len(rows), "tenders": rows})
+
+@app.get("/api/v1/sources")
+async def api_sources():
+    """List all sources and their tender counts"""
+    db = get_db()
+    try:
+        rows = db.execute(
+            "SELECT source, COUNT(*) as count, MAX(date_extraction) as last_update "
+            "FROM tenders GROUP BY source ORDER BY count DESC"
+        ).fetchall()
+    finally: db.close()
+    return JSONResponse({"sources": [dict(r) for r in rows]})
+
 # ══════════════════════════════════════════════════════
 # TELEGRAM WEBHOOK
 # ══════════════════════════════════════════════════════
@@ -2097,7 +2313,30 @@ async def admin_scrape(pwd: str=""):
             if new: NotifyAgent.notify_instant(new)
         finally: ScraperState.running = False
     asyncio.create_task(_run())
-    return JSONResponse({"ok":True,"msg":"ScraperAgent démarré"})
+    return JSONResponse({"ok":True,"msg":"ScraperAgent marchespublics.gov.ma démarré"})
+
+@app.get("/admin/scrape_multi")
+async def admin_scrape_multi(pwd: str=""):
+    """Launch multi-site scraper (4 private sites)"""
+    chk(pwd)
+    async def _run():
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, _run_multi_scraper)
+    asyncio.create_task(_run())
+    return JSONResponse({"ok":True,"msg":"MultiScraper démarré: marocao.com, lesoffres.ma, aljady.ma, marchesprives.ma"})
+
+@app.get("/admin/set_whatsapp")
+async def admin_set_whatsapp(pwd: str="", email: str="", wa: str=""):
+    """Link WhatsApp number to member"""
+    chk(pwd)
+    if not wa.startswith("+"): wa = "+" + wa
+    db = get_db()
+    try:
+        db.execute("UPDATE members SET whatsapp=? WHERE email=?", (wa, email.lower()))
+        db.commit()
+        ch = db.execute("SELECT changes()").fetchone()[0]
+    finally: db.close()
+    return JSONResponse({"ok": bool(ch), "whatsapp": wa})
 
 @app.get("/admin/scrape_stream")
 async def scrape_stream(pwd: str=""):
@@ -2421,26 +2660,24 @@ async def reset_post(req: Request, token: str = Form(""),
 # ── TENDERS PUBLIC ──
 @app.get("/tenders", response_class=HTMLResponse)
 async def tenders_page(req: Request, code_f: str = "", region_f: str = "",
-                       q: str = "", page: int = 1):
+                       source_f: str = "", q: str = "", page: int = 1):
     per = 20; off = (page - 1) * per
     db = get_db()
     try:
         conds = ["statut='actif'"]; params = []
-        if code_f:
-            conds.append("domaine LIKE ?"); params.append(f"{code_f}%")
-        if region_f:
-            conds.append("region=?"); params.append(region_f)
+        if code_f:   conds.append("domaine LIKE ?"); params.append(f"{code_f}%")
+        if region_f: conds.append("region=?");       params.append(region_f)
+        if source_f: conds.append("source=?");       params.append(source_f)
         if q:
-            conds.append("(objet LIKE ? OR acheteur LIKE ?)")
-            params += [f"%{q[:80]}%"] * 2
+            conds.append("(objet LIKE ? OR acheteur LIKE ? OR description LIKE ?)")
+            params += [f"%{q[:80]}%"] * 3
         w = " AND ".join(conds)
         total = db.execute(f"SELECT COUNT(*) FROM tenders WHERE {w}", params).fetchone()[0]
         rows  = [dict(r) for r in db.execute(
-            f"SELECT * FROM tenders WHERE {w} ORDER BY date_extraction DESC LIMIT ? OFFSET ?",
+            f"SELECT * FROM tenders WHERE {w} ORDER BY ai_score DESC, date_extraction DESC LIMIT ? OFFSET ?",
             params + [per, off]).fetchall()]
         regions = [r[0] for r in db.execute(
             "SELECT DISTINCT region FROM tenders WHERE region!='' ORDER BY region").fetchall()]
-        # Code prefixes for filter
         codes = [r[0] for r in db.execute(
             "SELECT DISTINCT substr(domaine,1,4) FROM tenders WHERE domaine LIKE 'T%' OR domaine LIKE 'P%' OR domaine LIKE 'S%' ORDER BY 1 LIMIT 20"
         ).fetchall()]
@@ -2449,7 +2686,7 @@ async def tenders_page(req: Request, code_f: str = "", region_f: str = "",
     return render(req, "tenders.html", {
         "tenders": rows, "total": total, "page": page,
         "pages": max(1, (total + per - 1) // per),
-        "code_f": code_f, "region_f": region_f, "q": q,
+        "code_f": code_f, "region_f": region_f, "source_f": source_f, "q": q,
         "regions": regions, "codes": codes,
     })
 

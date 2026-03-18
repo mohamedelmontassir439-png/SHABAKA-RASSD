@@ -16,7 +16,8 @@
       <h2 style="font-size:20px;margin:0">Modern Business — Agents Dashboard</h2>
     </div>
     <div class="flex gap-8">
-      <button id="scrapeBtn" onclick="launchScraper()" class="btn btn-gold btn-sm">▶ ScraperAgent</button>
+      <button id="scrapeBtn" onclick="launchScraper()" class="btn btn-gold btn-sm">▶ marchespublics.gov.ma</button>
+      <button onclick="launchMultiScraper()" class="btn btn-ghost btn-sm" id="multiBtn">🌐 4 Sites privés</button>
       <a href="/admin/test_notify?pwd={{ pwd }}" class="btn btn-ghost btn-sm" target="_blank">📬 Test Notify</a>
       <a href="/admin/cleanup?pwd={{ pwd }}" class="btn btn-ghost btn-sm">🗑 Cleanup</a>
       <a href="/admin/notify_status?pwd={{ pwd }}" class="btn btn-ghost btn-sm" target="_blank">📊 Status</a>
@@ -134,16 +135,17 @@
     </div>
     <div style="overflow-x:auto">
       <table class="table">
-        <tr><th>Objet / Acheteur</th><th>Région</th><th>Secteur</th><th>Type</th><th>Statut</th><th>Limite</th><th></th></tr>
+        <tr><th>Objet / Acheteur</th><th>Source</th><th>Région</th><th>Secteur</th><th>AI Score</th><th>Statut</th><th>Limite</th><th></th></tr>
         {% for t in tenders %}
         <tr>
-          <td style="max-width:320px">
-            <a href="{{ t.url }}" target="_blank" class="truncate" style="display:block;max-width:320px;font-size:12px;font-weight:600;color:var(--text)">{{ t.objet[:70] }}</a>
-            <div class="truncate text-xs text-muted" style="max-width:320px">{{ t.acheteur[:55] or '—' }}</div>
+          <td style="max-width:280px">
+            <a href="{{ t.url }}" target="_blank" class="truncate" style="display:block;max-width:280px;font-size:12px;font-weight:600;color:var(--text)">{{ t.objet[:65] }}</a>
+            <div class="truncate text-xs text-muted" style="max-width:280px">{{ t.acheteur[:50] or '—' }}</div>
           </td>
+          <td><span class="tag tag-gray" style="font-size:9px">{{ (t.source or 'pmmp')[:15] }}</span></td>
           <td class="text-xs text-muted">{{ t.region or '—' }}</td>
-          <td class="text-xs text-muted" style="max-width:120px">{{ t.domaine[:25] or '—' }}</td>
-          <td><span class="tag tag-gray" style="font-size:9px">{{ t.type_marche or '—' }}</span></td>
+          <td class="text-xs text-muted" style="max-width:110px">{{ t.domaine[:22] or '—' }}</td>
+          <td>{% if t.ai_score %}<span style="font-size:11px;font-weight:700;color:{{ '#3ecb7a' if t.ai_score >= 70 else ('#e87070' if t.ai_score < 40 else 'var(--gold)') }}">{{ t.ai_label or t.ai_score }}</span>{% else %}<span class="text-muted">—</span>{% endif %}</td>
           <td>{% if t.statut=='actif' %}<span class="tag tag-green">Actif</span>{% elif t.statut=='expire' %}<span class="tag tag-red">Expiré</span>{% else %}<span class="tag tag-gray">{{ t.statut }}</span>{% endif %}</td>
           <td class="font-mono text-xs text-muted">{{ t.date_limite or '—' }}</td>
           <td><a href="/admin/delete_tender?pwd={{ pwd }}&tid={{ t.id }}" onclick="return confirm('Supprimer?')" class="text-muted text-sm" onmouseover="this.style.color='#e87070'" onmouseout="this.style.color=''">✕</a></td>
@@ -258,5 +260,26 @@ async function launchScraper(){
 {% if scrape_state.running %}
 document.addEventListener('DOMContentLoaded', launchScraper);
 {% endif %}
+
+async function launchMultiScraper(){
+  const btn = document.getElementById('multiBtn');
+  btn.disabled = true; btn.textContent = '⏳ Scraping...';
+  const t = document.getElementById('terminal');
+  t.innerHTML += '<div style="color:#c9a84c">═══ Multi-Scraper: marocao.com + lesoffres.ma + aljady.ma + marchesprives.ma ═══</div>';
+
+  try {
+    const r = await fetch(`/admin/scrape_multi?pwd=${PWD}`);
+    const d = await r.json();
+    if(d.ok){
+      t.innerHTML += '<div style="color:#3ecb7a">✅ ' + d.msg + '</div>';
+    } else {
+      t.innerHTML += '<div style="color:#e87070">✗ ' + (d.msg||'Erreur') + '</div>';
+    }
+  } catch(e){
+    t.innerHTML += '<div style="color:#e87070">Erreur connexion</div>';
+  }
+  t.scrollTop = t.scrollHeight;
+  setTimeout(()=>{ btn.disabled=false; btn.textContent='🌐 4 Sites privés'; }, 3000);
+}
 </script>
 {% endblock %}

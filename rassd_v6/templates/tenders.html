@@ -41,6 +41,14 @@
       <option value="">Toutes régions</option>
       {% for r in regions %}<option value="{{ r }}" {% if region_f==r %}selected{% endif %}>{{ r }}</option>{% endfor %}
     </select>
+    <select name="source_f" class="form-select" style="min-width:150px">
+      <option value="">Toutes sources</option>
+      <option value="marchespublics.gov.ma">🏛 marchespublics.gov.ma</option>
+      <option value="marocao.com">marocao.com</option>
+      <option value="lesoffres.ma">lesoffres.ma</option>
+      <option value="aljady.ma">aljady.ma</option>
+      <option value="marchesprives.ma">marchesprives.ma</option>
+    </select>
     <button type="submit" class="btn btn-gold btn-sm">Filtrer</button>
     {% if q or code_f or region_f %}<a href="/tenders" class="btn btn-ghost btn-sm">✕</a>{% endif %}
   </form>
@@ -64,7 +72,12 @@
         {% if t.montant %}<span class="text-gold font-bold">💰 {{ t.montant }}</span>{% endif %}
       </div>
       <div class="flex items-center justify-between border-top" style="padding-top:8px">
-        <span class="text-xs text-muted">{{ t.date_extraction[:10] }}</span>
+        <div class="flex items-center gap-6">
+          <span class="text-xs text-muted">{{ (t.source or 'pmmp')[:16] }}</span>
+          {% if t.ai_score and t.ai_score > 0 %}
+          <span style="font-size:10px;font-weight:700;color:{{ '#3ecb7a' if t.ai_score >= 70 else ('var(--gold)' if t.ai_score >= 45 else '#e87070') }}">{{ t.ai_label or '' }}</span>
+          {% endif %}
+        </div>
         {% if t.date_limite %}<span class="text-xs" style="color:{% if t.statut=='expire' %}#e87070{% else %}#3ecb7a{% endif %}">⏰ {{ t.date_limite }}</span>{% endif %}
       </div>
     </a>
