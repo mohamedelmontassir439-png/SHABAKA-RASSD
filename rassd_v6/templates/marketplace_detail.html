@@ -2,7 +2,7 @@
 {% block title %}{{ post.titre[:50] }}{% endblock %}
 {% block body %}
 <div style="max-width:780px;margin:0 auto;padding:32px 24px 64px">
-  <div class="flex items-center gap-8 mb-16 text-xs text-muted"><a href="/marketplace" class="text-muted">Marketplace</a><span>/</span><span>#{{ post.id }}</span></div>
+  <div class="flex items-center gap-8 mb-16 text-xs text-muted"><a href="/marketplace" class="c-muted">Marketplace</a><span>/</span><span>#{{ post.id }}</span></div>
   <div class="flex items-center gap-8 mb-14">
     <span class="tag {{ 'tag-gold' if post.type=='offre' else ('tag-blue' if post.type=='recherche' else 'tag-green') }}">{{ post.type }}</span>
     {% if post.verified %}<span class="tag tag-green">✓ Vérifié</span>{% endif %}
@@ -11,25 +11,25 @@
   <div class="card mb-16">
     <div class="card-header">Informations</div>
     {% for lbl,val in [("Entreprise",post.entreprise or post.m_nom),("Secteur",post.secteur),("Région",post.region),("Budget",post.budget),("Contact",post.contact),("Publié le",post.created_at[:10]),("Vues",post.views)] %}{% if val %}
-    <div style="display:flex;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border)">
-      <div style="min-width:110px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;padding-top:1px">{{ lbl }}</div>
-      <div class="text-sm" style="color:var(--text)">{{ val }}</div>
+    <div style="display:flex;gap:12px;padding:10px 16px;border-bottom:1px solid var(--wire)">
+      <div style="min-width:110px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding-top:1px">{{ lbl }}</div>
+      <div class="t-sm" style="color:var(--paper)">{{ val }}</div>
     </div>
     {% endif %}{% endfor %}
-    <div style="padding:10px 16px"><div style="min-width:110px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Note</div>{% if post.rating_avg and post.rating_avg > 0 %}<span class="text-gold">★</span> <span class="font-bold" style="font-size:14px">{{ "%.1f"|format(post.rating_avg) }}</span>/5 <span class="text-xs text-muted">({{ post.rating_count }} avis)</span>{% else %}<span class="text-xs text-muted">Pas encore noté</span>{% endif %}</div>
+    <div style="padding:10px 16px"><div style="min-width:110px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Note</div>{% if post.rating_avg and post.rating_avg > 0 %}<span class="c-gold">★</span> <span class="fw7" style="font-size:14px">{{ "%.1f"|format(post.rating_avg) }}</span>/5 <span class="text-xs text-muted">({{ post.rating_count }} avis)</span>{% else %}<span class="text-xs text-muted">Pas encore noté</span>{% endif %}</div>
   </div>
   <div class="card mb-16">
     <div class="card-header">Description</div>
-    <div class="p-20 text-sm" style="color:var(--text2);line-height:1.85;white-space:pre-wrap">{{ post.description }}</div>
+    <div class="p-20 text-sm" style="color:var(--dim);line-height:1.85;white-space:pre-wrap">{{ post.description }}</div>
   </div>
   {% if ratings %}
   <div class="card mb-16">
     <div class="card-header">Évaluations ({{ ratings|length }})</div>
     {% for r in ratings %}
-    <div style="padding:13px 16px;border-bottom:1px solid var(--border)">
+    <div style="padding:13px 16px;border-bottom:1px solid var(--wire)">
       <div class="flex items-center justify-between mb-4">
         <span class="font-bold text-sm">{{ r.from_nom }}</span>
-        <div>{% for i in range(5) %}<span style="color:{{ 'var(--gold)' if i < r.score else 'var(--text4)' }};font-size:13px">★</span>{% endfor %}</div>
+        <div>{% for i in range(5) %}<span style="color:{{ 'var(--gold)' if i < r.score else 'var(--ghost)' }};font-size:13px">★</span>{% endfor %}</div>
       </div>
       {% if r.comment %}<div class="text-xs text-muted">{{ r.comment }}</div>{% endif %}
     </div>

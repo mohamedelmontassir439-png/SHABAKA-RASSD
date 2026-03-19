@@ -1,57 +1,63 @@
 {% extends "base.html" %}
 {% block title %}Paramètres{% endblock %}
 {% block body %}
-<div style="max-width:640px;margin:0 auto;padding:36px 24px 64px">
-  <div class="flex items-center justify-between mb-24">
-    <h2 style="font-size:22px">Paramètres</h2>
-    <a href="/dashboard" class="btn btn-ghost btn-sm">← Dashboard</a>
-  </div>
-  {% if success %}<div class="form-success mb-16">{{ success }}</div>{% endif %}
+<div style="max-width:580px;margin:0 auto;padding:32px var(--pad) 80px">
+  <div class="section-label mb16">Compte</div>
+  <h1 style="font-family:var(--serif);font-size:26px;font-weight:700;margin-bottom:24px">Paramètres</h1>
+  {% if success %}<div class="form-success mb16">{{ success }}</div>{% endif %}
   {% if error %}<div class="form-error">{{ error }}</div>{% endif %}
-  <form method="post" action="/settings">
-    <div class="card mb-14">
-      <div class="card-header card-gold-header">Profil</div>
-      <div class="p-20 grid-2">
-        <div class="form-group"><label class="form-label">Nom *</label><input type="text" name="nom" value="{{ m.nom }}" class="form-input" required></div>
-        <div class="form-group"><label class="form-label">Entreprise</label><input type="text" name="entreprise" value="{{ m.entreprise or '' }}" class="form-input"></div>
-        <div class="form-group"><label class="form-label">Téléphone</label><input type="text" name="phone" value="{{ m.phone or '' }}" class="form-input"></div>
-        <div class="form-group"><label class="form-label">Ville</label><input type="text" name="ville" value="{{ m.ville or '' }}" class="form-input"></div>
-        <div class="form-group" style="grid-column:span 2">
-          <label class="form-label">Secteur</label>
-          <select name="secteur" class="form-select">
-            <option value="">—</option>
-            {% for s in SECTEURS_LIST %}<option value="{{ s }}" {% if m.secteur==s %}selected{% endif %}>{{ s }}</option>{% endfor %}
-          </select>
+  <div class="card p24">
+    <form method="post" action="/settings">
+      <div class="g2">
+        <div class="form-group">
+          <label class="form-label">Nom *</label>
+          <input type="text" name="nom" class="form-input" value="{{ m.nom }}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Entreprise</label>
+          <input type="text" name="entreprise" class="form-input" value="{{ m.entreprise or '' }}">
         </div>
       </div>
-    </div>
-    <div class="card mb-14">
-      <div class="card-header">Notifications</div>
-      <div class="p-20">
-        <label class="flex items-center gap-12 mb-12" style="cursor:pointer">
-          <input type="checkbox" name="notif_email" {% if m.get('notif_email',1) %}checked{% endif %} style="width:16px;height:16px;accent-color:var(--gold)">
-          <div><div class="font-bold text-sm">Email</div><div class="text-xs text-muted">Recevoir les alertes par email</div></div>
+      <div class="g2">
+        <div class="form-group">
+          <label class="form-label">Téléphone</label>
+          <input type="tel" name="phone" class="form-input" value="{{ m.phone or '' }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ville</label>
+          <input type="text" name="ville" class="form-input" value="{{ m.ville or '' }}">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Secteur principal</label>
+        <select name="secteur" class="form-select">
+          <option value="">— Aucun (tous les marchés) —</option>
+          {% for s in SECTEURS_LIST %}<option value="{{ s }}" {% if m.secteur==s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="f fc g20 mb16 bt pt12">
+        <label class="f fc g8px" style="cursor:pointer">
+          <input type="checkbox" name="notif_email" {% if m.notif_email %}checked{% endif %}> <span class="t-sm">Alertes Email</span>
         </label>
-        <label class="flex items-center gap-12" style="cursor:pointer">
-          <input type="checkbox" name="notif_tg" {% if m.get('notif_tg',1) %}checked{% endif %} style="width:16px;height:16px;accent-color:var(--gold)">
-          <div>
-            <div class="font-bold text-sm">Telegram</div>
-            <div class="text-xs text-muted">
-              {% if m.telegram %}✓ Connecté ({{ m.telegram[:8] }}…)
-              {% else %}Envoyer <code>/link {{ m.email }}</code> à <b>@MarchesMarocBot</b>{% endif %}
-            </div>
-          </div>
+        <label class="f fc g8px" style="cursor:pointer">
+          <input type="checkbox" name="notif_tg" {% if m.notif_tg %}checked{% endif %}> <span class="t-sm">Alertes Telegram</span>
         </label>
       </div>
-    </div>
-    <div class="card mb-20">
-      <div class="card-header">Sécurité</div>
-      <div class="p-20 grid-2">
-        <div class="form-group"><label class="form-label">Mot de passe actuel</label><input type="password" name="password" class="form-input" placeholder="••••••••"></div>
-        <div class="form-group"><label class="form-label">Nouveau mot de passe</label><input type="password" name="password_new" class="form-input" placeholder="Min. 8 caractères"></div>
+      <div class="div-h mb16"></div>
+      <div class="section-label mb12">Changer mot de passe (optionnel)</div>
+      <div class="g2">
+        <div class="form-group">
+          <label class="form-label">Mot de passe actuel</label>
+          <input type="password" name="password" class="form-input" placeholder="••••••••">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nouveau mot de passe</label>
+          <input type="password" name="password_new" class="form-input" placeholder="Min. 8 chars">
+        </div>
       </div>
-    </div>
-    <button type="submit" class="btn btn-gold btn-lg">Enregistrer →</button>
-  </form>
+      <button type="submit" class="btn btn-gold btn-full">Enregistrer les modifications →</button>
+    </form>
+  </div>
+  <div class="tc mt16"><a href="/logout" class="t-sm" style="color:var(--ruby2)">Déconnexion</a></div>
 </div>
 {% endblock %}

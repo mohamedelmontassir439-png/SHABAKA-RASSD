@@ -784,18 +784,28 @@ def run_all_scrapers(known, sources=None, log_fn=None):
     if sources is None:
         sources = list(SCRAPERS.keys())
     all_tenders = []
-    seen = set(known)
+    seen = set(known)  # copy to avoid modifying original
+
     for src in sources:
         scraper = SCRAPERS.get(src)
         if not scraper: continue
         try:
-            if log_fn: log_fn(f"Starting {src}...")
-            results = scraper.scrape(seen, log_fn)
-            for t in results:
+            if log_fn: log_fn(f"[{src}] Starting...")
+            # Handle both class-based scrapers and lambda functions
+            if hasattr(scraper, 'scrape'):
+                results = scraper.scrape(set(seen), log_fn)
+            else:
+                results = scraper(set(seen), log_fn)
+            # Validate results
+            valid = [t for t in (results or []) if t and hasattr(t, 'id') and t.id and hasattr(t, 'objet') and t.objet]
+            new_count = 0
+            for t in valid:
                 if t.id not in seen:
                     seen.add(t.id)
                     all_tenders.append(t)
+                    new_count += 1
+            if log_fn: log_fn(f"[{src}] ✅ {new_count} nouveaux")
         except Exception as e:
             logger.error(f"[{src}] {e}")
-            if log_fn: log_fn(f"❌ {src}: {e}")
+            if log_fn: log_fn(f"[{src}] ❌ {str(e)[:80]}")
     return all_tenders

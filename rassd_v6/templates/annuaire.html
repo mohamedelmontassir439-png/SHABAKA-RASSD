@@ -22,7 +22,7 @@
     {% for c in members %}
     <div class="card p-18 fade-up" style="animation-delay:{{ loop.index0*0.02 }}s;padding:18px">
       <div class="flex items-center justify-between mb-8">
-        <div class="font-bold" style="font-size:13px">{{ c.entreprise or c.nom }}</div>
+        <div class="fw7" style="font-size:13px">{{ c.entreprise or c.nom }}</div>
         {% if c.verified %}<span class="tag tag-green text-xs">✓</span>{% endif %}
       </div>
       {% if c.entreprise %}<div class="text-xs text-muted mb-6">{{ c.nom }}</div>{% endif %}
@@ -30,7 +30,7 @@
         {% if c.secteur %}<span>🏷 {{ c.secteur[:22] }}</span>{% endif %}
         {% if c.ville %}<span>📍 {{ c.ville }}</span>{% endif %}
       </div>
-      {% if c.rating_avg and c.rating_avg > 0 %}<div class="flex items-center gap-6"><span class="text-gold">★</span><span class="font-bold text-sm">{{ "%.1f"|format(c.rating_avg) }}</span><span class="text-xs text-muted">({{ c.rating_count }} avis)</span></div>{% else %}<span class="text-xs text-muted">Nouveau membre</span>{% endif %}
+      {% if c.rating_avg and c.rating_avg > 0 %}<div class="flex items-center gap-6"><span class="c-gold">★</span><span class="font-bold text-sm">{{ "%.1f"|format(c.rating_avg) }}</span><span class="text-xs text-muted">({{ c.rating_count }} avis)</span></div>{% else %}<span class="text-xs text-muted">Nouveau membre</span>{% endif %}
     </div>
     {% endfor %}
   </div>

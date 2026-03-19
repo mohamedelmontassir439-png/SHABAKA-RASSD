@@ -35,7 +35,7 @@
         <span class="tag {{ 'tag-gold' if p.type=='offre' else ('tag-blue' if p.type=='recherche' else 'tag-green') }}">{{ p.type }}</span>
         {% if p.verified %}<span class="tag tag-green">✓</span>{% endif %}
       </div>
-      <div class="font-bold mb-6" style="font-size:14px;line-height:1.3;color:var(--text)">{{ p.titre[:65] }}</div>
+      <div class="font-bold mb-6" style="font-size:14px;line-height:1.3;color:var(--paper)">{{ p.titre[:65] }}</div>
       <div class="text-xs text-muted mb-12" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{ p.description[:110] }}</div>
       <div class="flex items-center gap-12 text-xs text-muted flex-wrap">
         <span>🏢 {{ p.entreprise or p.m_nom }}</span>
@@ -43,7 +43,7 @@
       </div>
       {% if p.budget %}<div class="mt-8 text-xs text-gold font-bold">💰 {{ p.budget }}</div>{% endif %}
       <div class="flex items-center justify-between mt-12 border-top" style="padding-top:10px">
-        {% if p.rating_avg and p.rating_avg > 0 %}<span class="text-xs text-gold">★ {{ "%.1f"|format(p.rating_avg) }} <span class="text-muted">({{ p.rating_count }})</span></span>{% else %}<span class="text-xs text-muted">Nouveau</span>{% endif %}
+        {% if p.rating_avg and p.rating_avg > 0 %}<span class="text-xs text-gold">★ {{ "%.1f"|format(p.rating_avg) }} <span class="c-muted">({{ p.rating_count }})</span></span>{% else %}<span class="text-xs text-muted">Nouveau</span>{% endif %}
         <span class="text-xs text-muted">{{ p.created_at[:10] }}</span>
       </div>
     </a>
@@ -52,7 +52,7 @@
   {% if pages > 1 %}
   <div class="flex items-center justify-center gap-6 mt-32">
     {% if page > 1 %}<a href="?q={{ q }}&type_f={{ type_f }}&secteur_f={{ secteur_f }}&page={{ page-1 }}" class="btn btn-ghost btn-sm">←</a>{% endif %}
-    {% for p2 in range(1,pages+1) %}<a href="?q={{ q }}&type_f={{ type_f }}&secteur_f={{ secteur_f }}&page={{ p2 }}" style="min-width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;background:{{ 'var(--gold)' if p2==page else 'var(--bg2)' }};color:{{ '#000' if p2==page else 'var(--text2)' }};border:1px solid {{ 'var(--gold)' if p2==page else 'var(--border)' }};border-radius:var(--r);font-size:12px">{{ p2 }}</a>{% endfor %}
+    {% for p2 in range(1,pages+1) %}<a href="?q={{ q }}&type_f={{ type_f }}&secteur_f={{ secteur_f }}&page={{ p2 }}" style="min-width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;background:{{ 'var(--gold)' if p2==page else 'var(--ink2)' }};color:{{ '#000' if p2==page else 'var(--dim)' }};border:1px solid {{ 'var(--gold)' if p2==page else 'var(--wire)' }};border-radius:var(--r);font-size:12px">{{ p2 }}</a>{% endfor %}
     {% if page < pages %}<a href="?q={{ q }}&type_f={{ type_f }}&secteur_f={{ secteur_f }}&page={{ page+1 }}" class="btn btn-ghost btn-sm">→</a>{% endif %}
   </div>
   {% endif %}

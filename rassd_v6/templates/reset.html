@@ -1,18 +1,24 @@
 {% extends "base.html" %}
 {% block title %}Nouveau mot de passe{% endblock %}
 {% block body %}
-<div style="min-height:calc(100vh - var(--nav));display:flex;align-items:center;justify-content:center;padding:40px 20px">
+<div style="min-height:calc(100vh - var(--nav-h));display:flex;align-items:center;justify-content:center;padding:40px var(--pad)">
   <div style="width:100%;max-width:380px">
-    <div class="text-center mb-24">
-      <div class="font-serif" style="font-size:22px;font-weight:700;margin-bottom:4px">Nouveau mot de passe</div>
+    <div class="tc mb24">
+      <h1 style="font-family:var(--serif);font-size:26px;font-weight:700">Nouveau mot de passe</h1>
     </div>
     {% if error %}<div class="form-error">{{ error }}</div>{% endif %}
-    <div class="card p-24">
+    <div class="card p24">
       <form method="post" action="/reset">
         <input type="hidden" name="token" value="{{ token }}">
-        <div class="form-group"><label class="form-label">Nouveau mot de passe *</label><input type="password" name="password" class="form-input" placeholder="Min. 8 caractères" required minlength="8" autofocus></div>
-        <div class="form-group"><label class="form-label">Confirmer *</label><input type="password" name="password2" class="form-input" placeholder="••••••••" required></div>
-        <button type="submit" class="btn btn-gold btn-full" style="padding:11px">Enregistrer →</button>
+        <div class="form-group">
+          <label class="form-label">Nouveau mot de passe *</label>
+          <input type="password" name="password" class="form-input" placeholder="Min. 8 caractères" required minlength="8" autofocus>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Confirmer *</label>
+          <input type="password" name="password2" class="form-input" placeholder="••••••••" required>
+        </div>
+        <button type="submit" class="btn btn-gold btn-full">Enregistrer →</button>
       </form>
     </div>
   </div>
