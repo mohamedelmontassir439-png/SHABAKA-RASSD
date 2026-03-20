@@ -1,4 +1,4 @@
-"""  # v5.2-scraper-rebuild
+"""  # v5.4-active-only-20-sources
 Modern Business v5.0 — Intelligence Marchés Publics Maroc
 ══════════════════════════════════════════════════════════
 Architecture: FastAPI + SQLite WAL + 5 AI Agents
@@ -605,9 +605,13 @@ class ScraperAgent:
                 t = cls._parse(r.text, tid)
                 if t:
                     SState.found += 1
+                    # Skip cancelled and expired at source
+                    if t.get("statut") == "annule":
+                        SLog.add(f"  ↳ annulé #{tid} — ignoré")
+                        continue
                     if cls._save(t):
                         SState.saved += 1
-                        SLog.add(f"✓ #{tid} [{t['domaine'][:18]}] {t['objet'][:50]}")
+                        SLog.add(f"✓ #{tid} [{t['domaine'][:18]}] {t['objet'][:50]} [{t['statut']}]")
                         if t["statut"] == "actif": new_tenders.append(t)
                 time.sleep(rnd.uniform(0.5, 1.3))
             except Exception as e:
@@ -958,6 +962,35 @@ class NotifyAgent:
                 NotifyAgent.enqueue(sub["id"],"telegram",sub["telegram"],"",NotifyAgent.build_telegram(matched,f"Résumé {ds} — {n} marché(s) [{sl}]"))
         logger.info(f"[NotifyAgent:digest] {len(subs)} abonnés notifiés")
 
+    @staticmethod
+    def notify_weekly_digest():
+        """Weekly top 10 easy-to-win tenders every Monday"""
+        db = get_db()
+        try:
+            tenders = [dict(r) for r in db.execute(
+                "SELECT * FROM tenders WHERE statut='actif' AND ai_score>=70 "
+                "ORDER BY ai_score DESC LIMIT 10"
+            ).fetchall()]
+            subs = [dict(r) for r in db.execute(
+                "SELECT id,email,telegram,secteur,notif_email,notif_tg,plan FROM members WHERE actif=1"
+            ).fetchall()]
+        finally: db.close()
+        if not tenders: return
+        week = datetime.now().strftime("Semaine du %d/%m/%Y")
+        for sub in subs:
+            # Only pro users get weekly digest
+            if sub.get("plan","free") not in ["pro","enterprise"]: continue
+            matched = NotifyAgent.match_tenders(tenders, sub["id"], sub.get("secteur",""))
+            if not matched: matched = tenders[:5]
+            subj = f"📊 Top marchés semaine — {week} — Modern Business"
+            if sub.get("notif_email",1) and sub.get("email"):
+                NotifyAgent.enqueue(sub["id"],"email",sub["email"],subj,
+                    NotifyAgent.build_email(matched,f"🏆 Top {len(matched)} marchés faciles — {week}"))
+            if sub.get("notif_tg",1) and sub.get("telegram"):
+                NotifyAgent.enqueue(sub["id"],"telegram",sub["telegram"],"",
+                    NotifyAgent.build_telegram(matched,f"Top {len(matched)} marchés — {week}"))
+        logger.info(f"[NotifyAgent:weekly] Digest hebdo envoyé")
+
 # ══════════════════════════════════════════════════════
 # MONITOR AGENT
 # ══════════════════════════════════════════════════════
@@ -981,6 +1014,12 @@ class MonitorAgent:
                 db.execute("DELETE FROM chats WHERE created_at < date('now','-7 days')")
                 db.execute("DELETE FROM notif_queue WHERE status='sent' AND sent_at < date('now','-30 days')")
                 db.execute("UPDATE notif_queue SET status='pending',attempts=0 WHERE status='failed' AND created_at < datetime('now','-1 hour') AND attempts < 3")
+                # Auto-expire tenders past deadline
+                db.execute("""UPDATE tenders SET statut='expire'
+                    WHERE statut='actif' AND date_limite != ''
+                    AND date_limite < date('now') AND date_limite != 'N/A'""")
+                # Remove tenders that were active but title <10 chars
+                db.execute("DELETE FROM tenders WHERE length(objet) < 10")
                 db.commit(); db.close()
             except Exception as e: logger.error(f"[MonitorAgent] {e}")
             await asyncio.sleep(3600)
@@ -1152,6 +1191,13 @@ async def home(req: Request):
     finally: db.close()
     counter("pv:home")
     return render(req, "landing.html", {"stats":stats,"last_run":dict(lr) if lr else {},"sources":sources,"scrape_h":SCRAPE_HOURS})
+
+# Plan limits
+PLAN_LIMITS = {
+    "free":       {"tenders_per_day": 10, "telegram": False, "api": False, "filters": 2},
+    "pro":        {"tenders_per_day": 999, "telegram": True,  "api": True,  "filters": 999},
+    "enterprise": {"tenders_per_day": 999, "telegram": True,  "api": True,  "filters": 999},
+}
 
 @app.get("/tenders", response_class=HTMLResponse)
 async def tenders_page(req: Request, code_f="", region_f="", source_f="", type_f="", easy="", q="", page:int=1):
@@ -1343,6 +1389,8 @@ async def reg_post(req: Request, nom:str=Form(""), entreprise:str=Form(""),
                 uid=db.execute("SELECT id FROM members WHERE email=?",(email.lower(),)).fetchone()[0]
                 db.close()
                 counter("registrations")
+                # Send verification email
+                send_verify_email(uid, email, nom.strip())
                 # Welcome email
                 welcome_html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head>
 <body style="background:#080808;padding:20px">
@@ -1480,6 +1528,83 @@ async def contact(req: Request): return render(req,"contact.html",{})
 @app.get("/privacy", response_class=HTMLResponse)
 async def privacy(req: Request): return render(req,"privacy.html",{})
 
+@app.get("/tarifs", response_class=HTMLResponse)
+async def tarifs(req: Request):
+    db = get_db()
+    try:
+        stats = MonitorAgent.get_stats()
+    finally: db.close()
+    return render(req, "tarifs.html", {"stats": stats})
+
+@app.get("/a-propos", response_class=HTMLResponse)
+async def a_propos(req: Request):
+    return render(req, "a_propos.html", {})
+
+@app.get("/conditions", response_class=HTMLResponse)
+async def conditions(req: Request):
+    return render(req, "conditions.html", {})
+
+# ── EMAIL VERIFICATION ──
+VERIFY_TOKENS: dict = {}  # token -> {uid, expires}
+
+def send_verify_email(uid: int, email: str, nom: str):
+    """Queue verification email"""
+    token = secrets.token_urlsafe(32)
+    VERIFY_TOKENS[token] = {"uid": uid, "expires": datetime.now() + timedelta(hours=24)}
+    url = f"{SITE_URL}/verify?token={token}"
+    html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="background:#080808;padding:20px">
+<div style="font-family:Georgia,serif;background:#0d0d0d;color:#fff;padding:28px;max-width:500px;margin:0 auto;border-radius:10px">
+  <div style="font-size:18px;font-weight:700;color:#c9a84c;margin-bottom:14px">◆ Modern Business</div>
+  <h2 style="margin-bottom:10px">Confirmez votre email</h2>
+  <p style="color:#aaa;font-size:13px;margin-bottom:20px">Bonjour {nom}, cliquez pour activer votre compte:</p>
+  <a href="{url}" style="display:inline-block;padding:10px 22px;background:#c9a84c;color:#000;border-radius:6px;font-weight:700;text-decoration:none">Activer mon compte →</a>
+  <p style="color:#555;font-size:11px;margin-top:16px">Lien valide 24h. Ignorez si vous n'avez pas créé de compte.</p>
+</div></body></html>"""
+    NotifyAgent.enqueue(uid, "email", email, f"Activez votre compte {BRAND}", html)
+
+@app.get("/verify", response_class=HTMLResponse)
+async def verify_email(req: Request, token: str = ""):
+    data = VERIFY_TOKENS.get(token)
+    if not data or datetime.now() > data["expires"]:
+        return render(req, "login.html", {"error": "Lien expiré. Connectez-vous pour en recevoir un nouveau.", "reset": ""})
+    db = get_db()
+    try:
+        db.execute("UPDATE members SET verified=1 WHERE id=?", (data["uid"],))
+        db.commit()
+    finally: db.close()
+    try: del VERIFY_TOKENS[token]
+    except: pass
+    return RedirectResponse("/dashboard?verified=1", 302)
+
+@app.get("/resend-verify")
+async def resend_verify(req: Request):
+    m = get_member(req)
+    if not m: return RedirectResponse("/login", 302)
+    if m.get("verified"): return RedirectResponse("/dashboard", 302)
+    send_verify_email(m["id"], m["email"], m["nom"])
+    return RedirectResponse("/dashboard?verify_sent=1", 302)
+
+# ── ADMIN PLAN MANAGEMENT ──
+@app.get("/admin/set_plan")
+async def admin_set_plan(pwd: str="", member_id: int=0, plan: str="free"):
+    chk(pwd)
+    db = get_db()
+    try:
+        db.execute("UPDATE members SET plan=?,verified=1 WHERE id=?", (plan, member_id))
+        db.commit()
+        row = db.execute("SELECT email,nom,telegram FROM members WHERE id=?", (member_id,)).fetchone()
+    finally: db.close()
+    if row and dict(row).get("telegram"):
+        plan_names = {"free":"Gratuit","pro":"Pro 99 DH/mois","enterprise":"Entreprise"}
+        asyncio.create_task(NotifyAgent.send_telegram(
+            dict(row)["telegram"],
+            f"🎉 <b>Votre abonnement a été activé!</b>\n\n"
+            f"Plan: <b>{plan_names.get(plan, plan)}</b>\n"
+            f"Accédez à votre espace: {SITE_URL}/dashboard"
+        ))
+    return JSONResponse({"ok": True, "plan": plan, "member_id": member_id})
+
 # ══════════════════════════════════════════════════════
 # API
 # ══════════════════════════════════════════════════════
@@ -1519,8 +1644,13 @@ async def api_consent(): return JSONResponse({"ok":True})
 async def api_stats(): return JSONResponse(MonitorAgent.get_stats())
 
 @app.get("/api/v1/tenders")
-async def api_v1_tenders(source:str="", code:str="", region:str="", type_m:str="",
-    q:str="", min_score:int=0, easy:str="", page:int=1, per_page:int=20):
+async def api_v1_tenders(req: Request, source:str="", code:str="", region:str="", type_m:str="",
+    q:str="", min_score:int=0, easy:str="", page:int=1, per_page:int=20,
+    api_key:str=""):
+    # Plan check for API access
+    m = get_member(req)
+    if m and PLAN_LIMITS.get(m.get("plan","free"),{}).get("api") is False:
+        return JSONResponse({"error":"API non disponible sur votre plan. Upgradez vers Pro.","upgrade_url":f"{SITE_URL}/tarifs"},403)
     per_page=min(per_page,100); off=(page-1)*per_page
     db=get_db()
     try:
@@ -1913,6 +2043,9 @@ async def sitemap():
 <url><loc>{SITE_URL}/marketplace</loc><changefreq>hourly</changefreq><priority>0.9</priority></url>
 <url><loc>{SITE_URL}/annuaire</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
 <url><loc>{SITE_URL}/contact</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+<url><loc>{SITE_URL}/tarifs</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+<url><loc>{SITE_URL}/a-propos</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+<url><loc>{SITE_URL}/conditions</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>
 </urlset>"""
     return Response(xml,media_type="application/xml")
 

@@ -1,33 +1,60 @@
 {% extends "base.html" %}
-{% block title %}Connexion{% endblock %}
+{% block title %}Connexion — Modern Business{% endblock %}
 {% block body %}
-<div style="min-height:calc(100vh - var(--nav-h));display:flex;align-items:center;justify-content:center;padding:40px var(--pad)">
-  <div style="width:100%;max-width:380px">
-    <div class="tc mb28">
-      <div class="section-label" style="justify-content:center;margin-bottom:12px">Espace membre</div>
-      <h1 style="font-family:var(--serif);font-size:28px;font-weight:700;margin-bottom:6px">Connexion</h1>
-      <p class="t-sm c-muted">Accédez à vos alertes et marchés favoris</p>
+<div style="min-height:calc(100dvh - var(--nh));display:grid;grid-template-columns:1fr 1fr;max-width:var(--max);margin:0 auto">
+
+  <!-- Left: branding panel (desktop only) -->
+  <div class="hide-m" style="padding:60px var(--pad);display:flex;flex-direction:column;justify-content:space-between;border-right:1px solid var(--bdr);position:relative;overflow:hidden">
+    <div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 50%,rgba(201,168,76,.04),transparent);pointer-events:none"></div>
+    <div>
+      <div class="ngem" style="width:28px;height:28px;margin-bottom:20px"></div>
+      <h2 style="font-family:var(--serif);font-size:clamp(28px,3vw,44px);font-weight:900;line-height:1.05;margin-bottom:16px;font-style:italic">
+        Intelligence<br>marchés publics<br><span style="color:var(--g1)">Maroc</span>
+      </h2>
+      <p style="font-size:12px;color:var(--ink5);line-height:1.75;max-width:320px">
+        18 sources officielles · 5 agents IA · Alertes Telegram instantanées
+      </p>
     </div>
-    {% if reset %}<div class="form-success mb16">✅ Mot de passe modifié avec succès</div>{% endif %}
-    {% if error %}<div class="form-error">{{ error }}</div>{% endif %}
-    <div class="card p24">
+    <div>
+      <div class="div-h mb20"></div>
+      {% if stats %}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div><div style="font-family:var(--serif);font-size:24px;font-weight:900;color:var(--g2);font-style:italic">{{ stats.tenders_active }}</div><div style="font-size:9px;color:var(--ink5);text-transform:uppercase;letter-spacing:1px">Marchés actifs</div></div>
+        <div><div style="font-family:var(--serif);font-size:24px;font-weight:900;color:var(--g2);font-style:italic">{{ stats.members }}</div><div style="font-size:9px;color:var(--ink5);text-transform:uppercase;letter-spacing:1px">Membres</div></div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Right: form -->
+  <div style="display:flex;align-items:center;justify-content:center;padding:60px var(--pad)">
+    <div style="width:100%;max-width:360px">
+      <div class="slbl mb16">Espace membre</div>
+      <h1 style="font-family:var(--serif);font-size:28px;font-weight:900;margin-bottom:6px;font-style:italic">Connexion</h1>
+      <p style="font-size:12px;color:var(--ink5);margin-bottom:28px">Accédez à vos alertes et marchés favoris</p>
+
+      {% if reset %}<div class="ok">✓ Mot de passe modifié</div>{% endif %}
+      {% if error %}<div class="err">{{ error }}</div>{% endif %}
+
       <form method="post" action="/login">
-        <div class="form-group">
-          <label class="form-label">Email</label>
-          <input type="email" name="email" class="form-input" placeholder="vous@entreprise.ma" required autofocus>
+        <div class="fg">
+          <label class="lbl">Email</label>
+          <input type="email" name="email" class="inp" placeholder="vous@entreprise.ma" required autofocus>
         </div>
-        <div class="form-group">
-          <div class="f fc fb mb6">
-            <label class="form-label" style="margin:0">Mot de passe</label>
-            <a href="/forgot" style="font-size:10px;color:var(--muted)">Oublié?</a>
+        <div class="fg">
+          <div class="f fc fb mb5">
+            <label class="lbl" style="margin:0">Mot de passe</label>
+            <a href="/forgot" style="font-size:9px;color:var(--ink5);letter-spacing:.03em">Oublié ?</a>
           </div>
-          <input type="password" name="password" class="form-input" placeholder="••••••••" required>
+          <input type="password" name="password" class="inp" placeholder="••••••••" required>
         </div>
         <button type="submit" class="btn btn-gold btn-full btn-lg mt4">Se connecter →</button>
       </form>
-    </div>
-    <div class="tc mt16 t-sm c-muted">
-      Pas encore inscrit? <a href="/register" class="c-gold">Créer un compte</a>
+
+      <div class="div-h mt24 mb20"></div>
+      <div style="text-align:center;font-size:12px;color:var(--ink5)">
+        Pas encore inscrit? <a href="/register" style="color:var(--g2);font-weight:600">Créer un compte gratuit</a>
+      </div>
     </div>
   </div>
 </div>

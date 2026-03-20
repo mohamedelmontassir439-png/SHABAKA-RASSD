@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block title %}Tarifs — Modern Business{% endblock %}
+{% block head %}
+<style>
+.plan-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--bdr);border:1px solid var(--bdr);border-radius:var(--r3);overflow:hidden;max-width:900px;margin:0 auto}
+.plan{background:var(--surface);padding:36px 28px;position:relative;transition:background .2s}
+.plan:hover{background:var(--raised)}
+.plan.star{background:var(--raised)}
+.plan.star::before{content:'RECOMMANDÉ';position:absolute;top:16px;right:16px;
+  font-size:7px;font-weight:700;color:var(--g3);letter-spacing:2px;
+  padding:3px 8px;border:1px solid rgba(201,168,76,.2);border-radius:99px}
+.plan-tier{font-size:9px;font-weight:700;color:var(--ink5);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px}
+.plan-name{font-family:var(--serif);font-size:28px;font-weight:900;margin-bottom:4px;font-style:italic}
+.plan-price{margin:20px 0}
+.plan-amt{font-family:var(--serif);font-size:44px;font-weight:900;color:var(--g1);letter-spacing:-.04em;font-style:italic}
+.plan-per{font-size:12px;color:var(--ink5)}
+.plan-desc{font-size:11px;color:var(--ink5);line-height:1.7;margin-bottom:24px;border-bottom:1px solid var(--bdr);padding-bottom:20px}
+.plan-feat{list-style:none;margin-bottom:28px;display:flex;flex-direction:column;gap:10px}
+.plan-feat li{font-size:11px;color:var(--ink3);display:flex;align-items:flex-start;gap:9px;line-height:1.45}
+.pf-y{color:var(--grn);flex-shrink:0;font-size:10px;margin-top:1px}
+.pf-n{color:var(--ink6);flex-shrink:0;font-size:10px;margin-top:1px}
+.pf-n ~ span{color:var(--ink5)}
+.faq-item{padding:18px 0;border-bottom:1px solid var(--bdr)}
+.faq-q{font-family:var(--serif);font-size:15px;font-weight:700;margin-bottom:7px;color:var(--ink2)}
+.faq-a{font-size:12px;color:var(--ink5);line-height:1.7}
+.pay-method{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bdr);font-size:12px;color:var(--ink3)}
+.pay-method:last-child{border-bottom:none}
+.pay-icon{font-size:16px;flex-shrink:0;width:28px}
+@media(max-width:768px){.plan-grid{grid-template-columns:1fr;max-width:400px}}
+</style>
+{% endblock %}
+{% block body %}
+<div class="page">
+
+  <!-- Header -->
+  <div class="tc mb56 up">
+    <div class="slbl mb14" style="justify-content:center">Tarification simple</div>
+    <h1 style="font-family:var(--serif);font-size:clamp(30px,5vw,60px);font-weight:900;margin-bottom:14px;font-style:italic">
+      Commencez gratuitement
+    </h1>
+    <p style="font-size:14px;color:var(--ink4);max-width:440px;margin:0 auto;line-height:1.65">
+      Inscrivez-vous sans carte. Upgradez quand votre activité grandit. Annulez à tout moment.
+    </p>
+    <div class="f fj g20 fw mt24" style="font-size:10px;color:var(--ink5);text-transform:uppercase;letter-spacing:.06em">
+      <div class="f fc g6"><div class="ld"></div><span>{{ stats.tenders_active }} marchés actifs</span></div>
+      <span>·</span>
+      <span>Mis à jour toutes 2h</span>
+      <span>·</span>
+      <span>18 sources officielles</span>
+    </div>
+  </div>
+
+  <!-- Plans -->
+  <div class="plan-grid mb56">
+
+    <!-- FREE -->
+    <div class="plan">
+      <div class="plan-tier">Plan 01</div>
+      <div class="plan-name">Gratuit</div>
+      <div class="plan-price">
+        <span class="plan-amt">0</span>
+        <span class="plan-per"> DH / mois · Pour toujours</span>
+      </div>
+      <p class="plan-desc">Pour découvrir la plateforme et évaluer la pertinence des marchés.</p>
+      <ul class="plan-feat">
+        <li><span class="pf-y">✓</span><span>10 marchés consultés / jour</span></li>
+        <li><span class="pf-y">✓</span><span>Recherche et filtres basiques</span></li>
+        <li><span class="pf-y">✓</span><span>Marketplace B2B</span></li>
+        <li><span class="pf-y">✓</span><span>Annuaire entreprises</span></li>
+        <li><span class="pf-n">×</span><span>Alertes Telegram</span></li>
+        <li><span class="pf-n">×</span><span>Filtres secteur T/P/S</span></li>
+        <li><span class="pf-n">×</span><span>API REST</span></li>
+        <li><span class="pf-n">×</span><span>Rapport hebdomadaire</span></li>
+      </ul>
+      {% if member %}
+      <a href="/dashboard" class="btn btn-ghost btn-full">Votre plan actuel</a>
+      {% else %}
+      <a href="/register" class="btn btn-ghost btn-full">S'inscrire gratuitement →</a>
+      {% endif %}
+    </div>
+
+    <!-- PRO -->
+    <div class="plan star">
+      <div class="plan-tier">Plan 02</div>
+      <div class="plan-name">Pro</div>
+      <div class="plan-price">
+        <span class="plan-amt">99</span>
+        <span class="plan-per"> DH / mois</span>
+      </div>
+      <p class="plan-desc">Pour les PME et artisans qui soumissionnent activement aux marchés publics.</p>
+      <ul class="plan-feat">
+        <li><span class="pf-y">✓</span><span><b>Marchés illimités</b></span></li>
+        <li><span class="pf-y">✓</span><span><b>Alertes Telegram instantanées</b></span></li>
+        <li><span class="pf-y">✓</span><span>Filtrage précis code T/P/S</span></li>
+        <li><span class="pf-y">✓</span><span>Score IA "Facile à gagner"</span></li>
+        <li><span class="pf-y">✓</span><span>Filtres région + mots-clés</span></li>
+        <li><span class="pf-y">✓</span><span><b>Top 10 hebdomadaire (lundi)</b></span></li>
+        <li><span class="pf-y">✓</span><span>Accès API REST</span></li>
+        <li><span class="pf-y">✓</span><span>Support email prioritaire</span></li>
+      </ul>
+      {% if member and member.plan in ['pro','enterprise'] %}
+      <div class="btn btn-gold btn-full" style="cursor:default">Plan actif ✓</div>
+      {% else %}
+      <a href="/contact?subject=Abonnement+Pro+99DH" class="btn btn-gold btn-full">Activer Pro →</a>
+      {% endif %}
+    </div>
+
+    <!-- ENTERPRISE -->
+    <div class="plan">
+      <div class="plan-tier">Plan 03</div>
+      <div class="plan-name">Entreprise</div>
+      <div class="plan-price">
+        <span class="plan-amt">299</span>
+        <span class="plan-per"> DH / mois</span>
+      </div>
+      <p class="plan-desc">Pour les bureaux d'études, grandes entreprises et équipes multi-utilisateurs.</p>
+      <ul class="plan-feat">
+        <li><span class="pf-y">✓</span><span>Tout le plan Pro inclus</span></li>
+        <li><span class="pf-y">✓</span><span><b>Jusqu'à 5 utilisateurs</b></span></li>
+        <li><span class="pf-y">✓</span><span>API haute fréquence</span></li>
+        <li><span class="pf-y">✓</span><span>Webhooks personnalisés</span></li>
+        <li><span class="pf-y">✓</span><span>Export CSV / Excel</span></li>
+        <li><span class="pf-y">✓</span><span>Rapport mensuel PDF</span></li>
+        <li><span class="pf-y">✓</span><span>Intégration ERP possible</span></li>
+        <li><span class="pf-y">✓</span><span>Account manager dédié</span></li>
+      </ul>
+      <a href="/contact?subject=Abonnement+Entreprise" class="btn btn-wire btn-full">Nous contacter →</a>
+    </div>
+  </div>
+
+  <!-- Annual discount -->
+  <div class="card card-gold p20 mb48" style="max-width:900px;margin-left:auto;margin-right:auto;margin-bottom:48px">
+    <div class="f fc fb fw g12">
+      <div>
+        <div style="font-family:var(--serif);font-size:16px;font-weight:700;color:var(--g1);margin-bottom:4px">2 mois offerts avec l'abonnement annuel</div>
+        <div style="font-size:12px;color:var(--ink4)">Pro annuel: <b>990 DH</b> au lieu de 1188 DH · Entreprise annuel: <b>2990 DH</b></div>
+      </div>
+      <a href="/contact?subject=Abonnement+annuel" class="btn btn-gold btn-sm">En bénéficier →</a>
+    </div>
+  </div>
+
+  <!-- Payment methods -->
+  <div style="max-width:900px;margin:0 auto 56px">
+    <div class="slbl mb20">Modes de paiement</div>
+    <div class="g2c">
+      {% for icon,label,desc in [
+        ('💳','Virement bancaire','CIH Bank · Attijariwafa · BMCE · Banque Populaire'),
+        ('📱','CIH Money / Wafacash','Paiement mobile instantané, sans frais'),
+        ('🌐','PayPal','Pour les clients à l\'étranger'),
+        ('📞','Paiement à la commande','Contactez-nous pour devis personnalisé'),
+      ] %}
+      <div class="pay-method">
+        <span class="pay-icon">{{ icon }}</span>
+        <div><div style="font-weight:600;color:var(--ink2);font-size:12px">{{ label }}</div><div style="font-size:11px;color:var(--ink5)">{{ desc }}</div></div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <div style="max-width:680px;margin:0 auto 64px">
+    <div class="slbl mb24">Questions fréquentes</div>
+    {% for q,a in [
+      ('Comment activer le plan Pro?',"Inscrivez-vous gratuitement, puis envoyez-nous votre email via le formulaire contact ou @MarchesMarocBot sur Telegram. Activation sous 24h après confirmation du paiement."),
+      ('Puis-je annuler à tout moment?',"Oui, sans condition ni pénalité. Votre accès Pro reste actif jusqu'à la fin de la période payée."),
+      ('Les données sont-elles fiables?',"100% issues de sources officielles: marchespublics.gov.ma, journaux légaux habilités (Le Matin, Flash Économie…), sites d'organismes publics. Mise à jour toutes les 2 heures."),
+      ('Puis-je tester avant de payer?',"Oui. Le plan Gratuit est permanent, sans carte bancaire. Vous pouvez évaluer la pertinence des alertes avant tout engagement."),
+      ('Y a-t-il une version arabe?',"En cours de développement. La plateforme est actuellement en français avec des marchés en arabe et français selon la source."),
+    ] %}
+    <div class="faq-item">
+      <div class="faq-q">{{ q }}</div>
+      <div class="faq-a">{{ a }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-band" style="max-width:900px;margin:0 auto">
+    <div class="slbl mb14" style="justify-content:center">Prêt à commencer?</div>
+    <h2 style="font-family:var(--serif);font-size:clamp(24px,3.5vw,44px);font-weight:900;margin-bottom:12px;font-style:italic">
+      Votre prochaine opportunité<br>vous attend
+    </h2>
+    <p style="color:var(--ink4);font-size:12px;margin-bottom:28px">Inscription en 30 secondes · Aucune CB requise</p>
+    <div class="f fj g12 fw">
+      <a href="/register" class="btn btn-gold btn-xl">S'inscrire gratuitement →</a>
+      <a href="/contact" class="btn btn-wire btn-xl">Parler à un conseiller</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
