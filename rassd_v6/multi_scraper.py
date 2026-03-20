@@ -1,61 +1,55 @@
 """
-Modern Business — Multi-Source Scraper v3.0
-══════════════════════════════════════════════════════════════
-25 SOURCES GRATUITES — SANS INSCRIPTION — MAROC
+Modern Business — Multi-Source Scraper v5.0
+══════════════════════════════════════════════════════════════════
+STRATÉGIE: Test-driven — seulement les sources confirmées Railway
 
-SOURCES OFFICIELLES (gov.ma):
-  1.  marchespublics.gov.ma      — Portail officiel national
-  2.  annonces.lematin.ma        — Journal Le Matin (AO officiels)
-  3.  appels-offres.equipement.gov.ma — Ministère Équipement & Eau
-  4.  finances.gov.ma            — Ministère Finances
-  5.  collectivites-territoriales.gov.ma — Collectivités locales
-  6.  mmsp.gov.ma                — Ministère Transition Numérique
-  7.  mtaess.gov.ma              — Ministère Tourisme & Artisanat
+SOURCES GRATUITES CONFIRMÉES:
+  ✅ marchespublics.gov.ma     Portail officiel national
+  ✅ annonces.lematin.ma       Journal Le Matin (AO légaux)
+  ✅ flasheconomie.com         Journal annonces légales
+  ✅ leconomiste.com           Premier quotidien éco (AO section)
+  ✅ tanmia.ma                 ONG & Coopération internationale
+  ✅ mtaess.gov.ma             Ministère Tourisme (filtré strict)
+  ✅ creditagricole.ma         Crédit Agricole du Maroc
+  ✅ chumarrakech.ma           CHU Mohammed VI Marrakech
+  ✅ marchespublics API        /search endpoint JSON (non documenté)
 
-ENTREPRISES PUBLIQUES (EP):
-  8.  ao.snrt.ma                 — SNRT (Télévision/Radio nationale)
-  9.  one.org.ma                 — ONEE Électricité & Eau
-  10. oncf.ma                    — ONCF Chemins de fer
-  11. cdg.ma                     — CDG Caisse de dépôt
-  12. onda.ma                    — ONDA Aéroports
-  13. anrt.ma                    — ANRT Télécommunications
-  14. anam.ma                    — ANAM Assurance Maladie
-  15. tanmia.ma                  — Tanmia ONG & Coopération
-  16. royalairmaroc.com          — Royal Air Maroc (RAM)
-
-ÉTABLISSEMENTS DE SANTÉ:
-  17. chumarrakech.ma            — CHU Mohammed VI Marrakech
-  18. chu-ibn-rochd.ma           — CHU Ibn Rochd Casablanca
-  19. hmimv.ma                   — Hôpital Militaire Rabat
-
-RÉGIES DE DISTRIBUTION (EAU/ÉLEC):
-  20. lydec.ma                   — LYDEC Casablanca
-  21. amendis.ma                 — AMENDIS Tanger-Tétouan
-  22. radeej.ma                  — RADEEJ El Jadida
-  23. radeema.ma                 — RADEEMA Marrakech
-
-UNIVERSITÉS & RECHERCHE:
-  24. um5.ac.ma                  — Université Mohammed V Rabat
-  25. creditagricole.ma          — Crédit Agricole du Maroc
-
-NOTE: lesoffres.ma / aljady.ma / marchesprives.ma = paywall,
-      non scrapables sans abonnement.
-══════════════════════════════════════════════════════════════
+TECHNIQUES ANTI-BLOCAGE:
+  → 6 User-Agents rotatifs réels (Chrome/Firefox/Safari/Mobile)
+  → Retry automatique x3 avec backoff exponentiel
+  → Délais aléatoires 1-4s entre requêtes
+  → Session persistante avec cookies
+  → Timeout court (10s) pour éviter les sites lents
+  → Détection timeout → skip immédiat
+══════════════════════════════════════════════════════════════════
 """
-import re, time, random, logging, hashlib, json, os
+import re, time, random, logging, hashlib, json
 from datetime import datetime
 from typing import Optional
 from dataclasses import dataclass, asdict
 
 logger = logging.getLogger("mb.scraper")
 
-UA_LIST = [
+# Real browser User Agents
+UA_POOL = [
+    # Chrome Windows
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15",
+    # Chrome Mac
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    # Firefox Windows
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_3 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1",
-    "Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1",
+    # Safari Mac
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15",
+    # Chrome Android
+    "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Mobile Safari/537.36",
+    # Edge Windows
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36 Edg/122.0.0.0",
+]
+
+ACCEPT_HEADERS = [
+    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
 ]
 
 @dataclass
@@ -83,24 +77,64 @@ class Tender:
 
 
 # ══════════════════════════════════════════════════════
-# UTILS
+# HTTP SESSION — Anti-blocking
 # ══════════════════════════════════════════════════════
-def make_session():
+def make_session(rotate=True):
+    """Create session with realistic browser headers"""
     import requests
+    import urllib3
+    urllib3.disable_warnings()
     s = requests.Session()
     s.verify = False
+    ua = random.choice(UA_POOL) if rotate else UA_POOL[0]
     s.headers.update({
-        "User-Agent":      random.choice(UA_LIST),
-        "Accept":          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "User-Agent":      ua,
+        "Accept":          random.choice(ACCEPT_HEADERS),
         "Accept-Language": "fr-MA,fr;q=0.9,ar;q=0.8,en;q=0.7",
-        "Accept-Encoding": "gzip, deflate",
+        "Accept-Encoding": "gzip, deflate, br",
         "Connection":      "keep-alive",
         "DNT":             "1",
+        "Upgrade-Insecure-Requests": "1",
+        "Sec-Fetch-Dest":  "document",
+        "Sec-Fetch-Mode":  "navigate",
+        "Sec-Fetch-Site":  "none",
+        "Cache-Control":   "max-age=0",
     })
     return s
 
-def sleep_r(a=0.8, b=2.5): time.sleep(random.uniform(a, b))
+def fetch(session, url, timeout=10, retries=3):
+    """Fetch URL with retry + exponential backoff"""
+    for attempt in range(retries):
+        try:
+            r = session.get(url, timeout=timeout, allow_redirects=True)
+            if r.status_code == 200 and len(r.text) > 500:
+                return r
+            if r.status_code in [403, 429, 503]:
+                wait = (2 ** attempt) * random.uniform(1.5, 3.0)
+                logger.debug(f"[fetch] {r.status_code} → retry in {wait:.1f}s")
+                time.sleep(wait)
+                # Rotate UA on retry
+                session.headers["User-Agent"] = random.choice(UA_POOL)
+                continue
+            if r.status_code in [404, 301, 302, 307, 308]:
+                return None  # Don't retry these
+            return None
+        except Exception as e:
+            err = str(e)
+            if attempt < retries - 1:
+                wait = (2 ** attempt) * random.uniform(1.0, 2.0)
+                time.sleep(wait)
+            else:
+                logger.debug(f"[fetch] {url[:60]}: {err[:80]}")
+    return None
 
+def sleep_r(a=1.0, b=3.0):
+    time.sleep(random.uniform(a, b))
+
+
+# ══════════════════════════════════════════════════════
+# UTILS
+# ══════════════════════════════════════════════════════
 def make_id(src, title, url=""):
     raw = f"{src}:{title.strip()[:120]}:{url}"
     return f"{src}_{hashlib.md5(raw.encode()).hexdigest()[:12]}"
@@ -108,23 +142,19 @@ def make_id(src, title, url=""):
 def normalize_date(raw):
     if not raw: return ""
     raw = str(raw).strip()
-    MONTHS_FR = {
+    MONTHS = {
         "janvier":"01","février":"02","mars":"03","avril":"04","mai":"05","juin":"06",
         "juillet":"07","août":"08","septembre":"09","octobre":"10","novembre":"11","décembre":"12",
         "jan":"01","fév":"02","mar":"03","avr":"04","juin":"06","jul":"07",
         "aoû":"08","sep":"09","oct":"10","nov":"11","déc":"12",
-    }
-    MONTHS_AR = {
-        "يناير":"01","فبراير":"02","مارس":"03","أبريل":"04","ماي":"05","ماس":"03",
+        "يناير":"01","فبراير":"02","مارس":"03","أبريل":"04","ماي":"05",
         "يونيو":"06","يوليوز":"07","غشت":"08","شتنبر":"09","أكتوبر":"10","نونبر":"11","دجنبر":"12",
     }
-    raw_low = raw.lower()
-    for fr, num in MONTHS_FR.items():
-        raw_low = raw_low.replace(fr, num)
-    for ar, num in MONTHS_AR.items():
-        raw = raw.replace(ar, num)
-    for fmt in ["%d/%m/%Y","%d-%m-%Y","%d.%m.%Y","%Y-%m-%d","%d/%m/%y","%d %m %Y","%Y/%m/%d"]:
-        try: return datetime.strptime(raw_low.strip(), fmt).strftime("%Y-%m-%d")
+    r = raw.lower()
+    for fr, num in MONTHS.items():
+        r = r.replace(fr, num)
+    for fmt in ["%d/%m/%Y","%d-%m-%Y","%d.%m.%Y","%Y-%m-%d","%d/%m/%y","%d %m %Y"]:
+        try: return datetime.strptime(r.strip(), fmt).strftime("%Y-%m-%d")
         except: pass
         try: return datetime.strptime(raw.strip(), fmt).strftime("%Y-%m-%d")
         except: pass
@@ -134,271 +164,259 @@ def normalize_date(raw):
         if len(y) == 2: y = "20" + y
         try: return datetime(int(y), int(mo), int(d)).strftime("%Y-%m-%d")
         except: pass
-    m = re.search(r'(\d{4})[/\-\.](\d{1,2})[/\-\.](\d{1,2})', raw)
-    if m:
-        y, mo, d = m.groups()
-        try: return datetime(int(y), int(mo), int(d)).strftime("%Y-%m-%d")
-        except: pass
     return ""
 
 def extract_budget(text):
     if not text: return 0.0, 0.0, ""
-    text = str(text).replace("\u202f","").replace("\xa0","").replace(" ","").replace(",",".")
-    # Range
-    m = re.search(r'(\d[\d.]+)\s*[-à]\s*(\d[\d.]+)\s*(?:dh|mad)?', text, re.I)
-    if m:
-        try:
-            lo, hi = float(m.group(1)), float(m.group(2))
-            if lo > 0 and hi > lo:
-                return lo, hi, f"{lo:,.0f} — {hi:,.0f} DH"
-        except: pass
-    # Single
-    m = re.search(r'(\d[\d.]+)\s*(?:dh|mad|dirham)', text, re.I)
+    t = str(text).replace("\u202f","").replace("\xa0","").replace(" ","").replace(",",".")
+    m = re.search(r'(\d[\d.]+)\s*(?:dh|mad|dirham)', t, re.I)
     if m:
         try:
             v = float(m.group(1))
-            if v > 100:  # Ignore tiny values
-                return v, v, f"{v:,.0f} DH"
+            if v > 100: return v, v, f"{v:,.0f} DH"
         except: pass
     return 0.0, 0.0, ""
 
 def clean_text(t, n=500):
     if not t: return ""
     t = re.sub(r'\s+', ' ', str(t)).strip()
-    t = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', t)
+    t = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', t)
     return t[:n]
 
 def is_expired(d):
     if not d: return False
-    try: return datetime.strptime(d.strip(), "%Y-%m-%d").date() < datetime.now().date()
+    try: return datetime.strptime(d, "%Y-%m-%d").date() < datetime.now().date()
     except: return False
 
-# Tender validation keywords
-TENDER_KWS = [
-    "travaux","fourniture","service","acquisition","prestation","étude","maintenance",
-    "nettoyage","gardiennage","restauration","informatique","construction","réhabilitation",
-    "avis d'appel","appel d'offres","consultation","ao","marché","lot","tranche",
-    "dh","mad","dirham","avis","ouvert","restreint","concours","bon de commande",
-    "achat","livraison","mission","expertise","audit","formation",
+
+# ══════════════════════════════════════════════════════
+# TENDER VALIDATION — Ultra strict
+# ══════════════════════════════════════════════════════
+
+# Blacklist: titles that are NEVER real tenders
+TITLE_BLACKLIST = [
+    "accueil","menu services","nos services","à propos","about us","contact",
+    "formation initiale","formation continue","stages de formation",
+    "concours et examens","charte des services","droit d accès à",
+    "partenariat pour","observatoire national","commissions administratives",
+    "portail gouvernement","plateforme d échange","portail de transparence",
+    "etudes et rapports","documentation utile","la formation professionnelle",
+    "programme prévisionnel","lalla al","un des centres d excellence",
+    "programme de renforcement des capa","réseau des établissements",
+    "portail de géolocalisation","connexion","s inscrire","tarifs","abonnement",
+    "politique de confidentialité","mentions légales","copyright","qui sommes",
+    "mentions légales","newsletter","suivez-nous","flux rss","linkedin","twitter",
+    "read more","lire la suite","voir plus","retour","print","imprimer",
+    "menu services","services menu","navigation","breadcrumb",
 ]
-NAV_KWS = [
-    "accueil","connexion","inscription","s'inscrire","abonnez","tarifs",
-    "qui sommes","à propos","contact","politique","mentions légales",
-    "copyright","all rights","newsletter","suivez-nous",
+
+# Regex: patterns that POSITIVELY confirm a real tender
+TENDER_CONFIRM_RE = [
+    r"appel\s+d.offres",
+    r"avis\s+d.appel",
+    r"bon\s+de\s+commande",
+    r"\bao\b\s*[n°\d/]",
+    r"\baoc\b|\baooi?\b|\baoo\b",
+    r"appel\s+a\s+(candidature|manifestation)",
+    r"consultation\s+(n°|\d)",
+    r"march[eé]\s*n?°?\s*\d",
+    r"fourniture\s+(?:de|des|du|d')",
+    r"travaux\s+(?:de|des|du|d')",
+    r"prestation\s+(?:de|des|du|d')",
+    r"acquisition\s+(?:de|des|du|d')",
+    r"r[eé]alisation\s+(?:des|de)",
+    r"nettoyage\s+(?:de|des|du|et)",
+    r"gardiennage\s+(?:de|des|du)",
+    r"maintenance\s+(?:de|des|du)",
+    r"entretien\s+(?:de|des|du)",
+    r"location\s+(?:de|des|du|d')",
+    r"livraison\s+(?:de|des|du|d')",
+    r"achat\s+(?:de|des|du|d')",
+    r"[Aa]ac\s*\d+",       # AAC 01/2026 format CHU
+    r"[Aa][Oo]\s+\d+",     # AO 40/2025
+    r"appel\s+à\s+(?:la\s+)?concurrence",
+    r"demande\s+(?:de\s+)?prix",
+    r"consultation\s+restreinte",
+    r"mission\s+(?:de|d')\s+(?:ma[îi]trise|contr[ôo]le|surveillance)",
+    r"\d+\s*lot\s*(?:unique|n°\s*\d|s?)",
+    r"cps\s+n°",
+    r"réhabilitation\s+(?:de|des|du|d')",
+    r"construction\s+(?:de|des|du|d')",
 ]
+
+# Pre-compile for performance
+_TENDER_RE = [re.compile(p, re.I) for p in TENDER_CONFIRM_RE]
 
 def is_real_tender(title: str, text: str = "") -> bool:
-    full = (title + " " + text[:200]).lower()
-    if any(kw in title.lower() for kw in NAV_KWS): return False
-    if len(title) < 12: return False
-    has_kw = any(kw in full for kw in TENDER_KWS)
-    has_date = bool(re.search(r'\d{2}[/\-\.]\d{2}[/\-\.]\d{4}', text))
-    return has_kw or (has_date and len(title) > 20)
+    """Returns True ONLY if clearly a real tender"""
+    t_low = title.lower().strip()
+    if len(t_low) < 12: return False
+    # Hard blacklist
+    if any(bl in t_low for bl in TITLE_BLACKLIST): return False
+    full = t_low + " " + text[:300].lower()
+    # Regex confirmation
+    for pattern in _TENDER_RE:
+        if pattern.search(full): return True
+    # Fallback: keyword + date
+    kws = ["appel","offres","marché","fourniture","travaux","prestation",
+           "nettoyage","gardiennage","maintenance","acquisition","réalisation",
+           "achat","location","livraison","consultation","concurrence"]
+    has_kw = any(k in full for k in kws)
+    has_date = bool(re.search(r'\d{2}[/\-]\d{2}[/\-]\d{4}', text))
+    has_ref  = bool(re.search(r'n[°o]?\s*\d+[/\-]\d{4}', full))
+    return has_kw and (has_date or has_ref) and len(title) > 15
 
-REGIONS_MAP = {
-    "Rabat-Salé-Kénitra":        ["rabat","salé","kénitra","kenitra","témara","khémisset","skhirat","tiflet"],
-    "Casablanca-Settat":         ["casablanca","settat","mohammedia","berrechid","benslimane","nouaceur"],
-    "Marrakech-Safi":            ["marrakech","safi","essaouira","kelaa","chichaoua","youssoufia"],
-    "Fès-Meknès":                ["fès","fez","meknès","meknes","ifrane","taza","sefrou","boulemane"],
-    "Tanger-Tétouan-Al Hoceima": ["tanger","tétouan","tetouan","al hoceima","chefchaouen","larache","ouazzane"],
-    "Oriental":                  ["oujda","nador","berkane","taourirt","jerada","guercif"],
-    "Béni Mellal-Khénifra":     ["béni mellal","beni mellal","khénifra","azilal","khouribga","fkih ben salah"],
-    "Souss-Massa":               ["agadir","tiznit","taroudant","inezgane","ait melloul","biougra"],
-    "Drâa-Tafilalet":            ["errachidia","ouarzazate","zagora","midelt","tinghir"],
-    "Laâyoune-Sakia El Hamra":   ["laayoune","boujdour","smara","tarfaya"],
-    "Dakhla-Oued Ed-Dahab":      ["dakhla","aousserd"],
-    "Guelmim-Oued Noun":         ["guelmim","tan-tan","assa-zag","sidi ifni"],
+
+# ══════════════════════════════════════════════════════
+# CLASSIFICATION
+# ══════════════════════════════════════════════════════
+REGIONS = {
+    "Rabat-Salé-Kénitra":        ["rabat","salé","kénitra","témara","khémisset","tiflet"],
+    "Casablanca-Settat":         ["casablanca","settat","mohammedia","berrechid","benslimane"],
+    "Marrakech-Safi":            ["marrakech","safi","essaouira","kelaa","youssoufia"],
+    "Fès-Meknès":                ["fès","fez","meknès","meknes","ifrane","taza","sefrou"],
+    "Tanger-Tétouan-Al Hoceima": ["tanger","tétouan","al hoceima","chefchaouen","larache"],
+    "Oriental":                  ["oujda","nador","berkane","taourirt"],
+    "Béni Mellal-Khénifra":     ["béni mellal","khénifra","azilal","khouribga"],
+    "Souss-Massa":               ["agadir","tiznit","taroudant","inezgane"],
+    "Drâa-Tafilalet":            ["errachidia","ouarzazate","zagora","midelt"],
+    "Laâyoune":                  ["laayoune","boujdour"],
+    "Dakhla":                    ["dakhla"],
+    "Guelmim":                   ["guelmim","tan-tan"],
 }
-
-SECTEUR_KWS = {
-    "T101 - Constructions & Bâtiments": ["bâtiment","construction","maçonnerie","béton","gros oeuvre","btp","rénovation","mur","clôture","façade","toiture","réhabilitation","aménagement intérieur","ravalement"],
-    "T102 - Terrassements":             ["terrassement","remblai","déblai","excavation","nivellement","compactage","décapage"],
-    "T103 - Menuiserie & Métallerie":   ["menuiserie","métallerie","charpente","ferronnerie","portail","serrurerie","aluminium","aluminium"],
-    "T104 - Plomberie & Climatisation": ["plomberie","chauffage","climatisation","sanitaire","tuyauterie","cvc","robinetterie","géothermie"],
-    "T105 - Peinture & Vitrerie":       ["peinture","vitrerie","enduit","revêtement mural","lasure","vernis"],
-    "T106 - Étanchéité & Isolation":    ["étanchéité","isolation","membrane","bitume","imperméabilisation"],
-    "T107 - Revêtements de sols":       ["carrelage","parquet","dallage","faïence","moquette","marbre","granit"],
-    "T108 - Plâtrerie & Faux Plafonds": ["plâtrerie","faux plafond","cloison","gyproc","staff"],
-    "T110 - Génie Civil":               ["génie civil","pont","infrastructure","ouvrage d'art","géotechnique","viaduc","tunnel"],
-    "T111 - Espaces Verts":             ["espaces verts","jardinage","plantation","gazon","élagage","reboisement","arboriculture"],
+SECTEURS = {
+    "T101 - Constructions & Bâtiments": ["bâtiment","construction","maçonnerie","béton","gros oeuvre","rénovation","réhabilitation","ravalement","coffrage"],
+    "T102 - Terrassements":             ["terrassement","remblai","déblai","excavation","nivellement","compactage"],
+    "T103 - Menuiserie & Métallerie":   ["menuiserie","métallerie","charpente","ferronnerie","portail","serrurerie"],
+    "T104 - Plomberie & Climatisation": ["plomberie","chauffage","climatisation","sanitaire","cvc","robinetterie"],
+    "T105 - Peinture & Vitrerie":       ["peinture","vitrerie","enduit","lasure"],
+    "T106 - Étanchéité":                ["étanchéité","isolation","membrane","imperméabilisation"],
+    "T107 - Revêtements":               ["carrelage","parquet","revêtement sol","faïence","dallage"],
+    "T108 - Plâtrerie":                 ["plâtrerie","faux plafond","cloison","gyproc","staff"],
+    "T110 - Génie Civil":               ["génie civil","pont","infrastructure","ouvrage d'art","géotechnique","viaduc"],
+    "T111 - Espaces Verts":             ["espaces verts","jardinage","plantation","gazon","élagage","reboisement"],
     "T201 - Assainissement":            ["assainissement","égout","step","collecteur","canalisation","épuration"],
-    "T203 - Hydraulique & Eau":         ["hydraulique","eau potable","adduction","barrage","forage","irrigation","pompage","château d'eau"],
-    "T301 - Travaux Routiers":          ["route","voirie","chaussée","trottoir","bitume","asphalte","signalisation","autoroute","piste"],
-    "T401 - Électricité & Éclairage":   ["électricité","éclairage","câblage","tableau électrique","transformateur","basse tension","mt/bt"],
+    "T203 - Hydraulique & Eau":         ["hydraulique","eau potable","adduction","barrage","forage","irrigation","pompage"],
+    "T301 - Travaux Routiers":          ["route","voirie","chaussée","trottoir","bitume","asphalte","signalisation","autoroute"],
+    "T401 - Électricité":               ["électricité","éclairage","câblage","tableau électrique","transformateur","basse tension"],
     "T402 - Sécurité Électronique":     ["vidéosurveillance","cctv","alarme incendie","contrôle accès","badge","détection"],
-    "T403 - Télécommunications":        ["télécommunication","fibre optique","réseau","switch","routeur","wifi","câblage structuré"],
-    "P813 - Équipements Médicaux":      ["médical","hôpital","laboratoire","réactif","chirurgical","pharmaceutique","médicament","biomédical","stérilisation"],
-    "P814 - Climatisation Équip.":      ["climatiseur","split","froid industriel","chambre froide","réfrigération"],
-    "P816 - Matériel Roulant":          ["véhicule","voiture","camion","bus","minibus","carburant","gasoil","pneumatique","ambulance"],
-    "P818 - Informatique":              ["informatique","ordinateur","pc","serveur","imprimante","logiciel","cloud","erp","application","scanner","réseau informatique"],
-    "P821 - Sécurité & Protection":     ["équipements protection","epi","casque","gilet","gants","chaussures sécurité","extincteur"],
-    "P825 - Fournitures Bureau":        ["fournitures","papier","ramette","mobilier de bureau","chaise","armoire","tableau blanc"],
-    "P833 - Produits Pharma":           ["médicament","pharmaceutique","produits chimiques","réactifs","consommables médicaux"],
-    "P834 - Alimentation":              ["alimentation","denrée","viande","restauration","traiteur","catering","eau distillée","café","thé"],
-    "P839 - Matériaux Construction":    ["ciment","sable","gravier","béton prêt","brique","acier","rond à béton","bois"],
-    "P841 - Hygiène & Nettoyage":       ["nettoyage","propreté","désinfection","savon","détergent","dératisation","désinsectisation"],
-    "P850 - Énergies Renouvelables":    ["solaire","photovoltaïque","énergie renouvelable","panneau solaire","éolien","chauffe-eau solaire"],
-    "S901 - IT & Développement":        ["développement logiciel","application mobile","site web","cybersécurité","base de données","solution informatique"],
-    "S902 - Études & Conseil":          ["étude","conseil","consultant","expertise","audit","bureau d'études","ingénierie","maîtrise d'œuvre","assistance technique"],
-    "S906 - Maintenance":               ["maintenance","entretien","réparation","dépannage","contrat maintenance","préventif","curatif"],
+    "T403 - Télécommunications":        ["télécommunication","fibre optique","réseau informatique","switch","wifi","câblage structuré"],
+    "P813 - Équipements Médicaux":      ["médical","hôpital","laboratoire","réactif","chirurgical","pharmaceutique","médicament","biomédical"],
+    "P814 - Climatisation":             ["climatiseur","split","froid industriel","chambre froide","réfrigération"],
+    "P816 - Matériel Roulant":          ["véhicule","voiture","camion","bus","minibus","carburant","gasoil","ambulance"],
+    "P818 - Informatique":              ["informatique","ordinateur","pc","serveur","imprimante","logiciel","cloud","erp","scanner"],
+    "P821 - Sécurité & EPI":            ["équipements protection","epi","casque","gilet","extincteur","harnais"],
+    "P825 - Fournitures Bureau":        ["fournitures","papier","ramette","mobilier de bureau","chaise","armoire"],
+    "P833 - Produits Pharmaceutiques":  ["médicament","pharmaceutique","produits chimiques","réactifs labo"],
+    "P834 - Alimentation":              ["alimentation","denrée","viande","restauration","traiteur","catering","eau distillée"],
+    "P839 - Matériaux Construction":    ["ciment","sable","gravier","béton prêt","brique","acier","rond à béton"],
+    "P841 - Hygiène & Nettoyage":       ["nettoyage","propreté","désinfection","savon","détergent","dératisation"],
+    "P850 - Énergies Renouvelables":    ["solaire","photovoltaïque","énergie renouvelable","panneau solaire","éolien"],
+    "S901 - IT & Développement":        ["développement logiciel","application mobile","site web","cybersécurité","erp","solution si"],
+    "S902 - Études & Conseil":          ["étude","conseil","consultant","expertise","audit","bureau d'études","ingénierie","maîtrise"],
+    "S906 - Maintenance":               ["maintenance","entretien","réparation","dépannage","contrat maintenance","curatif","préventif"],
     "S907 - Nettoyage Service":         ["nettoyage service","propreté service","hygiène industrielle","collecte déchets"],
     "S908 - Gardiennage":               ["gardiennage","sécurité","surveillance","agent de sécurité","ronde","portier"],
     "S910 - Communication":             ["communication","publicité","événementiel","impression","brochure","signalétique"],
     "S913 - Formation":                 ["formation","coaching","séminaire","certification","e-learning","atelier"],
-    "S915 - Transport & Location":      ["transport","location véhicule","navette","chauffeur","logistique"],
-    "S918 - Traitement Déchets":        ["déchets","ordures","recyclage","décharge","valorisation","tri"],
-    "S919 - Archivage":                 ["archivage","numérisation","gestion documentaire","records"],
+    "S915 - Transport":                 ["transport","location véhicule","navette","chauffeur","logistique"],
+    "S918 - Traitement Déchets":        ["déchets","ordures ménagères","recyclage","décharge","valorisation déchets"],
+    "S919 - Archivage":                 ["archivage","numérisation","gestion documentaire"],
 }
 
 def detect_region(text):
     t = text.lower()
-    for r, kws in REGIONS_MAP.items():
+    for r, kws in REGIONS.items():
         if any(k in t for k in kws): return r
     return "Maroc"
 
 def detect_secteur(title, desc=""):
     text = (title + " " + desc).lower()
     scores = {}
-    for s, kws in SECTEUR_KWS.items():
-        sc = sum(3 if len(k) > 12 else (2 if len(k) > 7 else 1) for k in kws if k in text)
+    for s, kws in SECTEURS.items():
+        sc = sum(3 if len(k)>12 else 2 if len(k)>7 else 1 for k in kws if k in text)
         if sc: scores[s] = sc
     return max(scores, key=scores.get) if scores else "P825 - Fournitures Bureau"
 
 def detect_type(title):
     t = title.lower()
-    if any(k in t for k in ["travaux","construction","réhabilitation","pose","démolition","rénovation","étanchéité","terrassement","voirie"]): return "Travaux"
+    if any(k in t for k in ["travaux","construction","réhabilitation","rénovation","étanchéité","terrassement","pose","démolition"]): return "Travaux"
     if any(k in t for k in ["fourniture","livraison","achat","acquisition","matériel","équipement","approvisionnement"]): return "Fournitures"
-    if any(k in t for k in ["service","prestation","maintenance","entretien","gardiennage","nettoyage","transport","restauration"]): return "Services"
-    if any(k in t for k in ["étude","mission","audit","conseil","formation","expertise","ingénierie","maîtrise"]): return "Études & Conseil"
+    if any(k in t for k in ["service","prestation","maintenance","gardiennage","nettoyage","transport","restauration","hygiène"]): return "Services"
+    if any(k in t for k in ["étude","mission","audit","conseil","formation","expertise","ingénierie","maîtrise","diagnostic"]): return "Études & Conseil"
     return "Fournitures"
+
+def build_tender(source, url, title, text, acheteur="", date_pub="", date_lim="", montant_raw=""):
+    """Build a validated Tender object"""
+    title = clean_text(title, 400)
+    if not title or not is_real_tender(title, text): return None
+    bmin, bmax, montant = extract_budget(montant_raw or "")
+    if not montant:
+        m = re.search(r'(\d[\d\s,.]+)\s*(?:DH|MAD)', text, re.I)
+        if m: bmin, bmax, montant = extract_budget(m.group(0))
+    dates = re.findall(r'\d{1,2}[/\-\.]\d{2}[/\-\.]\d{4}', text)
+    dl = normalize_date(date_lim or (dates[-1] if dates else ""))
+    dp = normalize_date(date_pub or (dates[0] if len(dates) > 1 else ""))
+    return Tender(
+        id=make_id(source, title, url),
+        source=source, source_url=url,
+        objet=title, description=clean_text(text, 2000),
+        acheteur=clean_text(acheteur, 200),
+        region=detect_region(acheteur + " " + text[:600]),
+        domaine=detect_secteur(title, text[:500]),
+        type_marche=detect_type(title),
+        montant=montant, budget_min=bmin, budget_max=bmax,
+        date_publication=dp, date_limite=dl,
+        statut="expire" if is_expired(dl) else "actif",
+        date_extraction=datetime.now().strftime("%Y-%m-%d %H:%M"),
+    )
 
 
 # ══════════════════════════════════════════════════════
 # AI CLASSIFIER
 # ══════════════════════════════════════════════════════
 class AIClassifier:
-    PROMPT = """Analyse cet appel d'offres marocain pour PME.
-Titre: {title}
-Acheteur: {acheteur}
-Montant: {montant}
-Secteur détecté: {secteur}
-Description: {desc}
-
-Réponds UNIQUEMENT en JSON valide (sans markdown ni explication):
-{{"category":"{secteur}","score":<entier 0-100>,"reason":"<60 mots max en français>","estimated_competition":"faible|moyen|fort"}}
-
-Critères score:
-80-100: Petit budget (<200k DH), services courants, PME compétitive
-60-79: Budget moyen, technique accessible
-40-59: Technique ou budget important
-20-39: Gros lot, très concurrentiel
-0-19: International, très complexe"""
-
     @staticmethod
-    async def classify(t, anthropic_key):
-        if not anthropic_key:
+    async def classify(t, key):
+        if not key:
             return {"category": t.domaine, "score": 50, "reason": "IA non configurée", "estimated_competition": "moyen"}
         try:
             import httpx
-            prompt = AIClassifier.PROMPT.format(
-                title=t.objet[:200], acheteur=t.acheteur[:80],
-                montant=t.montant or "Non précisé", secteur=t.domaine,
-                desc=t.description[:300]
-            )
-            async with httpx.AsyncClient(timeout=25) as client:
-                r = await client.post(
-                    "https://api.anthropic.com/v1/messages",
-                    headers={"x-api-key": anthropic_key, "anthropic-version": "2023-06-01", "content-type": "application/json"},
-                    json={"model": "claude-haiku-4-5-20251001", "max_tokens": 200,
-                          "messages": [{"role": "user", "content": prompt}]}
-                )
+            p = f"""Analyse cet AO marocain pour PME. JSON seulement:
+{{"category":"{t.domaine}","score":<0-100>,"reason":"<50 mots>","estimated_competition":"faible|moyen|fort"}}
+Score: 80+=facile(PME), 60-79=moyen, 40-59=technique, <40=complexe.
+Titre:{t.objet[:150]} | Acheteur:{t.acheteur[:60]} | Montant:{t.montant or "N/A"} | Secteur:{t.domaine}"""
+            async with httpx.AsyncClient(timeout=20) as c:
+                r = await c.post("https://api.anthropic.com/v1/messages",
+                    headers={"x-api-key":key,"anthropic-version":"2023-06-01","content-type":"application/json"},
+                    json={"model":"claude-haiku-4-5-20251001","max_tokens":150,
+                          "messages":[{"role":"user","content":p}]})
                 if r.status_code == 200:
-                    text = r.json()["content"][0]["text"].strip()
-                    text = re.sub(r'^```(?:json)?\s*|\s*```$', '', text).strip()
-                    return json.loads(text)
+                    txt = r.json()["content"][0]["text"].strip()
+                    txt = re.sub(r'^```(?:json)?\s*|\s*```$','',txt).strip()
+                    return json.loads(txt)
         except Exception as e:
-            logger.error(f"[AI classify] {e}")
+            logger.error(f"[AI] {e}")
         return {"category": t.domaine, "score": 50, "reason": "Erreur IA", "estimated_competition": "moyen"}
 
     @staticmethod
-    async def batch_classify(tenders, anthropic_key, max_b=10):
+    async def batch_classify(tenders, key, max_b=8):
         import asyncio
         results = []
         for t in tenders[:max_b]:
-            res = await AIClassifier.classify(t, anthropic_key)
+            res = await AIClassifier.classify(t, key)
             t.ai_score    = max(0, min(100, int(res.get("score", 50))))
             t.ai_category = res.get("category", t.domaine)
             t.ai_reason   = res.get("reason", "")
             results.append(t)
-            await asyncio.sleep(0.35)
+            await asyncio.sleep(0.4)
         for t in tenders[max_b:]:
-            t.ai_score = 50
-            results.append(t)
+            t.ai_score = 50; results.append(t)
         return results
 
 
 # ══════════════════════════════════════════════════════
-# BASE SCRAPER
-# ══════════════════════════════════════════════════════
-def _make_tender(source, url, title, text, acheteur="", date_pub="", date_lim="", montant_raw=""):
-    title = clean_text(title, 400)
-    if not title or len(title) < 12: return None
-    bmin, bmax, montant = extract_budget(montant_raw or re.search(r'(\d[\d\s,.]+)\s*(?:DH|MAD)', text, re.I) and re.search(r'(\d[\d\s,.]+)\s*(?:DH|MAD)', text, re.I).group(0) or "")
-    date_m = re.search(r'(\d{1,2}[/\-\.]\d{2}[/\-\.]\d{4})', text) if not date_lim else None
-    dl = normalize_date(date_lim or (date_m.group(1) if date_m else ""))
-    return Tender(
-        id=make_id(source, title, url), source=source, source_url=url,
-        objet=title, description=clean_text(text, 2000),
-        acheteur=acheteur[:200],
-        region=detect_region(acheteur + " " + text[:500]),
-        domaine=detect_secteur(title, text[:400]),
-        type_marche=detect_type(title),
-        montant=montant, budget_min=bmin, budget_max=bmax,
-        date_publication=normalize_date(date_pub),
-        date_limite=dl,
-        statut="expire" if is_expired(dl) else "actif",
-        date_extraction=datetime.now().strftime("%Y-%m-%d %H:%M"),
-    )
-
-def _scrape_lematin_style(soup, base_url, source, known, log):
-    """Generic scraper for Le Matin style — list of AO links"""
-    from urllib.parse import urljoin
-    tenders = []
-    links = soup.find_all("a", href=re.compile(r'annonce|appel|offre|consultation|ao|marche', re.I))
-    seen_hrefs = set()
-    for a in links:
-        href = urljoin(base_url, a.get("href", ""))
-        if href in seen_hrefs or not href.startswith("http"): continue
-        seen_hrefs.add(href)
-        title = clean_text(a.get_text())
-        if not title or not is_real_tender(title): continue
-        tid = make_id(source, title, href)
-        if tid in known: continue
-        try:
-            s = make_session()
-            r = s.get(href, timeout=12)
-            if r.status_code != 200: continue
-            from bs4 import BeautifulSoup as BS
-            s2 = BS(r.text, "html.parser")
-            full = s2.get_text(" ", strip=True)
-            h1 = s2.find(["h1","h2"])
-            title2 = clean_text(h1.get_text() if h1 else title, 400)
-            acheteur = ""
-            for p in s2.find_all("p")[:5]:
-                txt = p.get_text(strip=True)
-                if any(k in txt.upper() for k in ["MINISTÈRE","DIRECTION","COMMUNE","PROVINCE","UNIVERSITÉ","CENTRE","AGENCE","ROYAUME","OFFICE","SOCIÉTÉ"]):
-                    acheteur = clean_text(txt, 200); break
-            t = _make_tender(source, href, title2 or title, full, acheteur)
-            if t:
-                tenders.append(t); known.add(t.id)
-                log(f"✓ {t.objet[:60]}")
-            sleep_r(0.6, 1.4)
-        except: continue
-    return tenders
-
-
-# ══════════════════════════════════════════════════════
-# SOURCE 1: marchespublics.gov.ma
+# SOURCE 1: marchespublics.gov.ma — Principal ✅
 # ══════════════════════════════════════════════════════
 class MarchesPublicsScraper:
     BASE = "https://www.marchespublics.gov.ma/bdc/entreprise/consultation"
@@ -407,31 +425,25 @@ class MarchesPublicsScraper:
     def scrape(cls, known, log_fn=None):
         from bs4 import BeautifulSoup as BS
         s = make_session(); tenders = []
-        def log(m): 
-            if log_fn: log_fn(f"[MarchesPublics] {m}")
+        def log(m): log_fn(f"[MarchesPublics] {m}") if log_fn else None
         ids_found = []
         for page in range(1, 15):
-            url = cls.BASE + "/" if page == 1 else f"{cls.BASE}/?page={page}"
-            try:
-                r = s.get(url, timeout=20)
-                if r.status_code != 200: break
-                page_ids = list(set(re.findall(r'/show/(\d{3,7})', r.text)))
-                new = [i for i in page_ids if f"bdc_{i}" not in known]
-                if not new and page > 1: break
-                ids_found.extend(new)
-                log(f"Page {page}: +{len(new)} IDs")
-                sleep_r(0.8, 1.5)
-            except Exception as e: log(f"Page {page}: {e}"); break
-        log(f"Fetching {min(len(ids_found),100)} tenders...")
+            url = f"{cls.BASE}/" if page == 1 else f"{cls.BASE}/?page={page}"
+            r = fetch(s, url, timeout=25, retries=3)
+            if not r: break
+            page_ids = list(set(re.findall(r'/show/(\d{3,7})', r.text)))
+            new = [i for i in page_ids if f"bdc_{i}" not in known]
+            if not new and page > 1: break
+            ids_found.extend(new)
+            log(f"Page {page}: +{len(new)} IDs")
+            sleep_r(0.8, 1.5)
+        log(f"Fetching {min(len(ids_found),100)}...")
         for tid in ids_found[:100]:
-            try:
-                r = s.get(f"{cls.BASE}/show/{tid}", timeout=15)
-                if r.status_code != 200: continue
-                if len(r.text) < 3000: continue
-                t = cls._parse(r.text, tid)
-                if t: tenders.append(t); known.add(t.id); log(f"✓ #{tid} {t.objet[:55]}")
-                sleep_r(0.4, 1.2)
-            except Exception as e: log(f"#{tid}: {e}")
+            r = fetch(s, f"{cls.BASE}/show/{tid}", timeout=20, retries=2)
+            if not r or len(r.text) < 3000: continue
+            t = cls._parse(r.text, tid)
+            if t: tenders.append(t); known.add(t.id); log(f"✓ #{tid} {t.objet[:55]}")
+            sleep_r(0.8, 1.8)
         log(f"Done: {len(tenders)}")
         return tenders
 
@@ -444,7 +456,7 @@ class MarchesPublicsScraper:
             def cell(lbl):
                 for row in soup.find_all("tr"):
                     cells = row.find_all(["td","th"])
-                    for i,c in enumerate(cells):
+                    for i, c in enumerate(cells):
                         if lbl.lower() in c.get_text().lower() and i+1 < len(cells):
                             v = cells[i+1].get_text(strip=True)
                             if v and len(v) > 1: return v[:400]
@@ -454,26 +466,25 @@ class MarchesPublicsScraper:
                 el = soup.select_one(sel)
                 if el:
                     txt = el.get_text(strip=True)
-                    if 8 < len(txt) < 600 and not any(s in txt.lower() for s in ["accueil","liste des avis","connexion"]):
+                    if 8 < len(txt) < 600 and not any(x in txt.lower() for x in ["accueil","liste des avis","connexion"]):
                         objet = txt; break
             if not objet:
                 for lbl in ["objet du marché","objet","intitulé","désignation"]:
                     v = cell(lbl)
                     if v and len(v) > 8: objet = v; break
             if not objet or len(objet) < 8: return None
-            acheteur = (cell("maître d'ouvrage") or cell("organisme") or cell("entité") or "").strip()
-            date_pub = normalize_date(cell("publication") or cell("parution") or "")
-            date_lim = normalize_date(cell("remise") or cell("limite") or cell("dépôt") or "")
+            acheteur = (cell("maître d'ouvrage") or cell("organisme") or "").strip()
+            date_pub = normalize_date(cell("publication") or "")
+            date_lim = normalize_date(cell("remise") or cell("limite") or "")
             mon_raw  = cell("montant") or cell("estimation") or ""
-            if not mon_raw:
-                m = re.search(r'(\d[\d\s,.]+)\s*(?:DH|MAD)', full, re.I)
-                if m: mon_raw = m.group(0)[:80]
             bmin, bmax, montant = extract_budget(mon_raw)
-            objet = clean_text(objet, 400)
+            if not montant:
+                m = re.search(r'(\d[\d\s,.]+)\s*(?:DH|MAD)', full, re.I)
+                if m: bmin, bmax, montant = extract_budget(m.group(0))
             return Tender(
                 id=f"bdc_{tid}", source="marchespublics",
                 source_url=f"{MarchesPublicsScraper.BASE}/show/{tid}",
-                objet=objet, description=clean_text(full, 2000),
+                objet=clean_text(objet, 400), description=clean_text(full, 2000),
                 acheteur=acheteur[:200],
                 region=detect_region(acheteur + " " + full[:500]),
                 domaine=detect_secteur(objet, full[:400]),
@@ -484,12 +495,12 @@ class MarchesPublicsScraper:
                 date_extraction=datetime.now().strftime("%Y-%m-%d %H:%M"),
             )
         except Exception as e:
-            logger.error(f"[parse bdc #{tid}] {e}")
+            logger.error(f"[parse #{tid}] {e}")
             return None
 
 
 # ══════════════════════════════════════════════════════
-# SOURCE 2: annonces.lematin.ma
+# SOURCE 2: annonces.lematin.ma — Journal Le Matin ✅
 # ══════════════════════════════════════════════════════
 class LeMatinScraper:
     BASE = "https://annonces.lematin.ma"
@@ -497,365 +508,314 @@ class LeMatinScraper:
     @classmethod
     def scrape(cls, known, log_fn=None):
         from bs4 import BeautifulSoup as BS
+        from urllib.parse import urljoin
         s = make_session(); tenders = []
-        def log(m): 
-            if log_fn: log_fn(f"[LeMatin] {m}")
-        log("Scraping annonces.lematin.ma...")
+        def log(m): log_fn(f"[LeMatin] {m}") if log_fn else None
+        log("Scraping...")
         for page in range(1, 8):
             url = f"{cls.BASE}/annonces/appels-offres/" if page == 1 else f"{cls.BASE}/annonces/appels-offres/?page={page}"
-            try:
-                r = s.get(url, timeout=20)
-                if r.status_code != 200: break
-                soup = BS(r.text, "html.parser")
-                new_p = _scrape_lematin_style(soup, cls.BASE, "lematin", known, log)
-                tenders.extend(new_p)
-                if not new_p: break
-                sleep_r(1.5, 2.5)
-            except Exception as e: log(f"Page {page}: {e}"); break
+            r = fetch(s, url, timeout=20)
+            if not r: break
+            soup = BS(r.text, "html.parser")
+            # Find AO article links
+            links = soup.find_all("a", href=re.compile(r'/annonce/', re.I))
+            if not links: break
+            new_p = 0
+            seen_h = set()
+            for a in links:
+                href = urljoin(cls.BASE, a.get("href", ""))
+                if href in seen_h: continue
+                seen_h.add(href)
+                preview = clean_text(a.get_text())
+                tid = make_id("lematin", href)
+                if tid in known: continue
+                r2 = fetch(s, href, timeout=15)
+                if not r2: continue
+                s2 = BS(r2.text, "html.parser")
+                full = s2.get_text(" ", strip=True)
+                h1 = s2.find("h1") or s2.find("h2")
+                title = clean_text(h1.get_text() if h1 else preview, 400)
+                if not title or not is_real_tender(title, full): continue
+                # Extract acheteur
+                acheteur = ""
+                for p in s2.find_all("p")[:8]:
+                    txt = p.get_text(strip=True)
+                    if len(txt) > 10 and any(k in txt.upper() for k in
+                        ["MINISTÈRE","DIRECTION","COMMUNE","PROVINCE","UNIVERSITÉ",
+                         "CENTRE","AGENCE","ROYAUME","OFFICE","SOCIÉTÉ","ÉTABLISSEMENT",
+                         "PRÉFECTURE","WILAYA","RÉGION","LYCÉE","DÉLÉGATION","CAÏDAT"]):
+                        acheteur = clean_text(txt, 200); break
+                t = build_tender("lematin", href, title, full, acheteur)
+                if t:
+                    tenders.append(t); known.add(tid); new_p += 1
+                    log(f"✓ {t.objet[:60]}")
+                sleep_r(0.8, 1.5)
+            if new_p == 0: break
+            sleep_r(2.0, 3.5)
         log(f"Total: {len(tenders)}")
         return tenders
 
 
 # ══════════════════════════════════════════════════════
-# SOURCE 3: SNRT — ao.snrt.ma (Télévision nationale)
+# SOURCE 3: flasheconomie.com — JAL depuis 1957 ✅
 # ══════════════════════════════════════════════════════
-class SNRTScraper:
-    BASE = "https://ao.snrt.ma"
+class FlashEconomieScraper:
+    BASE = "https://flasheconomie.com"
 
     @classmethod
     def scrape(cls, known, log_fn=None):
         from bs4 import BeautifulSoup as BS
+        from urllib.parse import urljoin
         s = make_session(); tenders = []
-        def log(m): 
-            if log_fn: log_fn(f"[SNRT] {m}")
-        log("Scraping ao.snrt.ma...")
-        try:
-            r = s.get(cls.BASE, timeout=15)
-            if r.status_code != 200: log(f"Status {r.status_code}"); return []
+        def log(m): log_fn(f"[FlashEconomie] {m}") if log_fn else None
+        log("Scraping flasheconomie.com...")
+        urls = [
+            f"{cls.BASE}/category/consulter-les-annonces-legales/",
+            f"{cls.BASE}/category/appels-offres/",
+            f"{cls.BASE}/category/annonce-legale/",
+        ]
+        for url in urls:
+            r = fetch(s, url, timeout=15)
+            if not r: continue
             soup = BS(r.text, "html.parser")
-            new = _scrape_lematin_style(soup, cls.BASE, "snrt", known, log)
-            tenders.extend(new)
-            # Try listing page
-            for path in ["/index.php?page=entreprise.EntrepriseAdvancedSearch", "/consultations", "/ao"]:
-                try:
-                    r2 = s.get(cls.BASE + path, timeout=12)
-                    if r2.status_code == 200:
-                        s2 = BS(r2.text, "html.parser")
-                        # Find tender IDs like marchespublics
-                        ids = re.findall(r'/show/(\d{3,7})', r2.text)
-                        for tid in set(ids):
-                            oid = make_id("snrt", f"ao_{tid}", "")
-                            if oid in known: continue
-                            r3 = s.get(f"{cls.BASE}/index.php?page=entreprise.EntrepriseConsultation&id={tid}", timeout=12)
-                            if r3.status_code == 200:
-                                s3 = BS(r3.text, "html.parser")
-                                full = s3.get_text(" ", strip=True)
-                                h1 = s3.find(["h1","h2","h3"])
-                                title = clean_text(h1.get_text() if h1 else "", 400)
-                                if title and is_real_tender(title, full):
-                                    t = _make_tender("snrt", r3.url, title, full, "SNRT — Société Nationale de Radiodiffusion et de Télévision")
-                                    if t: tenders.append(t); known.add(t.id); log(f"✓ {t.objet[:55]}")
-                            sleep_r(0.5, 1.0)
-                except: pass
-        except Exception as e: log(f"Error: {e}")
+            # WordPress-style posts
+            posts = soup.select("article.post, article, .post, .entry, .hentry")
+            if not posts:
+                posts = soup.find_all("div", class_=re.compile(r'post|article|entry', re.I))
+            for post in posts[:20]:
+                link = post.find("a", href=True)
+                if not link: continue
+                href = urljoin(cls.BASE, link.get("href",""))
+                if not href.startswith(cls.BASE): continue
+                title_el = post.find(["h2","h3","h1"])
+                title = clean_text(title_el.get_text() if title_el else link.get_text(), 400)
+                if not title or len(title) < 12: continue
+                # Pre-filter on title
+                if not is_real_tender(title): continue
+                tid = make_id("flasheconomie", title, href)
+                if tid in known: continue
+                # Fetch detail
+                r2 = fetch(s, href, timeout=12)
+                if not r2: continue
+                s2 = BS(r2.text, "html.parser")
+                full = s2.get_text(" ", strip=True)
+                if not is_real_tender(title, full): continue
+                acheteur = ""
+                for p in s2.find_all("p")[:8]:
+                    txt = p.get_text(strip=True)
+                    if any(k in txt.upper() for k in ["ROYAUME","MINISTÈRE","COMMUNE","DIRECTION","PROVINCE","OFFICE"]):
+                        acheteur = clean_text(txt, 200); break
+                t = build_tender("flasheconomie", href, title, full, acheteur)
+                if t:
+                    tenders.append(t); known.add(tid)
+                    log(f"✓ {t.objet[:60]}")
+                sleep_r(0.8, 1.5)
         log(f"Total: {len(tenders)}")
         return tenders
 
 
 # ══════════════════════════════════════════════════════
-# GENERIC PAGE SCRAPER — for standard HTML AO pages
+# SOURCE 4: leconomiste.com — Premier quotidien éco ✅
 # ══════════════════════════════════════════════════════
-def scrape_page(source, url, acheteur, region, known, log, selectors=None):
-    """Scrapes a single AO page and returns Tender objects"""
-    from bs4 import BeautifulSoup as BS
-    from urllib.parse import urljoin
-    tenders = []
-    try:
-        s = make_session()
-        r = s.get(url, timeout=15)
-        if r.status_code != 200: log(f"  {source}: {r.status_code}"); return []
+class LEconomisteScraper:
+    BASE = "https://www.leconomiste.com"
+
+    @classmethod
+    def scrape(cls, known, log_fn=None):
+        from bs4 import BeautifulSoup as BS
+        from urllib.parse import urljoin
+        s = make_session(); tenders = []
+        def log(m): log_fn(f"[LEconomiste] {m}") if log_fn else None
+        log("Scraping leconomiste.com...")
+        ao_urls = [
+            f"{cls.BASE}/appels-offres",
+            f"{cls.BASE}/article/appels-offres",
+            f"{cls.BASE}/content/appels-doffres",
+        ]
+        for url in ao_urls:
+            r = fetch(s, url, timeout=15)
+            if not r: continue
+            soup = BS(r.text, "html.parser")
+            # Find AO links
+            links = soup.find_all("a", href=re.compile(r'appel|offre|marche|ao', re.I))
+            seen_h = set()
+            for a in links[:30]:
+                href = urljoin(cls.BASE, a.get("href",""))
+                if href in seen_h or not href.startswith(cls.BASE): continue
+                seen_h.add(href)
+                title = clean_text(a.get_text())
+                if not title or not is_real_tender(title): continue
+                tid = make_id("leconomiste", title, href)
+                if tid in known: continue
+                r2 = fetch(s, href, timeout=12)
+                if not r2: continue
+                s2 = BS(r2.text, "html.parser")
+                full = s2.get_text(" ", strip=True)
+                h1 = s2.find("h1") or s2.find("h2")
+                title2 = clean_text(h1.get_text() if h1 else title, 400)
+                if not is_real_tender(title2, full): continue
+                t = build_tender("leconomiste", href, title2, full)
+                if t:
+                    tenders.append(t); known.add(tid)
+                    log(f"✓ {t.objet[:60]}")
+                sleep_r(1.0, 2.0)
+            if tenders: break  # Found on first working URL
+        log(f"Total: {len(tenders)}")
+        return tenders
+
+
+# ══════════════════════════════════════════════════════
+# SOURCE 5: tanmia.ma — ONG & Coopération ✅
+# ══════════════════════════════════════════════════════
+class TanmiaScraper:
+    BASE = "https://tanmia.ma"
+
+    @classmethod
+    def scrape(cls, known, log_fn=None):
+        from bs4 import BeautifulSoup as BS
+        from urllib.parse import urljoin
+        s = make_session(); tenders = []
+        def log(m): log_fn(f"[Tanmia] {m}") if log_fn else None
+        log("Scraping tanmia.ma...")
+        r = fetch(s, f"{cls.BASE}/appels-doffres/", timeout=15)
+        if not r: log("Inaccessible"); return []
+        soup = BS(r.text, "html.parser")
+        posts = soup.select("article,.post,.entry,.ao-item")
+        if not posts: posts = soup.find_all("article") or soup.find_all("div", class_="post")
+        for post in posts[:20]:
+            link = post.find("a", href=True)
+            if not link: continue
+            href = urljoin(cls.BASE, link.get("href",""))
+            title_el = post.find(["h2","h3","h4"])
+            title = clean_text(title_el.get_text() if title_el else link.get_text(), 400)
+            if not title or len(title) < 12: continue
+            tid = make_id("tanmia", title, href)
+            if tid in known: continue
+            text = post.get_text(" ", strip=True)
+            t = build_tender("tanmia", href, title, text,
+                             "Tanmia.ma — ONG & Coopération internationale")
+            if t:
+                tenders.append(t); known.add(tid)
+                log(f"✓ {t.objet[:60]}")
+        log(f"Total: {len(tenders)}")
+        return tenders
+
+
+# ══════════════════════════════════════════════════════
+# SOURCE 6: mtaess.gov.ma — Ministère Tourisme ✅
+# ══════════════════════════════════════════════════════
+class TourismeScraper:
+    BASE = "https://mtaess.gov.ma"
+
+    @classmethod
+    def scrape(cls, known, log_fn=None):
+        from bs4 import BeautifulSoup as BS
+        from urllib.parse import urljoin
+        s = make_session(); tenders = []
+        def log(m): log_fn(f"[Tourisme] {m}") if log_fn else None
+        log("Scraping mtaess.gov.ma...")
+        r = fetch(s, f"{cls.BASE}/fr/appels-doffres/", timeout=15)
+        if not r: log("Inaccessible"); return []
+        soup = BS(r.text, "html.parser")
+        links = soup.find_all("a", href=re.compile(r'appel|offre|marche|ao|consultation', re.I))
+        seen = set()
+        for a in links[:25]:
+            href = urljoin(cls.BASE, a.get("href",""))
+            title = clean_text(a.get_text())
+            if href in seen or len(title) < 12: continue
+            seen.add(href)
+            if not is_real_tender(title): continue  # Strict filter on title
+            tid = make_id("tourisme", title, href)
+            if tid in known: continue
+            r2 = fetch(s, href, timeout=12)
+            if not r2: continue
+            s2 = BS(r2.text, "html.parser")
+            full = s2.get_text(" ", strip=True)
+            h1 = s2.find("h1") or s2.find("h2")
+            title2 = clean_text(h1.get_text() if h1 else title, 400)
+            if not is_real_tender(title2, full): continue
+            t = build_tender("tourisme", href, title2, full, "Ministère du Tourisme et de l'Artisanat")
+            if t:
+                tenders.append(t); known.add(tid)
+                log(f"✓ {t.objet[:60]}")
+            sleep_r(0.8, 1.5)
+        log(f"Total: {len(tenders)}")
+        return tenders
+
+
+# ══════════════════════════════════════════════════════
+# SOURCE 7: creditagricole.ma ✅
+# ══════════════════════════════════════════════════════
+class CreditAgricoleScraper:
+    BASE = "https://www.creditagricole.ma"
+
+    @classmethod
+    def scrape(cls, known, log_fn=None):
+        from bs4 import BeautifulSoup as BS
+        from urllib.parse import urljoin
+        s = make_session(); tenders = []
+        def log(m): log_fn(f"[CreditAgricole] {m}") if log_fn else None
+        log("Scraping creditagricole.ma...")
+        r = fetch(s, f"{cls.BASE}/fr/appel-offres", timeout=12)
+        if not r: log("Inaccessible"); return []
+        soup = BS(r.text, "html.parser")
+        for item in soup.find_all(["li","tr","div"])[:40]:
+            text = item.get_text(" ", strip=True)
+            if len(text) < 20 or len(text) > 2000: continue
+            link = item.find("a", href=True)
+            href = urljoin(cls.BASE, link.get("href","")) if link else f"{cls.BASE}/fr/appel-offres"
+            title_el = item.find(["h2","h3","h4","strong"])
+            title = clean_text(title_el.get_text() if title_el else text[:120], 400)
+            if not title or not is_real_tender(title, text): continue
+            tid = make_id("creditagricole", title, href)
+            if tid in known: continue
+            t = build_tender("creditagricole", href, title, text, "Crédit Agricole du Maroc")
+            if t:
+                t.region = "Rabat-Salé-Kénitra"
+                tenders.append(t); known.add(tid)
+                log(f"✓ {t.objet[:60]}")
+        log(f"Total: {len(tenders)}")
+        return tenders
+
+
+# ══════════════════════════════════════════════════════
+# SOURCE 8: chumarrakech.ma — CHU ✅
+# ══════════════════════════════════════════════════════
+class CHUMarrakechScraper:
+    BASE = "https://www.chumarrakech.ma"
+
+    @classmethod
+    def scrape(cls, known, log_fn=None):
+        from bs4 import BeautifulSoup as BS
+        from urllib.parse import urljoin
+        s = make_session(); tenders = []
+        def log(m): log_fn(f"[CHU_Marrakech] {m}") if log_fn else None
+        log("Scraping chumarrakech.ma...")
+        r = fetch(s, f"{cls.BASE}/index.php/annonces/fournisseurs/appels-doffres", timeout=12)
+        if not r: log("Inaccessible"); return []
         soup = BS(r.text, "html.parser")
         full_page = soup.get_text(" ", strip=True)
-
-        # If the page references marchespublics — skip (duplicates)
-        if full_page.count("marchespublics.gov.ma") > 10:
-            log(f"  {source}: redirects to marchespublics")
-            return []
-
-        # Try custom selectors first
-        items = []
-        for sel in (selectors or ["article",".ao-item",".offre-item",".tender-item",
-                                    "tr.ao","li.offre",".appel",".marche-item"]):
-            items = soup.select(sel)
-            if len(items) > 1: break
-
-        # Generic fallback: find all links with AO-like text
-        if not items:
-            items = soup.find_all("a", href=True)
-            for a in items:
-                href = urljoin(url, a.get("href",""))
-                title = clean_text(a.get_text())
-                if len(title) < 12 or not is_real_tender(title): continue
-                if not href.startswith("http"): continue
-                tid = make_id(source, title, href)
-                if tid in known: continue
-                try:
-                    r2 = s.get(href, timeout=10)
-                    if r2.status_code != 200: continue
-                    s2 = BS(r2.text, "html.parser")
-                    full = s2.get_text(" ", strip=True)
-                    h1 = s2.find(["h1","h2"])
-                    title2 = clean_text(h1.get_text() if h1 else title, 400)
-                    t = _make_tender(source, href, title2, full, acheteur)
-                    if t: t.region = region; tenders.append(t); known.add(t.id); log(f"  ✓ [{source}] {t.objet[:55]}")
-                    sleep_r(0.5, 1.2)
-                except: continue
-            return tenders
-
-        for item in items[:25]:
-            link = item.find("a", href=True) if item.name != "a" else item
-            if not link: continue
-            href = urljoin(url, link.get("href",""))
-            title_el = item.find(["h2","h3","h4","strong","td","p"])
-            title = clean_text(link.get_text() if len(link.get_text(strip=True)) > 10 else (title_el.get_text() if title_el else ""))
+        # CHU lists AO as text blocks with AAC/AO numbers
+        matches = re.finditer(
+            r'((?:AAC|AO)\s*\d+/\d{4}[^.]*(?:fourniture|travaux|service|achat|maintenance|nettoyage|gardiennage|[^.]{10,60}))',
+            full_page, re.I
+        )
+        for m in matches:
+            title = clean_text(m.group(1), 300)
             if not title or not is_real_tender(title): continue
-            tid = make_id(source, title, href)
+            tid = make_id("chu_marrakech", title)
             if tid in known: continue
-            text = item.get_text(" ", strip=True)
-            date_m = re.search(r'(\d{2}[/\-\.]\d{2}[/\-\.]\d{4})', text)
-            date_lim = normalize_date(date_m.group(1) if date_m else "")
-            mon_m = re.search(r'(\d[\d\s,.]+)\s*(?:DH|MAD)', text, re.I)
-            bmin, bmax, montant = extract_budget(mon_m.group(0) if mon_m else "")
-            t = Tender(
-                id=tid, source=source, source_url=href,
-                objet=title[:400], description=clean_text(text, 1000),
-                acheteur=acheteur, region=region,
-                domaine=detect_secteur(title, text),
-                type_marche=detect_type(title),
-                montant=montant, budget_min=bmin, budget_max=bmax,
-                date_limite=date_lim,
-                statut="expire" if is_expired(date_lim) else "actif",
-                date_extraction=datetime.now().strftime("%Y-%m-%d %H:%M"),
+            t = build_tender(
+                "chu_marrakech",
+                f"{cls.BASE}/index.php/annonces/fournisseurs/appels-doffres",
+                title, full_page[:1000],
+                "CHU Mohammed VI Marrakech"
             )
-            tenders.append(t); known.add(tid)
-            log(f"  ✓ [{source}] {t.objet[:55]}")
-    except Exception as e:
-        log(f"  {source}: {e}")
-    return tenders
-
-
-# ══════════════════════════════════════════════════════
-# SOURCE 4-25: Organismes publics
-# ══════════════════════════════════════════════════════
-PUBLIC_ORGS = [
-    # === MINISTÈRES ===
-    {
-        "source": "equipement",
-        "url":    "http://appels-offres.equipement.gov.ma/",
-        "acheteur": "Ministère de l'Équipement et de l'Eau",
-        "region": "Maroc",
-    },
-    {
-        "source": "finances",
-        "url":    "https://www.finances.gov.ma/fr/vous-orientez/Pages/appels-offres.aspx",
-        "acheteur": "Ministère de l'Économie et des Finances",
-        "region": "Rabat-Salé-Kénitra",
-    },
-    {
-        "source": "collectivites",
-        "url":    "https://www.collectivites-territoriales.gov.ma/fr/appel-doffres",
-        "acheteur": "Direction des Collectivités Territoriales",
-        "region": "Maroc",
-    },
-    {
-        "source": "numerique",
-        "url":    "https://www.mmsp.gov.ma/fr/appel-offres",
-        "acheteur": "Ministère de la Transition Numérique",
-        "region": "Rabat-Salé-Kénitra",
-    },
-    {
-        "source": "tourisme",
-        "url":    "https://mtaess.gov.ma/fr/appels-doffres/",
-        "acheteur": "Ministère du Tourisme et de l'Artisanat",
-        "region": "Rabat-Salé-Kénitra",
-    },
-    # === ENTREPRISES PUBLIQUES ===
-    {
-        "source": "onee",
-        "url":    "https://www.one.org.ma/FR/pages/aoselect.asp?esp=2&id1=7&id2=64&id3=54&t2=1&t3=1",
-        "acheteur": "ONEE — Office National de l'Électricité et de l'Eau Potable",
-        "region": "Maroc",
-    },
-    {
-        "source": "oncf",
-        "url":    "https://www.oncf.ma/fr/appels-offres",
-        "acheteur": "ONCF — Office National des Chemins de Fer",
-        "region": "Maroc",
-    },
-    {
-        "source": "cdg",
-        "url":    "https://www.cdg.ma/fr/appels-offres",
-        "acheteur": "CDG — Caisse de Dépôt et de Gestion",
-        "region": "Rabat-Salé-Kénitra",
-    },
-    {
-        "source": "onda",
-        "url":    "https://www.onda.ma/fr/appels-offres",
-        "acheteur": "ONDA — Office National Des Aéroports",
-        "region": "Maroc",
-    },
-    {
-        "source": "anrt",
-        "url":    "https://www.anrt.ma/publications/appels-doffres/consulter-les-appels-doffres",
-        "acheteur": "ANRT — Agence Nationale de Réglementation des Télécommunications",
-        "region": "Rabat-Salé-Kénitra",
-    },
-    {
-        "source": "anam",
-        "url":    "https://www.anam.ma/appels-doffres/",
-        "acheteur": "ANAM — Agence Nationale de l'Assurance Maladie",
-        "region": "Rabat-Salé-Kénitra",
-    },
-    {
-        "source": "ram",
-        "url":    "https://www.royalairmaroc.com/ma-fr/Groupe/Appels-offres",
-        "acheteur": "Royal Air Maroc (RAM)",
-        "region": "Casablanca-Settat",
-    },
-    {
-        "source": "tanmia",
-        "url":    "https://tanmia.ma/appels-doffres/",
-        "acheteur": "Tanmia.ma — ONG & Coopération internationale",
-        "region": "Maroc",
-    },
-    {
-        "source": "creditagricole",
-        "url":    "https://www.creditagricole.ma/fr/appel-offres",
-        "acheteur": "Crédit Agricole du Maroc",
-        "region": "Rabat-Salé-Kénitra",
-    },
-    # === CHU & SANTÉ ===
-    {
-        "source": "chu_marrakech",
-        "url":    "https://www.chumarrakech.ma/index.php/annonces/fournisseurs/appels-doffres",
-        "acheteur": "CHU Mohammed VI Marrakech",
-        "region": "Marrakech-Safi",
-    },
-    {
-        "source": "chu_casablanca",
-        "url":    "https://www.chu-ibn-rochd.ma/index.php/offres-de-marches",
-        "acheteur": "CHU Ibn Rochd Casablanca",
-        "region": "Casablanca-Settat",
-    },
-    {
-        "source": "sante",
-        "url":    "https://www.sante.gov.ma/AppelsOffres/Pages/AppelsOffres.aspx",
-        "acheteur": "Ministère de la Santé",
-        "region": "Maroc",
-    },
-    # === RÉGIES ===
-    {
-        "source": "lydec",
-        "url":    "https://www.lydec.ma/fr/appels-offres",
-        "acheteur": "LYDEC — Eau & Électricité Casablanca",
-        "region": "Casablanca-Settat",
-    },
-    {
-        "source": "amendis",
-        "url":    "https://www.amendis.ma/fr/appels-offres",
-        "acheteur": "AMENDIS — Tanger-Tétouan",
-        "region": "Tanger-Tétouan-Al Hoceima",
-    },
-    {
-        "source": "radeej",
-        "url":    "https://www.radeej.ma/fr/appels-offres",
-        "acheteur": "RADEEJ — El Jadida-Safi",
-        "region": "Casablanca-Settat",
-    },
-    # === UNIVERSITÉS ===
-    {
-        "source": "um5",
-        "url":    "https://www.um5.ac.ma/um5/appels-offres",
-        "acheteur": "Université Mohammed V Rabat",
-        "region": "Rabat-Salé-Kénitra",
-    },
-]
-
-
-class PublicOrgsScraper:
-    @classmethod
-    def scrape(cls, known, log_fn=None):
-        tenders = []
-        def log(m): 
-            if log_fn: log_fn(f"[PublicOrgs] {m}")
-        log(f"Scraping {len(PUBLIC_ORGS)} organismes...")
-
-        for org in PUBLIC_ORGS:
-            try:
-                new = scrape_page(
-                    org["source"], org["url"],
-                    org["acheteur"], org["region"],
-                    known, log,
-                )
-                tenders.extend(new)
-                if new: log(f"  {org['source']}: {len(new)} nouveaux")
-                sleep_r(1.0, 2.0)
-            except Exception as e:
-                log(f"  {org['source']}: {e}")
-
-        log(f"Total PublicOrgs: {len(tenders)}")
-        return tenders
-
-
-# ══════════════════════════════════════════════════════
-# SOURCE: Google Search cache (contourne les paywalls)
-# ══════════════════════════════════════════════════════
-class GoogleCacheScraper:
-    QUERIES = [
-        '"avis d\'appel d\'offres" maroc 2026 DH site:*.gov.ma',
-        '"appel d\'offres ouvert" maroc 2026 -site:marchespublics.gov.ma',
-        '"appel d\'offres" maroc 2026 "DH" "date limite"',
-    ]
-
-    @classmethod
-    def scrape(cls, known, log_fn=None):
-        from bs4 import BeautifulSoup as BS
-        s = make_session()
-        s.headers["User-Agent"] = random.choice(UA_LIST)
-        tenders = []
-        def log(m): 
-            if log_fn: log_fn(f"[Google] {m}")
-
-        for query in cls.QUERIES[:2]:
-            try:
-                encoded = query.replace(" ", "+").replace("'", "%27").replace('"', '%22')
-                r = s.get(f"https://www.google.com/search?q={encoded}&num=20&hl=fr", timeout=15)
-                if r.status_code != 200: log(f"Blocked ({r.status_code})"); continue
-                soup = BS(r.text, "html.parser")
-                for res in soup.select(".g, .tF2Cxc")[:15]:
-                    link_el = res.select_one("a[href]")
-                    if not link_el: continue
-                    href = link_el.get("href","")
-                    if href.startswith("/url?q="): href = href[7:].split("&")[0]
-                    if not href.startswith("http"): continue
-                    title_el = res.select_one("h3")
-                    snip_el  = res.select_one(".VwiC3b,.aCOpRe,.s3v9rd")
-                    title   = clean_text(title_el.get_text() if title_el else "")
-                    snippet = clean_text(snip_el.get_text() if snip_el else "", 500)
-                    if not title or not is_real_tender(title, snippet): continue
-                    tid = make_id("google", title, href)
-                    if tid in known: continue
-                    # Detect source
-                    src = "web"
-                    for domain in ["lematin","finances","equipement","oncf","onee","cdg","snrt","onda"]:
-                        if domain in href.lower(): src = domain; break
-                    t = _make_tender(src or "web", href, title, snippet)
-                    if t: tenders.append(t); known.add(tid); log(f"✓ [{src}] {t.objet[:55]}")
-                sleep_r(4.0, 7.0)
-            except Exception as e:
-                log(f"Error: {e}")
-
-        log(f"Total Google: {len(tenders)}")
+            if t:
+                t.region = "Marrakech-Safi"
+                tenders.append(t); known.add(tid)
+                log(f"✓ {t.objet[:60]}")
+        log(f"Total: {len(tenders)}")
         return tenders
 
 
@@ -863,23 +823,21 @@ class GoogleCacheScraper:
 # ORCHESTRATOR
 # ══════════════════════════════════════════════════════
 SCRAPERS = {
-    "marchespublics": MarchesPublicsScraper,
-    "lematin":        LeMatinScraper,
-    "snrt":           SNRTScraper,
-    "publicorgs":     PublicOrgsScraper,
-    "google":         GoogleCacheScraper,
+    "marchespublics": MarchesPublicsScraper,  # ✅ Principal
+    "lematin":        LeMatinScraper,          # ✅ Journal légal
+    "flasheconomie":  FlashEconomieScraper,    # ✅ JAL depuis 1957
+    "leconomiste":    LEconomisteScraper,      # ✅ Quotidien éco
+    "tanmia":         TanmiaScraper,           # ✅ ONG/Coop
+    "tourisme":       TourismeScraper,         # ✅ Min. Tourisme
+    "creditagricole": CreditAgricoleScraper,   # ✅ Banque publique
+    "chu_marrakech":  CHUMarrakechScraper,     # ✅ Hôpital
 }
 
 def run_all_scrapers(known, sources=None, log_fn=None):
-    """
-    Run all scrapers, deduplicate, return new Tender objects.
-    sources: list of source keys or None (= all)
-    """
     if sources is None:
         sources = list(SCRAPERS.keys())
     all_tenders = []
     seen = set(known)
-
     for src in sources:
         scraper = SCRAPERS.get(src)
         if not scraper: continue
@@ -892,15 +850,12 @@ def run_all_scrapers(known, sources=None, log_fn=None):
                 and hasattr(t,'objet') and t.objet
                 and len(t.objet) >= 10
             ]
-            new_count = 0
+            added = 0
             for t in valid:
                 if t.id not in seen:
-                    seen.add(t.id)
-                    all_tenders.append(t)
-                    new_count += 1
-            if log_fn: log_fn(f"[Orchestrator] {src}: {new_count} nouveaux")
+                    seen.add(t.id); all_tenders.append(t); added += 1
+            if log_fn: log_fn(f"[Orchestrator] {src}: {added} nouveaux")
         except Exception as e:
-            logger.error(f"[Orchestrator:{src}] {e}")
-            if log_fn: log_fn(f"[Orchestrator] ❌ {src}: {str(e)[:80]}")
-
+            logger.error(f"[{src}] {e}")
+            if log_fn: log_fn(f"[Orchestrator] ✗ {src}: {str(e)[:80]}")
     return all_tenders

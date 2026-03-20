@@ -1,4 +1,4 @@
-"""
+"""  # v5.2-scraper-rebuild
 Modern Business v5.0 — Intelligence Marchés Publics Maroc
 ══════════════════════════════════════════════════════════
 Architecture: FastAPI + SQLite WAL + 5 AI Agents
