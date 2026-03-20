@@ -815,30 +815,83 @@ class NotifyAgent:
 
     @staticmethod
     def match_tenders(tenders, member_id, secteur=""):
+        """
+        Filtre les marchés selon les préférences du membre.
+        Logique:
+          1. Lit les filtres DB (secteur/region/keyword)
+          2. Ajoute le secteur du profil membre comme fallback
+          3. Si AUCUN filtre → envoie TOUT (membre sans préférences)
+          4. Si filtres définis → envoie UNIQUEMENT les marchés correspondants
+          5. Jamais de fallback "envoyer quand même" — zéro = zéro
+        """
+        # ── 1. Charger filtres DB ──
         try:
             db = get_db()
-            rows = db.execute("SELECT type,value FROM member_filters WHERE member_id=?",(member_id,)).fetchall()
+            rows = db.execute(
+                "SELECT type,value FROM member_filters WHERE member_id=?", (member_id,)
+            ).fetchall()
             db.close()
             filters = [dict(r) for r in rows]
-        except: filters = []
-        sect_f   = {r["value"] for r in filters if r["type"]=="secteur"}
-        region_f = {r["value"] for r in filters if r["type"]=="region"}
-        kw_f     = {r["value"].lower() for r in filters if r["type"]=="keyword"}
-        if not sect_f and secteur: sect_f = {secteur}
-        if not sect_f and not region_f and not kw_f: return tenders
+        except:
+            filters = []
+
+        sect_f   = {r["value"] for r in filters if r["type"] == "secteur"}
+        region_f = {r["value"] for r in filters if r["type"] == "region"}
+        kw_f     = {r["value"].lower() for r in filters if r["type"] == "keyword"}
+
+        # ── 2. Fallback: secteur du profil membre ──
+        if not sect_f and secteur and secteur.strip():
+            sect_f = {secteur.strip()}
+
+        # ── 3. Aucun filtre → reçoit tout ──
+        if not sect_f and not region_f and not kw_f:
+            return tenders
+
+        # ── 4. Filtrage strict ──
         matched = []
         for t in tenders:
-            dom = (t.get("domaine") or "").lower()
-            reg = (t.get("region") or "").lower()
-            obj = (t.get("objet") or "").lower()
-            full = dom + " " + obj
-            if kw_f and any(k in full for k in kw_f): matched.append(t); continue
-            if region_f and any(r.lower() in reg for r in region_f): matched.append(t); continue
+            dom  = (t.get("domaine") or "").lower().strip()
+            reg  = (t.get("region")  or "").lower().strip()
+            obj  = (t.get("objet")   or "").lower()
+            desc = (t.get("description") or "").lower()[:300]
+            full = obj + " " + dom + " " + desc
+
+            # Keyword match (OR logic — un seul suffit)
+            if kw_f:
+                if any(kw in full for kw in kw_f):
+                    matched.append(t); continue
+
+            # Region match
+            if region_f:
+                if any(rf.lower() in reg or reg in rf.lower() for rf in region_f):
+                    matched.append(t); continue
+
+            # Secteur match — comparaison précise par code T/P/S
             if sect_f:
+                added = False
                 for s in sect_f:
-                    if s.lower() in dom or dom[:4] == s[:4]: matched.append(t); break
-                    if s in SECTEURS and any(k in full for k in SECTEURS[s]): matched.append(t); break
-        return matched if matched else tenders[:5]
+                    s_code = s[:4].upper()   # ex: "T101"
+                    d_code = dom[:4].upper()  # ex: "t101" → "T101"
+
+                    # Match exact du code
+                    if s_code == d_code:
+                        matched.append(t); added = True; break
+
+                    # Match partiel: même lettre (T=T, P=P, S=S)
+                    if s_code and d_code and s_code[0] == d_code[0]:
+                        # Vérifier par mots-clés du secteur
+                        if s in SECTEURS:
+                            kws = SECTEURS[s]
+                            if any(kw in full for kw in kws):
+                                matched.append(t); added = True; break
+                        # Sinon match sur le code complet
+                        elif s_code in d_code or d_code in s_code:
+                            matched.append(t); added = True; break
+
+                    if added: break
+
+        # ── 5. Retourner uniquement les matches — jamais de fallback ──
+        return matched
 
     @staticmethod
     def notify_instant(tenders: list):
@@ -850,20 +903,33 @@ class NotifyAgent:
             ).fetchall()]
         finally: db.close()
         if not subs: SLog.add("[NotifyAgent] Aucun abonné"); return
-        eq = tq = 0
+        eq = tq = skipped = 0
         n = len(tenders)
         for sub in subs:
-            matched = NotifyAgent.match_tenders(tenders, sub["id"], sub.get("secteur",""))
-            if not matched: continue
-            sect_lbl = sub.get("secteur") or "tous secteurs"
-            subj = f"🏛 {len(matched)} marché(s) [{sect_lbl}] — {datetime.now().strftime('%d/%m/%Y')} — Modern Business"
+            sect = sub.get("secteur","").strip()
+            matched = NotifyAgent.match_tenders(tenders, sub["id"], sect)
+
+            if not matched:
+                skipped += 1
+                SLog.add(f"[NotifyAgent] {sub['nom']}: 0 match [{sect or 'aucun filtre défini'}]")
+                continue
+
+            sect_lbl = sect or "tous secteurs"
+            nm = len(matched)
+            SLog.add(f"[NotifyAgent] {sub['nom']} [{sect_lbl}]: {nm}/{n} marchés correspondants")
+
+            subj = f"🏛 {nm} marché(s) [{sect_lbl}] — {datetime.now().strftime('%d/%m/%Y')} — Modern Business"
+            email_html = NotifyAgent.build_email(matched, f"🏛 {nm} marché(s) — {sect_lbl}")
+            tg_body    = NotifyAgent.build_telegram(matched, f"{nm} marché(s) [{sect_lbl}]")
+
             if sub.get("notif_email",1) and sub.get("email"):
-                NotifyAgent.enqueue(sub["id"],"email",sub["email"],subj,NotifyAgent.build_email(matched,f"🏛 {len(matched)} marché(s) — {sect_lbl}"))
+                NotifyAgent.enqueue(sub["id"],"email",sub["email"],subj,email_html)
                 eq += 1
             if sub.get("notif_tg",1) and sub.get("telegram"):
-                NotifyAgent.enqueue(sub["id"],"telegram",sub["telegram"],"",NotifyAgent.build_telegram(matched,f"{len(matched)} marché(s) — {sect_lbl}"))
+                NotifyAgent.enqueue(sub["id"],"telegram",sub["telegram"],"",tg_body)
                 tq += 1
-        SLog.add(f"[NotifyAgent] {eq} emails + {tq} TG en file")
+
+        SLog.add(f"[NotifyAgent] {eq} emails + {tq} TG en file | {skipped} membres sans match")
         counter("notifications_queued")
 
     @staticmethod
