@@ -265,7 +265,7 @@ async function launchMultiScraper(){
   const btn = document.getElementById('multiBtn');
   btn.disabled = true; btn.textContent = '⏳ Scraping...';
   const t = document.getElementById('terminal');
-  t.innerHTML += '<div style="color:#c9a84c">═══ Multi-Scraper: marocao.com + lesoffres.ma + aljady.ma + marchesprives.ma ═══</div>';
+  t.innerHTML += '<div style="color:#c9a84c">═══ Multi-Scraper: LeMatin + SNRT + 20 organismes publics ═══</div>';
 
   try {
     const r = await fetch(`/admin/scrape_multi?pwd=${PWD}`);
