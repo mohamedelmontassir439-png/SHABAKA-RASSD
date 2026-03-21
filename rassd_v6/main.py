@@ -2098,7 +2098,6 @@ async def ar_tenders(request: Request, q: str = "", code_f: str = "", easy: str 
 @app.get("/ar/register")
 async def ar_register_get(request: Request):
     if get_member(request):
-        from fastapi.responses import RedirectResponse
         return RedirectResponse("/dashboard", 302)
     return templates.TemplateResponse("register_ar.html", {
         "request": request, "error": None,
@@ -2108,7 +2107,7 @@ async def ar_register_get(request: Request):
 
 @app.post("/ar/register")
 async def ar_register_post(request: Request):
-    return await register_post(request)
+    return await reg_post(request)
 
 
 @app.get("/ar/login")
