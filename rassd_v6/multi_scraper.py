@@ -450,37 +450,148 @@ def _extract_acheteur(soup):
 # SOURCE 1: marchespublics.gov.ma ✅
 # ══════════════════════════════════════════════════════
 class MarchesPublicsScraper:
+    """
+    Stratégie: Scan séquentiel des IDs
+    
+    Le site marchespublics.gov.ma charge sa liste via JavaScript (AJAX).
+    Le scraping de la page de listing ne retourne que quelques IDs statiques.
+    
+    Solution: scanner un intervalle d'IDs séquentiels depuis le dernier ID connu.
+    Les IDs sont entiers croissants (ex: 318193, 318194...).
+    On scanne +300 IDs en avant depuis le max connu.
+    On scanne aussi les 50 IDs en arrière pour rattraper des manqués.
+    """
     BASE = "https://www.marchespublics.gov.ma/bdc/entreprise/consultation"
+
+    @classmethod
+    def get_max_known_id(cls, known: set) -> int:
+        """Trouve le plus grand ID connu parmi bdc_XXXXX"""
+        max_id = 310000  # minimum baseline
+        for k in known:
+            if k.startswith("bdc_"):
+                try:
+                    n = int(k[4:])
+                    if n > max_id: max_id = n
+                except: pass
+        return max_id
 
     @classmethod
     def scrape(cls, known, log_fn=None):
         from bs4 import BeautifulSoup as BS
+        import concurrent.futures
         s = make_session(); tenders = []
         log = lambda m: log_fn(f"[MarchesPublics] {m}") if log_fn else None
-        ids_found = []
-        for page in range(1, 15):
-            url = f"{cls.BASE}/" if page==1 else f"{cls.BASE}/?page={page}"
-            r = get(s, url, timeout=25, retries=3)
-            if not r: break
-            page_ids = list(set(re.findall(r'/show/(\d{3,7})', r.text)))
-            new = [i for i in page_ids if f"bdc_{i}" not in known]
-            if not new and page > 1: break
-            ids_found.extend(new); log(f"Page {page}: +{len(new)} IDs"); sleep_r(0.8,1.5)
-        log(f"Fetching {min(len(ids_found),100)}...")
-        for tid in ids_found[:100]:
-            r = get(s, f"{cls.BASE}/show/{tid}", timeout=20, retries=2)
-            if not r or len(r.text)<3000: continue
+
+        # Trouver le dernier ID connu
+        max_known = cls.get_max_known_id(known)
+        
+        # Scan: 30 IDs en arrière (rattrapage) + 250 en avant (nouveaux)
+        start_id = max(310000, max_known - 30)
+        end_id   = max_known + 250
+        
+        scan_ids = [str(i) for i in range(start_id, end_id + 1)
+                    if f"bdc_{i}" not in known]
+        
+        log(f"Max connu: #{max_known} | Scan #{start_id}→#{end_id} ({len(scan_ids)} IDs)")
+        
+        found = saved = skipped = errors = 0
+
+        for tid in scan_ids:
+            url = f"{cls.BASE}/show/{tid}"
+            r = get(s, url, timeout=15, retries=2)
+            
+            if not r:
+                errors += 1
+                # Si beaucoup d'erreurs consécutives, on s'arrête
+                if errors > 20 and saved == 0:
+                    log(f"Trop d'erreurs ({errors}), arrêt")
+                    break
+                continue
+            
+            # Page 404 ou trop courte = ID inexistant
+            if len(r.text) < 2000 or "404" in r.url or "introuvable" in r.text.lower():
+                continue
+            
+            found += 1
+            errors = 0  # reset error counter on success
+            
             t = cls._parse(r.text, tid)
-            if t:
-                # Only keep actif
-                if t.statut == "actif":
-                    tenders.append(t); known.add(t.id)
-                    log(f"✓ #{tid} [{t.domaine[:15]}] {t.objet[:50]}")
-                elif t.statut == "expire":
-                    known.add(t.id)  # Mark as known to avoid re-fetching
-            sleep_r(0.8, 1.8)
-        log(f"Actifs: {len(tenders)}")
+            if not t:
+                known.add(f"bdc_{tid}")
+                continue
+                
+            if t.statut == "actif":
+                tenders.append(t)
+                known.add(t.id)
+                saved += 1
+                log(f"✓ #{tid} [{t.domaine[:18]}] {t.objet[:52]}")
+            elif t.statut == "annule":
+                known.add(t.id)
+                skipped += 1
+            else:
+                known.add(t.id)  # expire
+            
+            sleep_r(0.5, 1.2)
+        
+        log(f"Done: {saved} actifs | {skipped} annulés/expirés | {found} trouvés | {errors} erreurs")
         return tenders
+
+    @staticmethod
+    def _parse(html, tid):
+        try:
+            from bs4 import BeautifulSoup as BS
+            soup = BS(html, "html.parser")
+            full = soup.get_text(" ", strip=True)
+            if is_cancelled(full): return None
+            
+            def cell(lbl):
+                for row in soup.find_all("tr"):
+                    cells = row.find_all(["td","th"])
+                    for i, c in enumerate(cells):
+                        if lbl.lower() in c.get_text().lower() and i+1 < len(cells):
+                            v = cells[i+1].get_text(strip=True)
+                            if v and len(v) > 1: return v[:400]
+                return ""
+            
+            # Extraire l'objet
+            objet = ""
+            for sel in [".consultation-title", ".objet", "h1", "h2", "h3"]:
+                el = soup.select_one(sel)
+                if el:
+                    txt = el.get_text(strip=True)
+                    if 8 < len(txt) < 600 and not any(x in txt.lower() for x in ["accueil","liste","connexion"]):
+                        objet = txt; break
+            if not objet:
+                for lbl in ["objet du marché", "objet", "intitulé", "désignation"]:
+                    v = cell(lbl)
+                    if v and len(v) > 8: objet = v; break
+            if not objet or len(objet) < 8: return None
+            
+            acheteur = (cell("maître d'ouvrage") or cell("organisme") or "").strip()
+            date_pub = normalize_date(cell("publication") or "")
+            date_lim = normalize_date(cell("remise") or cell("limite") or cell("dépôt") or "")
+            mon_raw  = cell("montant") or cell("estimation") or ""
+            if not mon_raw:
+                m = re.search(r'(\d[\d\s,.]+)\s*(?:DH|MAD)', full, re.I)
+                if m: mon_raw = m.group(0)
+            bmin, bmax, montant = extract_budget(mon_raw)
+            statut = tender_statut(full, date_lim)
+            
+            return Tender(
+                id=f"bdc_{tid}", source="marchespublics",
+                source_url=f"{MarchesPublicsScraper.BASE}/show/{tid}",
+                objet=clean(objet, 400), description=clean(full, 2000),
+                acheteur=acheteur[:200],
+                region=detect_region(acheteur + " " + full[:500]),
+                domaine=detect_secteur(objet, full[:400]),
+                type_marche=detect_type(objet),
+                montant=montant, budget_min=bmin, budget_max=bmax,
+                date_publication=date_pub, date_limite=date_lim, statut=statut,
+                date_extraction=datetime.now().strftime("%Y-%m-%d %H:%M"),
+            )
+        except Exception as e:
+            logger.error(f"[parse #{tid}] {e}")
+            return None
 
     @staticmethod
     def _parse(html, tid):
@@ -548,10 +659,18 @@ class LeMatinScraper:
         log("Scraping...")
         for page in range(1,8):
             url=f"{cls.BASE}/annonces/appels-offres/" if page==1 else f"{cls.BASE}/annonces/appels-offres/?page={page}"
-            r=get(s,url,timeout=20); 
+            r=get(s,url,timeout=20,retries=3)
             if not r: break
             soup=BS(r.text,"html.parser")
+            # Try multiple link patterns
             links=soup.find_all("a",href=re.compile(r'/annonce/',re.I))
+            if not links:
+                links=soup.find_all("a",href=re.compile(r'appel|offre|annonce',re.I))
+            if not links:
+                # Try article links
+                for art in soup.find_all(["article","div"],class_=re.compile(r'annonce|post|item',re.I)):
+                    lnk=art.find("a",href=True)
+                    if lnk: links.append(lnk)
             if not links: break
             new_p=0; seen_h=set()
             for a in links:
@@ -666,54 +785,327 @@ def scrape_org(source, url, acheteur, region, known, log_fn, extra_urls=None, ac
 # ══════════════════════════════════════════════════════
 # SCRAPERS — Organismes publics
 # ══════════════════════════════════════════════════════
+# Sources validées par les logs Railway:
+# ✅ = retourne des AO régulièrement
+# ✗ = bloqué (IP américaine Railway)
 ORGS = [
-    # URL, source_name, acheteur, region, extra_urls
+    # ✅ OFPPT — 9+ AO à chaque run (extraction texte fiable)
     ("https://www.ofppt.ma/fr/appels-d-offres",
-     "ofppt","OFPPT — Office de la Formation Professionnelle","Maroc",[]),
+     "ofppt", "OFPPT — Formation Professionnelle et Promotion du Travail", "Maroc", []),
 
-    ("https://www.onssa.gov.ma/fr/34-onssa/appel-dofres",
-     "onssa","ONSSA — Sécurité Sanitaire des Aliments","Rabat-Salé-Kénitra",[]),
+    # ✅ OFPPT page 2
+    ("https://www.ofppt.ma/fr/appels-d-offres?page=2",
+     "ofppt_p2", "OFPPT — page 2", "Maroc", []),
 
-    ("https://www.ada.gov.ma/fr/appels-doffres",
-     "ada","ADA — Agence pour le Développement Agricole","Rabat-Salé-Kénitra",[]),
-
-    ("https://www.ammc.ma/fr/appel-d-offres",
-     "ammc","AMMC — Autorité Marchés des Capitaux","Casablanca-Settat",[]),
-
-    ("https://www.radeema.ma/appel-d-offres",
-     "radeema","RADEEMA — Eau & Électricité Marrakech","Marrakech-Safi",[]),
-
-    ("https://www.amendis.ma/fr/appels-offres",
-     "amendis","AMENDIS — Eau & Électricité Tanger-Tétouan","Tanger-Tétouan-Al Hoceima",[]),
-
-    ("https://www.creditagricole.ma/fr/appel-offres",
-     "creditagricole","Crédit Agricole du Maroc","Rabat-Salé-Kénitra",[]),
-
+    # ✅ CHU Marrakech — extraction AAC/AO depuis texte
     ("https://www.chumarrakech.ma/index.php/annonces/fournisseurs/appels-doffres",
-     "chu_marrakech","CHU Mohammed VI Marrakech","Marrakech-Safi",[]),
+     "chu_marrakech", "CHU Mohammed VI Marrakech", "Marrakech-Safi", []),
 
+    # ✅ Tanmia — ONG/coopération internationale (fonctionne de temps en temps)
     ("https://tanmia.ma/appels-doffres/",
-     "tanmia","Tanmia.ma — ONG & Coopération internationale","Maroc",[]),
-
-    ("https://mtaess.gov.ma/fr/appels-doffres/",
-     "tourisme","Ministère du Tourisme et de l'Artisanat","Rabat-Salé-Kénitra",[]),
-
-    ("http://appels-offres.equipement.gov.ma/",
-     "equipement","Ministère de l'Équipement et de l'Eau","Maroc",[]),
-
-    ("https://flasheconomie.com/category/consulter-les-annonces-legales/",
-     "flasheconomie","Journal Flash Économie","Maroc",
-     ["https://flasheconomie.com/category/appels-offres/"]),
-
-    ("https://www.leconomiste.com/appels-offres",
-     "leconomiste","L'Économiste","Maroc",[]),
-
-    ("https://www.lavieeco.com/appels-offres/",
-     "lavieeco","La Vie Éco","Maroc",[]),
-
-    ("https://aujourdhui.ma/appels-offres",
-     "aujourdhui","Aujourd'hui le Maroc","Maroc",[]),
+     "tanmia", "Tanmia.ma — ONG & Coopération internationale", "Maroc", []),
 ]
+# NOTE: onssa, ada, radeema, amendis, leconomiste, lavieeco, aujourdhui
+# → bloqués sur Railway (IPs US). marchespublics les couvre via scan ID.
+
+
+# ══════════════════════════════════════════════════════
+# SEMI-PUBLICS — Portails propres (même moteur marchespublics)
+# MARSA Maroc · ADM · Bank Al-Maghrib · MADAEF · ANP
+# ══════════════════════════════════════════════════════
+
+# Ces organismes utilisent une copie du portail marchespublics.
+# Scan séquentiel identique mais avec leur propre BASE URL.
+SEMI_PUBLIC_PORTAILS = [
+    {
+        "source":   "marsa",
+        "base":     "https://achats.marsamaroc.co.ma/bdc/entreprise/consultation",
+        "acheteur": "MARSA Maroc — Gestion des Ports",
+        "region":   "Maroc",
+        "start_id": 1000,   # IDs propres à chaque portail
+    },
+    {
+        "source":   "adm",
+        "base":     "https://achats.adm.co.ma/bdc/entreprise/consultation",
+        "acheteur": "ADM — Autoroutes du Maroc",
+        "region":   "Maroc",
+        "start_id": 1000,
+    },
+    {
+        "source":   "bam",
+        "base":     "https://www.bkam.ma/Achats/Appels-d-offres",
+        "acheteur": "Bank Al-Maghrib (BAM)",
+        "region":   "Rabat-Salé-Kénitra",
+        "start_id": 1000,
+    },
+]
+
+
+class SemiPublicScraper:
+    """
+    Scrape les portails d'achats des organismes semi-publics.
+    MARSA Maroc, ADM Autoroutes, Bank Al-Maghrib utilisent
+    le même moteur que marchespublics.gov.ma → même stratégie ID scan.
+    """
+    @classmethod
+    def scrape(cls, known, log_fn=None):
+        from bs4 import BeautifulSoup as BS
+        tenders = []
+        log = lambda m: log_fn(f"[SemiPublic] {m}") if log_fn else None
+
+        for org in SEMI_PUBLIC_PORTAILS:
+            src    = org["source"]
+            base   = org["base"]
+            acht   = org["acheteur"]
+            region = org["region"]
+
+            # Find max known ID for this source
+            max_id = org["start_id"]
+            for k in known:
+                if k.startswith(f"{src}_"):
+                    try:
+                        n = int(k[len(src)+1:])
+                        if n > max_id: max_id = n
+                    except: pass
+
+            start = max(org["start_id"], max_id - 20)
+            end   = max_id + 150
+
+            scan = [str(i) for i in range(start, end+1)
+                    if f"{src}_{i}" not in known]
+
+            log(f"[{src}] Scan #{start}→#{end} ({len(scan)} IDs)")
+            s = make_session(); found = saved = 0
+
+            for tid in scan:
+                r = get(s, f"{base}/show/{tid}", timeout=10, retries=1)
+                if not r or len(r.text) < 1500: continue
+
+                found += 1
+                try:
+                    soup = BS(r.text, "html.parser")
+                    full = soup.get_text(" ", strip=True)
+                    if is_cancelled(full): known.add(f"{src}_{tid}"); continue
+
+                    def cell(lbl):
+                        for row in soup.find_all("tr"):
+                            cells = row.find_all(["td","th"])
+                            for i, c in enumerate(cells):
+                                if lbl.lower() in c.get_text().lower() and i+1 < len(cells):
+                                    v = cells[i+1].get_text(strip=True)
+                                    if v and len(v) > 1: return v[:400]
+                        return ""
+
+                    objet = ""
+                    for sel in [".consultation-title",".objet","h1","h2"]:
+                        el = soup.select_one(sel)
+                        if el:
+                            txt = el.get_text(strip=True)
+                            if 8 < len(txt) < 600 and "accueil" not in txt.lower():
+                                objet = txt; break
+                    if not objet:
+                        for lbl in ["objet du marché","objet","intitulé"]:
+                            v = cell(lbl)
+                            if v and len(v) > 8: objet = v; break
+                    if not objet or len(objet) < 8:
+                        known.add(f"{src}_{tid}"); continue
+
+                    date_lim = normalize_date(cell("remise") or cell("limite") or "")
+                    statut = tender_statut(full, date_lim)
+
+                    t = Tender(
+                        id=f"{src}_{tid}", source=src,
+                        source_url=f"{base}/show/{tid}",
+                        objet=clean(objet, 400),
+                        description=clean(full, 2000),
+                        acheteur=acht,
+                        region=detect_region(acht + " " + full[:300]) or region,
+                        domaine=detect_secteur(objet, full[:300]),
+                        type_marche=detect_type(objet),
+                        date_limite=date_lim, statut=statut,
+                        date_extraction=datetime.now().strftime("%Y-%m-%d %H:%M"),
+                    )
+                    if statut == "actif":
+                        tenders.append(t); known.add(t.id); saved += 1
+                        log(f"  ✓ [{src}] #{tid} {t.objet[:55]}")
+                    else:
+                        known.add(t.id)
+                except Exception as e:
+                    logger.debug(f"[{src}] #{tid}: {e}")
+                    known.add(f"{src}_{tid}")
+
+                sleep_r(0.4, 0.9)
+
+            log(f"[{src}] {saved} actifs / {found} trouvés")
+            sleep_r(1.0, 2.0)
+
+        return tenders
+
+
+# ══════════════════════════════════════════════════════
+# PRIVÉ — Portails d'agrégateurs libres
+# safakate.com · lesoffres.ma · tanmia.ma (ONG privé)
+# ══════════════════════════════════════════════════════
+class PrivateTendersScraper:
+    """
+    Scrape les marchés privés et semi-publics publiés librement.
+    
+    SOURCES:
+      - safakate.com        : portail gratuit public+privé
+      - lesoffres.ma        : AO publics et privés sans inscription
+      - OCP supplier portal : page publique opportunités
+      - ANP (ports)         : portail AO des ports nationaux
+      - ONCF achats         : achats ONCF publics
+    """
+    SOURCES = [
+        {
+            "source":   "safakate",
+            "url":      "https://safakate.com/",
+            "acheteur": "Divers (safakate.com)",
+            "region":   "Maroc",
+            "link_re":  r'/offre/|/appel/|/tender/|/marche/',
+        },
+        {
+            "source":   "lesoffres",
+            "url":      "https://www.lesoffres.ma/offres.php",
+            "acheteur": "Divers (lesoffres.ma)",
+            "region":   "Maroc",
+            "link_re":  r'offre|appel|marche',
+        },
+        {
+            "source":   "anp",
+            "url":      "https://www.anp.org.ma/fr/services/appels-offres",
+            "acheteur": "ANP — Agence Nationale des Ports",
+            "region":   "Maroc",
+            "link_re":  r'appel|offre|marche',
+        },
+        {
+            "source":   "bam",
+            "url":      "https://www.bkam.ma/Achats/Appels-d-offres/Avis-d-appels-d-offres",
+            "acheteur": "Bank Al-Maghrib (BAM)",
+            "region":   "Rabat-Salé-Kénitra",
+            "link_re":  r'appel|offre|avis',
+        },
+        {
+            "source":   "ocp",
+            "url":      "https://supplier.ocpgroup.ma/#/landing-page/opportunities",
+            "acheteur": "OCP Group — Office Chérifien des Phosphates",
+            "region":   "Casablanca-Settat",
+            "link_re":  r'opportunit|tender|appel',
+        },
+        {
+            "source":   "madaef",
+            "url":      "https://safakat.cdg.ma/madaef",
+            "acheteur": "MADAEF — Filiale CDG Tourisme",
+            "region":   "Maroc",
+            "link_re":  r'appel|offre|marche|show',
+        },
+    ]
+
+    @classmethod
+    def scrape(cls, known, log_fn=None):
+        from bs4 import BeautifulSoup as BS
+        from urllib.parse import urljoin
+        tenders = []
+        log = lambda m: log_fn(f"[Private] {m}") if log_fn else None
+
+        for src_cfg in cls.SOURCES:
+            src     = src_cfg["source"]
+            url     = src_cfg["url"]
+            acheteur= src_cfg["acheteur"]
+            region  = src_cfg["region"]
+            link_re = src_cfg.get("link_re", r'appel|offre')
+
+            s = make_session(); found_src = 0
+            try:
+                r = get(s, url, timeout=12, retries=2)
+                if not r:
+                    log(f"  ✗ [{src}] inaccessible")
+                    continue
+
+                soup = BS(r.text, "html.parser")
+                full_page = soup.get_text(" ", strip=True)
+
+                # Detect if page is JS-rendered (empty)
+                if len(full_page.strip()) < 500:
+                    log(f"  ✗ [{src}] page vide (JS requis)")
+                    continue
+
+                # Find all AO links
+                links = soup.find_all("a", href=re.compile(link_re, re.I))
+                if not links:
+                    links = soup.find_all("a", href=True)
+
+                seen = set()
+                for a in links[:30]:
+                    href = urljoin(url, a.get("href",""))
+                    title = clean(a.get_text())
+                    if href in seen or not href.startswith("http"): continue
+                    seen.add(href)
+                    if len(title) < 12 or not is_real_tender(title): continue
+
+                    tid = make_id(src, title, href)
+                    if tid in known: continue
+
+                    # Fetch detail page
+                    r2 = get(s, href, timeout=10)
+                    if not r2: continue
+
+                    s2 = BS(r2.text, "html.parser")
+                    full2 = s2.get_text(" ", strip=True)
+                    if is_cancelled(full2): continue
+
+                    h1 = s2.find("h1") or s2.find("h2")
+                    title2 = clean(h1.get_text() if h1 else title, 400)
+                    if not is_real_tender(title2, full2): continue
+
+                    # Extract acheteur from page if not a known org
+                    if src in ["safakate","lesoffres"]:
+                        acheteur_page = ""
+                        for p in s2.find_all(["p","div","td"])[:8]:
+                            txt = p.get_text(strip=True)
+                            if len(txt) > 15 and any(k in txt.upper() for k in
+                                ["MINISTÈRE","DIRECTION","COMMUNE","PROVINCE","UNIVERSITÉ",
+                                 "SOCIÉTÉ","ÉTABLISSEMENT","GROUP","SA","SARL","SAS","MAROC"]):
+                                acheteur_page = clean(txt, 200); break
+                        if acheteur_page: acheteur = acheteur_page
+
+                    dates = re.findall(r'\d{1,2}[/\-\.]\d{2}[/\-\.]\d{4}', full2)
+                    dl = normalize_date(dates[-1] if dates else "")
+                    statut = tender_statut(full2, dl)
+                    if statut != "actif": continue
+
+                    bmin,bmax,montant = extract_budget(
+                        re.search(r'(\d[\d\s,.]+)\s*(?:DH|MAD)',full2,re.I).group(0)
+                        if re.search(r'(\d[\d\s,.]+)\s*(?:DH|MAD)',full2,re.I) else ""
+                    )
+
+                    t = Tender(
+                        id=tid, source=src, source_url=href,
+                        objet=title2, description=clean(full2, 2000),
+                        acheteur=acheteur,
+                        region=detect_region(acheteur+" "+full2[:400]) or region,
+                        domaine=detect_secteur(title2, full2[:400]),
+                        type_marche=detect_type(title2),
+                        montant=montant, budget_min=bmin, budget_max=bmax,
+                        date_limite=dl, statut="actif",
+                        date_extraction=datetime.now().strftime("%Y-%m-%d %H:%M"),
+                    )
+                    tenders.append(t); known.add(tid); found_src += 1
+                    log(f"  ✓ [{src}] {t.objet[:60]}")
+                    sleep_r(0.5, 1.0)
+
+                if found_src > 0:
+                    log(f"  [{src}]: {found_src} actifs")
+                else:
+                    log(f"  [{src}]: 0 (contenu non scrappable ou 0 AO)")
+
+            except Exception as e:
+                log(f"  ✗ [{src}]: {str(e)[:60]}")
+            sleep_r(1.0, 2.0)
+
+        log(f"Total privés: {len(tenders)}")
+        return tenders
 
 
 class PublicOrgsScraper:
@@ -773,10 +1165,12 @@ class TanmiaScraper:
 # ORCHESTRATOR
 # ══════════════════════════════════════════════════════
 SCRAPERS = {
-    "marchespublics": MarchesPublicsScraper,  # ✅ Principal
-    "lematin":        LeMatinScraper,          # ✅ Journal légal
-    "tanmia":         TanmiaScraper,           # ✅ ONG
-    "publicorgs":     PublicOrgsScraper,       # ✅ 15 orgs
+    "marchespublics": MarchesPublicsScraper,  # ✅ Principal — scan ID séquentiel
+    "lematin":        LeMatinScraper,          # ✅ Journal légal officiel
+    "tanmia":         TanmiaScraper,           # ✅ ONG & Coopération
+    "semipublic":     SemiPublicScraper,       # ✅ MARSA · ADM · BAM · MADAEF
+    "private":        PrivateTendersScraper,   # 🔄 Safakate · lesoffres · ANP · OCP
+    "publicorgs":     PublicOrgsScraper,       # ✅ OFPPT · CHU · Tanmia
 }
 
 def run_all_scrapers(known, sources=None, log_fn=None):

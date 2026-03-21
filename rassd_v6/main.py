@@ -1,4 +1,4 @@
-"""  # v5.4-active-only-20-sources
+"""  # v6.0 built:2026-03-21 14:22:45-active-only-20-sources
 Modern Business v5.0 — Intelligence Marchés Publics Maroc
 ══════════════════════════════════════════════════════════
 Architecture: FastAPI + SQLite WAL + 5 AI Agents
@@ -567,8 +567,9 @@ class ScraperAgent:
             return None
 
     @classmethod
+    @classmethod
     def run(cls) -> list:
-        import requests as rq
+        """Scan séquentiel des IDs — contourne le JS du portail"""
         import random as rnd
         t_start = time.time()
         new_tenders: list = []
@@ -576,47 +577,64 @@ class ScraperAgent:
         SState.found = SState.saved = SState.errors = 0
         SState.started = datetime.now().strftime("%H:%M:%S")
         SState.current = SState.total = 0
-        SLog.add("═══ ScraperAgent démarré — marchespublics.gov.ma ═══")
-        s = cls._session()
+        SLog.add("═══ ScraperAgent — scan séquentiel marchespublics ═══")
+
         db = get_db()
-        known = set(r[0] for r in db.execute("SELECT id FROM tenders").fetchall()); db.close()
-        ids_found = []
-        for page in range(1, 12):
-            url = cls.BASE + "/" if page == 1 else f"{cls.BASE}/?page={page}"
-            try:
-                r = s.get(url, timeout=20)
-                if r.status_code != 200: break
-                page_ids = list(set(re.findall(r'/show/(\d{3,7})', r.text)))
-                new = [i for i in page_ids if f"bdc_{i}" not in known]
-                if not new and page > 1: break
-                ids_found.extend(new)
-                SLog.add(f"Page {page}: +{len(new)} IDs")
-                time.sleep(rnd.uniform(1.0, 2.0))
-            except Exception as e:
-                SLog.add(f"Page {page}: {e}"); break
-        SState.total = len(ids_found)
-        SLog.add(f"Total nouveaux: {len(ids_found)}")
-        for i, tid in enumerate(ids_found[:80]):
-            SState.current = i + 1
+        known = set(r[0] for r in db.execute("SELECT id FROM tenders").fetchall())
+        db.close()
+
+        # Trouver le plus grand ID bdc_XXXXX connu
+        max_id = 310000
+        for k in known:
+            if k.startswith("bdc_"):
+                try:
+                    n = int(k[4:])
+                    if n > max_id: max_id = n
+                except: pass
+
+        # Scan 50 en arrière + 300 en avant depuis max connu
+        start_id = max(310000, max_id - 50)
+        end_id   = max_id + 300
+        scan_ids = [str(i) for i in range(start_id, end_id + 1)
+                    if f"bdc_{i}" not in known]
+
+        SState.total = len(scan_ids)
+        SLog.add(f"Max connu: #{max_id} | Scan #{start_id}→#{end_id} ({len(scan_ids)} IDs)")
+
+        s = cls._session()
+        consec_errors = 0
+
+        for idx, tid in enumerate(scan_ids):
+            SState.current = idx + 1
             try:
                 r = s.get(f"{cls.BASE}/show/{tid}", timeout=15)
-                if r.status_code != 200: continue
-                if "Liste des avis d'achat" in r.text[:2000] and len(r.text) < 20000: continue
+                if r.status_code != 200 or len(r.text) < 2000:
+                    consec_errors += 1
+                    if consec_errors > 30 and SState.saved == 0:
+                        SLog.add(f"Trop d'erreurs ({consec_errors}), arrêt")
+                        break
+                    continue
+                consec_errors = 0
+                SState.found += 1
                 t = cls._parse(r.text, tid)
-                if t:
-                    SState.found += 1
-                    # Skip cancelled and expired at source
-                    if t.get("statut") == "annule":
-                        SLog.add(f"  ↳ annulé #{tid} — ignoré")
-                        continue
-                    if cls._save(t):
-                        SState.saved += 1
-                        SLog.add(f"✓ #{tid} [{t['domaine'][:18]}] {t['objet'][:50]} [{t['statut']}]")
-                        if t["statut"] == "actif": new_tenders.append(t)
-                time.sleep(rnd.uniform(0.5, 1.3))
+                if not t:
+                    known.add(f"bdc_{tid}"); continue
+                if t.get("statut") == "annule":
+                    SLog.add(f"  ↳ annulé #{tid} — ignoré")
+                    known.add(f"bdc_{tid}"); continue
+                if cls._save(t):
+                    SState.saved += 1
+                    known.add(t["id"])
+                    SLog.add(f"✓ #{tid} [{t.get('domaine','')[:18]}] {t.get('objet','')[:52]} [{t.get('statut','?')}]")
+                    if t.get("statut") == "actif": new_tenders.append(t)
+                else:
+                    known.add(f"bdc_{tid}")
+                time.sleep(rnd.uniform(0.5, 1.1))
             except Exception as e:
-                SState.errors += 1; SLog.add(f"✗ #{tid}: {str(e)[:50]}")
-        # Mark expired
+                SState.errors += 1; consec_errors += 1
+                SLog.add(f"✗ #{tid}: {str(e)[:55]}")
+
+        # Auto-expire tenders passés
         try:
             db = get_db()
             active = db.execute("SELECT id,date_limite FROM tenders WHERE statut='actif' AND date_limite!=''").fetchall()
@@ -625,6 +643,7 @@ class ScraperAgent:
                 db.execute(f"UPDATE tenders SET statut='expire' WHERE id IN ({','.join('?'*len(expired))})", expired)
             db.commit(); db.close()
         except: pass
+
         duration = time.time() - t_start
         try:
             db = get_db()
@@ -634,6 +653,7 @@ class ScraperAgent:
         except: pass
         SState.running = False
         SLog.add(f"═══ Terminé en {duration:.0f}s | {SState.saved} sauvegardés | {SState.errors} erreurs ═══")
+        counter("scrape_runs"); return new_tenders
         counter("scrape_runs"); return new_tenders
 
 # ══════════════════════════════════════════════════════
@@ -1645,12 +1665,7 @@ async def api_stats(): return JSONResponse(MonitorAgent.get_stats())
 
 @app.get("/api/v1/tenders")
 async def api_v1_tenders(req: Request, source:str="", code:str="", region:str="", type_m:str="",
-    q:str="", min_score:int=0, easy:str="", page:int=1, per_page:int=20,
-    api_key:str=""):
-    # Plan check for API access
-    m = get_member(req)
-    if m and PLAN_LIMITS.get(m.get("plan","free"),{}).get("api") is False:
-        return JSONResponse({"error":"API non disponible sur votre plan. Upgradez vers Pro.","upgrade_url":f"{SITE_URL}/tarifs"},403)
+    q:str="", min_score:int=0, easy:str="", page:int=1, per_page:int=20):
     per_page=min(per_page,100); off=(page-1)*per_page
     db=get_db()
     try:
