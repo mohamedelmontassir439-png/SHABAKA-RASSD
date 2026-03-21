@@ -1,5 +1,5 @@
 """
-Modern Business — Multi-Source Scraper v6.0
+Modern Business — Multi-Source Scraper v6.0 (20260321_143549)
 ══════════════════════════════════════════════════════════════
 20 SOURCES GRATUITES — MARCHÉS ACTIFS SEULEMENT
 
@@ -1109,9 +1109,12 @@ class PrivateTendersScraper:
 
 
 class PublicOrgsScraper:
+    ORGS_COUNT = 4  # deployment check - should be 4 not 15
     @classmethod
     def scrape(cls, known, log_fn=None):
         tenders=[]
+        # Deployment check
+        if log_fn: log_fn(f"[PublicOrgs] Scraping {len(ORGS)} sources (20260321_143549)...")
         log=lambda m: log_fn(f"[PublicOrgs] {m}") if log_fn else None
         log(f"Scraping {len(ORGS)} sources...")
         for url,src,acheteur,region,extra_urls in ORGS:

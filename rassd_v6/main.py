@@ -577,7 +577,7 @@ class ScraperAgent:
         SState.found = SState.saved = SState.errors = 0
         SState.started = datetime.now().strftime("%H:%M:%S")
         SState.current = SState.total = 0
-        SLog.add("═══ ScraperAgent — scan séquentiel marchespublics ═══")
+        SLog.add("═══ ScraperAgent v6 (20260321_143549) — scan séquentiel marchespublics ═══")
 
         db = get_db()
         known = set(r[0] for r in db.execute("SELECT id FROM tenders").fetchall())
