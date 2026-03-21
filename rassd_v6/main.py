@@ -2035,6 +2035,98 @@ async def admin_test_digest(pwd:str=""):
 # ══════════════════════════════════════════════════════
 # INFRA
 # ══════════════════════════════════════════════════════
+
+# ══════════════════════════════════════════════════════
+# ROUTES ARABES /ar/*
+# ══════════════════════════════════════════════════════
+
+@app.get("/ar")
+@app.get("/ar/")
+async def ar_home(request: Request):
+    db = get_db()
+    try:
+        stats = {
+            "tenders_total":  db.execute("SELECT COUNT(*) FROM tenders").fetchone()[0],
+            "tenders_active": db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif'").fetchone()[0],
+            "easy_to_win":    db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif' AND ai_score>=70").fetchone()[0],
+            "members":        db.execute("SELECT COUNT(*) FROM members WHERE actif=1").fetchone()[0],
+            "members_tg":     db.execute("SELECT COUNT(*) FROM members WHERE telegram IS NOT NULL AND telegram!=''").fetchone()[0],
+        }
+        tenders = [dict(r) for r in db.execute(
+            "SELECT * FROM tenders WHERE statut='actif' ORDER BY ai_score DESC, date_extraction DESC LIMIT 6"
+        ).fetchall()]
+        sources = [dict(r) for r in db.execute(
+            "SELECT source, COUNT(*) as active FROM tenders WHERE statut='actif' GROUP BY source ORDER BY active DESC"
+        ).fetchall()]
+    finally:
+        db.close()
+    return templates.TemplateResponse("landing_ar.html", {
+        "request": request, "stats": stats, "tenders": tenders,
+        "sources": sources, "member": get_member(request),
+        "SECTEURS_LIST": SECTEURS_LIST,
+    })
+
+
+@app.get("/ar/tenders")
+async def ar_tenders(request: Request, q: str = "", code_f: str = "", easy: str = "",
+                     region: str = "", page: int = 1):
+    db = get_db(); per = 18
+    conds = ["statut='actif'"]; params: list = []
+    if q:
+        conds.append("(objet LIKE ? OR acheteur LIKE ?)"); params += [f"%{q}%", f"%{q}%"]
+    if code_f:
+        conds.append("domaine LIKE ?"); params.append(f"{code_f}%")
+    if easy == "1":
+        conds.append("ai_score >= 70")
+    where = " AND ".join(conds)
+    try:
+        total = db.execute(f"SELECT COUNT(*) FROM tenders WHERE {where}", params).fetchone()[0]
+        tenders = [dict(r) for r in db.execute(
+            f"SELECT * FROM tenders WHERE {where} ORDER BY ai_score DESC, date_extraction DESC LIMIT ? OFFSET ?",
+            params + [per, (page-1)*per]
+        ).fetchall()]
+    finally:
+        db.close()
+    return templates.TemplateResponse("tenders_ar.html", {
+        "request": request, "tenders": tenders, "total": total,
+        "page": page, "pages": max(1, (total+per-1)//per),
+        "q": q, "code_f": code_f, "easy": easy,
+        "member": get_member(request), "SECTEURS_LIST": SECTEURS_LIST,
+    })
+
+
+@app.get("/ar/register")
+async def ar_register_get(request: Request):
+    if get_member(request):
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse("/dashboard", 302)
+    return templates.TemplateResponse("register_ar.html", {
+        "request": request, "error": None,
+        "member": None, "SECTEURS_LIST": SECTEURS_LIST,
+    })
+
+
+@app.post("/ar/register")
+async def ar_register_post(request: Request):
+    return await register_post(request)
+
+
+@app.get("/ar/login")
+async def ar_login_get(request: Request):
+    db = get_db()
+    try:
+        stats = {
+            "tenders_active": db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif'").fetchone()[0],
+            "members": db.execute("SELECT COUNT(*) FROM members WHERE actif=1").fetchone()[0],
+        }
+    finally:
+        db.close()
+    return templates.TemplateResponse("login.html", {
+        "request": request, "error": None, "reset": False,
+        "member": None, "stats": stats,
+    })
+
+
 @app.get("/health")
 async def health():
     db=get_db()
