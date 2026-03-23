@@ -2106,8 +2106,10 @@ async def ar_register_get(request: Request):
 
 
 @app.post("/ar/register")
-async def ar_register_post(request: Request):
-    return await reg_post(request)
+async def ar_register_post(req: Request, nom:str=Form(""), entreprise:str=Form(""),
+    email:str=Form(""), phone:str=Form(""), secteur:str=Form(""),
+    ville:str=Form(""), password:str=Form("")):
+    return await reg_post(req, nom, entreprise, email, phone, secteur, ville, password)
 
 
 @app.get("/ar/login")
