@@ -2000,6 +2000,36 @@ async def admin_del(pwd:str="", tid:str=""):
     finally: db.close()
     return JSONResponse({"ok":True})
 
+
+@app.get("/admin/expire_now")
+async def admin_expire_now(request: Request, pwd: str = ""):
+    if pwd != ADMIN_PASS: return JSONResponse({"error":"unauthorized"},401)
+    db = get_db()
+    try:
+        from datetime import date, datetime as _dt
+        today = date.today()
+        rows = db.execute("SELECT id,date_limite FROM tenders WHERE statut='actif' AND date_limite!=''").fetchall()
+        exp = []
+        for r in rows:
+            dl = (r["date_limite"] or "").strip()
+            if not dl or dl in ("N/A","—","-","null"): continue
+            for fmt in ("%Y-%m-%d","%d/%m/%Y","%d-%m-%Y","%d.%m.%Y"):
+                try:
+                    if _dt.strptime(dl, fmt).date() < today:
+                        exp.append(r["id"]); break
+                except: pass
+        if exp:
+            db.execute(f"UPDATE tenders SET statut='expire' WHERE id IN ({chr(44).join([chr(63)]*len(exp))})", exp)
+        db.execute("UPDATE tenders SET statut='expire' WHERE statut='actif' AND date_limite NOT LIKE '%/%' AND date_limite < date('now') AND date_limite!='' AND date_limite!='N/A'")
+        db.commit()
+        active = db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif'").fetchone()[0]
+        db.close()
+        return JSONResponse({"ok":True,"expired_python":len(exp),"active_remaining":active})
+    except Exception as e:
+        try: db.close()
+        except: pass
+        return JSONResponse({"error":str(e)},500)
+
 @app.get("/admin/cleanup")
 async def admin_cleanup(pwd:str=""):
     chk(pwd); db=get_db()
