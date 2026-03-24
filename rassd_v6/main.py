@@ -440,9 +440,15 @@ class ClassifierAgent:
 
     @staticmethod
     def is_expired(d: str) -> bool:
-        if not d: return False
-        try: return datetime.strptime(d.strip(), "%Y-%m-%d").date() < datetime.now().date()
-        except: return False
+        if not d or d in ("N/A","—","","-"): return False
+        d = d.strip()
+        today = datetime.now().date()
+        for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y",
+                    "%Y/%m/%d", "%m/%d/%Y"):
+            try:
+                return datetime.strptime(d, fmt).date() < today
+            except: pass
+        return False
 
     @staticmethod
     def extract_date(text: str) -> str:
@@ -1035,9 +1041,28 @@ class MonitorAgent:
                 db.execute("DELETE FROM notif_queue WHERE status='sent' AND sent_at < date('now','-30 days')")
                 db.execute("UPDATE notif_queue SET status='pending',attempts=0 WHERE status='failed' AND created_at < datetime('now','-1 hour') AND attempts < 3")
                 # Auto-expire tenders past deadline
+                # Expire YYYY-MM-DD format (SQLite native)
                 db.execute("""UPDATE tenders SET statut='expire'
                     WHERE statut='actif' AND date_limite != ''
+                    AND date_limite NOT LIKE '%/%'
                     AND date_limite < date('now') AND date_limite != 'N/A'""")
+                # Expire DD/MM/YYYY format (Python-side)
+                from datetime import date as _date
+                today_str = _date.today().strftime("%d/%m/%Y")
+                today_iso = _date.today().isoformat()
+                rows = db.execute(
+                    "SELECT id,date_limite FROM tenders WHERE statut='actif' AND date_limite LIKE '%/%'"
+                ).fetchall()
+                exp_ids = []
+                for row in rows:
+                    dl = row["date_limite"]
+                    try:
+                        from datetime import datetime as _dt
+                        d = _dt.strptime(dl.strip(), "%d/%m/%Y").date()
+                        if d < _date.today(): exp_ids.append(row["id"])
+                    except: pass
+                if exp_ids:
+                    db.execute(f"UPDATE tenders SET statut='expire' WHERE id IN ({chr(44).join(chr(63)*len(exp_ids))})", exp_ids)
                 # Remove tenders that were active but title <10 chars
                 db.execute("DELETE FROM tenders WHERE length(objet) < 10")
                 db.commit(); db.close()
