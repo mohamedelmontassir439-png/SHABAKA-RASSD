@@ -1,4 +1,4 @@
-"""  # v6.1 2026-03-21 17:53-active-only-20-sources
+"""  # v7.0 FINAL 2026-03-25 19:33 2026-03-21 17:53-active-only-20-sources
 Modern Business v5.0 — Intelligence Marchés Publics Maroc
 ══════════════════════════════════════════════════════════
 Architecture: FastAPI + SQLite WAL + 5 AI Agents
@@ -2206,7 +2206,9 @@ async def sitemap():
 <url><loc>{SITE_URL}/marketplace</loc><changefreq>hourly</changefreq><priority>0.9</priority></url>
 <url><loc>{SITE_URL}/annuaire</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
 <url><loc>{SITE_URL}/contact</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-<url><loc>{SITE_URL}/tarifs</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+<url><loc>{SITE_URL}/ar</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>{SITE_URL}/ar/tenders</loc><changefreq>hourly</changefreq><priority>0.8</priority></url>
+  <url><loc>{SITE_URL}/tarifs</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
 <url><loc>{SITE_URL}/a-propos</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
 <url><loc>{SITE_URL}/conditions</loc><changefreq>monthly</changefreq><priority>0.3</priority></url>
 </urlset>"""

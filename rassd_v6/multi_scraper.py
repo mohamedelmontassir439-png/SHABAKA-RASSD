@@ -650,6 +650,11 @@ class MarchesPublicsScraper:
 class LeMatinScraper:
     """annonces.lematin.ma — Premier JAL du Maroc"""
     BASE = "https://annonces.lematin.ma"
+    URLS = [
+        "https://annonces.lematin.ma/annonces/appels-offres/",
+        "https://annonces.lematin.ma/annonces/marches-publics/",
+        "https://annonces.lematin.ma/annonces/appels-a-la-concurrence/",
+    ]
 
     @classmethod
     def scrape(cls, known, log_fn=None):
