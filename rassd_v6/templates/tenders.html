@@ -80,6 +80,7 @@
       <option value="" {% if easy!='1' %}selected{% endif %}>Tous</option>
       <option value="1" {% if easy=='1' %}selected{% endif %}>⭐ Faciles (70+)</option>
     </select>
+    <a href="/tenders/export?q={{ q }}&code_f={{ code_f }}&region={{ region }}&easy={{ easy }}" class="btn btn-wire btn-sm" title="Télécharger CSV">⬇ CSV</a>
     <button type="submit" class="btn btn-gold btn-sm">Filtrer</button>
     {% if q or code_f or region_f or source_f or easy %}<a href="/tenders" class="btn btn-ghost btn-sm">✕ Effacer</a>{% endif %}
   </form>

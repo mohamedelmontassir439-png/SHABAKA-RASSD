@@ -1,4 +1,4 @@
-"""  # v7.1 FINAL 2026-03-27 16:12:17 2026-03-25 19:33 2026-03-21 17:53-active-only-20-sources
+"""  # v8.0 FINAL 2026-03-27 23:00 2026-03-27 16:12:17 2026-03-25 19:33 2026-03-21 17:53-active-only-20-sources
 Modern Business v5.0 — Intelligence Marchés Publics Maroc
 ══════════════════════════════════════════════════════════
 Architecture: FastAPI + SQLite WAL + 5 AI Agents
@@ -2307,6 +2307,146 @@ async def api_ingest(request: Request):
         return JSONResponse({"ok":True,"saved":saved,"total":len(tenders)})
     except Exception as e:
         return JSONResponse({"error":str(e)},500)
+
+
+
+# ═══════════════════════════════════════════════════
+# EXPORT CSV
+# ═══════════════════════════════════════════════════
+@app.get("/tenders/export")
+async def export_csv(req: Request, q:str="", code_f:str="", region:str="", easy:str=""):
+    m = get_member(req)
+    if not m:
+        return RedirectResponse("/login", 302)
+    db = get_db()
+    conds = ["statut='actif'"]; params = []
+    if q:
+        conds.append("(objet LIKE ? OR acheteur LIKE ?)"); params += [f"%{q}%",f"%{q}%"]
+    if code_f:
+        conds.append("domaine LIKE ?"); params.append(f"{code_f}%")
+    if region:
+        conds.append("region LIKE ?"); params.append(f"%{region}%")
+    if easy == "1":
+        conds.append("ai_score >= 70")
+    where = " AND ".join(conds)
+    rows = db.execute(
+        f"SELECT objet,acheteur,region,domaine,montant,date_publication,date_limite,source,ai_score,url FROM tenders WHERE {where} ORDER BY ai_score DESC LIMIT 2000",
+        params
+    ).fetchall()
+    db.close()
+    import io, csv as csv_mod
+    buf = io.StringIO()
+    w = csv_mod.writer(buf)
+    w.writerow(["Objet","Acheteur","Région","Domaine","Montant","Publication","Limite","Source","Score","URL"])
+    for r in rows:
+        w.writerow([r[0],r[1],r[2],r[3],r[4],r[5],r[6],r[7],r[8],r[9]])
+    buf.seek(0)
+    from fastapi.responses import StreamingResponse
+    fname = f"marches_{datetime.now().strftime('%Y%m%d')}.csv"
+    return StreamingResponse(
+        iter(['﻿' + buf.getvalue()]),
+        media_type="text/csv; charset=utf-8-sig",
+        headers={"Content-Disposition": f"attachment; filename={fname}"}
+    )
+
+
+# ═══════════════════════════════════════════════════
+# FAVORIS
+# ═══════════════════════════════════════════════════
+@app.post("/tenders/{tid}/fav")
+async def toggle_fav(req: Request, tid: str):
+    m = get_member(req)
+    if not m:
+        return JSONResponse({"error": "login required"}, 401)
+    db = get_db()
+    try:
+        ex = db.execute(
+            "SELECT id FROM favoris WHERE member_id=? AND tender_id=?",
+            (m["id"], tid)
+        ).fetchone()
+        if ex:
+            db.execute("DELETE FROM favoris WHERE member_id=? AND tender_id=?", (m["id"], tid))
+            db.commit(); db.close()
+            return JSONResponse({"fav": False})
+        db.execute(
+            "INSERT OR IGNORE INTO favoris(member_id,tender_id,created_at) VALUES(?,?,?)",
+            (m["id"], tid, datetime.now().strftime("%Y-%m-%d %H:%M"))
+        )
+        db.commit(); db.close()
+        return JSONResponse({"fav": True})
+    except Exception as e:
+        try: db.close()
+        except: pass
+        return JSONResponse({"error": str(e)}, 500)
+
+
+@app.get("/favoris", response_class=HTMLResponse)
+async def favoris_page(req: Request):
+    m = get_member(req)
+    if not m:
+        return RedirectResponse("/login?next=/favoris", 302)
+    db = get_db()
+    try:
+        fav_rows = db.execute(
+            "SELECT tender_id FROM favoris WHERE member_id=? ORDER BY created_at DESC",
+            (m["id"],)
+        ).fetchall()
+        fav_ids = [r["tender_id"] for r in fav_rows]
+        tenders = []
+        if fav_ids:
+            ph = ",".join(["?"]*len(fav_ids))
+            tenders = [dict(r) for r in db.execute(
+                f"SELECT * FROM tenders WHERE id IN ({ph}) ORDER BY ai_score DESC",
+                fav_ids
+            ).fetchall()]
+    finally:
+        db.close()
+    return render(req, "tenders.html", {
+        "tenders": tenders, "total": len(tenders), "page": 1, "pages": 1,
+        "q": "", "code_f": "", "region": "", "easy": "", "source_f": "",
+        "member": m, "page_title": "★ Mes Favoris",
+        "SECTEURS_LIST": SECTEURS_LIST, "REGIONS": REGIONS,
+    })
+
+
+# ═══════════════════════════════════════════════════
+# CONTACT POST
+# ═══════════════════════════════════════════════════
+@app.post("/contact", response_class=HTMLResponse)
+async def contact_post_handler(req: Request, nom:str=Form(""), email:str=Form(""),
+                                sujet:str=Form(""), message:str=Form("")):
+    m = get_member(req)
+    if not nom or not email or not message:
+        return render(req, "contact.html", {"error": "Tous les champs sont requis", "member": m})
+    try:
+        if TELEGRAM_BOT and ADMIN_CHAT_ID:
+            import requests as _r
+            _r.post(
+                f"https://api.telegram.org/bot{TELEGRAM_BOT}/sendMessage",
+                json={"chat_id": ADMIN_CHAT_ID,
+                      "text": f"📩 Contact\n<b>{nom}</b> ({email})\n<b>{sujet}</b>\n{message[:500]}",
+                      "parse_mode": "HTML"},
+                timeout=5
+            )
+    except Exception as e:
+        logger.error(f"[contact] {e}")
+    return render(req, "contact.html", {"ok": "Message envoyé. Réponse sous 24h ✓", "member": m})
+
+
+# ═══════════════════════════════════════════════════
+# BACKUP DB
+# ═══════════════════════════════════════════════════
+@app.get("/admin/backup")
+async def admin_backup(req: Request, pwd: str = ""):
+    cookie = req.cookies.get("admin_session", "")
+    if pwd != ADMIN_PASS and cookie != ADMIN_PASS:
+        return RedirectResponse("/admin/login", 302)
+    import shutil
+    bp = DB_PATH.replace(".db", f"_backup_{datetime.now().strftime('%Y%m%d_%H%M')}.db")
+    shutil.copy2(DB_PATH, bp)
+    from fastapi.responses import FileResponse
+    return FileResponse(bp, filename=os.path.basename(bp), media_type="application/octet-stream")
+
 
 @app.get("/health")
 async def health():
