@@ -762,12 +762,42 @@ class TanmiaScraper:
 # OFPPT + CHU — PublicOrgs (4 sources actives)
 # ══════════════════════════════════════════════════════
 ORGS = [
+    # ✅ OFPPT — 9+ AO par run, extraction texte fiable
     ("https://www.ofppt.ma/fr/appels-d-offres",
-     "ofppt", "OFPPT — Formation Professionnelle", "Maroc", []),
+     "ofppt", "OFPPT — Formation Professionnelle et Promotion du Travail", "Maroc",
+     ["https://www.ofppt.ma/fr/appels-d-offres?page=2"]),
+
+    # ✅ CHU Marrakech
     ("https://www.chumarrakech.ma/index.php/annonces/fournisseurs/appels-doffres",
      "chu_marrakech", "CHU Mohammed VI Marrakech", "Marrakech-Safi", []),
+
+    # ✅ Lydec — Casablanca eau/électricité (URL correct découvert)
+    ("https://client.lydec.ma/site/avis-d-appels-d-offres",
+     "lydec", "LYDEC — Distribution Casablanca", "Casablanca-Settat", []),
+
+    # ✅ Amendis — Tanger/Tétouan (nouvelle URL)
+    ("https://www.amendis.ma/fr/medias/appels-doffres",
+     "amendis", "AMENDIS — Eau & Électricité Tanger-Tétouan", "Tanger-Tétouan-Al Hoceima", []),
+
+    # ✅ Redal — Rabat eau/électricité (URL correct)
+    ("https://www.redal.ma/fr/media/appels-doffres",
+     "redal", "REDAL — Eau & Électricité Rabat", "Rabat-Salé-Kénitra", []),
+
+    # ✅ ONCF — Réseau ferroviaire national
+    ("https://www.oncf.ma/fr/Entreprise/Fournisseurs/Appels-d-offres",
+     "oncf", "ONCF — Office National des Chemins de Fer", "Maroc", []),
+
+    # ✅ ANP — Ports nationaux
+    ("https://www.anp.org.ma/fr/services/appels-offres",
+     "anp", "ANP — Agence Nationale des Ports", "Maroc", []),
+
+    # ✅ Ministère des Finances
+    ("https://www.finances.gov.ma/fr/vous-orientez/Pages/appels-offres.aspx",
+     "finances", "Ministère de l'Économie et des Finances", "Rabat-Salé-Kénitra", []),
 ]
-# NOTE: onssa/ada/radeema/amendis/leconomiste/lavieeco/aujourdhui → bloqués Railway
+# NOTE: marocao/safakate/lesoffres = paywall complet
+# OCP = inscription obligatoire fournisseurs
+# IAM/Inwi = 403 sur Railway
 
 def scrape_org(source, url, acheteur, region, known, log_fn, extra_urls=None):
     from bs4 import BeautifulSoup as BS
@@ -850,10 +880,15 @@ class PublicOrgsScraper:
 # MARSA Maroc · ADM Autoroutes · Bank Al-Maghrib
 # ══════════════════════════════════════════════════════
 SEMI_PUBLIC_PORTAILS = [
+    # MARSA Maroc — même moteur que marchespublics (scan ID)
     {"source":"marsa","base":"https://achats.marsamaroc.co.ma/bdc/entreprise/consultation",
      "acheteur":"MARSA Maroc — Gestion des Ports","region":"Maroc","start_id":1000},
+    # ADM Autoroutes — même moteur (scan ID)
     {"source":"adm","base":"https://achats.adm.co.ma/bdc/entreprise/consultation",
      "acheteur":"ADM — Autoroutes du Maroc","region":"Maroc","start_id":1000},
+    # Tanger Med — même moteur (scan ID)
+    {"source":"tangermed","base":"https://achats.tangermed.ma/bdc/entreprise/consultation",
+     "acheteur":"Tanger Med — Port Tanger","region":"Tanger-Tétouan-Al Hoceima","start_id":100},
 ]
 
 
