@@ -1865,7 +1865,79 @@ async def tg_webhook(req: Request):
 # ADMIN
 # ══════════════════════════════════════════════════════
 def chk(pwd:str):
-    if pwd!=ADMIN_PASS: counter("admin_fail"); raise HTTPException(403,"Accès refusé")
+    # Accept cookie session OR URL pwd param (backward compat)
+    cookie_session = req.cookies.get("admin_session","")
+    if cookie_session != ADMIN_PASS and pwd != ADMIN_PASS:
+        return RedirectResponse("/admin/login", 302)
+    pwd = ADMIN_PASS  # normalize for template
+
+@app.get("/admin/login", response_class=HTMLResponse)
+async def admin_login_page(req: Request):
+    # If already authenticated via cookie, redirect
+    session = req.cookies.get("admin_session","")
+    if session == ADMIN_PASS:
+        return RedirectResponse("/admin", 302)
+    return HTMLResponse("""<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin — Modern Business</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#030303;color:#f3eee7;font-family:'DM Sans',system-ui,sans-serif;
+  min-height:100dvh;display:flex;align-items:center;justify-content:center}
+.box{width:320px;padding:40px 32px;background:#0f0f0f;border:1px solid #222;border-radius:10px;
+  box-shadow:0 16px 64px rgba(0,0,0,.8)}
+.gem{width:24px;height:24px;background:linear-gradient(135deg,#e8c97a,#a07830);
+  clip-path:polygon(50% 0%,100% 38%,82% 100%,18% 100%,0% 38%);margin:0 auto 16px}
+h1{font-family:'Playfair Display',Georgia,serif;font-size:22px;font-weight:900;
+  text-align:center;margin-bottom:4px;font-style:italic}
+p{font-size:11px;color:#655f58;text-align:center;margin-bottom:28px}
+label{display:block;font-size:9px;font-weight:700;color:#3c3730;text-transform:uppercase;
+  letter-spacing:1.2px;margin-bottom:5px}
+input{width:100%;padding:10px 14px;background:#151515;border:1px solid #2c2c2c;
+  border-radius:4px;font-size:14px;color:#f3eee7;outline:none;margin-bottom:16px}
+input:focus{border-color:#a07830;box-shadow:0 0 0 3px rgba(201,168,76,.07)}
+button{width:100%;padding:11px;background:linear-gradient(135deg,#e8c97a,#a07830);
+  color:#030303;font-weight:700;font-size:12px;letter-spacing:.07em;text-transform:uppercase;
+  border:none;border-radius:4px;cursor:pointer;transition:.15s}
+button:hover{filter:brightness(1.1)}
+.err{background:rgba(158,74,74,.1);border:1px solid rgba(158,74,74,.2);border-radius:4px;
+  padding:9px 13px;font-size:12px;color:#c46060;margin-bottom:14px;text-align:center}
+</style></head><body>
+<div class="box">
+  <div class="gem"></div>
+  <h1>Administration</h1>
+  <p>Modern Business — Accès sécurisé</p>
+  <div id="err" class="err" style="display:none">Mot de passe incorrect</div>
+  <form method="post" action="/admin/login">
+    <label>Mot de passe admin</label>
+    <input type="password" name="pwd" placeholder="••••••••••" autofocus required>
+    <button type="submit">Accéder →</button>
+  </form>
+</div>
+<script>
+const p=new URLSearchParams(location.search);
+if(p.get('err'))document.getElementById('err').style.display='block';
+</script>
+</body></html>""")
+
+
+@app.post("/admin/login")
+async def admin_login_post(req: Request, pwd: str = Form("")):
+    if pwd == ADMIN_PASS:
+        resp = RedirectResponse("/admin", 302)
+        resp.set_cookie("admin_session", ADMIN_PASS, max_age=86400*7,
+                        httponly=True, samesite="lax")
+        return resp
+    return RedirectResponse("/admin/login?err=1", 302)
+
+
+@app.get("/admin/logout")
+async def admin_logout():
+    resp = RedirectResponse("/admin/login", 302)
+    resp.delete_cookie("admin_session")
+    return resp
+
 
 @app.get("/admin", response_class=HTMLResponse)
 async def admin(req: Request, pwd:str=""):
@@ -2198,8 +2270,8 @@ async def api_ingest(request: Request):
         for t in tenders:
             if not t.get("id") or not t.get("objet"): continue
             # Classify with AI
-            domaine = ClassifierAgent.secteur(t.get("objet",""), t.get("description",""))
-            region  = ClassifierAgent.region(t.get("acheteur","") + " " + t.get("objet",""))
+            domaine = ClassifierAgent.secteur((t.get("objet","") + " " + t.get("description",""))[:300])
+            region  = ClassifierAgent.region((t.get("acheteur","") + " " + t.get("objet",""))[:300])
             score   = 50
             try:
                 changed = db.execute("""INSERT OR IGNORE INTO tenders
