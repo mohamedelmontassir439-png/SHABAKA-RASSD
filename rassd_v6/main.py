@@ -1864,12 +1864,13 @@ async def tg_webhook(req: Request):
 # ══════════════════════════════════════════════════════
 # ADMIN
 # ══════════════════════════════════════════════════════
-def chk(pwd:str):
-    # Accept cookie session OR URL pwd param (backward compat)
-    cookie_session = req.cookies.get("admin_session","")
-    if cookie_session != ADMIN_PASS and pwd != ADMIN_PASS:
-        return RedirectResponse("/admin/login", 302)
-    pwd = ADMIN_PASS  # normalize for template
+def chk(pwd:str, req=None):
+    """Check admin auth: cookie session OR URL pwd"""
+    if pwd == ADMIN_PASS: return True
+    if req:
+        cookie = req.cookies.get("admin_session","")
+        if cookie == ADMIN_PASS: return True
+    raise HTTPException(403, "Accès refusé")
 
 @app.get("/admin/login", response_class=HTMLResponse)
 async def admin_login_page(req: Request):
@@ -1941,7 +1942,10 @@ async def admin_logout():
 
 @app.get("/admin", response_class=HTMLResponse)
 async def admin(req: Request, pwd:str=""):
-    chk(pwd)
+    # Redirect to login if not authenticated
+    cookie = req.cookies.get("admin_session","")
+    if pwd != ADMIN_PASS and cookie != ADMIN_PASS:
+        return RedirectResponse("/admin/login", 302)
     db=get_db()
     try:
         stats  =MonitorAgent.get_stats()
