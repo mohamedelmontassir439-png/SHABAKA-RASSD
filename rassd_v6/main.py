@@ -2183,6 +2183,55 @@ async def ar_login_get(request: Request):
     })
 
 
+
+@app.post("/api/v1/ingest")
+async def api_ingest(request: Request):
+    """Reçoit les marchés du scraper local (IP Maroc) et les sauvegarde"""
+    try:
+        body = await request.json()
+        if body.get("pwd") != ADMIN_PASS:
+            return JSONResponse({"error":"unauthorized"}, 401)
+        tenders = body.get("tenders", [])
+        if not tenders:
+            return JSONResponse({"ok":True,"saved":0})
+        db = get_db(); saved = 0
+        for t in tenders:
+            if not t.get("id") or not t.get("objet"): continue
+            # Classify with AI
+            domaine = ClassifierAgent.secteur(t.get("objet",""), t.get("description",""))
+            region  = ClassifierAgent.region(t.get("acheteur","") + " " + t.get("objet",""))
+            score   = 50
+            try:
+                changed = db.execute("""INSERT OR IGNORE INTO tenders
+                    (id,objet,acheteur,region,domaine,type_marche,montant,
+                     date_publication,date_limite,description,statut,url,source,
+                     ai_score,date_extraction)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (
+                    str(t.get("id",""))[:80],
+                    str(t.get("objet",""))[:400],
+                    str(t.get("acheteur",""))[:200],
+                    str(region or t.get("region","Maroc"))[:100],
+                    str(domaine or t.get("domaine",""))[:80],
+                    str(ClassifierAgent.type_marche(t.get("objet","")))[:40],
+                    str(t.get("montant",""))[:80],
+                    datetime.now().strftime("%d/%m/%Y"),
+                    str(t.get("date_limite",""))[:20],
+                    str(t.get("description",""))[:2000],
+                    str(t.get("statut","actif")),
+                    str(t.get("source_url",""))[:400],
+                    str(t.get("source","local"))[:40],
+                    score,
+                    datetime.now().strftime("%Y-%m-%d %H:%M"),
+                )).rowcount
+                if changed: saved += 1
+            except Exception as e:
+                logger.error(f"[ingest] {e}")
+        db.commit(); db.close()
+        SLog.add(f"[Ingest] +{saved}/{len(tenders)} depuis scraper local")
+        return JSONResponse({"ok":True,"saved":saved,"total":len(tenders)})
+    except Exception as e:
+        return JSONResponse({"error":str(e)},500)
+
 @app.get("/health")
 async def health():
     db=get_db()
