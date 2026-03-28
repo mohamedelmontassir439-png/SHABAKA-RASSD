@@ -304,12 +304,12 @@ body::after{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;o
     <a href="/tenders" class="nl {% if 'tenders' in request.url.path %}on{% endif %}">Marchés</a>
     <a href="/marketplace" class="nl {% if 'marketplace' in request.url.path %}on{% endif %}">Marketplace</a>
     <a href="/annuaire" class="nl {% if 'annuaire' in request.url.path %}on{% endif %}">Annuaire</a>
+    <a href="/admin/login" class="nl" style="color:var(--ink6);font-size:10px" title="Admin">⚙</a>
     <a href="/tarifs" class="nl nl-gold {% if 'tarifs' in request.url.path %}on{% endif %}">Tarifs</a>
   </div>
   <div class="nend">
     {% if member %}
     <a href="/dashboard" class="nl hide-m">Dashboard</a>
-    <a href="/admin/login" class="nl hide-m" style="color:var(--red2)" title="Administration">⚙</a>
     <a href="/favoris" class="nl hide-m {% if 'favoris' in request.url.path %}on{% endif %}">★ Favoris</a>
     <a href="/dashboard" class="nava" title="{{ member.nom }}">{{ member.nom[0]|upper }}</a>
     {% else %}
@@ -317,6 +317,7 @@ body::after{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;o
     <a href="/register" class="btn btn-gold btn-sm hide-m">S'inscrire</a>
     {% endif %}
     <a href="/ar" style="padding:4px 10px;border:1px solid var(--bdr2);border-radius:var(--r);font-size:11px;color:var(--ink4);transition:.15s;font-family:var(--sans)" onmouseover="this.style.borderColor='var(--g3)';this.style.color='var(--g2)'" onmouseout="this.style.borderColor='var(--bdr2)';this.style.color='var(--ink4)'">ع</a>
+    <a href="/admin/login" style="padding:4px 8px;font-size:13px;color:var(--ink6);border-radius:var(--r);transition:.15s" title="Administration" onmouseover="this.style.color='var(--red2)'" onmouseout="this.style.color='var(--ink6)'">⚙</a>
     <button class="nhm" onclick="mmo()" aria-label="Menu">
       <svg width="18" height="12" viewBox="0 0 18 12" fill="none">
         <rect width="18" height="1.5" rx=".75" fill="currentColor"/>

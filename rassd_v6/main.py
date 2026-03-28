@@ -442,20 +442,10 @@ class ClassifierAgent:
     def is_expired(d: str) -> bool:
         if not d: return False
         d = d.strip()
-        if d in ("N/A","—","","-","null","-"): return False
+        if d in ("N/A","—","","-","null"): return False
         today = datetime.now().date()
-        for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y",
-                    "%Y/%m/%d", "%m/%d/%Y"):
-            try:
-                return datetime.strptime(d, fmt).date() < today
-            except: pass
-        return False
-        d = d.strip()
-        today = datetime.now().date()
-        for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y",
-                    "%Y/%m/%d", "%m/%d/%Y"):
-            try:
-                return datetime.strptime(d, fmt).date() < today
+        for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y"):
+            try: return datetime.strptime(d, fmt).date() < today
             except: pass
         return False
 
@@ -2209,7 +2199,7 @@ async def ar_home(req: Request):
     finally:
         db.close()
     return render(req, "landing_ar.html", {
-        "request": req, "stats": stats, "tenders": tenders,
+         "stats": stats, "tenders": tenders,
         "sources": sources, "member": get_member(request),
         "SECTEURS_LIST": SECTEURS_LIST,
     })
@@ -2236,7 +2226,7 @@ async def ar_tenders(req: Request, q: str = "", code_f: str = "", easy: str = ""
     finally:
         db.close()
     return render(req, "tenders_ar.html", {
-        "request": req, "tenders": tenders, "total": total,
+         "tenders": tenders, "total": total,
         "page": page, "pages": max(1, (total+per-1)//per),
         "q": q, "code_f": code_f, "easy": easy,
         "member": get_member(request), "SECTEURS_LIST": SECTEURS_LIST,
@@ -2248,7 +2238,7 @@ async def ar_register_get(req: Request):
     if get_member(request):
         return RedirectResponse("/dashboard", 302)
     return render(req, "register_ar.html", {
-        "request": req, "error": None,
+         "error": None,
         "member": None, "SECTEURS_LIST": SECTEURS_LIST,
     })
 
@@ -2271,7 +2261,7 @@ async def ar_login_get(req: Request):
     finally:
         db.close()
     return render(req, "login.html", {
-        "request": req, "error": None, "reset": False,
+         "error": None, "reset": False,
         "member": None, "stats": stats,
     })
 
