@@ -43,7 +43,8 @@ SECRET_KEY   = os.getenv("SECRET_KEY",  secrets.token_hex(32))
 DB_PATH      = os.getenv("DB_PATH",     "data/mb.db")
 GMAIL_USER   = os.getenv("GMAIL_USER",  "mohamedelmontassir439@gmail.com")
 GMAIL_PASS   = os.getenv("GMAIL_PASS",  "")
-TELEGRAM_BOT = os.getenv("TELEGRAM_BOT","7849539613:AAFZTtMNEo92UqE3OIcXPdX65OCm8DrvgAA")
+TELEGRAM_BOT  = os.getenv("TELEGRAM_BOT","7849539613:AAFZTtMNEo92UqE3OIcXPdX65OCm8DrvgAA")
+ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID","6424992854")
 ANTHROPIC_KEY= os.getenv("ANTHROPIC_API_KEY", "")
 BREVO_KEY    = os.getenv("BREVO_API_KEY", "")
 RESEND_KEY   = os.getenv("RESEND_API_KEY", "")
@@ -402,6 +403,12 @@ SECTEURS = {
     "S915 - Transport":                 ["transport","location véhicule","navette","chauffeur"],
 }
 SECTEURS_LIST = list(SECTEURS.keys())
+
+PLAN_LIMITS = {
+    "free":       {"tenders_per_day": 10, "telegram": False, "api": False, "filters": 2},
+    "pro":        {"tenders_per_day": 999, "telegram": True,  "api": True,  "filters": 999},
+    "enterprise": {"tenders_per_day": 999, "telegram": True,  "api": True,  "filters": 999},
+}
 
 class ClassifierAgent:
     @staticmethod
@@ -1227,21 +1234,21 @@ def render(req: Request, tmpl: str, ctx: dict={}):
 async def home(req: Request):
     db = get_db()
     try:
-        stats = MonitorAgent.get_stats()
-        lr = db.execute("SELECT * FROM scrape_runs ORDER BY id DESC LIMIT 1").fetchone()
+        stats = {
+            "tenders_total":  db.execute("SELECT COUNT(*) FROM tenders").fetchone()[0],
+            "tenders_active": db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif'").fetchone()[0],
+            "easy_to_win":    db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif' AND ai_score>=70").fetchone()[0],
+            "members":        db.execute("SELECT COUNT(*) FROM members WHERE actif=1").fetchone()[0],
+            "members_tg":     db.execute("SELECT COUNT(*) FROM members WHERE telegram IS NOT NULL AND telegram!='' AND actif=1").fetchone()[0],
+        }
         sources = [dict(r) for r in db.execute(
-            "SELECT source,COUNT(*) as total,SUM(CASE WHEN statut='actif' THEN 1 ELSE 0 END) as active FROM tenders GROUP BY source ORDER BY total DESC"
+            "SELECT source, COUNT(*) as active FROM tenders WHERE statut='actif' GROUP BY source ORDER BY active DESC"
         ).fetchall()]
     finally: db.close()
     counter("pv:home")
-    return render(req, "landing.html", {"stats":stats,"last_run":dict(lr) if lr else {},"sources":sources,"scrape_h":SCRAPE_HOURS})
+    return render(req, "landing.html", {"stats":stats,"sources":sources})
 
 # Plan limits
-PLAN_LIMITS = {
-    "free":       {"tenders_per_day": 10, "telegram": False, "api": False, "filters": 2},
-    "pro":        {"tenders_per_day": 999, "telegram": True,  "api": True,  "filters": 999},
-    "enterprise": {"tenders_per_day": 999, "telegram": True,  "api": True,  "filters": 999},
-}
 
 @app.get("/tenders", response_class=HTMLResponse)
 async def tenders_page(req: Request, code_f="", region_f="", source_f="", type_f="", easy="", q="", page:int=1):
