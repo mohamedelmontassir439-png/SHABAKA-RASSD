@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Accès réservé — Modern Business{% endblock %}
+{% block body %}
+<div style="min-height:60vh;display:flex;align-items:center;justify-content:center;padding:40px var(--pad)">
+  <div style="max-width:480px;width:100%;text-align:center">
+    
+    {% if reason == "login" %}
+    <!-- Not logged in -->
+    <div style="font-size:48px;margin-bottom:20px;opacity:.3">🔒</div>
+    <h1 style="font-family:var(--serif);font-size:clamp(22px,3vw,32px);font-weight:900;font-style:italic;margin-bottom:12px">
+      Connectez-vous pour accéder
+    </h1>
+    <p style="font-size:13px;color:var(--ink4);margin-bottom:32px;line-height:1.7">
+      Les marchés publics sont accessibles aux membres Pro et Entreprise.<br>
+      Inscrivez-vous gratuitement pour découvrir la plateforme.
+    </p>
+    <div class="f fj g12 fw">
+      <a href="/login" class="btn btn-gold btn-xl">Se connecter →</a>
+      <a href="/register" class="btn btn-wire btn-xl">Inscription gratuite</a>
+    </div>
+    
+    {% else %}
+    <!-- Free plan -->
+    <div style="font-size:48px;margin-bottom:20px;opacity:.3">⭐</div>
+    <h1 style="font-family:var(--serif);font-size:clamp(22px,3vw,32px);font-weight:900;font-style:italic;margin-bottom:12px">
+      Fonctionnalité <span style="color:var(--g1)">Pro</span>
+    </h1>
+    <p style="font-size:13px;color:var(--ink4);margin-bottom:32px;line-height:1.7">
+      L'accès aux marchés est réservé aux membres <b>Pro</b> et <b>Entreprise</b>.<br>
+      Passez au plan Pro pour accéder à tous les appels d'offres avec alertes Telegram.
+    </p>
+    <div class="card card-gold p24 mb28" style="text-align:right">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="font-family:var(--serif);font-size:28px;font-weight:900;color:var(--g1);font-style:italic">Pro</div>
+        <div><span style="font-family:var(--serif);font-size:36px;font-weight:900;color:var(--g1)">99</span><span style="color:var(--ink5);font-size:13px"> DH/mois</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;text-align:left">
+        {% for feat in ["Marchés illimités","Alertes Telegram instantanées","Filtrage T/P/S précis","Score IA facile à gagner","API REST incluse"] %}
+        <div style="font-size:12px;color:var(--ink3);display:flex;align-items:center;gap:8px">
+          <span style="color:var(--grn)">✓</span>{{ feat }}
+        </div>
+        {% endfor %}
+      </div>
+      <a href="/contact?subject=Abonnement+Pro+99DH" class="btn btn-gold btn-full btn-lg">Activer Pro →</a>
+    </div>
+    <a href="/tarifs" style="font-size:12px;color:var(--ink4)">Voir tous les tarifs</a>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

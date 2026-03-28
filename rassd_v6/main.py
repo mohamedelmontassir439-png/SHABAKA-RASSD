@@ -440,7 +440,16 @@ class ClassifierAgent:
 
     @staticmethod
     def is_expired(d: str) -> bool:
-        if not d or d in ("N/A","—","","-"): return False
+        if not d: return False
+        d = d.strip()
+        if d in ("N/A","—","","-","null","-"): return False
+        today = datetime.now().date()
+        for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y",
+                    "%Y/%m/%d", "%m/%d/%Y"):
+            try:
+                return datetime.strptime(d, fmt).date() < today
+            except: pass
+        return False
         d = d.strip()
         today = datetime.now().date()
         for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y",
@@ -1045,7 +1054,7 @@ class MonitorAgent:
                 db.execute("""UPDATE tenders SET statut='expire'
                     WHERE statut='actif' AND date_limite != ''
                     AND date_limite NOT LIKE '%/%'
-                    AND date_limite < date('now') AND date_limite != 'N/A'""")
+                    AND date_limite < date('now') AND date_limite != 'N/A' AND date_limite != ''""")
                 # Expire DD/MM/YYYY format (Python-side)
                 from datetime import date as _date
                 today_str = _date.today().strftime("%d/%m/%Y")
@@ -1246,6 +1255,14 @@ PLAN_LIMITS = {
 
 @app.get("/tenders", response_class=HTMLResponse)
 async def tenders_page(req: Request, code_f="", region_f="", source_f="", type_f="", easy="", q="", page:int=1):
+    m = get_member(req)
+    # Tenders visibles uniquement pour membres Pro/Enterprise
+    if not m:
+        return render(req, "tenders_locked.html", {"reason": "login", "member": None,
+            "SECTEURS_LIST": SECTEURS_LIST, "REGIONS": REGIONS})
+    if m.get("plan","free") == "free":
+        return render(req, "tenders_locked.html", {"reason": "upgrade", "member": m,
+            "SECTEURS_LIST": SECTEURS_LIST, "REGIONS": REGIONS})
     per=20; off=(page-1)*per
     db = get_db()
     try:
