@@ -309,6 +309,7 @@ body::after{content:'';position:fixed;inset:0;z-index:9999;pointer-events:none;o
   <div class="nend">
     {% if member %}
     <a href="/dashboard" class="nl hide-m">Dashboard</a>
+    <a href="/admin/login" class="nl hide-m" style="color:var(--red2)" title="Administration">⚙</a>
     <a href="/favoris" class="nl hide-m {% if 'favoris' in request.url.path %}on{% endif %}">★ Favoris</a>
     <a href="/dashboard" class="nava" title="{{ member.nom }}">{{ member.nom[0]|upper }}</a>
     {% else %}

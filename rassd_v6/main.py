@@ -2173,7 +2173,7 @@ async def admin_test_digest(pwd:str=""):
 
 @app.get("/ar")
 @app.get("/ar/")
-async def ar_home(request: Request):
+async def ar_home(req: Request):
     db = get_db()
     try:
         stats = {
@@ -2191,15 +2191,15 @@ async def ar_home(request: Request):
         ).fetchall()]
     finally:
         db.close()
-    return templates.TemplateResponse("landing_ar.html", {
-        "request": request, "stats": stats, "tenders": tenders,
+    return render(req, "landing_ar.html", {
+        "request": req, "stats": stats, "tenders": tenders,
         "sources": sources, "member": get_member(request),
         "SECTEURS_LIST": SECTEURS_LIST,
     })
 
 
 @app.get("/ar/tenders")
-async def ar_tenders(request: Request, q: str = "", code_f: str = "", easy: str = "",
+async def ar_tenders(req: Request, q: str = "", code_f: str = "", easy: str = "",
                      region: str = "", page: int = 1):
     db = get_db(); per = 18
     conds = ["statut='actif'"]; params: list = []
@@ -2218,8 +2218,8 @@ async def ar_tenders(request: Request, q: str = "", code_f: str = "", easy: str 
         ).fetchall()]
     finally:
         db.close()
-    return templates.TemplateResponse("tenders_ar.html", {
-        "request": request, "tenders": tenders, "total": total,
+    return render(req, "tenders_ar.html", {
+        "request": req, "tenders": tenders, "total": total,
         "page": page, "pages": max(1, (total+per-1)//per),
         "q": q, "code_f": code_f, "easy": easy,
         "member": get_member(request), "SECTEURS_LIST": SECTEURS_LIST,
@@ -2227,11 +2227,11 @@ async def ar_tenders(request: Request, q: str = "", code_f: str = "", easy: str 
 
 
 @app.get("/ar/register")
-async def ar_register_get(request: Request):
+async def ar_register_get(req: Request):
     if get_member(request):
         return RedirectResponse("/dashboard", 302)
-    return templates.TemplateResponse("register_ar.html", {
-        "request": request, "error": None,
+    return render(req, "register_ar.html", {
+        "request": req, "error": None,
         "member": None, "SECTEURS_LIST": SECTEURS_LIST,
     })
 
@@ -2244,7 +2244,7 @@ async def ar_register_post(req: Request, nom:str=Form(""), entreprise:str=Form("
 
 
 @app.get("/ar/login")
-async def ar_login_get(request: Request):
+async def ar_login_get(req: Request):
     db = get_db()
     try:
         stats = {
@@ -2253,8 +2253,8 @@ async def ar_login_get(request: Request):
         }
     finally:
         db.close()
-    return templates.TemplateResponse("login.html", {
-        "request": request, "error": None, "reset": False,
+    return render(req, "login.html", {
+        "request": req, "error": None, "reset": False,
         "member": None, "stats": stats,
     })
 
