@@ -36,6 +36,40 @@
   </div>
   {% endif %}
 
+
+  <!-- Onboarding Checklist -->
+  <div id="onboardingBox" class="card mb24" style="display:none">
+    <div class="card-head" style="justify-content:space-between">
+      <span>🚀 Démarrage rapide</span>
+      <span id="onbPct" style="font-family:var(--mono);font-size:10px;color:var(--g2)">0%</span>
+    </div>
+    <div style="padding:4px 0">
+      <div class="bar" style="height:3px;margin:0 14px 0"><div id="onbBar" class="bar-f bg2" style="width:0;transition:width .6s"></div></div>
+    </div>
+    <div id="onbSteps" style="padding:8px 0"></div>
+  </div>
+
+  <script>
+  (async function(){
+    try{
+      const r=await fetch('/api/onboarding');
+      const d=await r.json();
+      if(d.pct===100){return;}  // Hide if complete
+      const box=document.getElementById('onboardingBox');
+      box.style.display='block';
+      document.getElementById('onbBar').style.width=d.pct+'%';
+      document.getElementById('onbPct').textContent=d.done+'/'+d.total+' complété';
+      const el=document.getElementById('onbSteps');
+      el.innerHTML=d.steps.map(s=>
+        '<a href="'+s.url+'" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--bdr);text-decoration:none;transition:.15s" onmouseover="this.style.background='var(--raised)'" onmouseout="this.style.background=''">'
+        +'<span style="font-size:13px;flex-shrink:0">'+(s.done?'✅':'○')+'</span>'
+        +'<span style="font-size:12px;color:'+(s.done?'var(--ink5)':'var(--ink2)')+';"'+(s.done?' style="text-decoration:line-through;color:var(--ink5)"':'')+'>'+s.label+'</span>'
+        +(s.done?'':'<span style="margin-left:auto;font-size:10px;color:var(--ink6)">→</span>')
+        +'</a>'
+      ).join('');
+    }catch(e){}
+  })();
+  </script>
   <!-- Stats rapides -->
   <div class="sband mb24" style="grid-template-columns:repeat(4,1fr);border:1px solid var(--bdr);border-radius:var(--r2)">
     {% for n,l in [(stats.tenders_active,'Marchés actifs'),(stats.easy_to_win,'Score ≥ 70'),(stats.members,'Membres'),(stats.notif_sent or 0,'Notifs envoyées')] %}

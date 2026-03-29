@@ -455,6 +455,13 @@ class ClassifierAgent:
             try: return datetime.strptime(d, fmt).date() < today
             except: pass
         return False
+        d = d.strip()
+        if d in ("N/A","—","","-","null"): return False
+        today = datetime.now().date()
+        for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y"):
+            try: return datetime.strptime(d, fmt).date() < today
+            except: pass
+        return False
 
     @staticmethod
     def extract_date(text: str) -> str:
@@ -1220,6 +1227,8 @@ def render(req: Request, tmpl: str, ctx: dict={}):
             "now":          datetime.now(),
             "GA_ID":        GA_ID,
             "GSC_TOKEN":    GSC_TOKEN,
+            "flash_msg": req.query_params.get("_flash",""),
+            "flash_kind": req.query_params.get("_fk","ok"),
             **ctx
         })
     except Exception as e:
@@ -1251,7 +1260,7 @@ async def home(req: Request):
 # Plan limits
 
 @app.get("/tenders", response_class=HTMLResponse)
-async def tenders_page(req: Request, code_f="", region_f="", source_f="", type_f="", easy="", q="", page:int=1):
+async def tenders_page(req: Request, code_f="", region_f="", source_f="", type_f="", easy="", q="", page:int=1, sort:str="score"):
     m = get_member(req)
     # Tenders visibles uniquement pour membres Pro/Enterprise
     if not m:
@@ -1275,14 +1284,14 @@ async def tenders_page(req: Request, code_f="", region_f="", source_f="", type_f
         w = " AND ".join(conds)
         total  = db.execute(f"SELECT COUNT(*) FROM tenders WHERE {w}", params).fetchone()[0]
         rows   = [dict(r) for r in db.execute(
-            f"SELECT * FROM tenders WHERE {w} ORDER BY ai_score DESC, date_extraction DESC LIMIT ? OFFSET ?",
+            f"SELECT * FROM tenders WHERE {w} ORDER BY " + ("date_extraction DESC" if sort=="date" else ("date_limite ASC" if sort=="deadline" else "ai_score DESC, date_extraction DESC")) + " LIMIT ? OFFSET ?",
             params+[per,off]).fetchall()]
         regions_list = [r[0] for r in db.execute("SELECT DISTINCT region FROM tenders WHERE region!='' ORDER BY region").fetchall()]
         sources_list = [r[0] for r in db.execute("SELECT DISTINCT source FROM tenders WHERE source!='' ORDER BY source").fetchall()]
     finally: db.close()
     counter("pv:tenders")
     return render(req,"tenders.html",{
-        "tenders":rows,"total":total,"page":page,"pages":max(1,(total+per-1)//per),
+        "tenders":rows,"total":total,"page":page,"pages":max(1,(total+per-1)//per),"sort":sort,
         "code_f":code_f,"region_f":region_f,"source_f":source_f,"type_f":type_f,
         "easy":easy,"q":q,"regions_list":regions_list,"sources_list":sources_list,
     })
@@ -2048,21 +2057,6 @@ async def admin_test(pwd:str="", chat_id:str=""):
     finally: db.close()
     return JSONResponse({"ok":True,"results":results})
 
-@app.get("/admin/migrate")
-async def admin_migrate(pwd:str=""):
-    chk(pwd)
-    db=get_db()
-    try:
-        known=["mohamedelmontassir439@gmail.com","ayyoubelaarbi@gmail.com"]
-        for email in known:
-            if not db.execute("SELECT 1 FROM members WHERE email=?",(email,)).fetchone():
-                db.execute("INSERT INTO members (nom,email,telegram,plan,actif,notif_email,notif_tg,created_at) VALUES (?,?,?,?,1,1,1,?)",
-                           (email.split("@")[0],email,"6424992854" if "montassir" in email else "","free",now_str()))
-        db.execute("UPDATE members SET telegram='6424992854' WHERE email='mohamedelmontassir439@gmail.com' AND (telegram IS NULL OR telegram='')")
-        db.commit()
-        members=[dict(r) for r in db.execute("SELECT id,nom,email,telegram FROM members WHERE actif=1").fetchall()]
-    finally: db.close()
-    return JSONResponse({"ok":True,"members":members})
 
 @app.get("/admin/set_telegram")
 async def admin_set_tg(pwd:str="", email:str="", chat_id:str=""):
@@ -2466,109 +2460,6 @@ async def admin_backup(req: Request, pwd: str = ""):
 # ══════════════════════════════════════════════════════
 # ROUTES ARABES /ar/*
 # ══════════════════════════════════════════════════════
-
-@app.get("/ar")
-@app.get("/ar/")
-async def ar_home(req: Request):
-    db = get_db()
-    try:
-        stats = {
-            "tenders_total":  db.execute("SELECT COUNT(*) FROM tenders").fetchone()[0],
-            "tenders_active": db.execute("SELECT COUNT(*) FROM tenders WHERE statut=\'actif\'").fetchone()[0],
-            "easy_to_win":    db.execute("SELECT COUNT(*) FROM tenders WHERE statut=\'actif\' AND ai_score>=70").fetchone()[0],
-            "members":        db.execute("SELECT COUNT(*) FROM members WHERE actif=1").fetchone()[0],
-        }
-        tenders = [dict(r) for r in db.execute(
-            "SELECT * FROM tenders WHERE statut=\'actif\' ORDER BY ai_score DESC, date_extraction DESC LIMIT 6"
-        ).fetchall()]
-    finally:
-        db.close()
-    return render(req, "landing_ar.html", {
-        "stats": stats, "tenders": tenders,
-        "member": get_member(req), "SECTEURS_LIST": SECTEURS_LIST,
-    })
-
-
-@app.get("/ar/tenders")
-async def ar_tenders(req: Request, q: str="", code_f: str="", easy: str="", page: int=1):
-    m = get_member(req)
-    if not m:
-        return RedirectResponse("/login?next=/ar/tenders", 302)
-    if m.get("plan","free") == "free":
-        return render(req, "tenders_locked.html", {"reason":"upgrade","member":m,"SECTEURS_LIST":SECTEURS_LIST,"REGIONS":REGIONS})
-    db = get_db(); per = 18
-    conds = ["statut=\'actif\'"]; params = []
-    if q: conds.append("(objet LIKE ? OR acheteur LIKE ?)"); params += [f"%{q}%",f"%{q}%"]
-    if code_f: conds.append("domaine LIKE ?"); params.append(f"{code_f}%")
-    if easy=="1": conds.append("ai_score>=70")
-    where = " AND ".join(conds)
-    try:
-        total = db.execute(f"SELECT COUNT(*) FROM tenders WHERE {where}", params).fetchone()[0]
-        tenders = [dict(r) for r in db.execute(
-            f"SELECT * FROM tenders WHERE {where} ORDER BY ai_score DESC, date_extraction DESC LIMIT ? OFFSET ?",
-            params+[per,(page-1)*per]).fetchall()]
-    finally: db.close()
-    return render(req, "tenders_ar.html", {
-        "tenders":tenders,"total":total,"page":page,"pages":max(1,(total+per-1)//per),
-        "q":q,"code_f":code_f,"easy":easy,"member":m,"SECTEURS_LIST":SECTEURS_LIST,
-    })
-
-
-@app.get("/ar/register")
-async def ar_register_get(req: Request):
-    if get_member(req): return RedirectResponse("/dashboard",302)
-    return render(req, "register_ar.html", {"error":None,"member":None,"SECTEURS_LIST":SECTEURS_LIST})
-
-
-@app.post("/ar/register")
-async def ar_register_post(req: Request, nom:str=Form(""), entreprise:str=Form(""),
-    email:str=Form(""), phone:str=Form(""), secteur:str=Form(""),
-    ville:str=Form(""), password:str=Form("")):
-    return await reg_post(req, nom=nom, entreprise=entreprise, email=email,
-        phone=phone, secteur=secteur, ville=ville, password=password)
-
-
-@app.get("/ar/login")
-async def ar_login(req: Request):
-    db = get_db()
-    try:
-        stats = {
-            "tenders_active": db.execute("SELECT COUNT(*) FROM tenders WHERE statut=\'actif\'").fetchone()[0],
-            "members": db.execute("SELECT COUNT(*) FROM members WHERE actif=1").fetchone()[0],
-        }
-    finally: db.close()
-    return render(req, "login.html", {"error":None,"reset":False,"member":None,"stats":stats})
-
-
-
-@app.get("/settings/password", response_class=HTMLResponse)
-async def change_pwd_get(req: Request):
-    m = get_member(req)
-    if not m: return RedirectResponse("/login",302)
-    return render(req, "change_password.html", {"error":None,"ok":None,"member":m})
-
-
-@app.post("/settings/password", response_class=HTMLResponse)
-async def change_pwd_post(req: Request, current:str=Form(""), new_pwd:str=Form(""), confirm:str=Form("")):
-    m = get_member(req)
-    if not m: return RedirectResponse("/login",302)
-    def ctx(err=None,ok=None): return render(req,"change_password.html",{"error":err,"ok":ok,"member":m})
-    if not current or not new_pwd or not confirm:
-        return ctx("Tous les champs sont requis")
-    if new_pwd != confirm:
-        return ctx("Les nouveaux mots de passe ne correspondent pas")
-    if len(new_pwd) < 8:
-        return ctx("Mot de passe trop court (min. 8 caractères)")
-    db = get_db()
-    try:
-        row = db.execute("SELECT pw_hash FROM members WHERE id=?", (m["id"],)).fetchone()
-        if not row or hash_pw(current) != row["pw_hash"]:
-            db.close(); return ctx("Mot de passe actuel incorrect")
-        db.execute("UPDATE members SET pw_hash=? WHERE id=?", (hash_pw(new_pwd), m["id"]))
-        db.commit()
-    finally: db.close()
-    return ctx(ok="✓ Mot de passe modifié avec succès")
-
 
 @app.get("/health")
 async def health():

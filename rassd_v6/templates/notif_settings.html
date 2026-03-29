@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Notifications — Modern Business{% endblock %}
+{% block body %}
+<div class="page" style="max-width:560px">
+  <div class="mb32">
+    <div class="slbl mb10">Préférences</div>
+    <h1 style="font-family:var(--serif);font-size:28px;font-weight:900;font-style:italic">Notifications</h1>
+    <p style="font-size:12px;color:var(--ink5);margin-top:6px">Choisissez comment vous souhaitez être alerté</p>
+  </div>
+  <form method="post" action="/settings/notifications">
+    <div class="card mb20">
+      <div class="card-head">📧 Email</div>
+      <div class="p20">
+        <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:16px">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--ink2)">Alertes email</div>
+            <div style="font-size:11px;color:var(--ink5);margin-top:2px">Recevoir les nouveaux marchés par email</div>
+          </div>
+          <input type="checkbox" name="notif_email" value="on" {% if member.notif_email != 0 %}checked{% endif %}
+            style="width:18px;height:18px;accent-color:var(--g2);cursor:pointer">
+        </label>
+      </div>
+    </div>
+    <div class="card mb20">
+      <div class="card-head">🔔 Telegram</div>
+      <div class="p20">
+        {% if not member.telegram %}
+        <div style="background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.15);border-radius:var(--r2);padding:12px 14px;margin-bottom:14px">
+          <div style="font-size:12px;color:var(--g2);font-weight:600">Telegram non connecté</div>
+          <div style="font-size:11px;color:var(--ink5);margin-top:4px">Envoyez <code style="background:var(--surface);padding:2px 5px;border-radius:3px">/link {{ member.email }}</code> à @MarchesMarocBot</div>
+        </div>
+        {% endif %}
+        <label style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:16px">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--ink2)">Alertes Telegram</div>
+            <div style="font-size:11px;color:var(--ink5);margin-top:2px">Notifications push instantanées (Pro)</div>
+          </div>
+          <input type="checkbox" name="notif_tg" value="on" {% if member.notif_tg != 0 %}checked{% endif %}
+            style="width:18px;height:18px;accent-color:var(--g2);cursor:pointer" {% if member.plan=='free' %}disabled{% endif %}>
+        </label>
+        {% if member.plan == 'free' %}
+        <div style="margin-top:10px;font-size:11px;color:var(--ink6)">Réservé aux membres <a href="/tarifs" style="color:var(--g2)">Pro</a></div>
+        {% endif %}
+      </div>
+    </div>
+    <button type="submit" class="btn btn-gold btn-full">Sauvegarder les préférences →</button>
+  </form>
+  <div class="tc mt16">
+    <a href="/dashboard" style="font-size:12px;color:var(--ink5)">← Retour au dashboard</a>
+  </div>
+</div>
+{% endblock %}

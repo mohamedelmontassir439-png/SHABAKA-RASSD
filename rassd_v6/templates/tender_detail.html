@@ -1,127 +1,193 @@
 {% extends "base.html" %}
-{% block title %}{{ t.objet[:60] }}{% endblock %}
+{% block title %}{{ t.objet[:60] }} — Modern Business{% endblock %}
+{% block head %}
+<meta property="og:title" content="{{ t.objet[:80] }}">
+<meta property="og:description" content="{{ t.acheteur }} · {{ t.region }} · Score IA: {{ t.ai_score }}/100">
+<meta name="description" content="{{ t.objet[:160] }} — {{ t.acheteur }}">
+<style>
+.score-arc{width:80px;height:80px;position:relative;flex-shrink:0}
+.score-arc svg{width:100%;height:100%}
+.score-val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.info-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--bdr);font-size:12px}
+.info-row:last-child{border-bottom:none}
+.info-label{font-size:9px;font-weight:700;color:var(--ink5);text-transform:uppercase;letter-spacing:.08em;flex-shrink:0;width:110px;padding-top:2px}
+.info-val{color:var(--ink2);flex:1;line-height:1.5}
+.action-btn{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--r);font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--bdr2);background:var(--raised);color:var(--ink3);transition:.15s;white-space:nowrap}
+.action-btn:hover{border-color:var(--bdr3);color:var(--ink);background:var(--lift)}
+.action-btn.active{border-color:rgba(201,168,76,.3);color:var(--g2);background:rgba(201,168,76,.06)}
+</style>
+{% endblock %}
 {% block body %}
-<div style="max-width:900px;margin:0 auto;padding:32px var(--pad) 80px">
+<div class="page">
 
   <!-- Breadcrumb -->
-  <div class="f fc g8px mb20 t-xs c-muted fw">
-    <a href="/tenders" class="c-muted" style="transition:.1s;hover:color:var(--paper)">← Marchés</a>
+  <div class="f fc g8 mb20" style="font-size:11px;color:var(--ink5)">
+    <a href="/tenders" style="color:var(--ink5)">◈ Marchés</a>
     <span>/</span>
-    {% if t.domaine %}<span class="mono">{{ t.domaine[:20] }}</span><span>/</span>{% endif %}
-    <span class="mono">{{ t.id[:16] }}</span>
+    <span class="trunc" style="max-width:300px">{{ t.domaine or '—' }}</span>
   </div>
 
-  <!-- Header -->
-  <div class="f fc g8px mb16 fw">
-    {% if t.domaine %}
-    <span class="code-chip chip-{{ t.domaine[0] }}" style="display:inline-flex;align-items:center;padding:3px 10px;border-radius:4px;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.08em;background:{% if t.domaine[0]=='T' %}rgba(200,169,110,.1){% elif t.domaine[0]=='P' %}rgba(26,58,92,.2){% else %}rgba(45,106,79,.12){% endif %};color:{% if t.domaine[0]=='T' %}var(--gold){% elif t.domaine[0]=='P' %}var(--sapphire3){% else %}var(--emerald3){% endif %};border:1px solid {% if t.domaine[0]=='T' %}rgba(200,169,110,.2){% elif t.domaine[0]=='P' %}rgba(26,58,92,.3){% else %}rgba(45,106,79,.2){% endif %}">
-      {{ t.domaine[:4] }} — {{ t.domaine[7:] if t.domaine|length > 6 else t.domaine }}
-    </span>
-    {% endif %}
-    {% if t.type_marche %}<span class="tag tag-smoke">{{ t.type_marche }}</span>{% endif %}
-    {% if t.statut == 'actif' %}<span class="tag tag-emerald">● Actif</span>
-    {% elif t.statut == 'expire' %}<span class="tag tag-ruby">Expiré</span>
-    {% else %}<span class="tag tag-smoke">{{ t.statut }}</span>{% endif %}
-    {% if t.ai_score and t.ai_score >= 70 %}<span class="tag tag-emerald">⭐ Facile à gagner</span>{% endif %}
-    <span class="t-xs c-muted" style="margin-left:auto">{{ t.views or 0 }} vues</span>
-  </div>
-
-  <h1 style="font-family:var(--serif);font-size:clamp(18px,2.8vw,28px);font-weight:700;color:var(--paper);margin-bottom:28px;line-height:1.25">
-    {{ t.objet }}
-  </h1>
-
-  <!-- 2-col layout -->
-  <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:18px;margin-bottom:22px">
-
-    <!-- Info card -->
-    <div class="card ov">
-      <div class="card-header">◈ Informations du marché</div>
-      {% for lbl,val,style in [
-        ('🏢 Acheteur',     t.acheteur,        ''),
-        ('📍 Région',       t.region,           ''),
-        ('🏷 Secteur',      t.domaine,          'font-family:var(--mono);font-size:11px'),
-        ('🔧 Type',         t.type_marche,      ''),
-        ('💰 Montant',      t.montant,          'color:var(--gold);font-weight:700'),
-        ('📅 Publication',  t.date_publication, 'font-family:var(--mono)'),
-        ('⏱ Date limite',  t.date_limite,      'color:var(--ruby2);font-weight:700'),
-        ('🌐 Source',       t.source,           'font-family:var(--mono)'),
-        ('📞 Contact',      t.contact,          ''),
-      ] %}{% if val %}
-      <div style="display:flex;gap:10px;padding:9px 16px;border-bottom:1px solid var(--wire)">
-        <div style="min-width:120px;font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;padding-top:2px;flex-shrink:0;font-family:var(--sans)">{{ lbl }}</div>
-        <div style="font-size:12px;color:var(--dim);{{ style }}">{{ val }}</div>
+  <div style="display:grid;grid-template-columns:1fr 320px;gap:28px;align-items:start">
+    <!-- Main -->
+    <div>
+      <!-- Header -->
+      <div class="mb24">
+        <div class="f fc fw g8 mb12">
+          {% if t.domaine %}<span class="tag td mono" style="font-size:9px">{{ t.domaine[:4] }}</span>{% endif %}
+          {% if t.type_marche %}<span class="tag {% if t.type_marche=='Travaux' %}tb{% elif t.type_marche=='Fournitures' %}tg{% else %}td{% endif %}">{{ t.type_marche }}</span>{% endif %}
+          {% if t.source and t.source != 'marchespublics' %}<span class="tag td" style="font-size:9px">{{ t.source }}</span>{% endif %}
+          {% if t.statut == 'expire' %}<span class="tag tr">Expiré</span>{% elif t.statut == 'actif' %}<span class="tag tgr">● Actif</span>{% endif %}
+        </div>
+        <h1 style="font-family:var(--serif);font-size:clamp(18px,2.5vw,26px);font-weight:700;line-height:1.2;color:var(--ink2);margin-bottom:12px">{{ t.objet }}</h1>
+        {% if t.acheteur %}<div style="font-size:13px;color:var(--ink3);margin-bottom:8px">🏛 {{ t.acheteur }}</div>{% endif %}
+        {% if t.region %}<div style="font-size:12px;color:var(--ink5)">📍 {{ t.region }}</div>{% endif %}
       </div>
-      {% endif %}{% endfor %}
-      {% if t.url %}
-      <div style="padding:12px 16px">
-        <a href="{{ t.url }}" target="_blank" class="btn btn-gold btn-sm w100">Voir sur marchespublics.gov.ma →</a>
-      </div>
-      {% endif %}
-    </div>
 
-    <!-- Side -->
-    <div style="display:flex;flex-direction:column;gap:12px">
-      <!-- AI Score -->
+      <!-- Actions bar -->
+      <div class="f fc fw g8 mb28 pb16 bb">
+        {% if member %}
+        <button id="favBtn" onclick="toggleFav('{{ t.id }}')" class="action-btn" id="favBtn">
+          <span id="favIco">☆</span> Sauvegarder
+        </button>
+        {% endif %}
+        <a href="{{ t.url }}" target="_blank" class="action-btn">
+          ↗ Source officielle
+        </a>
+        <button onclick="copyLink()" class="action-btn" id="copyBtn">
+          ⎘ Copier le lien
+        </button>
+        <button onclick="window.print()" class="action-btn">
+          ⎙ Imprimer
+        </button>
+        {% if member and member.plan in ['pro','enterprise'] %}
+        <button onclick="shareWhatsapp()" class="action-btn" style="color:var(--grn);border-color:rgba(90,158,120,.2)">
+          ✉ WhatsApp
+        </button>
+        {% endif %}
+      </div>
+
+      <!-- Score explanation -->
       {% if t.ai_score %}
-      <div class="card p20">
-        <div class="section-label mb12">Score IA — Facilité</div>
-        <div class="f fc g12 mb12">
-          <div style="font-family:var(--serif);font-size:36px;font-weight:700;
-            color:{% if t.ai_score >= 70 %}var(--emerald3){% elif t.ai_score >= 40 %}var(--gold){% else %}var(--ruby2){% endif %}">
-            {{ t.ai_score }}
-          </div>
-          <div>
-            <div style="font-size:11px;font-weight:700;color:{% if t.ai_score >= 70 %}var(--emerald3){% elif t.ai_score >= 40 %}var(--gold){% else %}var(--ruby2){% endif %}">
-              {% if t.ai_score >= 70 %}Facile à gagner{% elif t.ai_score >= 40 %}Concurrence modérée{% else %}Très concurrentiel{% endif %}
+      <div class="card mb24" style="border-color:{% if t.ai_score>=70 %}rgba(90,158,120,.2){% elif t.ai_score>=40 %}rgba(201,168,76,.2){% else %}rgba(158,74,74,.2){% endif %}">
+        <div class="p16">
+          <div class="f fc g16">
+            <!-- Arc score -->
+            <div class="score-arc">
+              {% set color = '#5a9e78' if t.ai_score >= 70 else '#c9a84c' if t.ai_score >= 40 else '#9e4a4a' %}
+              {% set pct = (t.ai_score / 100 * 251.2)|round|int %}
+              <svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="32" fill="none" stroke="var(--bdr)" stroke-width="6"/><circle cx="40" cy="40" r="32" fill="none" stroke="{{ color }}" stroke-width="6" stroke-dasharray="{{ pct }} 251.2" stroke-dashoffset="62.8" stroke-linecap="round" transform="rotate(-90 40 40)"/></svg>
+              <div class="score-val">
+                <span style="font-family:var(--mono);font-size:18px;font-weight:700;color:{{ color }};line-height:1">{{ t.ai_score }}</span>
+                <span style="font-size:8px;color:var(--ink5)">/100</span>
+              </div>
+            </div>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:700;color:var(--ink2);margin-bottom:4px">
+                {% if t.ai_score >= 70 %}⭐ Opportunité accessible aux PME
+                {% elif t.ai_score >= 40 %}◑ Marché de complexité moyenne
+                {% else %}⚠ Marché complexe — grands soumissionnaires
+                {% endif %}
+              </div>
+              {% if t.ai_reason %}<div style="font-size:11px;color:var(--ink5);line-height:1.65">{{ t.ai_reason }}</div>{% endif %}
+              <div class="bar mt12" style="height:4px"><div class="bar-f {% if t.ai_score>=70 %}bg{% elif t.ai_score>=40 %}bg2{% else %}br2{% endif %}" style="width:{{ t.ai_score }}%"></div></div>
             </div>
           </div>
         </div>
-        <div class="progress mb12"><div class="progress-fill" style="width:{{ t.ai_score }}%;background:{% if t.ai_score >= 70 %}linear-gradient(90deg,var(--emerald2),var(--emerald3)){% elif t.ai_score >= 40 %}linear-gradient(90deg,var(--gold3),var(--gold)){% else %}linear-gradient(90deg,var(--ruby),var(--ruby2)){% endif %}"></div></div>
-        {% if t.ai_reason %}<div class="t-xs c-muted" style="line-height:1.6">{{ t.ai_reason }}</div>{% endif %}
       </div>
       {% endif %}
 
-      <!-- Actions -->
-      {% if not member %}
-      <div class="card p20">
-        <div style="font-family:var(--serif);font-size:15px;font-weight:600;margin-bottom:8px">🔔 Alertes secteur</div>
-        <div class="t-xs c-muted mb16">Recevez les marchés {{ t.domaine[:4] if t.domaine else '' }} sur Telegram dès publication.</div>
-        <a href="/register" class="btn btn-gold btn-full mb8">S'inscrire gratuitement →</a>
-        <a href="/login" class="btn btn-ghost btn-full" style="font-size:11px">Connexion</a>
+      <!-- Details table -->
+      <div class="card mb24">
+        <div class="card-head">Informations du marché</div>
+        <div class="p16">
+          {% for label, value in [
+            ("Référence", t.id|replace("bdc_","")|replace("ofppt_","")|replace("lematin_","")),
+            ("Acheteur", t.acheteur),
+            ("Région", t.region),
+            ("Domaine", t.domaine),
+            ("Type", t.type_marche),
+            ("Montant estimé", t.montant),
+            ("Date de publication", t.date_publication),
+            ("Date limite", t.date_limite),
+            ("Source", t.source),
+          ] %}
+          {% if value %}
+          <div class="info-row">
+            <span class="info-label">{{ label }}</span>
+            <span class="info-val">{{ value }}</span>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Description -->
+      {% if t.description and t.description|length > 50 %}
+      <div class="card mb24">
+        <div class="card-head">Description</div>
+        <div class="p16" style="font-size:12px;color:var(--ink4);line-height:1.8;white-space:pre-wrap">{{ t.description[:2000] }}</div>
       </div>
       {% endif %}
+    </div>
 
-      <!-- Share -->
-      <div class="card p16">
-        <div class="section-label mb10">Partager</div>
-        <button onclick="navigator.clipboard.writeText(window.location.href);this.textContent='✅ Copié!'" class="btn btn-ghost btn-sm w100">📋 Copier le lien</button>
+    <!-- Sidebar -->
+    <div style="position:sticky;top:calc(var(--nh)+16px)">
+      <!-- CTA -->
+      <div class="card mb16">
+        <div class="p20">
+          {% if t.statut == 'expire' %}
+          <div class="tag tr w100 tc mb12" style="padding:8px">Ce marché est expiré</div>
+          {% else %}
+          <div style="font-size:11px;font-weight:700;color:var(--g3);margin-bottom:6px;text-transform:uppercase;letter-spacing:.08em">Date limite</div>
+          <div style="font-family:var(--serif);font-size:22px;font-weight:900;color:{% if t.statut=='expire' %}var(--red2){% else %}var(--g1){% endif %};margin-bottom:16px;font-style:italic">{{ t.date_limite or 'Non précisée' }}</div>
+          {% endif %}
+          <a href="{{ t.url }}" target="_blank" class="btn btn-gold btn-full btn-lg">Accéder au dossier →</a>
+          {% if t.contact %}<div style="margin-top:10px;font-size:11px;color:var(--ink5)">📞 {{ t.contact }}</div>{% endif %}
+        </div>
       </div>
+
+      <!-- Related -->
+      {% if related %}
+      <div class="card">
+        <div class="card-head">Marchés similaires</div>
+        {% for r in related[:4] %}
+        <a href="/tenders/{{ r.id }}" style="display:block;padding:12px 14px;border-bottom:1px solid var(--bdr);transition:.15s" onmouseover="this.style.background='var(--raised)'" onmouseout="this.style.background=''">
+          <div style="font-size:9px;font-family:var(--mono);color:var(--g3);margin-bottom:4px">{{ r.domaine[:15] }}</div>
+          <div style="font-size:12px;color:var(--ink2);font-weight:600;line-height:1.3">{{ r.objet[:55] }}</div>
+          {% if r.ai_score %}<div class="score-chip {% if r.ai_score>=70 %}sc-hi{% elif r.ai_score>=40 %}sc-mi{% else %}sc-lo{% endif %} mt8">{{ r.ai_score }}</div>{% endif %}
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
     </div>
   </div>
-
-  <!-- Description -->
-  {% if t.description and t.description|length > 30 %}
-  <div class="card mb20">
-    <div class="card-header">📄 Détails extraits</div>
-    <div style="padding:20px;font-size:12px;color:var(--muted);line-height:1.85;white-space:pre-wrap;max-height:280px;overflow-y:auto;font-family:var(--sans)">{{ t.description[:2000] }}</div>
-  </div>
-  {% endif %}
-
-  <!-- Related -->
-  {% if related %}
-  <div>
-    <div class="section-label mb16">Marchés similaires — {{ t.domaine[:20] if t.domaine else '' }}</div>
-    <div class="ga-sm">
-      {% for r in related %}
-      <a href="/tenders/{{ r.id }}" class="card p16" style="display:block;transition:.15s">
-        <div class="mono t-xs c-gold mb6">{{ r.domaine[:4] if r.domaine else '—' }}</div>
-        <div style="font-family:var(--serif);font-size:13px;font-weight:600;color:var(--paper);line-height:1.3;margin-bottom:8px">{{ r.objet[:60] }}</div>
-        {% if r.ai_score %}<div class="t-xs c-muted">Score: {{ r.ai_score }}%</div>{% endif %}
-        <div class="t-xs c-muted">⏱ {{ r.date_limite or '—' }}</div>
-      </a>
-      {% endfor %}
-    </div>
-  </div>
-  {% endif %}
 </div>
+
+<script>
+async function toggleFav(tid){
+  const btn=document.getElementById('favBtn');
+  const ico=document.getElementById('favIco');
+  try{
+    const r=await fetch('/tenders/'+tid+'/fav',{method:'POST'});
+    const d=await r.json();
+    if(d.fav){ico.textContent='★';btn.className='action-btn active';btn.innerHTML='<span>★</span> Sauvegardé';}
+    else{ico.textContent='☆';btn.className='action-btn';btn.innerHTML='<span>☆</span> Sauvegarder';}
+    toast(d.fav?'Ajouté aux favoris':'Retiré des favoris','ok');
+  }catch(e){toast('Erreur','err');}
+}
+function copyLink(){
+  navigator.clipboard.writeText(window.location.href);
+  document.getElementById('copyBtn').innerHTML='⎘ Copié !';
+  toast('Lien copié dans le presse-papier','ok');
+  setTimeout(()=>{document.getElementById('copyBtn').innerHTML='⎘ Copier le lien';},2000);
+}
+function shareWhatsapp(){
+  const msg=encodeURIComponent('📋 Marché: '+document.title+'\n🔗 '+window.location.href);
+  window.open('https://wa.me/?text='+msg,'_blank');
+}
+</script>
+
+@media(max-width:768px){
+  [style*="grid-template-columns:1fr 320px"]{grid-template-columns:1fr!important}
+}
 {% endblock %}
