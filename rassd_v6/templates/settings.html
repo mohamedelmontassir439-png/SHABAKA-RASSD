@@ -1,5 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Paramètres{% endblock %}
+{% block title %}Paramètres  <div class="card mt20 p20" style="border-color:rgba(158,74,74,.15)">
+    <div style="font-family:var(--serif);font-size:16px;font-weight:700;margin-bottom:6px">🔒 Sécurité</div>
+    <p style="font-size:12px;color:var(--ink5);margin-bottom:14px">Modifiez votre mot de passe régulièrement pour sécuriser votre compte.</p>
+    <a href="/settings/password" class="btn btn-ghost btn-sm">Changer le mot de passe →</a>
+  </div>
+{% endblock %}
 {% block body %}
 <div style="max-width:580px;margin:0 auto;padding:32px var(--pad) 80px">
   <div class="section-label mb16">Compte</div>
@@ -60,4 +65,9 @@
   </div>
   <div class="tc mt16"><a href="/logout" class="t-sm" style="color:var(--ruby2)">Déconnexion</a></div>
 </div>
+  <div class="card mt20 p20" style="border-color:rgba(158,74,74,.15)">
+    <div style="font-family:var(--serif);font-size:16px;font-weight:700;margin-bottom:6px">🔒 Sécurité</div>
+    <p style="font-size:12px;color:var(--ink5);margin-bottom:14px">Modifiez votre mot de passe régulièrement pour sécuriser votre compte.</p>
+    <a href="/settings/password" class="btn btn-ghost btn-sm">Changer le mot de passe →</a>
+  </div>
 {% endblock %}
