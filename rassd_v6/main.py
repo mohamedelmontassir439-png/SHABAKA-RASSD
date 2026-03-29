@@ -449,18 +449,12 @@ class ClassifierAgent:
     def is_expired(d: str) -> bool:
         if not d: return False
         d = d.strip()
-        if d in ("N/A","—","","-","null"): return False
+        if d in ("N/A","—","","-","null","Non précisée","—"): return False
         today = datetime.now().date()
-        for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y"):
+        for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y", "%Y/%m/%d"):
             try: return datetime.strptime(d, fmt).date() < today
             except: pass
         return False
-        d = d.strip()
-        if d in ("N/A","—","","-","null"): return False
-        today = datetime.now().date()
-        for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y"):
-            try: return datetime.strptime(d, fmt).date() < today
-            except: pass
         return False
 
     @staticmethod
@@ -1054,30 +1048,30 @@ class MonitorAgent:
                 db.execute("DELETE FROM notif_queue WHERE status='sent' AND sent_at < date('now','-30 days')")
                 db.execute("UPDATE notif_queue SET status='pending',attempts=0 WHERE status='failed' AND created_at < datetime('now','-1 hour') AND attempts < 3")
                 # Auto-expire tenders past deadline
-                # Expire YYYY-MM-DD format (SQLite native)
-                db.execute("""UPDATE tenders SET statut='expire'
-                    WHERE statut='actif' AND date_limite != ''
-                    AND date_limite NOT LIKE '%/%'
-                    AND date_limite < date('now') AND date_limite != 'N/A' AND date_limite != ''""")
-                # Expire DD/MM/YYYY format (Python-side)
-                from datetime import date as _date
-                today_str = _date.today().strftime("%d/%m/%Y")
-                today_iso = _date.today().isoformat()
-                rows = db.execute(
+                today_iso = datetime.now().strftime("%Y-%m-%d")
+                today_date = datetime.now().date()
+                # 1. Expire ISO format
+                db.execute(
+                    "UPDATE tenders SET statut='expire' WHERE statut='actif' "
+                    "AND date_limite!='' AND date_limite NOT LIKE '%/%' "
+                    "AND date_limite < date('now') AND date_limite NOT IN ('N/A','—','-')"
+                )
+                # 2. Expire DD/MM/YYYY format
+                rows_ddmm = db.execute(
                     "SELECT id,date_limite FROM tenders WHERE statut='actif' AND date_limite LIKE '%/%'"
                 ).fetchall()
                 exp_ids = []
-                for row in rows:
-                    dl = row["date_limite"]
-                    try:
-                        from datetime import datetime as _dt
-                        d = _dt.strptime(dl.strip(), "%d/%m/%Y").date()
-                        if d < _date.today(): exp_ids.append(row["id"])
-                    except: pass
+                for row in rows_ddmm:
+                    dl = (row["date_limite"] or "").strip()
+                    for fmt in ("%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y"):
+                        try:
+                            if datetime.strptime(dl, fmt).date() < today_date:
+                                exp_ids.append(row["id"])
+                            break
+                        except: pass
                 if exp_ids:
-                    db.execute(f"UPDATE tenders SET statut='expire' WHERE id IN ({chr(44).join(chr(63)*len(exp_ids))})", exp_ids)
-                # Remove tenders that were active but title <10 chars
-                db.execute("DELETE FROM tenders WHERE length(objet) < 10")
+                    ph = ",".join(["?"]*len(exp_ids))
+                    db.execute(f"UPDATE tenders SET statut='expire' WHERE id IN ({ph})", exp_ids)
                 db.commit(); db.close()
             except Exception as e: logger.error(f"[MonitorAgent] {e}")
             await asyncio.sleep(3600)
@@ -2269,10 +2263,10 @@ async def ar_login_get(req: Request):
 
 
 @app.post("/api/v1/ingest")
-async def api_ingest(request: Request):
+async def api_ingest(req: Request):
     """Reçoit les marchés du scraper local (IP Maroc) et les sauvegarde"""
     try:
-        body = await request.json()
+        body = await req.json()
         if body.get("pwd") != ADMIN_PASS:
             return JSONResponse({"error":"unauthorized"}, 401)
         tenders = body.get("tenders", [])
@@ -2281,6 +2275,9 @@ async def api_ingest(request: Request):
         db = get_db(); saved = 0
         for t in tenders:
             if not t.get("id") or not t.get("objet"): continue
+            # Skip already expired tenders
+            dl = str(t.get("date_limite","")).strip()
+            if dl and ClassifierAgent.is_expired(dl): continue
             # Classify with AI
             domaine = ClassifierAgent.secteur((t.get("objet","") + " " + t.get("description",""))[:300])
             region  = ClassifierAgent.region((t.get("acheteur","") + " " + t.get("objet",""))[:300])
