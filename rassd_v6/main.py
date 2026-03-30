@@ -809,20 +809,34 @@ class NotifyAgent:
 
     @staticmethod
     def build_email(tenders: list, title: str) -> str:
+        # ── Dédupliquer ──
+        seen_obj = set(); uniq_t = []
+        for t in tenders:
+            key = (t.get("objet","")[:60]).strip().lower()
+            if key not in seen_obj:
+                seen_obj.add(key); uniq_t.append(t)
+        tenders = uniq_t
+
         def card(t):
-            mon = f'<tr><td style="color:#888;font-size:11px;padding:3px 0;width:130px">💰 Montant</td><td style="color:#c9a84c;font-size:11px;font-weight:700">{t.get("montant","")}</td></tr>' if t.get("montant") else ""
-            src_label = {"marchespublics":"portail officiel","lematin":"Le Matin","equipement":"Min. Équipement"}.get(t.get("source",""),"") 
+            dl   = t.get("date_limite","—") or "—"
+            days = NotifyAgent.days_left(dl)
+            sc   = t.get("ai_score",0) or 0
+            sc_color = "#5a9e78" if sc>=70 else "#c9a84c" if sc>=40 else "#9e4a4a"
+            mon  = f'<tr><td style="color:#888;font-size:11px;padding:3px 0;width:130px">💰 Montant</td><td style="color:#c9a84c;font-size:11px;font-weight:700">{t.get("montant","")}</td></tr>' if t.get("montant") else ""
+            days_html = f' <span style="color:#e87070;font-size:10px">({days})</span>' if days else ""
+            score_html = f'<div style="display:inline-block;background:{sc_color}22;border:1px solid {sc_color}44;border-radius:99px;padding:2px 8px;font-size:9px;color:{sc_color};font-weight:700;margin-top:8px">Score IA: {sc}/100</div>' if sc else ""
+            link = t.get("url") or f"{SITE_URL}/tenders/{t.get('id','')}"
             return f"""<div style="border:1px solid #2a2a2a;border-radius:8px;padding:16px;margin-bottom:12px;background:#141414">
-  {"<div style='font-size:9px;color:#666;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px'>"+src_label+"</div>" if src_label else ""}
   <div style="font-size:14px;font-weight:700;color:#f0ede6;margin-bottom:10px;line-height:1.35">{(t.get("objet") or "")[:100]}</div>
-  <table style="width:100%;border-collapse:collapse">
+  {score_html}
+  <table style="width:100%;border-collapse:collapse;margin-top:10px">
     <tr><td style="color:#888;font-size:11px;padding:3px 0;width:130px">🏢 Acheteur</td><td style="color:#aaa;font-size:11px">{(t.get("acheteur") or "—")[:60]}</td></tr>
     <tr><td style="color:#888;font-size:11px;padding:3px 0">📍 Région</td><td style="color:#aaa;font-size:11px">{t.get("region","—")}</td></tr>
     <tr><td style="color:#888;font-size:11px;padding:3px 0">🏷 Secteur</td><td style="color:#aaa;font-size:11px">{t.get("domaine","—")}</td></tr>
     {mon}
-    <tr><td style="color:#888;font-size:11px;padding:3px 0">⏰ Limite</td><td style="color:#e87070;font-size:11px;font-weight:700">{t.get("date_limite","—")}</td></tr>
+    <tr><td style="color:#888;font-size:11px;padding:3px 0">⏰ Limite</td><td style="color:#e87070;font-size:11px;font-weight:700">{dl}{days_html}</td></tr>
   </table>
-  <a href="{t.get("url") or SITE_URL}" style="display:inline-block;margin-top:10px;padding:6px 14px;background:#c9a84c;color:#000;border-radius:5px;font-weight:700;text-decoration:none;font-size:12px">Voir le marché →</a>
+  <a href="{link}" style="display:inline-block;margin-top:12px;padding:7px 16px;background:#c9a84c;color:#000;border-radius:5px;font-weight:700;text-decoration:none;font-size:12px">Voir le marché →</a>
 </div>"""
         cards = "".join(card(t) for t in tenders[:12])
         return f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head>
@@ -842,18 +856,55 @@ class NotifyAgent:
 </div></body></html>"""
 
     @staticmethod
+    def days_left(dl: str) -> str:
+        """Retourne '3 jours' ou 'Aujourd\'hui' ou '' """
+        if not dl: return ""
+        import re as _re
+        m = _re.search(r'(\d{2}/\d{2}/\d{4}|\d{4}-\d{2}-\d{2})', str(dl))
+        if not m: return ""
+        try:
+            fmt = "%d/%m/%Y" if "/" in m.group(1) else "%Y-%m-%d"
+            d = datetime.strptime(m.group(1), fmt).date()
+            delta = (d - datetime.now().date()).days
+            if delta < 0:  return "⚠️ Expiré"
+            if delta == 0: return "⚡ Aujourd\'hui !"
+            if delta == 1: return "⚡ Demain !"
+            if delta <= 3: return f"🔥 {delta} jours"
+            if delta <= 7: return f"⏳ {delta} jours"
+            return f"📅 {delta} jours"
+        except: return ""
+
+    @staticmethod
     def build_telegram(tenders: list, header: str) -> str:
-        lines = [f"🏛 <b>{header}</b>\n{'━'*28}\n"]
+        from collections import OrderedDict
+        # ── Dédupliquer par objet (premiers 60 chars) ──
+        seen_obj = set(); uniq = []
+        for t in tenders:
+            key = (t.get("objet","")[:60]).strip().lower()
+            if key not in seen_obj:
+                seen_obj.add(key); uniq.append(t)
+        tenders = uniq
+
+        lines = [f"🏛 <b>{header}</b>\n{chr(9472)*28}\n"]
         for t in tenders[:8]:
-            b = f"📋 <b>{(t.get('objet') or '')[:65]}</b>\n"
-            if t.get("acheteur"):    b += f"   🏢 {t['acheteur'][:45]}\n"
-            if t.get("region"):      b += f"   📍 {t['region']}\n"
-            if t.get("domaine"):     b += f"   🏷 {t['domaine'][:25]}\n"
-            if t.get("montant"):     b += f"   💰 {t['montant']}\n"
-            if t.get("date_limite"): b += f"   ⏰ <b>Limite: {t['date_limite']}</b>\n"
-            if t.get("url"):         b += f"   🔗 {t['url']}\n"
+            dl   = t.get("date_limite","")
+            days = NotifyAgent.days_left(dl)
+            sc   = t.get("ai_score",0) or 0
+            score_ic = "⭐" if sc>=70 else "◑" if sc>=40 else "○"
+
+            b = f"{score_ic} <b>{(t.get('objet') or '')[:70]}</b>\n"
+            if t.get("acheteur"):  b += f"   🏢 {t['acheteur'][:50]}\n"
+            if t.get("region"):    b += f"   📍 {t['region']}\n"
+            if t.get("domaine"):   b += f"   🏷 {t['domaine'][:30]}\n"
+            if t.get("montant"):   b += f"   💰 {t['montant']}\n"
+            if dl:
+                b += f"   ⏰ <b>Limite: {dl}"
+                if days: b += f" — {days}"
+                b += "</b>\n"
+            if sc:                 b += f"   📊 Score: {sc}/100\n"
+            b += f"   🔗 {t.get('url') or SITE_URL+'/tenders/'+str(t.get('id',''))}\n"
             lines.append(b)
-        lines.append(f"\n🌐 {SITE_URL}")
+        lines.append(f"\n🌐 {SITE_URL}/tenders")
         return "\n\n".join(lines)
 
     @staticmethod
@@ -2281,9 +2332,17 @@ async def api_ingest(req: Request):
         db = get_db(); saved = 0
         for t in tenders:
             if not t.get("id") or not t.get("objet"): continue
-            # Skip already expired tenders
+            # Skip expired
             dl = str(t.get("date_limite","")).strip()
             if dl and ClassifierAgent.is_expired(dl): continue
+            # Skip near-duplicate objet (first 60 chars)
+            obj_key = (t.get("objet","")[:60]).strip().lower()
+            if len(obj_key) > 10:
+                dup = db.execute(
+                    "SELECT id FROM tenders WHERE LOWER(SUBSTR(objet,1,60))=? AND date_extraction >= date(\'now\',\'-1 day\')",
+                    (obj_key,)
+                ).fetchone()
+                if dup: continue  # déjà en DB
             # Classify with AI
             domaine = ClassifierAgent.secteur((t.get("objet","") + " " + t.get("description",""))[:300])
             region  = ClassifierAgent.region((t.get("acheteur","") + " " + t.get("objet",""))[:300])

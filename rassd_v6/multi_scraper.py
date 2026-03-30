@@ -166,9 +166,54 @@ def today() -> str:
     return datetime.now().strftime("%Y-%m-%d")
 
 def is_expired(d: str) -> bool:
+    """Détecte si une date est passée — supporte tous les formats + labels texte
+    Ex: "05/03/2026 12:00", "Date limite...15/04/2026", "2026-03-05", etc.
+    """
     if not d: return False
-    try: return datetime.strptime(d,"%Y-%m-%d").date() < datetime.now().date()
-    except: return False
+    d = str(d).strip()
+    if d in ("N/A","—","","-","null","Non précisée"): return False
+    today = datetime.now().date()
+    # Regex: cherche une date dans n'importe quel texte
+    import re as _re
+    for pat, fmt in [
+        (r"(\d{2}/\d{2}/\d{4})", "%d/%m/%Y"),
+        (r"(\d{4}-\d{2}-\d{2})", "%Y-%m-%d"),
+        (r"(\d{2}-\d{2}-\d{4})", "%d-%m-%Y"),
+        (r"(\d{2}\.\d{2}\.\d{4})", "%d.%m.%Y"),
+        (r"(\d{4}/\d{2}/\d{2})", "%Y/%m/%d"),
+    ]:
+        m = _re.search(pat, d)
+        if m:
+            try: return datetime.strptime(m.group(1), fmt).date() < today
+            except: pass
+    # ISO avec heure: 2026-03-05T10:00:00
+    m = _re.search(r"(\d{4}-\d{2}-\d{2})T", d)
+    if m:
+        try: return datetime.strptime(m.group(1), "%Y-%m-%d").date() < today
+        except: pass
+    return False
+
+
+def extract_date_clean(text: str) -> str:
+    """Extrait et retourne la date propre DD/MM/YYYY depuis n'importe quel texte.
+    Retourne "" si aucune date future trouvée ou si passée.
+    """
+    if not text: return ""
+    import re as _re
+    today = datetime.now().date()
+    for pat, fmt, out_fmt in [
+        (r"(\d{2}/\d{2}/\d{4})", "%d/%m/%Y", "%d/%m/%Y"),
+        (r"(\d{4}-\d{2}-\d{2})", "%Y-%m-%d", "%d/%m/%Y"),
+        (r"(\d{2}-\d{2}-\d{4})", "%d-%m-%Y", "%d/%m/%Y"),
+        (r"(\d{2}\.\d{2}\.\d{4})", "%d.%m.%Y", "%d/%m/%Y"),
+    ]:
+        m = _re.search(pat, str(text))
+        if m:
+            try:
+                d = datetime.strptime(m.group(1), fmt).date()
+                return d.strftime(out_fmt)  # retourne toujours, même si passée
+            except: pass
+    return ""
 
 def is_cancelled(text: str) -> bool:
     t = text.lower()
