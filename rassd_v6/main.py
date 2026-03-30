@@ -447,22 +447,19 @@ class ClassifierAgent:
 
     @staticmethod
     def is_expired(d: str) -> bool:
+        """Check if deadline passed — works with labels like 'Date limite...05/03/2026 12:00'"""
         if not d: return False
         d = d.strip()
         if d in ("N/A","—","","-","null","Non précisée"): return False
-        # Remove time part if present: "05/03/2026 12:00" → "05/03/2026"
-        d_clean = d.split()[0] if " " in d else d
-        d_clean = d_clean.replace("à","").strip()
         today = datetime.now().date()
-        for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y", "%d.%m.%Y",
-                    "%Y/%m/%d", "%m/%d/%Y"):
-            try: return datetime.strptime(d_clean, fmt).date() < today
-            except: pass
-        # Try with full datetime
-        for fmt in ("%d/%m/%Y %H:%M", "%d/%m/%Y %H:%M:%S",
-                    "%Y-%m-%d %H:%M", "%Y-%m-%d %H:%M:%S"):
-            try: return datetime.strptime(d.strip(), fmt).date() < today
-            except: pass
+        # Extract first date found anywhere in string (regex — handles label prefixes)
+        import re as _re
+        m = _re.search(r'(\d{2}/\d{2}/\d{4}|\d{4}-\d{2}-\d{2}|\d{2}-\d{2}-\d{4}|\d{2}\.\d{2}\.\d{4})', d)
+        if m:
+            d_str = m.group(1)
+            for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y", "%d.%m.%Y"):
+                try: return datetime.strptime(d_str, fmt).date() < today
+                except: pass
         return False
         return False
 
