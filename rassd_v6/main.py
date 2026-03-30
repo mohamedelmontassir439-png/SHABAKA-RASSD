@@ -449,10 +449,19 @@ class ClassifierAgent:
     def is_expired(d: str) -> bool:
         if not d: return False
         d = d.strip()
-        if d in ("N/A","—","","-","null","Non précisée","—"): return False
+        if d in ("N/A","—","","-","null","Non précisée"): return False
+        # Remove time part if present: "05/03/2026 12:00" → "05/03/2026"
+        d_clean = d.split()[0] if " " in d else d
+        d_clean = d_clean.replace("à","").strip()
         today = datetime.now().date()
-        for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y", "%Y/%m/%d"):
-            try: return datetime.strptime(d, fmt).date() < today
+        for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y", "%d.%m.%Y",
+                    "%Y/%m/%d", "%m/%d/%Y"):
+            try: return datetime.strptime(d_clean, fmt).date() < today
+            except: pass
+        # Try with full datetime
+        for fmt in ("%d/%m/%Y %H:%M", "%d/%m/%Y %H:%M:%S",
+                    "%Y-%m-%d %H:%M", "%Y-%m-%d %H:%M:%S"):
+            try: return datetime.strptime(d.strip(), fmt).date() < today
             except: pass
         return False
         return False
@@ -2457,6 +2466,40 @@ async def admin_backup(req: Request, pwd: str = ""):
 # ══════════════════════════════════════════════════════
 # ROUTES ARABES /ar/*
 # ══════════════════════════════════════════════════════
+
+
+@app.get("/admin/clear_db")
+async def admin_clear_db(req: Request, pwd: str = "", confirm: str = ""):
+    """Vide toutes les tables de tenders"""
+    cookie = req.cookies.get("admin_session","")
+    if pwd != ADMIN_PASS and cookie != ADMIN_PASS:
+        return RedirectResponse("/admin/login",302)
+    if confirm != "yes":
+        return HTMLResponse("""<html><body style="font-family:monospace;background:#030303;color:#f3eee7;padding:40px">
+<h2>⚠️ Confirmer la suppression</h2>
+<p>Ceci va supprimer TOUS les marchés de la base de données.</p>
+<a href="/admin/clear_db?pwd=""" + pwd + """&confirm=yes" 
+   style="background:#c46060;color:#fff;padding:10px 20px;border-radius:4px;text-decoration:none"
+   onclick="return confirm('SUPPRIMER TOUS LES MARCHÉS?')">
+   ✓ Confirmer la suppression
+</a>
+&nbsp;<a href="/admin?pwd=""" + pwd + """" style="color:#888">Annuler</a>
+</body></html>""")
+    db = get_db()
+    try:
+        count = db.execute("SELECT COUNT(*) FROM tenders").fetchone()[0]
+        db.execute("DELETE FROM tenders")
+        db.execute("DELETE FROM favoris")
+        db.execute("DELETE FROM notif_queue")
+        db.execute("DELETE FROM scrape_runs")
+        db.commit()
+        db.close()
+        SLog.add(f"[Admin] Base vidée: {count} marchés supprimés")
+        return JSONResponse({"ok":True,"deleted":count,"msg":f"{count} marchés supprimés"})
+    except Exception as e:
+        try: db.close()
+        except: pass
+        return JSONResponse({"error":str(e)},500)
 
 @app.get("/health")
 async def health():
