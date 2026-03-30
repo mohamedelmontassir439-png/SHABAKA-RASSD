@@ -2488,10 +2488,9 @@ async def admin_clear_db(req: Request, pwd: str = "", confirm: str = ""):
     db = get_db()
     try:
         count = db.execute("SELECT COUNT(*) FROM tenders").fetchone()[0]
-        db.execute("DELETE FROM tenders")
-        db.execute("DELETE FROM favoris")
-        db.execute("DELETE FROM notif_queue")
-        db.execute("DELETE FROM scrape_runs")
+        for tbl in ["tenders","favoris","notif_queue","scrape_runs","agent_errors","api_keys"]:
+            try: db.execute(f"DELETE FROM {tbl}")
+            except: pass
         db.commit()
         db.close()
         SLog.add(f"[Admin] Base vidée: {count} marchés supprimés")
