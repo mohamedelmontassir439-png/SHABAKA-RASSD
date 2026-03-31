@@ -2462,8 +2462,10 @@ async def admin(req: Request, pwd:str=""):
     })
 
 @app.get("/admin/scrape")
-async def admin_scrape(pwd:str="", sources:str="all"):
-    chk(pwd)
+async def admin_scrape(req: Request, pwd:str="", sources:str="all"):
+    cookie = req.cookies.get("admin_session","")
+    if pwd != ADMIN_PASS and cookie != ADMIN_PASS:
+        return JSONResponse({"ok":False,"msg":"Non autorisé"},401)
     if SState.running: return JSONResponse({"ok":False,"msg":"Déjà en cours"})
     src_list=None if sources=="all" else [s.strip() for s in sources.split(",") if s.strip()]
     async def _run():

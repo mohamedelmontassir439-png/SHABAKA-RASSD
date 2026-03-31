@@ -218,8 +218,8 @@ async function launchScraper(){
   const r = await fetch(`/admin/scrape?pwd=${PWD}`);
   const d = await r.json();
   if(!d.ok){
-    t.innerHTML += `<div style="color:#e87070">${d.msg}</div>`;
-    btn.disabled=false; btn.textContent='▶ ScraperAgent'; return;
+    t.innerHTML += `<div style="color:#e87070">${d.msg || 'Erreur inconnue'}</div>`;
+    btn.disabled=false; btn.textContent='▶ marchespublics.gov.ma'; return;
   }
 
   if(sse) sse.close();
@@ -253,7 +253,8 @@ async function launchScraper(){
       document.getElementById('progressFill').style.width='100%';
       const d2=document.createElement('div');
       d2.style.color='#c9a84c';
-      d2.textContent=`═══ ${data.state?.saved||0} nouveaux marchés sauvegardés ═══`;
+      const savedCount = (data.state && data.state.saved) ? data.state.saved : 0;
+      d2.textContent=`═══ ${savedCount} nouveaux marchés sauvegardés ═══`;
       t.appendChild(d2); t.scrollTop=t.scrollHeight;
       setTimeout(()=>location.reload(),2500);
     }
