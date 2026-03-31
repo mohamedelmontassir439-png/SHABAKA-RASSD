@@ -657,25 +657,66 @@ class ScraperAgent:
             # OBJET (titre de la consultation)
             # ════════════════════════════════════════════
             objet = ""
-            SKIP_TITLES = ["accueil","liste des avis","connexion","portail",
-                           "marchés publics","portail marocain"]
-            # a) Sélecteurs CSS spécifiques à la page bdc
-            for sel in [".consultation-title", ".objet-marche", ".title-consultation",
-                        "h1.consultation", ".card-title", "h1", "h2"]:
-                el = soup.select_one(sel)
-                if el:
-                    t = el.get_text(strip=True)
-                    if 10 < len(t) < 600 and not any(s in t.lower() for s in SKIP_TITLES):
-                        objet = t; break
-            # b) card_value pour "Objet" / "Intitulé"
+            # Mots à ignorer UNIQUEMENT s'ils constituent TOUT le titre
+            SKIP_EXACT = ["accueil","liste des avis","connexion",
+                          "portail marocain des marchés publics",
+                          "portail marocain", "marchés publics maroc"]
+
+            def is_skip(t):
+                tl = t.lower().strip()
+                return any(tl == s or tl.startswith(s + " |") for s in SKIP_EXACT)
+
+            # a) <title> HTML — souvent "Consultation #XXXXX | Marchés Publics"
+            title_tag = soup.find("title")
+            if title_tag:
+                t = title_tag.get_text(strip=True)
+                # Enlever le suffixe du site
+                t = re.sub(r'\s*[|\-–].*marchés publics.*', '', t, flags=re.I).strip()
+                if 10 < len(t) < 400 and not is_skip(t):
+                    objet = t
+
+            # b) Sélecteurs CSS spécifiques
             if not objet:
-                objet = (card_value(["objet du marché","objet de la consultation","intitulé"])
+                for sel in [".consultation-title", ".objet-marche", ".title-consultation",
+                            "h1.consultation", ".card-title", ".page-title",
+                            "h1", "h2", "h3"]:
+                    for el in soup.select(sel):
+                        t = el.get_text(strip=True)
+                        if 10 < len(t) < 600 and not is_skip(t):
+                            objet = t; break
+                    if objet: break
+
+            # c) card_value: objet / intitulé / nature de prestation
+            if not objet:
+                objet = (card_value(["objet du marché","objet de la consultation",
+                                     "intitulé","objet"])
                          or cell("objet") or cell("intitulé"))
-            # c) Regex fallback
-            if not objet:
-                objet = regex_find(r'(?:objet|intitulé)\s*[:\-–]\s*(.{10,300}?)(?:\n|<)')
+
+            # d) Nature de prestation comme objet de fallback
             if not objet or len(objet) < 8:
+                nature = card_value(["nature de prestation","nature"])
+                cat    = card_value(["catégorie principale","catégorie"])
+                if nature and len(nature) > 8:
+                    objet = nature
+                elif cat and len(cat) > 4:
+                    objet = f"Prestation - {cat}"
+
+            # e) Premier article / description significative
+            if not objet or len(objet) < 8:
+                for el in soup.find_all(["p","div","li","td"]):
+                    t = el.get_text(strip=True)
+                    if 20 < len(t) < 400 and not is_skip(t):
+                        # Vérifier que c'est pas un nav/footer
+                        parents = [p.name for p in el.parents]
+                        if not any(p in ["nav","footer","header"] for p in parents):
+                            objet = t; break
+
+            # f) Dernier recours: si page valide (acheteur + date visibles)
+            if not objet or len(objet) < 8:
+                # Page trop courte ou vraiment sans contenu
+                SLog.add(f"  [parse #{tid}] Pas d'objet trouvé — skip")
                 return None
+
             objet = ClassifierAgent.clean_objet(objet)
 
             # ════════════════════════════════════════════
@@ -857,6 +898,7 @@ class ScraperAgent:
                 t = cls._parse(r.text, tid)
                 if not t:
                     # _parse retourne None si: pas d'objet, annulé, ou expiré
+                    SLog.add(f"  ↳ #{tid} ignoré (expiré/annulé/sans titre)")
                     known.add(f"bdc_{tid}"); continue
                 if cls._save(t):
                     SState.saved += 1
