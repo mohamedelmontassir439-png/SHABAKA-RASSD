@@ -511,7 +511,9 @@ def build_tender(source, url, title, text, acheteur=""):
             dp = d_norm
             break
     # Don't return expired — still save but mark
-    statut = "expire" if is_expired(dl) else "actif"
+    # Ne pas créer de tender expiré
+    if dl and is_expired(dl): return None
+    statut = "actif"
     return Tender(
         id=make_id(source, title, url),
         source=source, source_url=url,

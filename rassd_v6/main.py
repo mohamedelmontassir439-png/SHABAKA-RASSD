@@ -1,4 +1,4 @@
-"""  # v10.0 2026-03-31 02:26
+"""  # v10.1 2026-03-31 — security & code fixes
 Modern Business v5.0 — Intelligence Marchés Publics Maroc
 ══════════════════════════════════════════════════════════
 Architecture: FastAPI + SQLite WAL + 5 AI Agents
@@ -6,15 +6,21 @@ Agents: Scraper · Classifier · Notify · Monitor · Chat
 Sources: 10+ sources gratuites sans inscription
 ══════════════════════════════════════════════════════════
 """
-import os, re, time, json, asyncio, hashlib, secrets, logging
+import os, re, time, json, asyncio, hashlib, secrets, logging, hmac
 import sqlite3, smtplib, threading, traceback, random
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from contextlib import asynccontextmanager
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+
+try:
+    from bs4 import BeautifulSoup as BS
+    HAS_BS4 = True
+except ImportError:
+    HAS_BS4 = False
 
 from fastapi import FastAPI, Request, Form, HTTPException, Response
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, StreamingResponse
@@ -25,7 +31,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 try: from itsdangerous import URLSafeTimedSerializer; HAS_ITS = True
 except: HAS_ITS = False
 try: import urllib3; urllib3.disable_warnings()
-except: pass
+except Exception: pass
 
 try:
     from multi_scraper import run_all_scrapers, AIClassifier, Tender as MT, SCRAPERS as MULTI_SRC
@@ -99,12 +105,29 @@ class SecureMiddleware(BaseHTTPMiddleware):
 COOKIE_NAME = "mb5_s"
 COOKIE_TTL  = 86400 * 30
 
+def _make_fallback_token(uid: int) -> str:
+    """HMAC-signed token for when itsdangerous is unavailable."""
+    payload = str(uid)
+    sig = hmac.new(SECRET_KEY.encode(), payload.encode(), hashlib.sha256).hexdigest()
+    return f"{payload}.{sig}"
+
+def _verify_fallback_token(raw: str) -> Optional[int]:
+    try:
+        parts = raw.rsplit(".", 1)
+        if len(parts) != 2: return None
+        payload, sig = parts
+        expected = hmac.new(SECRET_KEY.encode(), payload.encode(), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(sig, expected): return None
+        return int(payload)
+    except Exception:
+        return None
+
 def session_create(resp: Response, uid: int):
     if HAS_ITS:
         s = URLSafeTimedSerializer(SECRET_KEY, salt="mb5")
         token = s.dumps({"id": uid})
     else:
-        token = str(uid)
+        token = _make_fallback_token(uid)
     resp.set_cookie(COOKIE_NAME, token, max_age=COOKIE_TTL,
                     httponly=True, samesite="lax",
                     secure=SITE_URL.startswith("https"))
@@ -117,9 +140,9 @@ def session_get(req: Request) -> Optional[int]:
             s = URLSafeTimedSerializer(SECRET_KEY, salt="mb5")
             d = s.loads(raw, max_age=COOKIE_TTL)
             return int(d.get("id", 0))
-        except: return None
-    try: return int(raw)
-    except: return None
+        except Exception:
+            return None
+    return _verify_fallback_token(raw)
 
 def session_delete(resp: Response):
     resp.delete_cookie(COOKIE_NAME)
@@ -295,7 +318,8 @@ def init_db():
     ]
     for sql in migrations:
         try: db.execute(sql)
-        except: pass
+        except Exception as e:
+            logger.debug(f"[migration] skip: {e}")
 
     # Auto-migrate from contractors (v1/v2)
     try:
@@ -324,16 +348,20 @@ def init_db():
         else:
             db.execute("UPDATE members SET telegram='6424992854' WHERE email=? AND (telegram IS NULL OR telegram='')",
                        ("mohamedelmontassir439@gmail.com",))
-    except: pass
+    except Exception as e:
+        logger.warning(f"[init_db] admin seed: {e}")
 
     db.commit(); db.close()
     logger.info("DB initialized ✅")
 
 def hash_pw(pw: str) -> str:
-    return hashlib.sha256((pw + SECRET_KEY[:16]).encode()).hexdigest()
+    """PBKDF2-HMAC-SHA256 — resistant to brute force."""
+    salt = SECRET_KEY[:16].encode()
+    dk = hashlib.pbkdf2_hmac("sha256", pw.encode("utf-8"), salt, iterations=260_000)
+    return dk.hex()
 
 def check_pw(pw: str, h: str) -> bool:
-    return hash_pw(pw) == h
+    return hmac.compare_digest(hash_pw(pw), h)
 
 def now_str() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M")
@@ -447,48 +475,37 @@ class ClassifierAgent:
 
     @staticmethod
     def is_expired(d: str) -> bool:
-        """Détecte si date passée — supporte TOUS les formats"""
+        """Vérifie si la date est passée — supporte tous les formats"""
         if not d: return False
         d = str(d).strip()
-        if d in ("N/A","—","","-","null","Non précisée","non définie"): return False
-        import re as _r
-        from datetime import datetime as _dt, date as _date
-        today = _date.today()
-        _FMTS = ["%d/%m/%Y","%Y-%m-%d","%d-%m-%Y","%d.%m.%Y","%Y/%m/%d","%d/%m/%y"]
-        _DL_KW = ["date limite","date de remise","réception des offres","reception des offres",
-                  "remise des offres","remise des plis","dépôt des offres","depot des offres",
-                  "soumission","avant le","au plus tard","clôture","cloture","échéance","echeance"]
-        def parse(s):
-            for fmt in _FMTS:
-                try: return _dt.strptime(s.strip(), fmt).date()
-                except: pass
-            m = _r.match(r'(\d{1,2})[/\.\-](\d{1,2})[/\.\-](\d{2,4})$', s.strip())
+        if d in ("N/A","—","","-","null","Non précisée"): return False
+        today = datetime.now().date()
+        # Chercher une date dans le texte (même embedded)
+        for pat, fmt in [
+            (r"(\d{2}/\d{2}/\d{4})", "%d/%m/%Y"),
+            (r"(\d{4}-\d{2}-\d{2})", "%Y-%m-%d"),
+            (r"(\d{2}-\d{2}-\d{4})", "%d-%m-%Y"),
+            (r"(\d{2}\.\d{2}\.\d{4})", "%d.%m.%Y"),
+        ]:
+            m = re.search(pat, d)
             if m:
-                a,b,c = m.groups()
-                if len(c)==2: c="20"+c
-                try: return _date(int(c),int(b),int(a))
-                except: pass
-            return None
-        _PAT = r'(\d{1,2}[/\.\-]\d{2}[/\.\-]\d{4}|\d{4}[\-/]\d{2}[\-/]\d{2})'
-        found = [(m.start(),parse(m.group(1))) for m in _r.finditer(_PAT, d)
-                 if parse(m.group(1)) and _date(2020,1,1)<=parse(m.group(1))<=_date(2030,12,31)]
-        if not found: return False
-        dl = d.lower()
-        for kw in _DL_KW:
-            idx = dl.find(kw)
-            if idx < 0: continue
-            cands = [(p,dt) for p,dt in found if idx<=p<=idx+250]
-            if cands: return min(cands,key=lambda x:x[0])[1] < today
-        future = [dt for _,dt in found if dt >= today]
-        return len(future) == 0
-
+                try: return datetime.strptime(m.group(1), fmt).date() < today
+                except ValueError: pass
         return False
 
     @staticmethod
     def extract_date(text: str) -> str:
+        """Extrait la date depuis un texte — retourne DD/MM/YYYY ou YYYY-MM-DD"""
         if not text: return ""
-        m = re.search(r'(\d{2}[/\-\.]\d{2}[/\-\.]\d{4})', text)
-        return m.group(1) if m else ""
+        text = str(text)
+        # Format avec heure: 05/03/2026 12:00
+        m = re.search(r'(\d{2}/\d{2}/\d{4})(?:\s+\d{1,2}:\d{2})?', text)
+        if m: return m.group(1)
+        m = re.search(r'(\d{4}-\d{2}-\d{2})', text)
+        if m: return m.group(1)
+        m = re.search(r'(\d{2}[\-\.]\d{2}[\-\.]\d{4})', text)
+        if m: return m.group(1).replace("-","/").replace(".","/")
+        return ""
 
 # ══════════════════════════════════════════════════════
 # SCRAPER AGENT
@@ -550,55 +567,237 @@ class ScraperAgent:
         except Exception as e:
             logger.error(f"[save] {e}")
             try: db.close()
-            except: pass
+            except Exception: pass
             return False
 
     @classmethod
     def _parse(cls, html: str, tid: str) -> Optional[dict]:
+        """
+        Parse une page marchespublics.gov.ma/bdc/entreprise/consultation/show/XXXXX
+        La page utilise un layout CARDS (icônes + label + valeur), PAS des tableaux HTML.
+        Structure réelle observée:
+          <div class="item">
+            <div class="label">Date limite de réception des devis</div>
+            <div class="value">25/02/2026 12:00</div>
+          </div>
+        """
         try:
-            from bs4 import BeautifulSoup as BS
             soup = BS(html, "html.parser")
-            full = soup.get_text(" ", strip=True)
-            def cell(lbl):
+            full_text = soup.get_text(" ", strip=True)
+
+            # ── Détection annulation précoce ──────────────────────────────
+            if any(k in full_text.lower() for k in
+                   ["marché annulé","consultation annulée","annulé par","a été annulée"]):
+                return None   # on ignore silencieusement
+
+            # ── Méthode 1: cherche label → sibling/parent pour la valeur ──
+            def card_value(keywords: list) -> str:
+                """
+                Extraction depuis n'importe quel layout card/table.
+                Stratégies par ordre de priorité:
+                1. Élément de class *label* qui contient le keyword → next sibling
+                2. Tout élément court contenant le keyword → next sibling
+                3. Regex dans texte complet → après le keyword
+                """
+                kw_lower = [k.lower() for k in keywords]
+                full = soup.get_text(" ", strip=True)
+
+                # ─── Strat 1: éléments de type label (class label/key/titre) ───
+                import re as _re_cv
+                LABEL_CLS = _re_cv.compile(r'label|titre|key|head|caption|field-name', _re_cv.I)
+                for el in soup.find_all(True, class_=LABEL_CLS):
+                    txt = el.get_text(strip=True)
+                    if not any(k in txt.lower() for k in kw_lower): continue
+                    sib = el.find_next_sibling()
+                    if sib:
+                        v = sib.get_text(strip=True)
+                        if 2 < len(v) < 300: return v
+                    if el.parent:
+                        p_sib = el.parent.find_next_sibling()
+                        if p_sib:
+                            v = p_sib.get_text(strip=True)
+                            if 2 < len(v) < 300: return v
+
+                # ─── Strat 2: tout élément court contenant le keyword ───
+                for el in soup.find_all(True):
+                    txt = el.get_text(strip=True)
+                    if len(txt) > 120 or len(txt) < 4: continue
+                    if not any(k in txt.lower() for k in kw_lower): continue
+                    sib = el.find_next_sibling()
+                    if sib:
+                        v = sib.get_text(strip=True)
+                        if 2 < len(v) < 300: return v
+
+                # ─── Strat 3: regex dans le texte complet ───
+                for kw in kw_lower:
+                    idx = full.lower().find(kw)
+                    if idx >= 0:
+                        after = full[idx + len(kw): idx + len(kw) + 200].strip()
+                        lines = [l.strip() for l in after.split("\n") if l.strip()]
+                        if lines: return lines[0][:200]
+
+                return ""
+
+            # ── Méthode 2: table classique (fallback) ────────────────────
+            def cell(lbl: str) -> str:
                 for row in soup.find_all("tr"):
                     cells = row.find_all(["td","th"])
-                    for i,c in enumerate(cells):
+                    for i, c in enumerate(cells):
                         if lbl.lower() in c.get_text().lower() and i+1 < len(cells):
                             v = cells[i+1].get_text(strip=True)
                             if v and len(v) > 1: return v[:400]
                 return ""
+
+            # ── Méthode 3: regex dans le texte complet ───────────────────
+            def regex_find(pattern: str) -> str:
+                m = re.search(pattern, full_text, re.I | re.S)
+                return m.group(1).strip()[:300] if m else ""
+
+            # ════════════════════════════════════════════
+            # OBJET (titre de la consultation)
+            # ════════════════════════════════════════════
             objet = ""
-            for sel in [".consultation-title",".objet","h1","h2"]:
+            SKIP_TITLES = ["accueil","liste des avis","connexion","portail",
+                           "marchés publics","portail marocain"]
+            # a) Sélecteurs CSS spécifiques à la page bdc
+            for sel in [".consultation-title", ".objet-marche", ".title-consultation",
+                        "h1.consultation", ".card-title", "h1", "h2"]:
                 el = soup.select_one(sel)
                 if el:
-                    txt = el.get_text(strip=True)
-                    skip = ["accueil","liste des avis","connexion","portail"]
-                    if 8 < len(txt) < 600 and not any(s in txt.lower() for s in skip):
-                        objet = txt; break
+                    t = el.get_text(strip=True)
+                    if 10 < len(t) < 600 and not any(s in t.lower() for s in SKIP_TITLES):
+                        objet = t; break
+            # b) card_value pour "Objet" / "Intitulé"
             if not objet:
-                for lbl in ["objet du marché","objet","intitulé"]:
-                    v = cell(lbl)
-                    if v and len(v) > 8: objet = v; break
-            if not objet: return None
+                objet = (card_value(["objet du marché","objet de la consultation","intitulé"])
+                         or cell("objet") or cell("intitulé"))
+            # c) Regex fallback
+            if not objet:
+                objet = regex_find(r'(?:objet|intitulé)\s*[:\-–]\s*(.{10,300}?)(?:\n|<)')
+            if not objet or len(objet) < 8:
+                return None
             objet = ClassifierAgent.clean_objet(objet)
-            acheteur = (cell("maître d'ouvrage") or cell("organisme") or "").strip()
-            date_pub = ClassifierAgent.extract_date(cell("publication") or "")
-            date_lim = ClassifierAgent.extract_date(cell("remise") or cell("limite") or "")
-            mon_raw = cell("montant") or ""
+
+            # ════════════════════════════════════════════
+            # ACHETEUR PUBLIC
+            # ════════════════════════════════════════════
+            acheteur = (card_value(["acheteur public","maître d'ouvrage",
+                                    "organisme","administration"])
+                        or cell("acheteur") or cell("maître d'ouvrage")
+                        or cell("organisme")).strip()
+
+            # ════════════════════════════════════════════
+            # CATÉGORIE PRINCIPALE → classification officielle
+            # ════════════════════════════════════════════
+            cat_officielle = (card_value(["catégorie principale","catégorie"])
+                              or cell("catégorie")).strip()
+            nature_presta  = (card_value(["nature de prestation","nature"])
+                              or cell("nature")).strip()
+
+            # ════════════════════════════════════════════
+            # DATE LIMITE — extraction exhaustive
+            # ════════════════════════════════════════════
+            # a) card_value avec tous les libellés possibles
+            dl_raw = card_value([
+                "date limite de réception des devis",
+                "date limite de réception des offres",
+                "date limite",
+                "date de remise",
+                "remise des offres",
+                "remise des plis",
+                "date de clôture",
+                "réception des offres",
+                "réception des devis",
+            ])
+            # b) cell fallback
+            if not dl_raw:
+                dl_raw = (cell("remise") or cell("limite") or cell("réception")
+                          or cell("clôture") or cell("délai"))
+            # c) Regex dans le texte complet — capture date collée au label
+            if not dl_raw:
+                m_dl = re.search(
+                    r'(?:date limite|date de remise|r[eé]ception des (?:offres|devis)|'
+                    r'remise des (?:offres|plis)|clôture)'
+                    r'.{0,60}?(\d{1,2}[/\-\.]\d{2}[/\-\.]\d{4})',
+                    full_text, re.I | re.S)
+                if m_dl: dl_raw = m_dl.group(1)
+
+            # d) Extraire et normaliser la date depuis dl_raw
+            date_lim = ClassifierAgent.extract_date(dl_raw) if dl_raw else ""
+
+            # e) Si toujours rien, chercher toute date dans le texte complet
+            #    qui suit un mot-clé deadline (même collé)
+            if not date_lim:
+                m_any = re.search(
+                    r'(?:limite|remise|clôture|réception|devis|offres)'
+                    r'.{0,100}?(\d{2}/\d{2}/\d{4})',
+                    full_text, re.I | re.S)
+                if m_any:
+                    date_lim = ClassifierAgent.extract_date(m_any.group(1))
+
+            # ── Filtre immédiat: ignorer les consultations expirées ───────
+            if date_lim and ClassifierAgent.is_expired(date_lim):
+                return None   # ne pas sauvegarder du tout
+
+            # ════════════════════════════════════════════
+            # DATE PUBLICATION
+            # ════════════════════════════════════════════
+            dp_raw  = (card_value(["date mise en ligne","date de publication","publication"])
+                       or cell("publication") or cell("mise en ligne"))
+            date_pub = ClassifierAgent.extract_date(dp_raw)
+
+            # ════════════════════════════════════════════
+            # LIEU D'EXÉCUTION / RÉGION
+            # ════════════════════════════════════════════
+            lieu = (card_value(["lieu d'exécution","lieu d execution","localisation"])
+                    or cell("lieu")).strip()
+
+            # ════════════════════════════════════════════
+            # MONTANT
+            # ════════════════════════════════════════════
+            mon_raw = (card_value(["montant","budget estimatif"]) or cell("montant")).strip()
             if not mon_raw:
-                m = re.search(r'(\d[\d\s,.]+)\s*(?:DH|MAD)', full, re.I)
-                if m: mon_raw = m.group(0)[:80]
+                m_mon = re.search(r'(\d[\d\s,.]+)\s*(?:DH|MAD)', full_text, re.I)
+                if m_mon: mon_raw = m_mon.group(0)[:80]
+
+            # ════════════════════════════════════════════
+            # DOMAINE — catégorie officielle en priorité
+            # ════════════════════════════════════════════
+            if cat_officielle or nature_presta:
+                combined = f"{cat_officielle} {nature_presta} {objet}".strip()
+                domaine = ClassifierAgent.secteur(combined)
+                # Mapping direct catégorie officielle → type_marche
+                cat_l = cat_officielle.lower()
+                if "travaux" in cat_l:
+                    type_m = "Travaux"
+                elif "fournitures" in cat_l or "produits" in cat_l:
+                    type_m = "Fournitures"
+                elif "services" in cat_l:
+                    type_m = "Services"
+                else:
+                    type_m = ClassifierAgent.type_marche(objet + " " + nature_presta)
+            else:
+                domaine = ClassifierAgent.secteur(objet + " " + full_text[:300])
+                type_m  = ClassifierAgent.type_marche(objet)
+
+            # ════════════════════════════════════════════
+            # RÉGION — lieu d'exécution en priorité
+            # ════════════════════════════════════════════
+            region_text = lieu + " " + acheteur + " " + full_text[:400]
+            region = ClassifierAgent.region(region_text)
+
             return {
                 "id":               f"bdc_{tid}",
                 "objet":            objet[:400],
                 "acheteur":         acheteur[:200],
-                "region":           ClassifierAgent.region(acheteur+" "+full[:400]),
-                "domaine":          ClassifierAgent.secteur(objet+" "+full[:300]),
-                "type_marche":      ClassifierAgent.type_marche(objet),
+                "region":           region,
+                "domaine":          domaine,
+                "type_marche":      type_m,
                 "montant":          mon_raw[:80],
-                "date_publication": date_pub, "date_limite": date_lim,
-                "description":      full[:2000],
-                "statut":           "annule" if "annulé" in full.lower() else ("expire" if ClassifierAgent.is_expired(date_lim) else "actif"),
+                "date_publication": date_pub,
+                "date_limite":      date_lim,
+                "description":      full_text[:2000],
+                "statut":           "actif",   # déjà filtré: pas expiré, pas annulé
                 "url":              f"{cls.BASE}/show/{tid}",
                 "source":           "marchespublics",
             }
@@ -606,7 +805,6 @@ class ScraperAgent:
             logger.error(f"[parse #{tid}] {e}")
             return None
 
-    @classmethod
     @classmethod
     def run(cls) -> list:
         """Scan séquentiel des IDs — contourne le JS du portail"""
@@ -630,7 +828,7 @@ class ScraperAgent:
                 try:
                     n = int(k[4:])
                     if n > max_id: max_id = n
-                except: pass
+                except (ValueError, TypeError): pass
 
         # Scan 50 en arrière + 300 en avant depuis max connu
         start_id = max(310000, max_id - 50)
@@ -658,15 +856,13 @@ class ScraperAgent:
                 SState.found += 1
                 t = cls._parse(r.text, tid)
                 if not t:
-                    known.add(f"bdc_{tid}"); continue
-                if t.get("statut") == "annule":
-                    SLog.add(f"  ↳ annulé #{tid} — ignoré")
+                    # _parse retourne None si: pas d'objet, annulé, ou expiré
                     known.add(f"bdc_{tid}"); continue
                 if cls._save(t):
                     SState.saved += 1
                     known.add(t["id"])
-                    SLog.add(f"✓ #{tid} [{t.get('domaine','')[:18]}] {t.get('objet','')[:52]} [{t.get('statut','?')}]")
-                    if t.get("statut") == "actif": new_tenders.append(t)
+                    SLog.add(f"✓ #{tid} [{t.get('domaine','')[:18]}] {t.get('objet','')[:52]}")
+                    new_tenders.append(t)  # tous déjà filtrés comme actifs
                 else:
                     known.add(f"bdc_{tid}")
                 time.sleep(rnd.uniform(0.5, 1.1))
@@ -674,15 +870,40 @@ class ScraperAgent:
                 SState.errors += 1; consec_errors += 1
                 SLog.add(f"✗ #{tid}: {str(e)[:55]}")
 
-        # Auto-expire tenders passés
+        # Auto-expire — gère DD/MM/YYYY ET YYYY-MM-DD
         try:
             db = get_db()
-            active = db.execute("SELECT id,date_limite FROM tenders WHERE statut='actif' AND date_limite!=''").fetchall()
-            expired = [r["id"] for r in active if ClassifierAgent.is_expired(r["date_limite"])]
-            if expired:
-                db.execute(f"UPDATE tenders SET statut='expire' WHERE id IN ({','.join('?'*len(expired))})", expired)
+            today_d = datetime.now().date()
+            # Pass 1: ISO format via SQLite
+            db.execute(
+                "UPDATE tenders SET statut='expire' WHERE statut='actif' "
+                "AND date_limite!='' AND date_limite NOT LIKE '%/%' "
+                "AND date_limite < date('now') "
+                "AND date_limite NOT IN ('N/A','—','-','null','Non précisée')"
+            )
+            # Pass 2: DD/MM/YYYY via Python
+            rows = db.execute(
+                "SELECT id,date_limite FROM tenders WHERE statut='actif' AND date_limite LIKE '%/%'"
+            ).fetchall()
+            expired_ids = []
+            for r in rows:
+                dl = (r["date_limite"] or "").strip()
+                m2 = re.search(r'(\d{1,2}/\d{2}/\d{4})', dl)
+                if m2:
+                    try:
+                        if datetime.strptime(m2.group(1), "%d/%m/%Y").date() < today_d:
+                            expired_ids.append(r["id"])
+                    except ValueError:
+                        pass
+            if expired_ids:
+                db.execute(
+                    "UPDATE tenders SET statut='expire' WHERE id IN ({})".format(
+                        ','.join(['?']*len(expired_ids))),
+                    expired_ids
+                )
             db.commit(); db.close()
-        except: pass
+            if expired_ids: SLog.add(f"[expire] {len(expired_ids)} marchés expirés nettoyés")
+        except Exception as e: logger.warning(f'[scraper:expire] {e}')
 
         duration = time.time() - t_start
         try:
@@ -690,11 +911,11 @@ class ScraperAgent:
             db.execute("INSERT INTO scrape_runs (source,found,saved,errors,duration_sec,started_at,finished_at) VALUES (?,?,?,?,?,?,?)",
                        ("marchespublics",SState.found,SState.saved,SState.errors,duration,SState.started,datetime.now().strftime("%H:%M:%S")))
             db.commit(); db.close()
-        except: pass
+        except Exception as e: logger.warning(f'[scraper:run_log] {e}')
         SState.running = False
         SLog.add(f"═══ Terminé en {duration:.0f}s | {SState.saved} sauvegardés | {SState.errors} erreurs ═══")
-        counter("scrape_runs"); return new_tenders
-        counter("scrape_runs"); return new_tenders
+        counter("scrape_runs")
+        return new_tenders
 
 # ══════════════════════════════════════════════════════
 # NOTIFICATION AGENT
@@ -729,7 +950,7 @@ class NotifyAgent:
                 db.execute("UPDATE notif_queue SET status=?,attempts=attempts+1,error=? WHERE id=?",
                            (status,error[:200],nid))
             db.commit(); db.close()
-        except: pass
+        except Exception as e: logger.warning(f'[notify:mark] {e}')
 
     @staticmethod
     async def send_email(to, subject, html) -> tuple:
@@ -880,8 +1101,7 @@ class NotifyAgent:
     def days_left(dl: str) -> str:
         """Retourne '3 jours' ou 'Aujourd\'hui' ou '' """
         if not dl: return ""
-        import re as _re
-        m = _re.search(r'(\d{2}/\d{2}/\d{4}|\d{4}-\d{2}-\d{2})', str(dl))
+        m = re.search(r'(\d{2}/\d{2}/\d{4}|\d{4}-\d{2}-\d{2})', str(dl))
         if not m: return ""
         try:
             fmt = "%d/%m/%Y" if "/" in m.group(1) else "%Y-%m-%d"
@@ -897,7 +1117,6 @@ class NotifyAgent:
 
     @staticmethod
     def build_telegram(tenders: list, header: str) -> str:
-        from collections import OrderedDict
         # ── Dédupliquer par objet (premiers 60 chars) ──
         seen_obj = set(); uniq = []
         for t in tenders:
@@ -1277,7 +1496,7 @@ class SelfHealingAgent:
                 (action, detail[:500], 1 if success else 0, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
             )
             db.commit()
-        except: pass
+        except Exception as e: logger.debug(f'[audit_log] {e}')
 
     @classmethod
     def notify_admin(cls, msg: str):
@@ -1292,7 +1511,7 @@ class SelfHealingAgent:
                       "parse_mode": "HTML"},
                 timeout=5
             )
-        except: pass
+        except Exception as e: logger.debug(f'[tg_admin_notify] {e}')
 
     @classmethod
     def repair_schema(cls, db) -> list:
@@ -1338,7 +1557,7 @@ class SelfHealingAgent:
             try:
                 db.execute(f"CREATE INDEX IF NOT EXISTS {idx_name} ON {idx_on}")
                 db.commit()
-            except: pass
+            except Exception as e: logger.debug(f'[index_create] {e}')
 
         return repairs
 
@@ -1361,16 +1580,17 @@ class SelfHealingAgent:
             "AND date_limite LIKE '%/%' AND date_limite != ''"
         ).fetchall()
 
-        import re as _re
         for row in rows:
             dl = str(row["date_limite"]).strip()
-            m = _re.search(r'(\d{2}/\d{2}/\d{4})', dl)
+            if not dl: continue
+            # Handles embedded dates like "Date limite...25/02/2026 12:00"
+            m = re.search(r'(\d{1,2}/\d{2}/\d{4})', dl)
             if m:
                 try:
                     d = datetime.strptime(m.group(1), "%d/%m/%Y").date()
                     if d < today:
                         expired_ids.append(row["id"])
-                except: pass
+                except ValueError: pass
 
         if expired_ids:
             ph = ",".join(["?"] * len(expired_ids))
@@ -1537,7 +1757,7 @@ class MonitorAgent:
             if ex: db.execute("UPDATE agent_errors SET count=count+1,last_seen=?,error=? WHERE id=?",(now_str(),error[:300],ex["id"]))
             else:  db.execute("INSERT INTO agent_errors (agent,route,error,count,first_seen,last_seen) VALUES (?,?,?,1,?,?)",(agent,route,error[:300],now_str(),now_str()))
             db.commit(); db.close()
-        except: pass
+        except Exception as e: logger.warning(f'[agent_error_log] {e}')
 
     @staticmethod
     async def run():
@@ -1564,12 +1784,15 @@ class MonitorAgent:
                 exp_ids = []
                 for row in rows_ddmm:
                     dl = (row["date_limite"] or "").strip()
-                    for fmt in ("%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y"):
+                    if not dl: continue
+                    # Extract date from embedded strings like "25/02/2026 12:00"
+                    import re as _re2
+                    m2 = _re2.search(r'(\d{1,2}/\d{2}/\d{4})', dl)
+                    if m2:
                         try:
-                            if datetime.strptime(dl, fmt).date() < today_date:
+                            if datetime.strptime(m2.group(1), "%d/%m/%Y").date() < today_date:
                                 exp_ids.append(row["id"])
-                            break
-                        except: pass
+                        except ValueError: pass
                 if exp_ids:
                     ph = ",".join(["?"]*len(exp_ids))
                     db.execute(f"UPDATE tenders SET statut='expire' WHERE id IN ({ph})", exp_ids)
@@ -1703,7 +1926,7 @@ app.add_middleware(SecureMiddleware)
 try:
     os.makedirs("static", exist_ok=True)
     app.mount("/static", StaticFiles(directory="static"), name="static")
-except: pass
+except Exception: pass
 
 try:
     os.makedirs("templates", exist_ok=True)
@@ -1766,6 +1989,13 @@ async def tenders_page(req: Request, code_f="", region_f="", source_f="", type_f
         return render(req, "tenders_locked.html", {"reason": "upgrade", "member": m,
             "SECTEURS_LIST": SECTEURS_LIST, "REGIONS": REGIONS})
     per=20; off=(page-1)*per
+    # Whitelist sort values — never interpolate user input directly into SQL
+    SORT_MAP = {
+        "date":     "date_extraction DESC",
+        "deadline": "date_limite ASC",
+        "score":    "ai_score DESC, date_extraction DESC",
+    }
+    order_by = SORT_MAP.get(sort, "ai_score DESC, date_extraction DESC")
     db = get_db()
     try:
         conds=["statut='actif'"]; params=[]
@@ -1780,7 +2010,7 @@ async def tenders_page(req: Request, code_f="", region_f="", source_f="", type_f
         w = " AND ".join(conds)
         total  = db.execute(f"SELECT COUNT(*) FROM tenders WHERE {w}", params).fetchone()[0]
         rows   = [dict(r) for r in db.execute(
-            f"SELECT * FROM tenders WHERE {w} ORDER BY " + ("date_extraction DESC" if sort=="date" else ("date_limite ASC" if sort=="deadline" else "ai_score DESC, date_extraction DESC")) + " LIMIT ? OFFSET ?",
+            f"SELECT * FROM tenders WHERE {w} ORDER BY {order_by} LIMIT ? OFFSET ?",
             params+[per,off]).fetchall()]
         regions_list = [r[0] for r in db.execute("SELECT DISTINCT region FROM tenders WHERE region!='' ORDER BY region").fetchall()]
         sources_list = [r[0] for r in db.execute("SELECT DISTINCT source FROM tenders WHERE source!='' ORDER BY source").fetchall()]
@@ -1971,7 +2201,7 @@ async def reg_post(req: Request, nom:str=Form(""), entreprise:str=Form(""),
         except Exception as e: error=f"Erreur: {e}"
         finally:
             try: db.close()
-            except: pass
+            except Exception: pass
     return render(req,"register.html",{"error":error})
 
 @app.get("/login", response_class=HTMLResponse)
@@ -2138,7 +2368,7 @@ async def verify_email(req: Request, token: str = ""):
         db.commit()
     finally: db.close()
     try: del VERIFY_TOKENS[token]
-    except: pass
+    except KeyError: pass
     return RedirectResponse("/dashboard?verified=1", 302)
 
 @app.get("/resend-verify")
@@ -2599,7 +2829,7 @@ async def admin_expire_now(request: Request, pwd: str = ""):
                 try:
                     if _dt.strptime(dl, fmt).date() < today:
                         exp.append(r["id"]); break
-                except: pass
+                except ValueError: pass
         if exp:
             db.execute(f"UPDATE tenders SET statut='expire' WHERE id IN ({chr(44).join([chr(63)]*len(exp))})", exp)
         db.execute("UPDATE tenders SET statut='expire' WHERE statut='actif' AND date_limite NOT LIKE '%/%' AND date_limite < date('now') AND date_limite!='' AND date_limite!='N/A'")
@@ -2609,7 +2839,7 @@ async def admin_expire_now(request: Request, pwd: str = ""):
         return JSONResponse({"ok":True,"expired_python":len(exp),"active_remaining":active})
     except Exception as e:
         try: db.close()
-        except: pass
+        except Exception: pass
         return JSONResponse({"error":str(e)},500)
 
 @app.get("/admin/cleanup")
@@ -2769,6 +2999,8 @@ async def ar_login_get(req: Request):
 @app.post("/api/v1/ingest")
 async def api_ingest(req: Request):
     """Reçoit les marchés du scraper local (IP Maroc) et les sauvegarde"""
+    # Rate limit: max 10 calls/minute per IP to prevent abuse
+    rl(req, "ingest", max_c=10, win=60)
     try:
         body = await req.json()
         if body.get("pwd") != ADMIN_PASS:
@@ -2893,7 +3125,7 @@ async def toggle_fav(req: Request, tid: str):
         return JSONResponse({"fav": True})
     except Exception as e:
         try: db.close()
-        except: pass
+        except Exception: pass
         return JSONResponse({"error": str(e)}, 500)
 
 
@@ -2993,14 +3225,14 @@ async def admin_clear_db(req: Request, pwd: str = "", confirm: str = ""):
         count = db.execute("SELECT COUNT(*) FROM tenders").fetchone()[0]
         for tbl in ["tenders","favoris","notif_queue","scrape_runs","agent_errors","api_keys"]:
             try: db.execute(f"DELETE FROM {tbl}")
-            except: pass
+            except Exception as e: logger.debug(f'[cleanup:{tbl}] {e}')
         db.commit()
         db.close()
         SLog.add(f"[Admin] Base vidée: {count} marchés supprimés")
         return JSONResponse({"ok":True,"deleted":count,"msg":f"{count} marchés supprimés"})
     except Exception as e:
         try: db.close()
-        except: pass
+        except Exception: pass
         return JSONResponse({"error":str(e)},500)
 
 
