@@ -1,104 +1,174 @@
 {% extends "base.html" %}
 {% block title %}Paramètres — {{ BRAND }}{% endblock %}
 {% block content %}
-<div class="page" style="max-width:720px">
-  <h1 style="font-size:22px;font-weight:700;margin-bottom:8px">Paramètres</h1>
-  <p style="color:var(--ink5);font-size:13px;margin-bottom:32px">Gérez vos alertes et vos secteurs d'activité</p>
+<div class="page-wrap" style="max-width:800px">
 
-  {% if error %}<div class="alert alert-err">{{ error }}</div>{% endif %}
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Paramètres</h1>
+      <div class="page-sub">Gérez vos alertes et secteurs d'activité</div>
+    </div>
+    <a href="/tenders" class="btn btn-secondary btn-sm">← Marchés</a>
+  </div>
 
-  <form method="post" action="/settings">
-    <!-- Profil -->
-    <div class="card" style="margin-bottom:20px">
-      <h2 style="font-size:16px;font-weight:600;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--bdr)">Profil</h2>
+  {% if error %}<div class="alert alert-err">⚠ {{ error }}</div>{% endif %}
+
+  <form method="post" action="/settings" novalidate>
+
+    <!-- 1. Profil -->
+    <div class="card" style="margin-bottom:18px">
+      <div class="card-header">
+        <span class="card-title">👤 Profil</span>
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div class="form-group">
-          <label>Nom / Entreprise</label>
+          <label class="form-label">Nom / Entreprise</label>
           <input type="text" name="nom" class="form-control" value="{{ member.nom }}" required>
         </div>
         <div class="form-group">
-          <label>Téléphone</label>
-          <input type="tel" name="phone" class="form-control" value="{{ member.phone or '' }}">
+          <label class="form-label">Téléphone</label>
+          <input type="tel" name="phone" class="form-control" value="{{ member.phone or '' }}" placeholder="+212 6xx xxx xxx">
         </div>
+      </div>
+      <div style="padding:14px 16px;background:var(--c3);border:1px solid var(--b1);border-radius:var(--r8);font-size:13px;color:var(--t4)">
+        📧 Email de connexion : <strong style="color:var(--t2)">{{ member.email }}</strong>
+        <span style="margin-left:8px;font-size:11px;color:var(--t6)">(non modifiable)</span>
       </div>
     </div>
 
-    <!-- Notifications -->
-    <div class="card" style="margin-bottom:20px">
-      <h2 style="font-size:16px;font-weight:600;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid var(--bdr)">Notifications</h2>
-      <div style="display:grid;gap:16px">
-        <div style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--surface);border-radius:var(--r2)">
-          <div style="font-size:24px">📱</div>
-          <div style="flex:1">
-            <div style="font-weight:600;margin-bottom:4px">Telegram</div>
-            <div style="font-size:12px;color:var(--ink5)">Démarrez <strong>@MarchesMarocBot</strong> puis entrez votre ID ou username</div>
-            <input type="text" name="telegram" class="form-control" value="{{ member.telegram or '' }}" placeholder="@votre_username ou votre Chat ID" style="margin-top:8px">
+    <!-- 2. Notifications -->
+    <div class="card" style="margin-bottom:18px">
+      <div class="card-header">
+        <span class="card-title">🔔 Notifications</span>
+      </div>
+
+      <!-- Telegram -->
+      <div style="display:flex;align-items:center;gap:16px;padding:20px;background:var(--c3);border-radius:var(--r12);margin-bottom:12px;flex-wrap:wrap">
+        <div style="width:44px;height:44px;background:rgba(29,155,209,.15);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">📱</div>
+        <div style="flex:1;min-width:180px">
+          <div style="font-weight:700;font-size:14px;margin-bottom:4px">Telegram</div>
+          <div style="font-size:12px;color:var(--t5);margin-bottom:10px">
+            Démarrez <strong>@MarchesMarocBot</strong>, puis entrez votre ID ou @username
           </div>
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-            <input type="checkbox" name="notif_tg" value="1" {% if member.notif_tg %}checked{% endif %} style="width:18px;height:18px;accent-color:var(--g2)">
-            <span style="font-size:13px;font-weight:600;color:var(--ink4)">Activé</span>
-          </label>
+          <input type="text" name="telegram" class="form-control" value="{{ member.telegram or '' }}"
+                 placeholder="@username ou 1234567890" style="max-width:300px">
         </div>
-        <div style="display:flex;align-items:center;gap:16px;padding:16px;background:var(--surface);border-radius:var(--r2)">
-          <div style="font-size:24px">📧</div>
-          <div style="flex:1">
-            <div style="font-weight:600;margin-bottom:4px">Email</div>
-            <div style="font-size:12px;color:var(--ink5)">Alertes envoyées à {{ member.email }}</div>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex-shrink:0">
+          <div style="position:relative">
+            <input type="checkbox" name="notif_tg" value="1" id="tg-cb" {% if member.notif_tg %}checked{% endif %} style="display:none" onchange="updateToggle('tg-toggle',this.checked)">
+            <div id="tg-toggle" style="width:48px;height:26px;border-radius:13px;background:{% if member.notif_tg %}var(--g2){% else %}var(--c6){% endif %};transition:background .2s;cursor:pointer" onclick="document.getElementById('tg-cb').click()">
+              <div style="width:20px;height:20px;border-radius:50%;background:#fff;margin:3px;transition:transform .2s;transform:{% if member.notif_tg %}translateX(22px){% else %}translateX(0){% endif %}" id="tg-thumb"></div>
+            </div>
           </div>
-          <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
-            <input type="checkbox" name="notif_email" value="1" {% if member.notif_email %}checked{% endif %} style="width:18px;height:18px;accent-color:var(--g2)">
-            <span style="font-size:13px;font-weight:600;color:var(--ink4)">Activé</span>
-          </label>
+          <span style="font-size:13px;font-weight:600;color:var(--t3)">Activé</span>
+        </label>
+      </div>
+
+      <!-- Email -->
+      <div style="display:flex;align-items:center;gap:16px;padding:20px;background:var(--c3);border-radius:var(--r12);flex-wrap:wrap">
+        <div style="width:44px;height:44px;background:rgba(232,160,32,.1);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">📧</div>
+        <div style="flex:1;min-width:180px">
+          <div style="font-weight:700;font-size:14px;margin-bottom:4px">Email</div>
+          <div style="font-size:12px;color:var(--t5)">
+            Alertes envoyées à <strong style="color:var(--t3)">{{ member.email }}</strong>
+          </div>
         </div>
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex-shrink:0">
+          <div style="position:relative">
+            <input type="checkbox" name="notif_email" value="1" id="em-cb" {% if member.notif_email %}checked{% endif %} style="display:none" onchange="updateToggle('em-toggle',this.checked)">
+            <div id="em-toggle" style="width:48px;height:26px;border-radius:13px;background:{% if member.notif_email %}var(--g2){% else %}var(--c6){% endif %};transition:background .2s;cursor:pointer" onclick="document.getElementById('em-cb').click()">
+              <div style="width:20px;height:20px;border-radius:50%;background:#fff;margin:3px;transition:transform .2s;transform:{% if member.notif_email %}translateX(22px){% else %}translateX(0){% endif %}" id="em-thumb"></div>
+            </div>
+          </div>
+          <span style="font-size:13px;font-weight:600;color:var(--t3)">Activé</span>
+        </label>
       </div>
     </div>
 
-    <!-- Secteurs -->
-    <div class="card" style="margin-bottom:20px">
-      <h2 style="font-size:16px;font-weight:600;margin-bottom:8px">Mes secteurs d'activité</h2>
-      <p style="font-size:12px;color:var(--ink5);margin-bottom:16px">Vous recevrez uniquement les marchés de ces secteurs. Laissez vide pour recevoir tous les marchés.</p>
-      <div class="secteur-grid" id="secteur-grid">
+    <!-- 3. Secteurs -->
+    <div class="card" style="margin-bottom:18px">
+      <div class="card-header">
+        <div>
+          <span class="card-title">🏭 Secteurs d'activité</span>
+          <div style="font-size:12px;color:var(--t5);margin-top:3px">Vous recevrez uniquement les marchés de ces secteurs. Laissez vide = tout recevoir.</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="filterSects('T')">Travaux</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="filterSects('P')">Produits</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="filterSects('S')">Services</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="filterSects('')">Tous</button>
+          <button type="button" class="btn btn-danger btn-sm" onclick="clearSects()">✕</button>
+        </div>
+      </div>
+      <div class="secteur-grid" id="sg">
         {% for s in SECTEURS_LIST %}
         {% set code = s[:4] %}
-        {% set name = s[7:] if s[4:7] == ' - ' else s %}
-        {% set is_checked = s in member_secteurs %}
-        <label class="secteur-item {{ 'checked' if is_checked }}" onclick="toggleSect(this)">
-          <input type="checkbox" value="{{ s }}" {% if is_checked %}checked{% endif %} style="display:none">
-          <span class="si-code">{{ code }}</span>
-          <span class="si-label">{{ name }}</span>
+        {% set name = s[7:] if s[4:7] == ' · ' else s %}
+        <label class="secteur-item{% if s in selected_secteurs %} selected{% endif %}" data-code="{{ s[:1] }}" onclick="toggleSect(this)">
+          <input type="checkbox" name="_sb" value="{{ s }}" {% if s in selected_secteurs %}checked{% endif %} style="display:none">
+          <span class="sect-code">{{ code }}</span>
+          <span class="sect-name">{{ name }}</span>
         </label>
         {% endfor %}
       </div>
-      <input type="hidden" name="secteurs" id="secteurs-hidden" value="{{ member.secteurs or '' }}">
+      <input type="hidden" name="secteurs" id="sect-h" value="{{ member.secteurs or '' }}">
+      <div style="margin-top:12px;font-size:12px;color:var(--t5)" id="sect-count">
+        {{ selected_secteurs|length }} secteur(s) sélectionné(s)
+      </div>
     </div>
 
-    <!-- Mot de passe -->
-    <div class="card" style="margin-bottom:24px">
-      <h2 style="font-size:16px;font-weight:600;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--bdr)">Changer le mot de passe</h2>
+    <!-- 4. Mot de passe -->
+    <div class="card" style="margin-bottom:28px">
+      <div class="card-header">
+        <span class="card-title">🔒 Changer le mot de passe</span>
+        <span style="font-size:12px;color:var(--t5)">Laisser vide pour ne pas changer</span>
+      </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div class="form-group">
-          <label>Nouveau mot de passe</label>
-          <input type="password" name="password" class="form-control" placeholder="Laisser vide pour ne pas changer" minlength="8">
+          <label class="form-label">Nouveau mot de passe</label>
+          <input type="password" name="password" class="form-control" placeholder="Min 8 caractères" minlength="8">
         </div>
         <div class="form-group">
-          <label>Confirmer</label>
-          <input type="password" name="password2" class="form-control" placeholder="Répéter le nouveau mot de passe">
+          <label class="form-label">Confirmer</label>
+          <input type="password" name="password2" class="form-control" placeholder="Répéter">
         </div>
       </div>
     </div>
 
-    <button type="submit" class="btn btn-gold" style="width:100%;padding:14px;font-size:15px">Sauvegarder les paramètres ✓</button>
+    <button type="submit" class="btn btn-primary btn-lg btn-block">
+      Sauvegarder les paramètres ✓
+    </button>
   </form>
 </div>
+
 <script>
-function toggleSect(el){
-  el.classList.toggle('checked');
-  el.querySelector('input').checked = el.classList.contains('checked');
+function toggleSect(el) {
+  el.classList.toggle('selected');
+  el.querySelector('input').checked = el.classList.contains('selected');
   updateHidden();
 }
-function updateHidden(){
-  const vals=[...document.querySelectorAll('#secteur-grid input:checked')].map(cb=>cb.value);
-  document.getElementById('secteurs-hidden').value=vals.join(',');
+function updateHidden() {
+  const vals = [...document.querySelectorAll('#sg input:checked')].map(i=>i.value);
+  document.getElementById('sect-h').value = vals.join(',');
+  document.getElementById('sect-count').textContent = vals.length + ' secteur(s) sélectionné(s)';
+}
+function filterSects(type) {
+  document.querySelectorAll('#sg .secteur-item').forEach(el => {
+    el.style.display = (!type || el.dataset.code === type) ? '' : 'none';
+  });
+}
+function clearSects() {
+  document.querySelectorAll('#sg .secteur-item').forEach(el => {
+    el.classList.remove('selected');
+    el.querySelector('input').checked = false;
+  });
+  updateHidden();
+}
+function updateToggle(id, checked) {
+  const toggle = document.getElementById(id);
+  const thumb  = document.getElementById(id.replace('toggle','thumb'));
+  toggle.style.background = checked ? 'var(--g2)' : 'var(--c6)';
+  if (thumb) thumb.style.transform = checked ? 'translateX(22px)' : 'translateX(0)';
 }
 </script>
 {% endblock %}

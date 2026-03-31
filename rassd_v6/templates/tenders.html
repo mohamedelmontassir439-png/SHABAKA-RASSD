@@ -1,109 +1,118 @@
 {% extends "base.html" %}
 {% block title %}Marchés actifs — {{ BRAND }}{% endblock %}
 {% block content %}
-<div class="page">
-  <!-- Header -->
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px">
+<div class="page-wrap">
+
+  <div class="page-header">
     <div>
-      <h1 style="font-size:22px;font-weight:700">Marchés actifs</h1>
-      <p style="color:var(--ink5);font-size:13px;margin-top:4px">{{ total }} consultation(s) trouvée(s)</p>
+      <h1 class="page-title">Marchés actifs</h1>
+      <div class="page-sub">
+        {% if total %}
+          <strong style="color:var(--t2)">{{ total }}</strong> consultation(s) — mis à jour en continu
+        {% else %}
+          Aucun marché trouvé pour ces critères
+        {% endif %}
+      </div>
     </div>
-    <div style="display:flex;gap:8px">
-      <a href="/settings" class="btn btn-ghost btn-sm">⚙️ Mes secteurs</a>
+    <div style="display:flex;gap:8px;flex-shrink:0">
+      <a href="/settings" class="btn btn-ghost btn-sm">⚙ Mes alertes</a>
     </div>
   </div>
 
   <!-- Filters -->
-  <form method="get" action="/tenders">
-    <div class="filters-bar">
-      <div class="filter-item" style="flex:2;min-width:200px">
-        <label>Recherche</label>
-        <input type="text" name="q" class="form-control" placeholder="Mot-clé, acheteur..." value="{{ q }}">
+  <form method="get" action="/tenders" id="filter-form">
+    <div class="filter-bar">
+      <div class="filter-item filter-search">
+        <label class="filter-label">Recherche</label>
+        <input type="text" name="q" class="filter-control" value="{{ q }}"
+               placeholder="Objet, acheteur, domaine…">
       </div>
       <div class="filter-item">
-        <label>Secteur</label>
-        <select name="code_f" class="form-control">
+        <label class="filter-label">Secteur</label>
+        <select name="code_f" class="filter-control" onchange="this.form.submit()">
           <option value="">Tous les secteurs</option>
-          <optgroup label="Travaux (T)">
+          <optgroup label="── Travaux (T) ──">
             {% for s in SECTEURS_LIST if s.startswith('T') %}
-            <option value="{{ s[:4] }}" {% if code_f == s[:4] %}selected{% endif %}>{{ s }}</option>
+            <option value="{{ s[:4] }}" {% if code_f==s[:4] %}selected{% endif %}>{{ s[:35] }}</option>
             {% endfor %}
           </optgroup>
-          <optgroup label="Produits / Fournitures (P)">
+          <optgroup label="── Produits (P) ──">
             {% for s in SECTEURS_LIST if s.startswith('P') %}
-            <option value="{{ s[:4] }}" {% if code_f == s[:4] %}selected{% endif %}>{{ s }}</option>
+            <option value="{{ s[:4] }}" {% if code_f==s[:4] %}selected{% endif %}>{{ s[:35] }}</option>
             {% endfor %}
           </optgroup>
-          <optgroup label="Services (S)">
+          <optgroup label="── Services (S) ──">
             {% for s in SECTEURS_LIST if s.startswith('S') %}
-            <option value="{{ s[:4] }}" {% if code_f == s[:4] %}selected{% endif %}>{{ s }}</option>
+            <option value="{{ s[:4] }}" {% if code_f==s[:4] %}selected{% endif %}>{{ s[:35] }}</option>
             {% endfor %}
           </optgroup>
         </select>
       </div>
       <div class="filter-item">
-        <label>Région</label>
-        <select name="region_f" class="form-control">
+        <label class="filter-label">Région</label>
+        <select name="region_f" class="filter-control" onchange="this.form.submit()">
           <option value="">Toutes les régions</option>
           {% for r in REGIONS_LIST %}
-          <option {% if region_f == r %}selected{% endif %}>{{ r }}</option>
+          <option {% if region_f==r %}selected{% endif %}>{{ r }}</option>
           {% endfor %}
         </select>
       </div>
       <div class="filter-item">
-        <label>Type</label>
-        <select name="type_f" class="form-control">
+        <label class="filter-label">Type</label>
+        <select name="type_f" class="filter-control" onchange="this.form.submit()">
           <option value="">Tous types</option>
-          {% for t in ["Travaux","Fournitures","Services","Études"] %}
-          <option {% if type_f == t %}selected{% endif %}>{{ t }}</option>
+          {% for t in types_used %}
+          <option {% if type_f==t %}selected{% endif %}>{{ t }}</option>
           {% endfor %}
         </select>
       </div>
       <div class="filter-item">
-        <label>Tri</label>
-        <select name="sort" class="form-control">
-          <option value="date" {% if sort=='date' %}selected{% endif %}>Plus récents</option>
+        <label class="filter-label">Tri</label>
+        <select name="sort" class="filter-control" onchange="this.form.submit()">
+          <option value="date"     {% if sort=='date'     %}selected{% endif %}>Plus récents</option>
           <option value="deadline" {% if sort=='deadline' %}selected{% endif %}>Date limite</option>
+          <option value="az"       {% if sort=='az'       %}selected{% endif %}>A → Z</option>
         </select>
       </div>
-      <div style="display:flex;gap:8px;align-items:flex-end">
-        <button type="submit" class="btn btn-gold btn-sm">Filtrer</button>
-        <a href="/tenders" class="btn btn-ghost btn-sm">Reset</a>
+      <div style="display:flex;gap:8px;align-items:flex-end;flex-shrink:0">
+        <button type="submit" class="btn btn-primary btn-sm">Filtrer</button>
+        {% if q or code_f or region_f or type_f %}
+        <a href="/tenders" class="btn btn-ghost btn-sm">✕ Reset</a>
+        {% endif %}
       </div>
     </div>
   </form>
 
   <!-- Results -->
   {% if tenders %}
-  <div style="display:grid;gap:12px">
+  <div style="display:grid;gap:10px">
     {% for t in tenders %}
-    {% set code = t.domaine[:1] if t.domaine else 'P' %}
-    {% set days_left = none %}
-    <a href="/tenders/{{ t.id }}" style="display:block">
-      <div class="tender-card">
-        <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap">
-          <div style="flex:1;min-width:200px">
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
-              <span class="badge badge-{{ code|lower }}">{{ t.domaine[:28] }}</span>
-              <span class="badge" style="background:var(--panel);color:var(--ink5)">{{ t.type_marche }}</span>
-            </div>
-            <h3>{{ t.objet[:100] }}{% if t.objet|length > 100 %}...{% endif %}</h3>
-            <div class="tender-meta" style="margin-top:10px">
-              {% if t.acheteur %}<span>🏢 <b>{{ t.acheteur[:60] }}</b></span>{% endif %}
-              <span>📍 {{ t.region or 'Maroc' }}</span>
-              {% if t.date_publication %}<span>📅 Publié {{ t.date_publication }}</span>{% endif %}
-            </div>
+    {% set tc = t.domaine[:1] if t.domaine else 'P' %}
+    <a href="/tenders/{{ t.id }}" class="t-card" style="display:block">
+      <div style="display:flex;align-items:flex-start;gap:16px">
+        <div style="flex:1;min-width:0">
+          <div class="t-card-head">
+            <span class="badge badge-{{ tc }}">{{ t.domaine[:30] }}</span>
+            <span class="badge badge-gray">{{ t.type_marche }}</span>
           </div>
-          <div style="text-align:right;flex-shrink:0">
-            {% if t.date_limite %}
-            <div class="dl-badge dl-ok">⏰ {{ t.date_limite }}</div>
-            {% else %}
-            <div class="dl-badge dl-unknown">Date non précisée</div>
+          <div class="t-title">{{ t.objet[:100] }}{% if t.objet|length > 100 %}…{% endif %}</div>
+          <div class="t-meta">
+            {% if t.acheteur %}
+            <span class="t-meta-item">🏢 <b>{{ t.acheteur[:60] }}</b></span>
             {% endif %}
-            <div style="font-size:11px;color:var(--ink5);margin-top:6px">
-              {{ t.source }}
-            </div>
+            <span class="t-meta-item">📍 <b>{{ t.region or 'Maroc' }}</b></span>
+            {% if t.date_publication %}
+            <span class="t-meta-item">📅 {{ t.date_publication }}</span>
+            {% endif %}
+            <span class="t-meta-item" style="margin-left:auto;font-family:var(--ff-mono);font-size:11px;color:var(--t6)">{{ t.source }}</span>
           </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          {% if t.date_limite %}
+          <div class="t-deadline t-deadline-ok">⏰ {{ t.date_limite }}</div>
+          {% else %}
+          <div class="t-deadline t-deadline-none">Date ?</div>
+          {% endif %}
         </div>
       </div>
     </a>
@@ -112,25 +121,36 @@
 
   <!-- Pagination -->
   {% if pages > 1 %}
+  {% macro purl(p) %}?page={{ p }}&code_f={{ code_f }}&region_f={{ region_f }}&type_f={{ type_f }}&q={{ q }}&sort={{ sort }}{% endmacro %}
   <div class="pagination">
-    {% if page > 1 %}<a href="?page={{ page-1 }}&code_f={{ code_f }}&region_f={{ region_f }}&type_f={{ type_f }}&q={{ q }}&sort={{ sort }}">← Précédent</a>{% endif %}
+    {% if page > 1 %}
+    <a href="{{ purl(page-1) }}" class="page-item">← Préc.</a>
+    {% endif %}
+
     {% for p in range(1, pages+1) %}
-      {% if p == page %}<span class="current">{{ p }}</span>
-      {% elif p <= 3 or p >= pages-2 or (p >= page-2 and p <= page+2) %}
-        <a href="?page={{ p }}&code_f={{ code_f }}&region_f={{ region_f }}&type_f={{ type_f }}&q={{ q }}&sort={{ sort }}">{{ p }}</a>
-      {% elif p == 4 or p == pages-3 %}<span style="color:var(--ink5)">…</span>
+      {% if p == page %}
+        <span class="page-item active">{{ p }}</span>
+      {% elif p <= 2 or p >= pages-1 or (p >= page-2 and p <= page+2) %}
+        <a href="{{ purl(p) }}" class="page-item">{{ p }}</a>
+      {% elif p == 3 or p == pages-2 %}
+        <span class="page-ellipsis">…</span>
       {% endif %}
     {% endfor %}
-    {% if page < pages %}<a href="?page={{ page+1 }}&code_f={{ code_f }}&region_f={{ region_f }}&type_f={{ type_f }}&q={{ q }}&sort={{ sort }}">Suivant →</a>{% endif %}
+
+    {% if page < pages %}
+    <a href="{{ purl(page+1) }}" class="page-item">Suiv. →</a>
+    {% endif %}
+
+    <span style="font-size:12px;color:var(--t6);margin-left:8px">Page {{ page }}/{{ pages }}</span>
   </div>
   {% endif %}
 
   {% else %}
-  <div style="text-align:center;padding:80px 24px;color:var(--ink5)">
-    <div style="font-size:48px;margin-bottom:16px">🔍</div>
-    <h3 style="color:var(--ink3);margin-bottom:8px">Aucun marché trouvé</h3>
-    <p>Essayez de modifier vos filtres ou attendez le prochain scraping</p>
-    <a href="/tenders" class="btn btn-ghost" style="margin-top:16px">Voir tous les marchés</a>
+  <div style="text-align:center;padding:80px 24px">
+    <div style="font-size:56px;margin-bottom:18px">🔍</div>
+    <h3 style="font-family:var(--ff-display);font-size:22px;font-weight:700;color:var(--t3);margin-bottom:8px">Aucun résultat</h3>
+    <p style="color:var(--t5);margin-bottom:24px">Essayez de modifier vos filtres ou attendez le prochain scraping</p>
+    <a href="/tenders" class="btn btn-secondary">Voir tous les marchés</a>
   </div>
   {% endif %}
 </div>
