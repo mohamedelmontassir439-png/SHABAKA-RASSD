@@ -1,42 +1,83 @@
 {% extends "base.html" %}
-{% block title %}Inscription gratuite — Modern Business{% endblock %}
-{% block body %}
-<div style="min-height:calc(100dvh - var(--nh));display:flex;align-items:center;justify-content:center;padding:40px var(--pad)">
-  <div style="width:100%;max-width:460px">
-    <div class="tc mb24">
-      <div class="slbl mb12" style="justify-content:center">Gratuit · Sans CB</div>
-      <h1 style="font-family:var(--serif);font-size:clamp(24px,3.5vw,36px);font-weight:900;margin-bottom:6px;font-style:italic">Créer mon compte</h1>
-      <p style="font-size:12px;color:var(--ink5)">Recevez les marchés de votre secteur sur Telegram</p>
-    </div>
-    {% if error %}<div class="err">{{ error }}</div>{% endif %}
-    <div class="card p24">
-      <form method="post" action="/register">
-        <div class="g2c">
-          <div class="fg"><label class="lbl">Nom *</label><input type="text" name="nom" class="inp" placeholder="Mohammed" required></div>
-          <div class="fg"><label class="lbl">Entreprise</label><input type="text" name="entreprise" class="inp" placeholder="SARL BTP Maroc"></div>
+{% block title %}Inscription — {{ BRAND }}{% endblock %}
+{% block content %}
+<div style="max-width:680px;margin:48px auto;padding:0 24px">
+  <div style="text-align:center;margin-bottom:32px">
+    <h1 style="font-size:26px;font-weight:700">Créer votre compte</h1>
+    <p style="color:var(--ink5);margin-top:8px">Recevez les marchés de votre secteur en temps réel</p>
+  </div>
+
+  {% if error %}
+  <div class="alert alert-err">{{ error }}</div>
+  {% endif %}
+
+  <div class="card">
+    <form method="post" action="/register">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="form-group">
+          <label>Nom / Entreprise *</label>
+          <input type="text" name="nom" class="form-control" placeholder="SARL Dupont BTP" required autofocus>
         </div>
-        <div class="fg"><label class="lbl">Email *</label><input type="email" name="email" class="inp" placeholder="vous@entreprise.ma" required></div>
-        <div class="g2c">
-          <div class="fg"><label class="lbl">Téléphone</label><input type="tel" name="phone" class="inp" placeholder="06XXXXXXXX"></div>
-          <div class="fg"><label class="lbl">Ville</label><input type="text" name="ville" class="inp" placeholder="Casablanca"></div>
+        <div class="form-group">
+          <label>Email *</label>
+          <input type="email" name="email" class="form-control" placeholder="contact@entreprise.ma" required>
         </div>
-        <div class="fg">
-          <label class="lbl">Secteur principal</label>
-          <select name="secteur" class="sel">
-            <option value="">— Sélectionner —</option>
-            {% for s in SECTEURS_LIST %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
-          </select>
+        <div class="form-group">
+          <label>Téléphone</label>
+          <input type="tel" name="phone" class="form-control" placeholder="+212 6xx xxx xxx">
         </div>
-        <div class="fg"><label class="lbl">Mot de passe * (min. 8 caractères)</label><input type="password" name="password" class="inp" placeholder="••••••••" required minlength="8"></div>
-        <button type="submit" class="btn btn-gold btn-full btn-lg">Créer mon compte →</button>
-        <div class="tc mt12" style="font-size:10px;color:var(--ink5)">
-          Après inscription: <span class="mono" style="color:var(--g2)">/link votre@email.com</span> → <a href="https://t.me/MarchesMarocBot" style="color:var(--g2)" target="_blank">@MarchesMarocBot</a>
+        <div class="form-group">
+          <label>Telegram (ID ou @username)</label>
+          <input type="text" name="telegram" class="form-control" placeholder="@votre_telegram ou 123456789">
+          <div style="font-size:11px;color:var(--ink5);margin-top:4px">Démarrez @MarchesMarocBot pour activer les alertes</div>
         </div>
-      </form>
-    </div>
-    <div class="tc mt16" style="font-size:12px;color:var(--ink5)">
-      Déjà inscrit? <a href="/login" style="color:var(--g2);font-weight:600">Se connecter</a>
-    </div>
+        <div class="form-group">
+          <label>Mot de passe *</label>
+          <input type="password" name="password" class="form-control" placeholder="Min 8 caractères" required minlength="8">
+        </div>
+        <div class="form-group">
+          <label>Confirmer le mot de passe *</label>
+          <input type="password" name="password2" class="form-control" placeholder="Répéter le mot de passe" required>
+        </div>
+      </div>
+
+      <!-- Secteurs -->
+      <div class="form-group" style="margin-top:8px">
+        <label>Vos secteurs d'activité</label>
+        <p style="font-size:12px;color:var(--ink5);margin-bottom:12px">Sélectionnez les domaines pour recevoir uniquement les marchés qui vous concernent</p>
+        <div class="secteur-grid" id="secteur-grid">
+          {% for s in SECTEURS_LIST %}
+          {% set code = s[:4] %}
+          {% set name = s[7:] if s[4:7] == ' - ' else s %}
+          <label class="secteur-item" onclick="toggleSect(this)">
+            <input type="checkbox" name="secteurs_cb" value="{{ s }}" style="display:none">
+            <span class="si-code">{{ code }}</span>
+            <span class="si-label">{{ name }}</span>
+          </label>
+          {% endfor %}
+        </div>
+        <input type="hidden" name="secteurs" id="secteurs-hidden">
+      </div>
+
+      <button type="submit" class="btn btn-gold" style="width:100%;margin-top:16px;padding:14px;font-size:15px">
+        Créer mon compte →
+      </button>
+      <p style="text-align:center;margin-top:16px;color:var(--ink5);font-size:13px">
+        Déjà inscrit ? <a href="/login" style="color:var(--g2)">Se connecter</a>
+      </p>
+    </form>
   </div>
 </div>
+<script>
+function toggleSect(el){
+  el.classList.toggle('checked');
+  const cb=el.querySelector('input');
+  cb.checked=!cb.checked;
+  updateHidden();
+}
+function updateHidden(){
+  const vals=[...document.querySelectorAll('#secteur-grid input:checked')].map(cb=>cb.value);
+  document.getElementById('secteurs-hidden').value=vals.join(',');
+}
+</script>
 {% endblock %}
