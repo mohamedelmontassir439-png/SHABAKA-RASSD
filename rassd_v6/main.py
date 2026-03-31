@@ -447,20 +447,41 @@ class ClassifierAgent:
 
     @staticmethod
     def is_expired(d: str) -> bool:
-        """Check if deadline passed — works with labels like 'Date limite...05/03/2026 12:00'"""
+        """Détecte si date passée — supporte TOUS les formats"""
         if not d: return False
-        d = d.strip()
-        if d in ("N/A","—","","-","null","Non précisée"): return False
-        today = datetime.now().date()
-        # Extract first date found anywhere in string (regex — handles label prefixes)
-        import re as _re
-        m = _re.search(r'(\d{2}/\d{2}/\d{4}|\d{4}-\d{2}-\d{2}|\d{2}-\d{2}-\d{4}|\d{2}\.\d{2}\.\d{4})', d)
-        if m:
-            d_str = m.group(1)
-            for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y", "%d.%m.%Y"):
-                try: return datetime.strptime(d_str, fmt).date() < today
+        d = str(d).strip()
+        if d in ("N/A","—","","-","null","Non précisée","non définie"): return False
+        import re as _r
+        from datetime import datetime as _dt, date as _date
+        today = _date.today()
+        _FMTS = ["%d/%m/%Y","%Y-%m-%d","%d-%m-%Y","%d.%m.%Y","%Y/%m/%d","%d/%m/%y"]
+        _DL_KW = ["date limite","date de remise","réception des offres","reception des offres",
+                  "remise des offres","remise des plis","dépôt des offres","depot des offres",
+                  "soumission","avant le","au plus tard","clôture","cloture","échéance","echeance"]
+        def parse(s):
+            for fmt in _FMTS:
+                try: return _dt.strptime(s.strip(), fmt).date()
                 except: pass
-        return False
+            m = _r.match(r'(\d{1,2})[/\.\-](\d{1,2})[/\.\-](\d{2,4})$', s.strip())
+            if m:
+                a,b,c = m.groups()
+                if len(c)==2: c="20"+c
+                try: return _date(int(c),int(b),int(a))
+                except: pass
+            return None
+        _PAT = r'(\d{1,2}[/\.\-]\d{2}[/\.\-]\d{4}|\d{4}[\-/]\d{2}[\-/]\d{2})'
+        found = [(m.start(),parse(m.group(1))) for m in _r.finditer(_PAT, d)
+                 if parse(m.group(1)) and _date(2020,1,1)<=parse(m.group(1))<=_date(2030,12,31)]
+        if not found: return False
+        dl = d.lower()
+        for kw in _DL_KW:
+            idx = dl.find(kw)
+            if idx < 0: continue
+            cands = [(p,dt) for p,dt in found if idx<=p<=idx+250]
+            if cands: return min(cands,key=lambda x:x[0])[1] < today
+        future = [dt for _,dt in found if dt >= today]
+        return len(future) == 0
+
         return False
 
     @staticmethod

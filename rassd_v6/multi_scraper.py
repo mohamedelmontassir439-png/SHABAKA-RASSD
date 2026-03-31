@@ -39,6 +39,196 @@ SOURCES:
 ══════════════════════════════════════════════════════════════
 """
 import re, time, random, logging, hashlib, json
+
+# ════════════════════════════════════════════════════════
+# DATE ENGINE — Solution exhaustive pour dates marocaines
+# Gère: DD/MM/YYYY, YYYY-MM-DD, avec/sans heure,
+#       labels texte "Date limite...", mois en français/arabe
+# ════════════════════════════════════════════════════════
+
+import re as _re
+from datetime import datetime as _dt, date as _date
+
+_MONTHS_FR = {
+    "janvier":"01","février":"02","fevrier":"02","mars":"03",
+    "avril":"04","mai":"05","juin":"06","juillet":"07",
+    "août":"08","aout":"08","septembre":"09","octobre":"10",
+    "novembre":"11","décembre":"12","decembre":"12",
+    "jan":"01","fév":"02","fev":"02","mar":"03","avr":"04",
+    "juil":"07","sep":"09","oct":"10","nov":"11","déc":"12","dec":"12",
+}
+_MONTHS_AR = {
+    "يناير":"01","فبراير":"02","مارس":"03","أبريل":"04","ابريل":"04",
+    "ماي":"05","يونيو":"06","يوليوز":"07","غشت":"08","شتنبر":"09",
+    "أكتوبر":"10","اكتوبر":"10","نونبر":"11","دجنبر":"12",
+}
+
+# Mots-clés qui précèdent une date limite
+_DEADLINE_KW = [
+    "date limite","date de clôture","date de cloture","date de remise",
+    "date de dépôt","date de depot","date de réception","date de reception",
+    "réception des offres","reception des offres",
+    "réception des devis","reception des devis",
+    "remise des offres","remise des plis","dépôt des offres","depot des offres",
+    "soumission des offres","limite de soumission","date butoir",
+    "délai de remise","delai de remise","délai de dépôt","delai de depot",
+    "avant le","au plus tard le","jusqu'au","jusqu'à","clôture le","cloture le",
+    "heure limite","dernier délai","dernier delai","échéance","echeance",
+    # Arabe
+    "آخر أجل","الأجل","تاريخ انتهاء","موعد إيداع","موعد تقديم",
+]
+
+# Patterns de dates (du plus précis au plus général)
+_DATE_PATTERNS = [
+    # DD/MM/YYYY HH:MM ou HH:MM:SS
+    (r'(\d{1,2}[/\-\.](\d{2})[/\.\-](\d{4}))\s+\d{1,2}:\d{2}', 0),
+    # DD/MM/YYYY
+    (r'(\d{1,2}/\d{2}/\d{4})', 0),
+    # YYYY-MM-DD (ISO)
+    (r'(\d{4}-\d{2}-\d{2})', 0),
+    # DD-MM-YYYY
+    (r'(\d{1,2}-\d{2}-\d{4})', 0),
+    # DD.MM.YYYY
+    (r'(\d{1,2}\.\d{2}\.\d{4})', 0),
+    # YYYY/MM/DD
+    (r'(\d{4}/\d{2}/\d{2})', 0),
+    # DD/MM/YY (court)
+    (r'(\d{1,2}/\d{2}/\d{2})(?!\d)', 0),
+]
+
+_DATE_FMTS = [
+    "%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y", "%d.%m.%Y",
+    "%Y/%m/%d", "%d/%m/%y", "%d %m %Y",
+]
+
+def _parse_date_str(s: str) -> "_date | None":
+    """Tente de parser une chaîne date → objet date Python"""
+    s = s.strip()
+    # Direct
+    for fmt in _DATE_FMTS:
+        try: return _dt.strptime(s, fmt).date()
+        except: pass
+    # Avec normalisation mois
+    sl = s.lower()
+    for word, num in {**_MONTHS_FR, **_MONTHS_AR}.items():
+        sl = sl.replace(word, num)
+    for fmt in _DATE_FMTS:
+        try: return _dt.strptime(sl.strip(), fmt).date()
+        except: pass
+    # Regex générique NN/NN/NNNN
+    m = _re.match(r'(\d{1,2})[/\.\-](\d{1,2})[/\.\-](\d{2,4})$', s.strip())
+    if m:
+        d, mo, y = m.groups()
+        if len(y) == 2: y = "20" + y
+        try: return _date(int(y), int(mo), int(d))
+        except: pass
+    return None
+
+
+def extract_deadline(text: str) -> str:
+    """
+    Extraction EXHAUSTIVE de la date limite depuis n'importe quel texte.
+    
+    Stratégie (par ordre de priorité):
+    1. Cherche les mots-clés "date limite", "remise des offres", etc.
+       → prend la première date dans les 200 chars suivants
+    2. Si plusieurs dates: filtre celles qui sont dans le futur
+    3. Fallback: dernière date du texte
+    4. Retourne "" si aucune date valide
+    
+    Format de sortie: DD/MM/YYYY (pour affichage) ou YYYY-MM-DD (pour DB)
+    """
+    if not text: return ""
+    text_l = text.lower()
+    today = _date.today()
+    
+    # Extraire TOUTES les dates du texte avec leur position
+    all_dates = []  # [(position, date_object, original_string)]
+    for pat, group in _DATE_PATTERNS:
+        for m in _re.finditer(pat, text):
+            d_str = m.group(1) if group == 0 else m.group(group)
+            d_obj = _parse_date_str(d_str)
+            if d_obj and _date(2020,1,1) <= d_obj <= _date(2030,12,31):
+                all_dates.append((m.start(), d_obj, d_str))
+    
+    if not all_dates:
+        return ""
+    
+    # Stratégie 1: chercher date après mot-clé deadline
+    for kw in _DEADLINE_KW:
+        idx = text_l.find(kw)
+        if idx < 0: continue
+        # Chercher la première date dans les 250 chars après le mot-clé
+        search_start = idx + len(kw)
+        search_end = search_start + 250
+        candidates = [(pos, d, s) for pos, d, s in all_dates
+                     if search_start <= pos <= search_end]
+        if candidates:
+            # Prendre la plus proche du mot-clé
+            best = min(candidates, key=lambda x: x[0])
+            return best[1].strftime("%Y-%m-%d")
+    
+    # Stratégie 2: date la plus dans le futur (pour les cas sans mot-clé)
+    future_dates = [(pos, d, s) for pos, d, s in all_dates if d >= today]
+    if future_dates:
+        # Prendre la plus éloignée dans le futur (= la deadline probable)
+        return max(future_dates, key=lambda x: x[1])[1].strftime("%Y-%m-%d")
+    
+    # Stratégie 3: toutes les dates sont passées → prendre la plus récente
+    return max(all_dates, key=lambda x: x[1])[1].strftime("%Y-%m-%d")
+
+
+def normalize_date(raw: str) -> str:
+    """Normalise n'importe quelle date → YYYY-MM-DD ou \"\"\""""
+    if not raw: return ""
+    d = _parse_date_str(str(raw))
+    return d.strftime("%Y-%m-%d") if d else ""
+
+
+def is_expired(text: str) -> bool:
+    """
+    Retourne True si la date limite extraite du texte est passée.
+    Fonctionne avec N'IMPORTE QUEL format:
+    - "05/03/2026"
+    - "Date limite de réception des devis05/03/2026 12:00"
+    - "2026-03-05"
+    - "Date limite: 5 mars 2026"
+    - "" ou "N/A" → False (on garde la صفقة par défaut)
+    """
+    if not text: return False
+    text = str(text).strip()
+    if text in ("N/A", "—", "", "-", "null", "Non précisée", "non définie"): return False
+    
+    today = _date.today()
+    
+    # Extraire TOUTES les dates
+    found = []
+    for pat, group in _DATE_PATTERNS:
+        for m in _re.finditer(pat, text):
+            d_str = m.group(1) if group == 0 else m.group(group)
+            d_obj = _parse_date_str(d_str)
+            if d_obj and _date(2020,1,1) <= d_obj <= _date(2030,12,31):
+                found.append((m.start(), d_obj))
+    
+    if not found: return False
+    
+    # La date deadline = utiliser la même logique qu'extract_deadline
+    text_l = text.lower()
+    for kw in _DEADLINE_KW:
+        idx = text_l.find(kw)
+        if idx < 0: continue
+        candidates = [(pos, d) for pos, d in found if idx <= pos <= idx+250]
+        if candidates:
+            return min(candidates, key=lambda x: x[0])[1] < today
+    
+    # Pas de mot-clé → date la plus future
+    if any(d >= today for _, d in found):
+        return False  # au moins une date future → pas expiré
+    
+    # Toutes les dates sont passées → expiré
+    return True
+
+
 from datetime import datetime
 from typing import Optional
 from dataclasses import dataclass
@@ -123,70 +313,6 @@ def sleep_r(a=1.0, b=2.5): time.sleep(random.uniform(a, b))
 def make_id(src, title, url=""):
     return f"{src}_{hashlib.md5(f'{src}:{title.strip()[:120]}:{url}'.encode()).hexdigest()[:12]}"
 
-def normalize_date(raw):
-    if not raw: return ""
-    raw = str(raw).strip()
-    MO = {"janvier":"01","février":"02","mars":"03","avril":"04","mai":"05","juin":"06",
-          "juillet":"07","août":"08","septembre":"09","octobre":"10","novembre":"11","décembre":"12",
-          "jan":"01","fév":"02","mar":"03","avr":"04","jul":"07","aoû":"08","sep":"09","oct":"10","nov":"11","déc":"12",
-          "يناير":"01","فبراير":"02","مارس":"03","أبريل":"04","ماي":"05","يونيو":"06",
-          "يوليوز":"07","غشت":"08","شتنبر":"09","أكتوبر":"10","نونبر":"11","دجنبر":"12"}
-    r = raw.lower()
-    for fr, num in MO.items(): r = r.replace(fr, num)
-    for fmt in ["%d/%m/%Y","%d-%m-%Y","%d.%m.%Y","%Y-%m-%d","%d/%m/%y","%d %m %Y","%Y/%m/%d"]:
-        try: return datetime.strptime(r.strip(), fmt).strftime("%Y-%m-%d")
-        except: pass
-        try: return datetime.strptime(raw.strip(), fmt).strftime("%Y-%m-%d")
-        except: pass
-    m = re.search(r'(\d{1,2})[/\-\.](\d{1,2})[/\-\.](\d{2,4})', raw)
-    if m:
-        d, mo, y = m.groups()
-        if len(y)==2: y="20"+y
-        try: return datetime(int(y),int(mo),int(d)).strftime("%Y-%m-%d")
-        except: pass
-    return ""
-
-
-def extract_deadline(text: str) -> str:
-    """
-    Extrait intelligemment la date limite depuis n'importe quel texte.
-    Cherche les mots-clés: limite, remise, dépôt, réception, devis, soumission
-    Retourne date au format YYYY-MM-DD ou ""
-    """
-    if not text: return ""
-    text_l = text.lower()
-    
-    # Mots-clés indiquant une date limite
-    DEADLINE_KW = [
-        "date limite", "date de clôture", "date de remise", "date de dépôt",
-        "date de réception", "réception des offres", "réception des devis",
-        "remise des offres", "remise des plis", "dépôt des offres",
-        "soumission des offres", "limite de soumission", "clôture",
-        "avant le", "au plus tard", "jusqu'au", "date butoir",
-        "délai de remise", "délai de dépôt",
-    ]
-    
-    # Pattern pour trouver une date après un mot-clé
-    DATE_PAT = r'(\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{4}|\d{4}[/\-]\d{2}[/\-]\d{2})'
-    
-    # Chercher date après chaque mot-clé
-    for kw in DEADLINE_KW:
-        idx = text_l.find(kw)
-        if idx >= 0:
-            # Chercher une date dans les 150 chars après le mot-clé
-            snippet = text[idx:idx+150]
-            m = re.search(DATE_PAT, snippet)
-            if m:
-                result = normalize_date(m.group(1))
-                if result:
-                    return result
-    
-    # Fallback: prendre la DERNIÈRE date du texte
-    all_dates = re.findall(DATE_PAT, text)
-    if all_dates:
-        return normalize_date(all_dates[-1])
-    
-    return ""
 
 def extract_budget(text):
     if not text: return 0.0, 0.0, ""
@@ -207,55 +333,6 @@ def clean(t, n=500):
 def today() -> str:
     return datetime.now().strftime("%Y-%m-%d")
 
-def is_expired(d: str) -> bool:
-    """Détecte si une date est passée — supporte tous les formats + labels texte
-    Ex: "05/03/2026 12:00", "Date limite...15/04/2026", "2026-03-05", etc.
-    """
-    if not d: return False
-    d = str(d).strip()
-    if d in ("N/A","—","","-","null","Non précisée"): return False
-    today = datetime.now().date()
-    # Regex: cherche une date dans n'importe quel texte
-    import re as _re
-    for pat, fmt in [
-        (r"(\d{2}/\d{2}/\d{4})", "%d/%m/%Y"),
-        (r"(\d{4}-\d{2}-\d{2})", "%Y-%m-%d"),
-        (r"(\d{2}-\d{2}-\d{4})", "%d-%m-%Y"),
-        (r"(\d{2}\.\d{2}\.\d{4})", "%d.%m.%Y"),
-        (r"(\d{4}/\d{2}/\d{2})", "%Y/%m/%d"),
-    ]:
-        m = _re.search(pat, d)
-        if m:
-            try: return datetime.strptime(m.group(1), fmt).date() < today
-            except: pass
-    # ISO avec heure: 2026-03-05T10:00:00
-    m = _re.search(r"(\d{4}-\d{2}-\d{2})T", d)
-    if m:
-        try: return datetime.strptime(m.group(1), "%Y-%m-%d").date() < today
-        except: pass
-    return False
-
-
-def extract_date_clean(text: str) -> str:
-    """Extrait et retourne la date propre DD/MM/YYYY depuis n'importe quel texte.
-    Retourne "" si aucune date future trouvée ou si passée.
-    """
-    if not text: return ""
-    import re as _re
-    today = datetime.now().date()
-    for pat, fmt, out_fmt in [
-        (r"(\d{2}/\d{2}/\d{4})", "%d/%m/%Y", "%d/%m/%Y"),
-        (r"(\d{4}-\d{2}-\d{2})", "%Y-%m-%d", "%d/%m/%Y"),
-        (r"(\d{2}-\d{2}-\d{4})", "%d-%m-%Y", "%d/%m/%Y"),
-        (r"(\d{2}\.\d{2}\.\d{4})", "%d.%m.%Y", "%d/%m/%Y"),
-    ]:
-        m = _re.search(pat, str(text))
-        if m:
-            try:
-                d = datetime.strptime(m.group(1), fmt).date()
-                return d.strftime(out_fmt)  # retourne toujours, même si passée
-            except: pass
-    return ""
 
 def is_cancelled(text: str) -> bool:
     t = text.lower()
