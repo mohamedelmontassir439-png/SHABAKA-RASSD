@@ -1,4 +1,4 @@
-"""  # v8.0 FINAL 2026-03-27 23:00 2026-03-27 16:12:17 2026-03-25 19:33 2026-03-21 17:53-active-only-20-sources
+"""  # v10.0 2026-03-31 02:26
 Modern Business v5.0 — Intelligence Marchés Publics Maroc
 ══════════════════════════════════════════════════════════
 Architecture: FastAPI + SQLite WAL + 5 AI Agents
