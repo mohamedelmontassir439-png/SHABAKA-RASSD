@@ -660,11 +660,18 @@ class ScraperAgent:
             # Mots à ignorer UNIQUEMENT s'ils constituent TOUT le titre
             SKIP_EXACT = ["accueil","liste des avis","connexion",
                           "portail marocain des marchés publics",
-                          "portail marocain", "marchés publics maroc"]
+                          "portail marocain", "marchés publics maroc",
+                          "marchés publics", "liste des", "avis d'achat",
+                          "espace entreprise", "se connecter", "inscription",
+                          "tableau de bord", "recherche avancée"]
 
             def is_skip(t):
                 tl = t.lower().strip()
-                return any(tl == s or tl.startswith(s + " |") for s in SKIP_EXACT)
+                # Match exact, startswith, or contains any skip keyword
+                return any(
+                    tl == s or tl.startswith(s) or tl.startswith(s + " |")
+                    for s in SKIP_EXACT
+                )
 
             # a) <title> HTML — souvent "Consultation #XXXXX | Marchés Publics"
             title_tag = soup.find("title")
@@ -703,12 +710,24 @@ class ScraperAgent:
 
             # e) Premier article / description significative
             if not objet or len(objet) < 8:
-                for el in soup.find_all(["p","div","li","td"]):
+                # Mots qui indiquent un faux positif dans les articles
+                ARTICLE_SKIP = ["voir plus","télécharger","cliquer","fichier",
+                                 "poids","taille","type de fichier","kb","mb",
+                                 "articles","pièces jointes","tout afficher","tout réduire"]
+                for el in soup.find_all(["p","div","li","td","span"]):
                     t = el.get_text(strip=True)
-                    if 20 < len(t) < 400 and not is_skip(t):
-                        # Vérifier que c'est pas un nav/footer
-                        parents = [p.name for p in el.parents]
-                        if not any(p in ["nav","footer","header"] for p in parents):
+                    if 15 < len(t) < 400 and not is_skip(t):
+                        tl = t.lower()
+                        if any(s in tl for s in ARTICLE_SKIP): continue
+                        # Vérifier que c'est pas un nav/footer/aside
+                        parents_names = [p.name for p in el.parents]
+                        if any(p in ["nav","footer","header","aside"] for p in parents_names): continue
+                        # Doit ressembler à un vrai objet (contient des mots clés)
+                        VALID_KW = ["fourniture","travaux","service","prestation","acquisition",
+                                    "maintenance","réhabilitation","construction","étude","mission",
+                                    "location","nettoyage","gardiennage","transport","formation",
+                                    "audit","aménagement","installation","extension","livraison"]
+                        if any(k in tl for k in VALID_KW):
                             objet = t; break
 
             # f) Dernier recours: si page valide (acheteur + date visibles)
@@ -871,9 +890,10 @@ class ScraperAgent:
                     if n > max_id: max_id = n
                 except (ValueError, TypeError): pass
 
-        # Scan 50 en arrière + 300 en avant depuis max connu
-        start_id = max(310000, max_id - 50)
-        end_id   = max_id + 300
+        # Scan 30 en arrière + 500 en avant depuis max connu
+        # Min 311500 pour éviter les archives expirées de jan/fev 2026
+        start_id = max(311500, max_id - 30)
+        end_id   = max_id + 500
         scan_ids = [str(i) for i in range(start_id, end_id + 1)
                     if f"bdc_{i}" not in known]
 
