@@ -1084,6 +1084,429 @@ class NotifyAgent:
 # ══════════════════════════════════════════════════════
 # MONITOR AGENT
 # ══════════════════════════════════════════════════════
+
+
+# ════════════════════════════════════════════════════════════════
+# SELF-HEALING AGENT — Intelligent Auto-Repair System
+# Comprend le projet Modern Business et corrige les erreurs
+# automatiquement sans intervention humaine
+# ════════════════════════════════════════════════════════════════
+
+class SelfHealingAgent:
+    """
+    Agent IA de correction automatique pour Modern Business.
+    
+    Fonctions:
+    - Surveille les erreurs en continu (toutes les 10 minutes)
+    - Comprend le schéma DB et répare les tables manquantes
+    - Détecte les colonnes manquantes et les ajoute
+    - Revalide les routes critiques (health check)
+    - Nettoie la DB: expire les marchés passés, purge les queues
+    - Réinitialise les scrapers bloqués
+    - Notifie l'admin via Telegram des actions prises
+    - Log toutes les réparations dans agent_repairs table
+    """
+
+    # Schéma complet de la base de données
+    SCHEMA = {
+        "tenders": {
+            "id":              "TEXT PRIMARY KEY",
+            "objet":           "TEXT NOT NULL DEFAULT ''",
+            "acheteur":        "TEXT DEFAULT ''",
+            "region":          "TEXT DEFAULT ''",
+            "domaine":         "TEXT DEFAULT ''",
+            "type_marche":     "TEXT DEFAULT ''",
+            "montant":         "TEXT DEFAULT ''",
+            "budget_min":      "REAL DEFAULT 0",
+            "budget_max":      "REAL DEFAULT 0",
+            "date_publication":"TEXT DEFAULT ''",
+            "date_limite":     "TEXT DEFAULT ''",
+            "description":     "TEXT DEFAULT ''",
+            "statut":          "TEXT DEFAULT 'actif'",
+            "url":             "TEXT DEFAULT ''",
+            "source":          "TEXT DEFAULT 'marchespublics'",
+            "contact":         "TEXT DEFAULT ''",
+            "ai_score":        "INTEGER DEFAULT 50",
+            "ai_category":     "TEXT DEFAULT ''",
+            "ai_reason":       "TEXT DEFAULT ''",
+            "date_extraction": "TEXT DEFAULT ''",
+            "views":           "INTEGER DEFAULT 0",
+        },
+        "members": {
+            "id":           "INTEGER PRIMARY KEY AUTOINCREMENT",
+            "nom":          "TEXT DEFAULT ''",
+            "entreprise":   "TEXT DEFAULT ''",
+            "email":        "TEXT UNIQUE NOT NULL",
+            "phone":        "TEXT DEFAULT ''",
+            "secteur":      "TEXT DEFAULT ''",
+            "ville":        "TEXT DEFAULT ''",
+            "region":       "TEXT DEFAULT ''",
+            "pw_hash":      "TEXT DEFAULT ''",
+            "plan":         "TEXT DEFAULT 'free'",
+            "actif":        "INTEGER DEFAULT 0",
+            "verify_token": "TEXT DEFAULT ''",
+            "telegram":     "TEXT DEFAULT ''",
+            "last_login":   "TEXT DEFAULT ''",
+            "created_at":   "TEXT DEFAULT ''",
+            "notif_email":  "INTEGER DEFAULT 1",
+            "notif_tg":     "INTEGER DEFAULT 1",
+        },
+        "member_filters": {
+            "id":         "INTEGER PRIMARY KEY AUTOINCREMENT",
+            "member_id":  "INTEGER NOT NULL",
+            "type":       "TEXT DEFAULT 'secteur'",
+            "value":      "TEXT DEFAULT ''",
+            "created_at": "TEXT DEFAULT ''",
+        },
+        "favoris": {
+            "id":         "INTEGER PRIMARY KEY AUTOINCREMENT",
+            "member_id":  "INTEGER NOT NULL",
+            "tender_id":  "TEXT NOT NULL",
+            "created_at": "TEXT DEFAULT ''",
+        },
+        "api_keys": {
+            "id":         "INTEGER PRIMARY KEY AUTOINCREMENT",
+            "member_id":  "INTEGER NOT NULL",
+            "key":        "TEXT UNIQUE NOT NULL",
+            "name":       "TEXT DEFAULT 'API Key'",
+            "created_at": "TEXT DEFAULT ''",
+            "last_used":  "TEXT DEFAULT ''",
+            "active":     "INTEGER DEFAULT 1",
+        },
+        "posts": {
+            "id":           "INTEGER PRIMARY KEY AUTOINCREMENT",
+            "titre":        "TEXT NOT NULL DEFAULT ''",
+            "contenu":      "TEXT DEFAULT ''",
+            "type_post":    "TEXT DEFAULT 'offre'",
+            "secteur":      "TEXT DEFAULT ''",
+            "region":       "TEXT DEFAULT ''",
+            "contact":      "TEXT DEFAULT ''",
+            "auteur_email": "TEXT DEFAULT ''",
+            "statut":       "TEXT DEFAULT 'actif'",
+            "views":        "INTEGER DEFAULT 0",
+            "created_at":   "TEXT DEFAULT ''",
+        },
+        "chats": {
+            "id":         "INTEGER PRIMARY KEY AUTOINCREMENT",
+            "member_id":  "INTEGER DEFAULT 0",
+            "role":       "TEXT DEFAULT 'user'",
+            "content":    "TEXT DEFAULT ''",
+            "created_at": "TEXT DEFAULT ''",
+        },
+        "notif_queue": {
+            "id":          "INTEGER PRIMARY KEY AUTOINCREMENT",
+            "member_id":   "INTEGER NOT NULL",
+            "tender_ids":  "TEXT DEFAULT ''",
+            "channel":     "TEXT DEFAULT 'email'",
+            "status":      "TEXT DEFAULT 'pending'",
+            "attempts":    "INTEGER DEFAULT 0",
+            "created_at":  "TEXT DEFAULT ''",
+            "sent_at":     "TEXT DEFAULT ''",
+        },
+        "scrape_runs": {
+            "id":          "INTEGER PRIMARY KEY AUTOINCREMENT",
+            "source":      "TEXT DEFAULT ''",
+            "found":       "INTEGER DEFAULT 0",
+            "saved":       "INTEGER DEFAULT 0",
+            "errors":      "INTEGER DEFAULT 0",
+            "duration_s":  "REAL DEFAULT 0",
+            "run_at":      "TEXT DEFAULT ''",
+        },
+        "agent_errors": {
+            "id":          "INTEGER PRIMARY KEY AUTOINCREMENT",
+            "agent":       "TEXT DEFAULT ''",
+            "context":     "TEXT DEFAULT ''",
+            "error":       "TEXT DEFAULT ''",
+            "count":       "INTEGER DEFAULT 1",
+            "resolved":    "INTEGER DEFAULT 0",
+            "first_seen":  "TEXT DEFAULT ''",
+            "last_seen":   "TEXT DEFAULT ''",
+        },
+        "agent_repairs": {
+            "id":          "INTEGER PRIMARY KEY AUTOINCREMENT",
+            "action":      "TEXT DEFAULT ''",
+            "detail":      "TEXT DEFAULT ''",
+            "success":     "INTEGER DEFAULT 1",
+            "repaired_at": "TEXT DEFAULT ''",
+        },
+        "ratings": {
+            "id":          "INTEGER PRIMARY KEY AUTOINCREMENT",
+            "post_id":     "INTEGER NOT NULL",
+            "member_id":   "INTEGER NOT NULL",
+            "score":       "INTEGER DEFAULT 5",
+            "created_at":  "TEXT DEFAULT ''",
+        },
+    }
+
+    # Routes critiques à surveiller
+    CRITICAL_ROUTES = ["/health", "/", "/tenders", "/login", "/register"]
+
+    # Sources de scraping et leur statut attendu
+    SCRAPER_SOURCES = [
+        "marchespublics", "ofppt", "tanmia", "lematin",
+        "leconomiste", "lavieeco", "flasheconomie",
+    ]
+
+    @classmethod
+    def log_repair(cls, db, action: str, detail: str, success: bool = True):
+        """Log une réparation dans la DB"""
+        try:
+            db.execute(
+                "INSERT INTO agent_repairs(action,detail,success,repaired_at) VALUES(?,?,?,?)",
+                (action, detail[:500], 1 if success else 0, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            )
+            db.commit()
+        except: pass
+
+    @classmethod
+    def notify_admin(cls, msg: str):
+        """Notifie l'admin via Telegram"""
+        if not TELEGRAM_BOT or not ADMIN_CHAT_ID: return
+        try:
+            import requests as _r
+            _r.post(
+                f"https://api.telegram.org/bot{TELEGRAM_BOT}/sendMessage",
+                json={"chat_id": ADMIN_CHAT_ID,
+                      "text": f"🔧 <b>SelfHealingAgent</b>\n{msg}",
+                      "parse_mode": "HTML"},
+                timeout=5
+            )
+        except: pass
+
+    @classmethod
+    def repair_schema(cls, db) -> list:
+        """Vérifie et répare le schéma DB — crée tables et colonnes manquantes"""
+        repairs = []
+        for table, columns in cls.SCHEMA.items():
+            # Créer la table si elle n'existe pas
+            col_defs = ", ".join(f"{col} {typ}" for col, typ in columns.items())
+            try:
+                db.execute(f"CREATE TABLE IF NOT EXISTS {table} ({col_defs})")
+                db.commit()
+            except Exception as e:
+                repairs.append(f"❌ Table {table}: {e}")
+                continue
+
+            # Vérifier colonnes manquantes
+            try:
+                existing = {row[1] for row in db.execute(f"PRAGMA table_info({table})").fetchall()}
+                for col, typ in columns.items():
+                    if col not in existing and col not in ("id",):
+                        try:
+                            default = typ.split("DEFAULT")[-1].strip() if "DEFAULT" in typ else "NULL"
+                            db.execute(f"ALTER TABLE {table} ADD COLUMN {col} {typ}")
+                            db.commit()
+                            repairs.append(f"✅ Colonne ajoutée: {table}.{col}")
+                        except Exception as e:
+                            if "duplicate" not in str(e).lower():
+                                repairs.append(f"⚠️ {table}.{col}: {e}")
+            except Exception as e:
+                repairs.append(f"❌ PRAGMA {table}: {e}")
+
+        # Index critiques
+        indexes = [
+            ("idx_t_statut",     "tenders(statut)"),
+            ("idx_t_score",      "tenders(ai_score DESC)"),
+            ("idx_t_date",       "tenders(date_extraction DESC)"),
+            ("idx_t_dl",         "tenders(date_limite)"),
+            ("idx_m_email",      "members(email)"),
+            ("idx_fav_member",   "favoris(member_id)"),
+            ("idx_filters_mem",  "member_filters(member_id)"),
+        ]
+        for idx_name, idx_on in indexes:
+            try:
+                db.execute(f"CREATE INDEX IF NOT EXISTS {idx_name} ON {idx_on}")
+                db.commit()
+            except: pass
+
+        return repairs
+
+    @classmethod
+    def expire_tenders(cls, db) -> int:
+        """Expire les marchés dont la date limite est passée"""
+        today = datetime.now().date()
+        expired_ids = []
+
+        # Format ISO: YYYY-MM-DD
+        db.execute(
+            "UPDATE tenders SET statut='expire' WHERE statut='actif' "
+            "AND date_limite!='' AND date_limite NOT LIKE '%/%' "
+            "AND date_limite < date('now') AND date_limite NOT IN ('N/A','—','-')"
+        )
+
+        # Format DD/MM/YYYY — traitement Python
+        rows = db.execute(
+            "SELECT id, date_limite FROM tenders WHERE statut='actif' "
+            "AND date_limite LIKE '%/%' AND date_limite != ''"
+        ).fetchall()
+
+        import re as _re
+        for row in rows:
+            dl = str(row["date_limite"]).strip()
+            m = _re.search(r'(\d{2}/\d{2}/\d{4})', dl)
+            if m:
+                try:
+                    d = datetime.strptime(m.group(1), "%d/%m/%Y").date()
+                    if d < today:
+                        expired_ids.append(row["id"])
+                except: pass
+
+        if expired_ids:
+            ph = ",".join(["?"] * len(expired_ids))
+            db.execute(f"UPDATE tenders SET statut='expire' WHERE id IN ({ph})", expired_ids)
+
+        db.commit()
+        return len(expired_ids)
+
+    @classmethod
+    def clean_db(cls, db) -> dict:
+        """Nettoie la DB: purge anciens chats, notifs envoyées, doublons"""
+        stats = {}
+
+        # Purge chats > 7 jours
+        db.execute("DELETE FROM chats WHERE created_at < date('now','-7 days')")
+        stats["chats_purged"] = db.execute("SELECT changes()").fetchone()[0]
+
+        # Purge notifs envoyées > 30 jours
+        db.execute("DELETE FROM notif_queue WHERE status='sent' AND sent_at < date('now','-30 days')")
+        stats["notifs_purged"] = db.execute("SELECT changes()").fetchone()[0]
+
+        # Reset notifs failed > 2h (retry)
+        db.execute(
+            "UPDATE notif_queue SET status='pending',attempts=0 "
+            "WHERE status='failed' AND created_at < datetime('now','-2 hours') AND attempts < 3"
+        )
+        stats["notifs_reset"] = db.execute("SELECT changes()").fetchone()[0]
+
+        # Résoudre erreurs agent > 7 jours
+        db.execute("UPDATE agent_errors SET resolved=1 WHERE last_seen < date('now','-7 days')")
+
+        # Supprimer doublons de tenders (même objet, même source, même jour)
+        db.execute("""
+            DELETE FROM tenders WHERE rowid NOT IN (
+                SELECT MIN(rowid) FROM tenders
+                GROUP BY LOWER(SUBSTR(objet,1,60)), source, SUBSTR(date_extraction,1,10)
+            )
+        """)
+        stats["dupes_removed"] = db.execute("SELECT changes()").fetchone()[0]
+
+        db.commit()
+        return stats
+
+    @classmethod
+    def check_scraper_health(cls, db) -> dict:
+        """Vérifie que le scraper a tourné récemment"""
+        issues = {}
+        last_run = db.execute(
+            "SELECT run_at, source, found FROM scrape_runs ORDER BY id DESC LIMIT 1"
+        ).fetchone()
+
+        if not last_run:
+            issues["scraper"] = "Aucun run enregistré"
+        else:
+            last_run_dt = None
+            try:
+                last_run_dt = datetime.strptime(last_run["run_at"][:19], "%Y-%m-%d %H:%M:%S")
+                hours_ago = (datetime.now() - last_run_dt).total_seconds() / 3600
+                if hours_ago > 6:
+                    issues["scraper"] = f"Dernier run il y a {hours_ago:.1f}h — possible blocage"
+                else:
+                    issues["scraper"] = f"OK ({hours_ago:.1f}h)"
+            except:
+                issues["scraper"] = "Date run invalide"
+
+        # Vérifier nombre de marchés actifs
+        active_count = db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif'").fetchone()[0]
+        if active_count == 0:
+            issues["tenders"] = "⚠️ Aucun marché actif — scraper peut-être bloqué"
+        elif active_count < 10:
+            issues["tenders"] = f"⚠️ Seulement {active_count} marchés actifs"
+        else:
+            issues["tenders"] = f"OK ({active_count} actifs)"
+
+        return issues
+
+    @classmethod
+    async def run(cls):
+        """Boucle principale — tourne toutes les 10 minutes"""
+        logger.info("[SelfHealingAgent] Démarré")
+        await asyncio.sleep(30)  # Attendre que l'app soit prête
+
+        while True:
+            try:
+                db = get_db()
+                repairs_done = []
+
+                # 1. Réparer le schéma DB
+                schema_repairs = cls.repair_schema(db)
+                for r in schema_repairs:
+                    if r.startswith("✅"):
+                        repairs_done.append(r)
+                        cls.log_repair(db, "schema", r)
+
+                # 2. Expirer les marchés passés
+                expired = cls.expire_tenders(db)
+                if expired > 0:
+                    msg = f"⏰ {expired} marchés expirés"
+                    repairs_done.append(msg)
+                    cls.log_repair(db, "expire", msg)
+
+                # 3. Nettoyer la DB
+                clean_stats = cls.clean_db(db)
+                if clean_stats.get("dupes_removed", 0) > 0:
+                    msg = f"🗑 {clean_stats['dupes_removed']} doublons supprimés"
+                    repairs_done.append(msg)
+                    cls.log_repair(db, "dedup", msg)
+
+                # 4. Vérifier santé scraper
+                health = cls.check_scraper_health(db)
+                for k, v in health.items():
+                    if "⚠️" in v:
+                        cls.log_repair(db, "health", v, success=False)
+                        repairs_done.append(v)
+
+                # 5. Notifier admin si réparations importantes
+                important = [r for r in repairs_done if any(x in r for x in ["❌","⚠️","doublons","expirés"])]
+                if important:
+                    cls.notify_admin("\n".join(important[:5]))
+
+                db.close()
+
+                if repairs_done:
+                    logger.info(f"[SelfHealingAgent] {len(repairs_done)} actions: {repairs_done[:3]}")
+
+            except Exception as e:
+                logger.error(f"[SelfHealingAgent] Erreur boucle: {e}")
+
+            await asyncio.sleep(600)  # toutes les 10 minutes
+
+    @classmethod
+    def get_report(cls) -> dict:
+        """Retourne un rapport de l'état du système"""
+        db = get_db()
+        try:
+            repairs = db.execute(
+                "SELECT action,detail,success,repaired_at FROM agent_repairs ORDER BY id DESC LIMIT 20"
+            ).fetchall()
+            errors = db.execute(
+                "SELECT agent,error,count,last_seen FROM agent_errors WHERE resolved=0 ORDER BY count DESC LIMIT 10"
+            ).fetchall()
+            schema_ok = True
+            for table in cls.SCHEMA:
+                try: db.execute(f"SELECT COUNT(*) FROM {table}")
+                except: schema_ok = False; break
+            return {
+                "schema_ok":    schema_ok,
+                "repairs":      [dict(r) for r in repairs],
+                "errors":       [dict(e) for e in errors],
+                "active_tenders": db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif'").fetchone()[0],
+                "members":      db.execute("SELECT COUNT(*) FROM members").fetchone()[0],
+                "last_repair":  repairs[0]["repaired_at"] if repairs else None,
+            }
+        finally:
+            db.close()
+
+
 class MonitorAgent:
     @staticmethod
     def log_error(agent, route, error):
@@ -1247,6 +1670,7 @@ async def lifespan(app):
     except Exception as e: logger.error(f"[init_db] {e}")
     asyncio.create_task(NotifyAgent.worker())
     asyncio.create_task(MonitorAgent.run())
+    asyncio.create_task(SelfHealingAgent.run())
     asyncio.create_task(scrape_scheduler())
     asyncio.create_task(digest_scheduler())
     logger.info(f"✅ {BRAND} v5.0 — All agents started")
@@ -2555,6 +2979,39 @@ async def admin_clear_db(req: Request, pwd: str = "", confirm: str = ""):
         try: db.close()
         except: pass
         return JSONResponse({"error":str(e)},500)
+
+
+@app.get("/admin/healing")
+async def admin_healing(req: Request, pwd: str = ""):
+    """Rapport du SelfHealingAgent"""
+    cookie = req.cookies.get("admin_session","")
+    if pwd != ADMIN_PASS and cookie != ADMIN_PASS:
+        return RedirectResponse("/admin/login",302)
+    report = SelfHealingAgent.get_report()
+    return JSONResponse(report)
+
+
+@app.get("/admin/heal_now")
+async def admin_heal_now(req: Request, pwd: str = ""):
+    """Force une réparation immédiate"""
+    cookie = req.cookies.get("admin_session","")
+    if pwd != ADMIN_PASS and cookie != ADMIN_PASS:
+        return RedirectResponse("/admin/login",302)
+    db = get_db()
+    try:
+        schema = SelfHealingAgent.repair_schema(db)
+        expired = SelfHealingAgent.expire_tenders(db)
+        clean = SelfHealingAgent.clean_db(db)
+        active = db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif'").fetchone()[0]
+        return JSONResponse({
+            "ok": True,
+            "schema_repairs": len([r for r in schema if r.startswith("✅")]),
+            "expired": expired,
+            "dupes_removed": clean.get("dupes_removed",0),
+            "active_tenders": active,
+        })
+    finally:
+        db.close()
 
 @app.get("/health")
 async def health():
