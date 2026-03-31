@@ -146,6 +146,48 @@ def normalize_date(raw):
         except: pass
     return ""
 
+
+def extract_deadline(text: str) -> str:
+    """
+    Extrait intelligemment la date limite depuis n'importe quel texte.
+    Cherche les mots-clés: limite, remise, dépôt, réception, devis, soumission
+    Retourne date au format YYYY-MM-DD ou ""
+    """
+    if not text: return ""
+    text_l = text.lower()
+    
+    # Mots-clés indiquant une date limite
+    DEADLINE_KW = [
+        "date limite", "date de clôture", "date de remise", "date de dépôt",
+        "date de réception", "réception des offres", "réception des devis",
+        "remise des offres", "remise des plis", "dépôt des offres",
+        "soumission des offres", "limite de soumission", "clôture",
+        "avant le", "au plus tard", "jusqu'au", "date butoir",
+        "délai de remise", "délai de dépôt",
+    ]
+    
+    # Pattern pour trouver une date après un mot-clé
+    DATE_PAT = r'(\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{4}|\d{4}[/\-]\d{2}[/\-]\d{2})'
+    
+    # Chercher date après chaque mot-clé
+    for kw in DEADLINE_KW:
+        idx = text_l.find(kw)
+        if idx >= 0:
+            # Chercher une date dans les 150 chars après le mot-clé
+            snippet = text[idx:idx+150]
+            m = re.search(DATE_PAT, snippet)
+            if m:
+                result = normalize_date(m.group(1))
+                if result:
+                    return result
+    
+    # Fallback: prendre la DERNIÈRE date du texte
+    all_dates = re.findall(DATE_PAT, text)
+    if all_dates:
+        return normalize_date(all_dates[-1])
+    
+    return ""
+
 def extract_budget(text):
     if not text: return 0.0, 0.0, ""
     t = str(text).replace("\u202f","").replace("\xa0","").replace(" ","").replace(",",".")
@@ -381,9 +423,16 @@ def build_tender(source, url, title, text, acheteur=""):
     bmin, bmax, montant = extract_budget("")
     mon_m = re.search(r'(\d[\d\s,.]+)\s*(?:DH|MAD)', text, re.I)
     if mon_m: bmin, bmax, montant = extract_budget(mon_m.group(0))
-    dates = re.findall(r'\d{1,2}[/\-\.]\d{2}[/\-\.]\d{4}', text)
-    dl = normalize_date(dates[-1] if dates else "")
-    dp = normalize_date(dates[0] if len(dates) > 1 else "")
+    # Extraire date limite intelligemment (cherche "limite", "remise", etc.)
+    dl = extract_deadline(text)
+    # Date de publication = première date trouvée si différente de dl
+    dates_all = re.findall(r'\d{1,2}[/\-\.]\d{2}[/\-\.]\d{4}', text)
+    dp = ""
+    for d_raw in dates_all:
+        d_norm = normalize_date(d_raw)
+        if d_norm and d_norm != dl:
+            dp = d_norm
+            break
     # Don't return expired — still save but mark
     statut = "expire" if is_expired(dl) else "actif"
     return Tender(
