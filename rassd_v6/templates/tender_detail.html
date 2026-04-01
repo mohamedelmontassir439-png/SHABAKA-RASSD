@@ -1,64 +1,137 @@
 {% extends "base.html" %}
-{% block title %}{{ tender.objet[:55] }}… — {{ BRAND }}{% endblock %}
+{% block title %}{{ t.objet[:50] }}… — {{ BRAND }}{% endblock %}
 {% block content %}
-<div class="page-wrap" style="max-width:960px">
+<div class="page" style="max-width:1000px">
 
-  <div style="margin-bottom:22px">
-    <a href="/tenders" style="font-size:13px;color:var(--t5);display:inline-flex;align-items:center;gap:6px;transition:color .15s">
+  <div style="margin-bottom:20px">
+    <a href="/tenders" style="font-size:13px;color:var(--tx-4);display:inline-flex;align-items:center;gap:6px">
       ← Retour aux marchés
     </a>
   </div>
 
+  {% set tc = t.domaine_code[:1] if t.domaine_code else 'P' %}
+  {% set tc_clr = 'var(--sa)' if tc=='T' else ('var(--te)' if tc=='P' else 'var(--am)') %}
+
   <!-- Main card -->
-  <div class="card" style="margin-bottom:18px">
-    {% set tc = tender.domaine[:1] if tender.domaine else 'P' %}
-    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px">
-      <span class="badge badge-{{ tc }}">{{ tender.domaine }}</span>
-      <span class="badge badge-gray">{{ tender.type_marche }}</span>
-      <span class="badge badge-actif">● Actif</span>
+  <div style="background:var(--ink-2);border:1px solid var(--bdr-1);border-left:3px solid {{ tc_clr }};
+              border-radius:var(--r-xl);padding:36px;margin-bottom:16px">
+
+    <!-- Badges -->
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px;align-items:center">
+      <span class="badge badge-{{ tc }}">{{ t.domaine }}</span>
+      <span class="badge badge-dim">{{ t.type_marche }}</span>
+      <span class="src-{{ t.source_type }}">{{ t.source_type }}</span>
+      {% if t.urgence %}<span class="badge badge-err">🔴 URGENT — ≤7 jours</span>{% endif %}
+      <span class="badge badge-ok" style="margin-left:auto">● Actif</span>
+      <!-- Bookmark -->
+      <button id="bm-btn" onclick="toggleBookmark()" style="padding:6px 12px;border-radius:var(--r-md);
+        background:{% if bookmarked %}var(--am-bg){% else %}var(--sur-2){% endif %};
+        border:1px solid {% if bookmarked %}var(--am-bd){% else %}var(--bdr-2){% endif %};
+        color:{% if bookmarked %}var(--am){% else %}var(--tx-4){% endif %};
+        font-size:13px;cursor:pointer;transition:all .15s;font-family:var(--ff-b)">
+        {% if bookmarked %}★ Sauvegardé{% else %}☆ Sauvegarder{% endif %}
+      </button>
     </div>
 
-    <h1 style="font-family:var(--ff-display);font-size:22px;font-weight:800;line-height:1.4;margin-bottom:28px;color:var(--t1)">
-      {{ tender.objet }}
+    <!-- Title -->
+    <h1 style="font-family:var(--ff-d);font-size:clamp(18px,3vw,26px);font-weight:800;
+               line-height:1.35;color:var(--tx-1);margin-bottom:32px">
+      {{ t.objet }}
     </h1>
 
     <!-- Detail grid -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1px;background:var(--b1);border-radius:var(--r12);overflow:hidden;margin-bottom:28px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));
+                gap:1px;background:var(--bdr-1);border-radius:var(--r-md);overflow:hidden;margin-bottom:32px">
       {% set fields = [
-        ("🏢","Acheteur public",    tender.acheteur or "—"),
-        ("📍","Région",             tender.region or "Maroc"),
-        ("📅","Date de publication",tender.date_publication or "—"),
-        ("⏰","Date limite",        tender.date_limite or "Non précisée"),
-        ("🏷","Type de marché",     tender.type_marche or "—"),
-        ("🔗","Source",             tender.source or "marchespublics"),
-        ("🕐","Extrait le",         tender.date_extraction or "—"),
+        ("🏢","Acheteur",       t.acheteur or "—"),
+        ("📍","Région",          t.region or "Maroc"),
+        ("📅","Publié le",       t.date_publication or "—"),
+        ("⏰","Date limite",     t.date_limite or "Non précisée"),
+        ("🏷","Type",            t.type_marche or "—"),
+        ("🌐","Source",          t.source_type),
+        ("💰","Montant estimé",  t.montant_estime or "Non précisé"),
+        ("🕐","Extrait le",      t.date_extraction or "—"),
       ] %}
       {% for icon, label, val in fields %}
-      <div style="padding:18px 20px;background:var(--c3)">
-        <div style="font-size:10px;color:var(--t5);text-transform:uppercase;letter-spacing:.7px;font-weight:700;margin-bottom:6px">{{ icon }} {{ label }}</div>
-        <div style="font-size:14px;font-weight:600;color:{% if label=='Date limite' and tender.date_limite %}var(--g1){% else %}var(--t2){% endif %}">{{ val }}</div>
+      <div style="padding:18px 20px;background:var(--ink-3)">
+        <div style="font-size:10px;font-weight:700;color:var(--tx-5);text-transform:uppercase;
+                    letter-spacing:.8px;margin-bottom:6px">{{ icon }} {{ label }}</div>
+        <div style="font-size:14px;font-weight:600;
+                    color:{% if label=='Date limite' and t.date_limite %}var(--te){% else %}var(--tx-2){% endif %}">
+          {{ val }}
+        </div>
       </div>
       {% endfor %}
     </div>
 
+    {% if t.description %}
+    <div style="padding:20px;background:var(--ink-3);border-radius:var(--r-md);margin-bottom:28px;font-size:14px;color:var(--tx-3);line-height:1.7">
+      <div style="font-size:10px;font-weight:700;color:var(--tx-5);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Description</div>
+      {{ t.description }}
+    </div>
+    {% endif %}
+
     <!-- Actions -->
     <div style="display:flex;gap:12px;flex-wrap:wrap">
-      {% if tender.url %}
-      <a href="{{ tender.url }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-lg">
-        Voir sur marchespublics.gov.ma ↗
+      {% if t.url %}
+      <a href="{{ t.url }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-lg">
+        Voir sur {{ t.source }} ↗
       </a>
       {% endif %}
-      <a href="/tenders" class="btn btn-secondary">← Retour</a>
+      <a href="/tenders" class="btn btn-ghost">← Retour</a>
     </div>
   </div>
 
   <!-- Conseil -->
-  <div style="padding:16px 20px;background:var(--ag);border:1px solid var(--a4);border-radius:var(--r12);font-size:13px;display:flex;align-items:flex-start;gap:12px">
+  <div style="padding:16px 20px;background:var(--am-bg);border:1px solid var(--am-bd);
+              border-radius:var(--r-md);font-size:13px;display:flex;gap:12px;align-items:flex-start;margin-bottom:20px">
     <span style="font-size:18px;flex-shrink:0">💡</span>
-    <div>
-      <strong style="color:var(--a1)">Conseil :</strong>
-      <span style="color:var(--t4)"> Configurez vos <a href="/settings" style="color:var(--a2)">secteurs dans les paramètres</a> pour recevoir automatiquement les marchés similaires par Telegram ou Email dès leur publication.</span>
+    <span style="color:var(--tx-3)">Configurez vos
+      <a href="/settings" style="color:var(--am)">secteurs dans Paramètres</a>
+      pour recevoir automatiquement les marchés similaires par Telegram ou Email.
+    </span>
+  </div>
+
+  <!-- Related -->
+  {% if related %}
+  <div style="margin-top:28px">
+    <h3 style="font-family:var(--ff-d);font-size:18px;font-weight:700;margin-bottom:16px">Marchés similaires</h3>
+    <div style="display:grid;gap:8px">
+      {% for r in related %}
+      {% set rc = r.domaine_code[:1] if r.domaine_code else 'P' %}
+      <a href="/tenders/{{ r.id }}" class="tc" style="--tc-acc:{% if rc=='T' %}var(--sa){% elif rc=='P' %}var(--te){% else %}var(--am){% endif %}">
+        <div class="tc-head">
+          <span class="badge badge-{{ rc }}">{{ r.domaine[:25] }}</span>
+        </div>
+        <div class="tc-title" style="font-size:14px">{{ r.objet[:80] }}…</div>
+        <div class="tc-meta">
+          <span class="tc-mi">📍 {{ r.region or 'Maroc' }}</span>
+          {% if r.date_limite %}<span class="tc-dl tc-dl-ok" style="margin-left:auto">⏰ {{ r.date_limite }}</span>{% endif %}
+        </div>
+      </a>
+      {% endfor %}
     </div>
   </div>
+  {% endif %}
 </div>
+
+<script>
+async function toggleBookmark() {
+  const btn = document.getElementById('bm-btn');
+  const r   = await fetch('/tenders/{{ t.id }}/bookmark', {method:'POST',
+    headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'note='});
+  const d   = await r.json();
+  if(d.bookmarked) {
+    btn.textContent = '★ Sauvegardé';
+    btn.style.background  = 'var(--am-bg)';
+    btn.style.borderColor = 'var(--am-bd)';
+    btn.style.color       = 'var(--am)';
+  } else {
+    btn.textContent = '☆ Sauvegarder';
+    btn.style.background  = 'var(--sur-2)';
+    btn.style.borderColor = 'var(--bdr-2)';
+    btn.style.color       = 'var(--tx-4)';
+  }
+}
+</script>
 {% endblock %}

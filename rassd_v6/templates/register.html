@@ -1,126 +1,190 @@
 {% extends "base.html" %}
 {% block title %}Inscription — {{ BRAND }}{% endblock %}
 {% block content %}
-<div style="max-width:740px;margin:0 auto;padding:48px 28px">
+<div style="min-height:calc(100dvh - var(--nav-h));display:flex;align-items:flex-start;justify-content:center;padding:48px 24px 80px">
+  <div style="width:100%;max-width:760px">
 
-  <div style="text-align:center;margin-bottom:36px">
-    <h1 style="font-family:var(--ff-display);font-size:30px;font-weight:900;margin-bottom:8px">Créer votre compte</h1>
-    <p style="color:var(--t5);font-size:14px">Gratuit · Alertes instantanées · Marchés filtrés par vos secteurs</p>
-  </div>
+    <!-- Header -->
+    <div style="text-align:center;margin-bottom:40px">
+      <h1 style="font-family:var(--ff-d);font-size:36px;font-weight:900;letter-spacing:-.5px;margin-bottom:8px">
+        Créer mon compte
+      </h1>
+      <p style="color:var(--tx-4)">
+        Inscription gratuite · Alertes en temps réel · 47 secteurs
+      </p>
+    </div>
 
-  {% if error %}
-  <div class="alert alert-err">⚠ {{ error }}</div>
-  {% endif %}
+    <!-- Error -->
+    {% if error %}
+    <div class="alert-box alert-err" style="margin-bottom:24px">⚠ {{ error }}</div>
+    {% endif %}
 
-  <div class="card">
-    <form method="post" action="/register" novalidate>
+    <form method="post" action="/register" id="reg-form">
 
-      <!-- Infos de base -->
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:4px">
-        <div class="form-group">
-          <label class="form-label">Nom / Entreprise *</label>
-          <input type="text" name="nom" class="form-control" value="{{ form.nom if form else '' }}"
-                 placeholder="SARL Al Bina Construction" required autofocus>
+      <!-- Step 1 — Compte -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-hd">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:30px;height:30px;background:var(--am-bg);border:1px solid var(--am-bd);
+                        border-radius:50%;display:flex;align-items:center;justify-content:center;
+                        font-family:var(--ff-d);font-weight:800;color:var(--am);font-size:14px">1</div>
+            <div class="card-title">Informations du compte</div>
+          </div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Adresse email *</label>
-          <input type="email" name="email" class="form-control" value="{{ form.email if form else '' }}"
-                 placeholder="contact@votre-entreprise.ma" required>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Téléphone</label>
-          <input type="tel" name="phone" class="form-control" value="{{ form.phone if form else '' }}"
-                 placeholder="+212 6xx xxx xxx">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Telegram</label>
-          <input type="text" name="telegram" class="form-control" value="{{ form.telegram if form else '' }}"
-                 placeholder="@username ou votre Chat ID">
-          <div class="form-hint">Démarrez <strong>@MarchesMarocBot</strong> pour activer les alertes TG</div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Mot de passe *</label>
-          <input type="password" name="password" class="form-control" placeholder="Minimum 8 caractères" required minlength="8">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Confirmer le mot de passe *</label>
-          <input type="password" name="password2" class="form-control" placeholder="Répéter le mot de passe" required>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="fld">
+            <label class="fld-label" for="nom">Nom complet *</label>
+            <input class="fld-ctrl" type="text" id="nom" name="nom" required
+                   value="{{ (fd or {}).get('nom','') }}" placeholder="Votre nom">
+          </div>
+          <div class="fld">
+            <label class="fld-label" for="email">Email professionnel *</label>
+            <input class="fld-ctrl" type="email" id="email" name="email" required
+                   value="{{ (fd or {}).get('email','') }}" placeholder="email@societe.ma">
+          </div>
+          <div class="fld">
+            <label class="fld-label" for="password">Mot de passe *</label>
+            <input class="fld-ctrl" type="password" id="password" name="password" required
+                   placeholder="Min. 8 caractères">
+          </div>
+          <div class="fld">
+            <label class="fld-label" for="password2">Confirmer le mot de passe *</label>
+            <input class="fld-ctrl" type="password" id="password2" name="password2" required
+                   placeholder="Répétez le mot de passe">
+          </div>
+          <div class="fld">
+            <label class="fld-label" for="phone">Téléphone (optionnel)</label>
+            <input class="fld-ctrl" type="text" id="phone" name="phone"
+                   value="{{ (fd or {}).get('phone','') }}" placeholder="+212 6XX XXX XXX">
+          </div>
+          <div class="fld">
+            <label class="fld-label" for="telegram">Telegram ID (optionnel)</label>
+            <input class="fld-ctrl" type="text" id="telegram" name="telegram"
+                   value="{{ (fd or {}).get('telegram','') }}" placeholder="Ex: 123456789">
+            <div class="fld-hint">
+              ID numérique Telegram — commandez <a href="https://t.me/userinfobot" target="_blank" style="color:var(--am)">@userinfobot</a>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- Secteurs -->
-      <div style="margin-top:8px">
-        <label class="form-label">Secteurs d'activité</label>
-        <p style="font-size:12px;color:var(--t5);margin-bottom:14px">
-          Sélectionnez vos domaines pour recevoir uniquement les marchés qui vous correspondent.
-          Laissez vide pour recevoir tous les marchés.
-        </p>
-
-        <!-- Filtres par type -->
-        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-          <button type="button" class="btn btn-ghost btn-sm" onclick="filterSects('T')">🔧 Travaux</button>
-          <button type="button" class="btn btn-ghost btn-sm" onclick="filterSects('P')">📦 Produits</button>
-          <button type="button" class="btn btn-ghost btn-sm" onclick="filterSects('S')">🛎 Services</button>
-          <button type="button" class="btn btn-ghost btn-sm" onclick="filterSects('')">Tous</button>
-          <button type="button" class="btn btn-secondary btn-sm" onclick="clearSects()" style="margin-left:auto">✕ Effacer</button>
+      <!-- Step 2 — Secteurs -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-hd">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:30px;height:30px;background:var(--te-bg);border:1px solid var(--te-bd);
+                        border-radius:50%;display:flex;align-items:center;justify-content:center;
+                        font-family:var(--ff-d);font-weight:800;color:var(--te);font-size:14px">2</div>
+            <div class="card-title">Secteurs d'activité</div>
+          </div>
+          <div style="font-size:12px;color:var(--tx-5)">
+            Sélection : <span id="sel-count">0</span>/47
+          </div>
         </div>
 
-        <div class="secteur-grid" id="sg">
-          {% for s in SECTEURS_LIST %}
-          {% set code = s[:4] %}
-          {% set name = s[7:] if s[4:7] == ' · ' else s %}
-          <label class="secteur-item" data-code="{{ s[:1] }}" onclick="toggleSect(this)">
-            <input type="checkbox" name="_sb" value="{{ s }}" style="display:none">
-            <span class="sect-code">{{ code }}</span>
-            <span class="sect-name">{{ name }}</span>
-          </label>
+        <!-- Type tabs -->
+        <div style="display:flex;gap:6px;margin-bottom:18px">
+          {% for typ, lbl, clr in [('all','Tous','var(--tx-3)'),('T','Travaux','var(--sa)'),('P','Produits','var(--te)'),('S','Services','var(--am)')] %}
+          <button type="button" onclick="filterSectors('{{ typ }}')" id="tab-{{ typ }}"
+                  class="btn btn-sm{% if typ=='all' %} btn-ghost{% else %} btn-outline{% endif %}"
+                  style="color:{{ clr }}">{{ lbl }}</button>
           {% endfor %}
         </div>
-        <input type="hidden" name="secteurs" id="sect-h">
+
+        <div class="sect-grid" id="sect-grid">
+          {% for code, info in SECTORS.items() %}
+          {% set t = info.type %}
+          <div class="sect-item" data-code="{{ code }}" data-type="{{ t }}"
+               onclick="toggleSect(this, '{{ code }}')">
+            <span class="sect-code">{{ code }}</span>
+            <span class="sect-name">{{ info.label }}</span>
+            <span style="margin-left:auto;font-size:11px;
+              color:{% if t=='T' %}var(--sa){% elif t=='P' %}var(--te){% else %}var(--am){% endif %};opacity:.5">
+              {{ t }}
+            </span>
+          </div>
+          {% endfor %}
+        </div>
+        <input type="hidden" name="secteurs" id="secteurs-input" value="">
       </div>
 
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:28px;flex-wrap:wrap;gap:12px">
-        <p style="font-size:13px;color:var(--t5)">
-          Déjà inscrit ? <a href="/login" style="color:var(--a2);font-weight:600">Se connecter</a>
-        </p>
-        <button type="submit" class="btn btn-primary btn-lg">Créer mon compte →</button>
+      <!-- Step 3 — Préférences -->
+      <div class="card" style="margin-bottom:24px">
+        <div class="card-hd">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:30px;height:30px;background:var(--or-bg);border:1px solid var(--or-bd);
+                        border-radius:50%;display:flex;align-items:center;justify-content:center;
+                        font-family:var(--ff-d);font-weight:800;color:var(--or);font-size:14px">3</div>
+            <div class="card-title">Région &amp; Type de marché</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="fld" style="margin-bottom:0">
+            <label class="fld-label">Régions préférées</label>
+            <div style="display:grid;gap:6px;max-height:220px;overflow-y:auto;padding:4px">
+              {% for reg in REGIONS_LIST %}
+              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;
+                            padding:8px 10px;border:1px solid var(--bdr-1);border-radius:var(--r-sm);
+                            transition:border-color .12s" onclick="this.style.borderColor='var(--am-bd)'">
+                <input type="checkbox" name="_reg_{{ reg | replace(' ','_') | replace('-','_') }}"
+                       value="{{ reg }}" class="reg-cb" style="accent-color:var(--am)">
+                <span style="font-size:12px;color:var(--tx-3)">{{ reg }}</span>
+              </label>
+              {% endfor %}
+            </div>
+            <input type="hidden" name="regions_p" id="regions-input" value="">
+          </div>
+          <div class="fld" style="margin-bottom:0">
+            <label class="fld-label">Types de marchés</label>
+            <div style="display:grid;gap:6px">
+              {% for typ in MARKET_TYPES %}
+              <label style="display:flex;align-items:center;gap:10px;cursor:pointer;
+                            padding:8px 10px;border:1px solid var(--bdr-1);border-radius:var(--r-sm)">
+                <input type="checkbox" name="_typ_{{ typ }}" value="{{ typ }}" class="typ-cb" style="accent-color:var(--am)">
+                <span style="font-size:12px;color:var(--tx-3)">{{ typ }}</span>
+              </label>
+              {% endfor %}
+            </div>
+            <input type="hidden" name="types_p" id="types-input" value="">
+          </div>
+        </div>
       </div>
+
+      <button type="submit" class="btn btn-primary btn-xl btn-blk">
+        Créer mon compte gratuit →
+      </button>
+      <p style="text-align:center;margin-top:16px;font-size:13px;color:var(--tx-5)">
+        Déjà inscrit ? <a href="/login" style="color:var(--am)">Se connecter →</a>
+      </p>
+
     </form>
   </div>
 </div>
 
 <script>
-function toggleSect(el) {
-  el.classList.toggle('selected');
-  el.querySelector('input').checked = el.classList.contains('selected');
-  updateHidden();
+const selected = new Set();
+function toggleSect(el, code) {
+  if (selected.has(code)) { selected.delete(code); el.classList.remove('on') }
+  else { selected.add(code); el.classList.add('on') }
+  document.getElementById('sel-count').textContent = selected.size;
+  document.getElementById('secteurs-input').value = [...selected].join(',');
 }
-function updateHidden() {
-  const vals = [...document.querySelectorAll('#sg input:checked')].map(i=>i.value);
-  document.getElementById('sect-h').value = vals.join(',');
-}
-function filterSects(type) {
-  document.querySelectorAll('#sg .secteur-item').forEach(el => {
-    el.style.display = (!type || el.dataset.code === type) ? '' : 'none';
+function filterSectors(typ) {
+  document.querySelectorAll('#sect-grid .sect-item').forEach(el => {
+    el.style.display = (typ === 'all' || el.dataset.type === typ) ? '' : 'none';
   });
+  document.querySelectorAll('[id^="tab-"]').forEach(b => b.className = b.className.replace('btn-ghost','btn-outline'));
+  const active = document.getElementById('tab-'+typ);
+  if(active) active.className = active.className.replace('btn-outline','btn-ghost');
 }
-function clearSects() {
-  document.querySelectorAll('#sg .secteur-item').forEach(el => {
-    el.classList.remove('selected');
-    el.querySelector('input').checked = false;
-  });
-  updateHidden();
-}
-// Restore from form error
-{% if form and form.secteurs %}
-document.querySelectorAll('#sg .secteur-item').forEach(el => {
-  const val = el.querySelector('input').value;
-  if ("{{ form.secteurs }}".split(',').map(s=>s.trim()).includes(val)) {
-    el.classList.add('selected');
-    el.querySelector('input').checked = true;
-  }
+
+// Regions aggregation
+document.getElementById('reg-form') || document.getElementById('reg-form');
+document.querySelector('form').addEventListener('submit', () => {
+  const regs = [...document.querySelectorAll('.reg-cb:checked')].map(x => x.value);
+  document.getElementById('regions-input').value = regs.join(',');
+  const typs = [...document.querySelectorAll('.typ-cb:checked')].map(x => x.value);
+  document.getElementById('types-input').value = typs.join(',');
 });
-updateHidden();
-{% endif %}
 </script>
 {% endblock %}

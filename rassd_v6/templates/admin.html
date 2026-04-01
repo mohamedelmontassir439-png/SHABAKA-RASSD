@@ -1,174 +1,200 @@
 {% extends "base.html" %}
 {% block title %}Admin — {{ BRAND }}{% endblock %}
 {% block content %}
-<div class="page-wrap">
+<div class="page" style="max-width:1400px">
 
-  <!-- Header -->
-  <div class="page-header">
+  <div class="page-hd">
     <div>
-      <h1 class="page-title">Panneau Admin</h1>
-      <div class="page-sub">
-        <span style="font-family:var(--ff-mono);font-size:11px;color:var(--t6)">{{ BRAND }} · {{ now.strftime('%d/%m/%Y %H:%M') }}</span>
-      </div>
+      <h1 class="page-title">
+        Console Admin
+        <span style="font-family:var(--ff-m);font-size:11px;color:var(--te);
+                     background:var(--te-bg);border:1px solid var(--te-bd);
+                     padding:3px 10px;border-radius:100px;vertical-align:middle">SECURE</span>
+      </h1>
+      <div class="page-sub">{{ BRAND }} v{{ VERSION }} · {{ now.strftime('%d/%m/%Y %H:%M') }}</div>
     </div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <a href="/admin/scrape" class="btn btn-primary btn-sm" onclick="return launchScrape(event)">▶ Lancer le scraping</a>
-      <a href="/admin/expire_now" class="btn btn-ghost btn-sm" target="_blank">⏰ Expirer</a>
-      <a href="/admin/test_notify" class="btn btn-ghost btn-sm" target="_blank">📱 Test TG</a>
-      <a href="/admin/clear_db" class="btn btn-danger btn-sm"
-         onclick="return confirm('Supprimer TOUS les marchés de la base ?')">🗑 Vider DB</a>
-      <a href="/admin/logout" class="btn btn-secondary btn-sm">Déconnexion</a>
+      <a href="/admin/scrape"     class="btn btn-primary" onclick="startScrape(event)">▶ Scraper maintenant</a>
+      <a href="/admin/expire_now" class="btn btn-ghost" onclick="runExpire(event)">⌛ Expirer</a>
+      <a href="/admin/export_csv" class="btn btn-ghost">⬇ CSV</a>
+      <a href="/admin/test_notify" class="btn btn-ghost">📡 Test TG</a>
+      <a href="/admin/logout"     class="btn btn-danger">Déconnexion</a>
     </div>
   </div>
 
   <!-- KPI Stats -->
-  <div class="stat-grid" style="margin-bottom:24px">
-    <div class="stat-box">
-      <div class="stat-num" style="color:var(--g2)">{{ stats.actif }}</div>
-      <div class="stat-lbl">Marchés actifs</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:24px">
+    {% set kpis = [
+      (stats.actif,    "Marchés actifs",  "--am",  "🏛"),
+      (stats.expire,   "Expirés",         "--tx-5","📦"),
+      (stats.total,    "Total DB",        "--sa",  "🗄"),
+      (stats.members,  "Membres",         "--te",  "👥"),
+      (stats.alerts,   "Alertes totales", "--or",  "📡"),
+      (stats.urgence,  "Urgents",         "--ro",  "🔴"),
+    ] %}
+    {% for n, lbl, clr, icon in kpis %}
+    <div class="stat" style="--stat-clr:{{ clr }}">
+      <div class="stat-n">{{ n | fmt_num }}</div>
+      <div class="stat-l">{{ icon }} {{ lbl }}</div>
     </div>
-    <div class="stat-box">
-      <div class="stat-num" style="color:var(--t5)">{{ stats.expire }}</div>
-      <div class="stat-lbl">Expirés</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-num">{{ stats.total }}</div>
-      <div class="stat-lbl">Total BD</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-num" style="color:var(--a2)">{{ stats.members }}</div>
-      <div class="stat-lbl">Membres actifs</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-num" style="color:var(--bl)">{{ stats.alerts }}</div>
-      <div class="stat-lbl">Alertes envoyées</div>
-    </div>
-    <div class="stat-box">
-      <div class="stat-num">{{ stats.runs }}</div>
-      <div class="stat-lbl">Scrape runs</div>
-    </div>
+    {% endfor %}
   </div>
 
-  <!-- Two columns -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px">
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px">
 
-    <!-- Log scraper -->
+    <!-- Scrape log / SSE -->
     <div class="card">
-      <div class="card-header">
-        <span class="card-title">📡 Log Scraper</span>
-        <div id="scrape-badge" style="font-size:11px;font-family:var(--ff-mono);
-          {% if ss.running %}color:var(--g2){% else %}color:var(--t5){% endif %}">
-          {% if ss.running %}⚡ {{ ss.current }}/{{ ss.total }} — {{ ss.saved }} sauvegardés{% else %}Inactif{% endif %}
+      <div class="card-hd">
+        <div class="card-title">📟 Log Scraper</div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span id="ss-badge" class="badge badge-dim">Inactif</span>
+          <span id="ss-progress" style="font-family:var(--ff-m);font-size:11px;color:var(--tx-5)"></span>
         </div>
       </div>
       <div class="log-box" id="log-box">
-        {% for e in slog %}
-        <div class="log-{{ 'ok' if '✓' in e else ('err' if '✗' in e else 'dim') }}">{{ e }}</div>
-        {% endfor %}
-      </div>
-      {% if last_run %}
-      <div style="margin-top:12px;padding:12px 14px;background:var(--c3);border-radius:var(--r8);font-size:12px;display:flex;gap:20px;flex-wrap:wrap">
-        <span>🕐 {{ last_run.started_at }}</span>
-        <span>✓ <strong style="color:var(--g2)">{{ last_run.saved }}</strong> sauvegardés</span>
-        <span>🔍 {{ last_run.found }} trouvés</span>
-        <span>⏰ {{ last_run.expired_cnt }} expirés</span>
-        <span>✗ {{ last_run.errors }} erreurs</span>
-        <span>⏱ {{ last_run.duration_s|round(0) }}s</span>
-      </div>
-      {% endif %}
-    </div>
-
-    <!-- Members -->
-    <div class="card" style="overflow:hidden">
-      <div class="card-header">
-        <span class="card-title">👥 Membres ({{ stats.members }})</span>
-        <a href="/tenders" class="btn btn-ghost btn-sm">Marchés →</a>
-      </div>
-      <div style="overflow-y:auto;max-height:340px">
-        {% for m in members %}
-        <div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--b1)">
-          <div style="flex:1;min-width:0">
-            <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.nom[:32] }}</div>
-            <div style="font-size:11px;color:var(--t5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.email }}</div>
-            {% if m.secteurs %}
-            <div style="font-size:10px;color:var(--a3);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ m.secteurs[:60] }}</div>
-            {% endif %}
-          </div>
-          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-            {% if m.telegram %}<span style="font-size:11px;font-family:var(--ff-mono);color:var(--g2)">TG</span>{% endif %}
-            {% if m.notif_email %}<span style="font-size:11px;font-family:var(--ff-mono);color:var(--bl)">@</span>{% endif %}
-            <form method="post" action="/admin/member_toggle" style="display:inline">
-              <input type="hidden" name="mid" value="{{ m.id }}">
-              <button type="submit" class="btn btn-danger btn-sm" style="padding:3px 8px;font-size:10px" onclick="return confirm('Modifier ce membre ?')">⏸</button>
-            </form>
-          </div>
+        {% for entry in slog %}
+        {% set lo = entry[:14] %}
+        <div class="{% if '✓' in entry %}log-ok{% elif '✗' in entry or '❌' in entry %}log-err{% elif '═' in entry %}log-sep{% else %}log-dim{% endif %}">
+          {{ entry }}
         </div>
         {% endfor %}
+        <div id="log-anchor"></div>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+        <div id="ss-stat" style="font-size:12px;color:var(--tx-5)">
+          {% if ss.running %}▶ En cours: bdc_{{ ss.current }}/{{ ss.total }}{% endif %}
+        </div>
+        <a href="/admin/scrape" onclick="startScrape(event)" class="btn btn-primary btn-sm" style="margin-left:auto">Lancer</a>
+        <a href="/admin/clear_tenders?confirm=yes" onclick="return confirm('Supprimer tous les marchés ?')"
+           class="btn btn-danger btn-sm">🗑 Vider DB</a>
+      </div>
+    </div>
+
+    <!-- Source breakdown + last runs -->
+    <div style="display:grid;gap:16px">
+      <div class="card">
+        <div class="card-hd"><div class="card-title">🌐 Sources</div></div>
+        {% for src, cnt in src_breakdown.items() %}
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;
+                    border-bottom:1px solid var(--bdr-1)">
+          <span class="src-{{ src }}" style="font-size:10px;min-width:80px">{{ src }}</span>
+          <div style="flex:1;height:4px;background:var(--ink-5);border-radius:2px;overflow:hidden">
+            {% set pct = (cnt / [stats.actif,1]|max * 100)|int %}
+            <div style="height:100%;width:{{ pct }}%;background:var(--am);border-radius:2px"></div>
+          </div>
+          <span style="font-family:var(--ff-m);font-size:11px;color:var(--tx-5)">{{ cnt }}</span>
+        </div>
+        {% else %}
+        <div style="color:var(--tx-5);font-size:13px">Aucune donnée</div>
+        {% endfor %}
+      </div>
+
+      <div class="card">
+        <div class="card-hd"><div class="card-title">🕐 Derniers runs</div></div>
+        <div style="display:grid;gap:6px;max-height:220px;overflow-y:auto">
+          {% for run in runs %}
+          <div style="padding:8px 10px;background:var(--ink-3);border-radius:var(--r-sm);
+                      display:flex;align-items:center;gap:8px;font-size:11px">
+            <span style="color:var(--te);font-weight:600">+{{ run.saved }}</span>
+            <span style="color:var(--tx-5)">{{ run.started_at }}</span>
+            <span style="color:var(--tx-5);margin-left:auto">{{ run.duration_s }}s</span>
+          </div>
+          {% endfor %}
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Scrape history -->
-  {% if runs %}
-  <div class="card" style="margin-bottom:18px">
-    <div class="card-header">
-      <span class="card-title">📊 Historique des scrapes</span>
+  <!-- Recent tenders -->
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-hd">
+      <div class="card-title">📋 Derniers marchés</div>
+      <a href="/tenders" class="btn btn-ghost btn-sm">Voir tous →</a>
     </div>
     <div style="overflow-x:auto">
-      <table class="data-table">
+      <table class="tbl">
         <thead>
           <tr>
-            <th>Démarré</th><th>Terminé</th><th>Trouvés</th><th>Sauvegardés</th>
-            <th>Expirés</th><th>Erreurs</th><th>Durée</th>
+            <th>ID</th><th>Objet</th><th>Acheteur</th>
+            <th>Secteur</th><th>Région</th><th>Source</th><th>Limite</th>
           </tr>
         </thead>
         <tbody>
-          {% for r in runs %}
+          {% for t in recent %}
           <tr>
-            <td style="font-family:var(--ff-mono);font-size:12px">{{ r.started_at }}</td>
-            <td style="font-family:var(--ff-mono);font-size:12px">{{ r.finished_at }}</td>
-            <td>{{ r.found }}</td>
-            <td><strong style="color:var(--g2)">{{ r.saved }}</strong></td>
-            <td style="color:var(--t5)">{{ r.expired_cnt }}</td>
-            <td style="color:{% if r.errors %}var(--r2){% else %}var(--t6){% endif %}">{{ r.errors }}</td>
-            <td style="font-family:var(--ff-mono);font-size:12px">{{ r.duration_s|round(0) }}s</td>
+            <td style="font-family:var(--ff-m);font-size:10px;color:var(--tx-5)">
+              <a href="/tenders/{{ t.id }}" style="color:var(--am)">{{ t.id[-8:] }}</a>
+            </td>
+            <td style="max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+              {{ t.objet[:60] }}
+            </td>
+            <td style="color:var(--tx-4);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">
+              {{ t.acheteur[:35] or '—' }}
+            </td>
+            <td><span class="badge badge-{{ t.domaine_code[:1] if t.domaine_code else 'dim' }}">{{ t.domaine_code or '?' }}</span></td>
+            <td style="font-size:12px;color:var(--tx-4)">{{ t.region[:18] or 'Maroc' }}</td>
+            <td><span class="src-{{ t.source_type }}">{{ t.source_type }}</span></td>
+            <td style="font-family:var(--ff-m);font-size:11px;color:{% if t.urgence %}var(--ro){% else %}var(--te){% endif %}">
+              {{ t.date_limite or '—' }}
+            </td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
-  {% endif %}
 
-  <!-- Recent tenders -->
+  <!-- Members table -->
   <div class="card">
-    <div class="card-header">
-      <span class="card-title">🏛 Derniers marchés actifs</span>
-      <a href="/tenders" class="btn btn-ghost btn-sm">Voir tous →</a>
+    <div class="card-hd">
+      <div class="card-title">👥 Membres ({{ members|length }})</div>
     </div>
     <div style="overflow-x:auto">
-      <table class="data-table">
+      <table class="tbl">
         <thead>
-          <tr><th>ID</th><th>Objet</th><th>Acheteur</th><th>Secteur</th><th>Région</th><th>Date limite</th><th>Lien</th></tr>
+          <tr>
+            <th>#</th><th>Nom</th><th>Email</th><th>Plan</th>
+            <th>TG</th><th>Alertes</th><th>Inscription</th><th>Statut</th><th>Actions</th>
+          </tr>
         </thead>
         <tbody>
-          {% for t in recent_tenders %}
-          {% set tc = t.domaine[:1] if t.domaine else 'P' %}
+          {% for m in members %}
           <tr>
-            <td style="font-family:var(--ff-mono);font-size:11px;color:var(--t6)">{{ t.id }}</td>
-            <td style="max-width:260px">
-              <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px;font-size:13px">{{ t.objet[:70] }}</div>
+            <td style="font-family:var(--ff-m);font-size:11px;color:var(--tx-5)">{{ m.id }}</td>
+            <td style="font-weight:600">{{ m.nom[:25] }}</td>
+            <td style="font-size:12px;color:var(--tx-4)">{{ m.email[:35] }}</td>
+            <td>
+              <span class="badge badge-{{ 'am' if m.plan=='pro' else ('or' if m.plan=='enterprise' else 'dim') }}">
+                {{ m.plan|upper }}
+              </span>
             </td>
-            <td style="max-width:160px">
-              <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;font-size:12px;color:var(--t4)">{{ t.acheteur[:45] }}</div>
+            <td style="font-family:var(--ff-m);font-size:11px;color:var(--tx-5)">
+              {{ '✓' if m.telegram else '—' }}
             </td>
-            <td><span class="badge badge-{{ tc }}" style="font-size:10px;padding:2px 8px">{{ t.domaine[:20] }}</span></td>
-            <td style="font-size:12px">{{ t.region[:20] }}</td>
-            <td style="font-family:var(--ff-mono);font-size:12px;color:{% if t.date_limite %}var(--g2){% else %}var(--t6){% endif %}">
-              {{ t.date_limite or '—' }}
+            <td style="font-family:var(--ff-m);font-size:11px;color:var(--am)">{{ m.alert_count or 0 }}</td>
+            <td style="font-size:11px;color:var(--tx-5)">{{ m.created_at[:10] }}</td>
+            <td>
+              <span class="badge {% if m.actif %}badge-ok{% else %}badge-err{% endif %}">
+                {{ 'Actif' if m.actif else 'Suspendu' }}
+              </span>
             </td>
             <td>
-              <a href="{{ t.url }}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:11px;padding:4px 10px">↗</a>
+              <div style="display:flex;gap:6px">
+                <form method="post" action="/admin/member_toggle" style="display:inline">
+                  <input type="hidden" name="mid" value="{{ m.id }}">
+                  <button type="submit" class="btn btn-sm btn-ghost">
+                    {{ 'Désactiver' if m.actif else 'Activer' }}
+                  </button>
+                </form>
+                <form method="post" action="/admin/member_plan" style="display:inline">
+                  <input type="hidden" name="mid" value="{{ m.id }}">
+                  <select name="plan" class="fld-ctrl" style="padding:5px 8px;font-size:11px" onchange="this.form.submit()">
+                    {% for p in ['free','pro','enterprise'] %}
+                    <option value="{{ p }}" {% if m.plan==p %}selected{% endif %}>{{ p }}</option>
+                    {% endfor %}
+                  </select>
+                </form>
+              </div>
             </td>
           </tr>
           {% endfor %}
@@ -180,50 +206,63 @@
 </div>
 
 <script>
+let evtSrc = null;
 const logBox = document.getElementById('log-box');
-if (logBox) logBox.scrollTop = logBox.scrollHeight;
+const ssBadge = document.getElementById('ss-badge');
+const ssProg  = document.getElementById('ss-progress');
+const ssStat  = document.getElementById('ss-stat');
 
-let es = null;
-
-function launchScrape(e) {
-  {% if ss.running %}
-  alert('Un scraping est déjà en cours !');
-  return false;
-  {% endif %}
-  // Let the navigation happen, then start SSE after a delay
-  setTimeout(startStream, 2000);
-  return true;
+function appendLog(msg) {
+  const d   = document.createElement('div');
+  d.className = msg.includes('✓') ? 'log-ok' : msg.includes('✗') ? 'log-err' : 'log-dim';
+  d.textContent = msg;
+  logBox.appendChild(d);
+  document.getElementById('log-anchor').scrollIntoView();
 }
 
-function startStream() {
-  if (es) return;
-  es = new EventSource('/admin/scrape_stream');
-  const badge = document.getElementById('scrape-badge');
-
-  es.onmessage = function(e) {
-    const d = JSON.parse(e.data);
-    if (d.log) {
-      const div = document.createElement('div');
-      div.className = d.log.includes('✓') ? 'log-ok' : d.log.includes('✗') ? 'log-err' : 'log-dim';
-      div.textContent = d.log;
-      logBox.appendChild(div);
-      logBox.scrollTop = logBox.scrollHeight;
+function startScrape(e) {
+  e.preventDefault();
+  ssBadge.textContent = '▶ En cours';
+  ssBadge.className   = 'badge badge-am';
+  if (evtSrc) evtSrc.close();
+  evtSrc = new EventSource('/admin/scrape_stream');
+  evtSrc.onmessage = ev => {
+    const d = JSON.parse(ev.data);
+    if (d.log) appendLog(d.log);
+    if (d.state) {
+      ssProg.textContent = d.state.running
+        ? `${d.state.current}/${d.state.total} · +${d.state.saved}`
+        : '';
     }
-    if (d.state && badge) {
-      const st = d.state;
-      badge.style.color = st.running ? 'var(--g2)' : 'var(--t5)';
-      badge.textContent = st.running
-        ? `⚡ ${st.current}/${st.total} — ${st.saved} sauvegardés`
-        : `✓ ${st.saved} sauvegardés`;
+    if (d.done) {
+      ssBadge.textContent = `✓ +${d.saved}`;
+      ssBadge.className   = 'badge badge-ok';
+      evtSrc.close(); evtSrc = null;
+      setTimeout(()=>location.reload(), 3000);
     }
-    if (d.done) { es.close(); es = null; }
   };
-  es.onerror = () => { es.close(); es = null; };
+  fetch('/admin/scrape');
 }
 
-// If scraper is already running on page load
+async function runExpire(e) {
+  e.preventDefault();
+  const r = await fetch('/admin/expire_now');
+  const d = await r.json();
+  appendLog(`[Expire] ✓ ${d.expired} marchés expirés · ${d.active_remaining} actifs`);
+}
+
+// Auto-reconnect SSE if scraper is running on load
 {% if ss.running %}
-startStream();
+setTimeout(() => {
+  evtSrc = new EventSource('/admin/scrape_stream');
+  ssBadge.textContent = '▶ En cours';
+  ssBadge.className   = 'badge badge-am';
+  evtSrc.onmessage = ev => {
+    const d = JSON.parse(ev.data);
+    if (d.log) appendLog(d.log);
+    if (d.done) { ssBadge.textContent = '✓ Terminé'; ssBadge.className = 'badge badge-ok'; evtSrc.close(); }
+  };
+}, 400);
 {% endif %}
 </script>
 {% endblock %}

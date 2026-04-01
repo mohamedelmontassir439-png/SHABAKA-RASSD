@@ -1,44 +1,50 @@
 {% extends "base.html" %}
 {% block title %}Connexion — {{ BRAND }}{% endblock %}
 {% block content %}
-<div style="min-height:calc(100vh - var(--nav-h));display:flex;align-items:center;justify-content:center;padding:40px 28px">
+<div style="min-height:calc(100dvh - var(--nav-h));display:flex;align-items:center;justify-content:center;padding:40px 24px">
   <div style="width:100%;max-width:420px">
 
-    <div style="text-align:center;margin-bottom:32px">
-      <div style="font-family:var(--ff-display);font-size:28px;font-weight:900;color:var(--a2);margin-bottom:4px">{{ BRAND }}</div>
-      <div style="font-size:13px;color:var(--t5)">{{ TAGLINE }}</div>
+    <!-- Logo -->
+    <div style="text-align:center;margin-bottom:40px">
+      <div style="width:56px;height:56px;background:var(--am);border-radius:14px;
+                  display:flex;align-items:center;justify-content:center;margin:0 auto 16px;
+                  font-family:var(--ff-d);font-weight:900;font-size:30px;color:var(--ink-0)">R</div>
+      <h1 style="font-family:var(--ff-d);font-size:28px;font-weight:900;letter-spacing:-.5px;margin-bottom:6px">{{ BRAND }}</h1>
+      <p style="color:var(--tx-5);font-size:13px">{{ TAGLINE }}</p>
     </div>
 
-    {% if error %}
-    <div class="alert alert-err">⚠ {{ error }}</div>
-    {% endif %}
-
+    <!-- Form -->
     <div class="card">
-      <div class="card-header">
-        <span class="card-title">Connexion</span>
-      </div>
-      <form method="post" action="/login" novalidate>
-        <input type="hidden" name="next_url" value="{{ next or '/tenders' }}">
-        <div class="form-group">
-          <label class="form-label">Adresse email</label>
-          <input type="email" name="email" class="form-control"
-                 placeholder="votre@email.ma" required autofocus autocomplete="email">
+      {% if error %}
+      <div class="alert-box alert-err" style="margin-bottom:20px">⚠ {{ error }}</div>
+      {% endif %}
+
+      <h2 style="font-family:var(--ff-d);font-size:20px;font-weight:700;margin-bottom:24px">Connexion</h2>
+
+      <form method="post" action="/login">
+        <input type="hidden" name="next_url" value="{{ next }}">
+        <div class="fld">
+          <label class="fld-label" for="email">Email</label>
+          <input class="fld-ctrl" type="email" id="email" name="email" required
+                 autofocus placeholder="email@societe.ma">
         </div>
-        <div class="form-group">
-          <label class="form-label">Mot de passe</label>
-          <input type="password" name="password" class="form-control"
-                 placeholder="••••••••" required autocomplete="current-password">
+        <div class="fld">
+          <label class="fld-label" for="password">Mot de passe</label>
+          <input class="fld-ctrl" type="password" id="password" name="password" required
+                 placeholder="••••••••">
         </div>
-        <button type="submit" class="btn btn-primary btn-lg btn-block" style="margin-top:8px">
+        <button type="submit" class="btn btn-primary btn-blk btn-lg" style="margin-top:8px">
           Se connecter →
         </button>
       </form>
+
+      <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--bdr-1);
+                  text-align:center;font-size:13px;color:var(--tx-5)">
+        Pas encore de compte ?
+        <a href="/register" style="color:var(--am);font-weight:600">Inscription gratuite →</a>
+      </div>
     </div>
 
-    <div style="text-align:center;margin-top:20px;font-size:13px;color:var(--t5)">
-      Pas encore de compte ?
-      <a href="/register" style="color:var(--a2);font-weight:600">S'inscrire gratuitement</a>
-    </div>
   </div>
 </div>
 {% endblock %}

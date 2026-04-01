@@ -1,174 +1,251 @@
 {% extends "base.html" %}
 {% block title %}Paramètres — {{ BRAND }}{% endblock %}
 {% block content %}
-<div class="page-wrap" style="max-width:800px">
+<div class="page" style="max-width:960px">
 
-  <div class="page-header">
+  <div class="page-hd">
     <div>
       <h1 class="page-title">Paramètres</h1>
-      <div class="page-sub">Gérez vos alertes et secteurs d'activité</div>
+      <div class="page-sub">{{ member.email }} · Plan
+        <span class="badge badge-{{ 'am' if member.plan == 'pro' else 'dim' }}">{{ member.plan|upper }}</span>
+      </div>
     </div>
-    <a href="/tenders" class="btn btn-secondary btn-sm">← Marchés</a>
+    <div style="display:flex;gap:8px">
+      {% if member.plan == 'free' %}
+      <div style="padding:10px 18px;background:var(--am-bg);border:1px solid var(--am-bd);
+                  border-radius:var(--r-md);font-size:12px;color:var(--am-l)">
+        ⬆ Passez Pro pour alertes illimitées + API + Webhooks
+      </div>
+      {% endif %}
+    </div>
   </div>
 
-  {% if error %}<div class="alert alert-err">⚠ {{ error }}</div>{% endif %}
+  {% if error %}<div class="alert-box alert-err">⚠ {{ error }}</div>{% endif %}
 
-  <form method="post" action="/settings" novalidate>
-
-    <!-- 1. Profil -->
-    <div class="card" style="margin-bottom:18px">
-      <div class="card-header">
-        <span class="card-title">👤 Profil</span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-        <div class="form-group">
-          <label class="form-label">Nom / Entreprise</label>
-          <input type="text" name="nom" class="form-control" value="{{ member.nom }}" required>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Téléphone</label>
-          <input type="tel" name="phone" class="form-control" value="{{ member.phone or '' }}" placeholder="+212 6xx xxx xxx">
-        </div>
-      </div>
-      <div style="padding:14px 16px;background:var(--c3);border:1px solid var(--b1);border-radius:var(--r8);font-size:13px;color:var(--t4)">
-        📧 Email de connexion : <strong style="color:var(--t2)">{{ member.email }}</strong>
-        <span style="margin-left:8px;font-size:11px;color:var(--t6)">(non modifiable)</span>
-      </div>
+  <!-- Stats rapides -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:28px">
+    {% set st = alert_stats %}
+    {% for icon, lbl, val, clr in [
+      ("📡","Via Telegram",   st.get('telegram',0),     "--sa"),
+      ("📧","Via Email",      st.get('email',0),        "--te"),
+      ("🔗","Via Webhook",    st.get('webhook',0),      "--or"),
+      ("★","Bookmarks",       bookmarks|length,          "--am"),
+    ] %}
+    <div class="stat" style="--stat-clr:{{ clr }}">
+      <div class="stat-n">{{ val }}</div>
+      <div class="stat-l">{{ icon }} {{ lbl }}</div>
     </div>
+    {% endfor %}
+  </div>
 
-    <!-- 2. Notifications -->
-    <div class="card" style="margin-bottom:18px">
-      <div class="card-header">
-        <span class="card-title">🔔 Notifications</span>
+  <form method="post" action="/settings" id="settings-form">
+
+    <div style="display:grid;gap:16px">
+
+      <!-- Profile -->
+      <div class="card">
+        <div class="card-hd"><div class="card-title">👤 Profil</div></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+          <div class="fld">
+            <label class="fld-label" for="nom">Nom</label>
+            <input class="fld-ctrl" type="text" id="nom" name="nom" value="{{ member.nom }}">
+          </div>
+          <div class="fld">
+            <label class="fld-label">Email</label>
+            <input class="fld-ctrl" value="{{ member.email }}" disabled style="opacity:.5">
+          </div>
+          <div class="fld">
+            <label class="fld-label" for="phone">Téléphone</label>
+            <input class="fld-ctrl" type="text" id="phone" name="phone" value="{{ member.phone or '' }}">
+          </div>
+          <div class="fld">
+            <label class="fld-label" for="telegram">Telegram ID</label>
+            <input class="fld-ctrl" type="text" id="telegram" name="telegram" value="{{ member.telegram or '' }}"
+                   placeholder="ID numérique">
+            <div class="fld-hint">Pour recevoir des alertes via <a href="https://t.me/MarchesMarocBot" style="color:var(--am)">@MarchesMarocBot</a></div>
+          </div>
+          <div class="fld">
+            <label class="fld-label" for="password">Nouveau mot de passe</label>
+            <input class="fld-ctrl" type="password" id="password" name="password" placeholder="Laisser vide = inchangé">
+          </div>
+          <div class="fld">
+            <label class="fld-label" for="password2">Confirmer</label>
+            <input class="fld-ctrl" type="password" id="password2" name="password2" placeholder="Répéter">
+          </div>
+        </div>
       </div>
 
-      <!-- Telegram -->
-      <div style="display:flex;align-items:center;gap:16px;padding:20px;background:var(--c3);border-radius:var(--r12);margin-bottom:12px;flex-wrap:wrap">
-        <div style="width:44px;height:44px;background:rgba(29,155,209,.15);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">📱</div>
-        <div style="flex:1;min-width:180px">
-          <div style="font-weight:700;font-size:14px;margin-bottom:4px">Telegram</div>
-          <div style="font-size:12px;color:var(--t5);margin-bottom:10px">
-            Démarrez <strong>@MarchesMarocBot</strong>, puis entrez votre ID ou @username
-          </div>
-          <input type="text" name="telegram" class="form-control" value="{{ member.telegram or '' }}"
-                 placeholder="@username ou 1234567890" style="max-width:300px">
-        </div>
-        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex-shrink:0">
-          <div style="position:relative">
-            <input type="checkbox" name="notif_tg" value="1" id="tg-cb" {% if member.notif_tg %}checked{% endif %} style="display:none" onchange="updateToggle('tg-toggle',this.checked)">
-            <div id="tg-toggle" style="width:48px;height:26px;border-radius:13px;background:{% if member.notif_tg %}var(--g2){% else %}var(--c6){% endif %};transition:background .2s;cursor:pointer" onclick="document.getElementById('tg-cb').click()">
-              <div style="width:20px;height:20px;border-radius:50%;background:#fff;margin:3px;transition:transform .2s;transform:{% if member.notif_tg %}translateX(22px){% else %}translateX(0){% endif %}" id="tg-thumb"></div>
+      <!-- Notifications -->
+      <div class="card">
+        <div class="card-hd"><div class="card-title">📡 Notifications</div></div>
+        <div style="display:flex;flex-wrap:wrap;gap:24px">
+          {% for field, lbl, icon in [
+            ('notif_tg',     'Telegram',          '📡'),
+            ('notif_email',  'Email',              '📧'),
+            ('notif_urgence','Urgents seulement',  '🔴'),
+          ] %}
+          <label class="toggle-wrap" for="tgl_{{ field }}">
+            <div class="toggle-track {% if member.get(field, 1) %}on{% endif %}" id="tgl_{{ field }}_track">
+              <div class="toggle-thumb"></div>
             </div>
-          </div>
-          <span style="font-size:13px;font-weight:600;color:var(--t3)">Activé</span>
-        </label>
+            <span class="toggle-label">{{ icon }} {{ lbl }}</span>
+            <input type="hidden" name="{{ field }}" id="tgl_{{ field }}" value="{{ '1' if member.get(field,1) else '0' }}">
+          </label>
+          {% endfor %}
+        </div>
       </div>
 
-      <!-- Email -->
-      <div style="display:flex;align-items:center;gap:16px;padding:20px;background:var(--c3);border-radius:var(--r12);flex-wrap:wrap">
-        <div style="width:44px;height:44px;background:rgba(232,160,32,.1);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0">📧</div>
-        <div style="flex:1;min-width:180px">
-          <div style="font-weight:700;font-size:14px;margin-bottom:4px">Email</div>
-          <div style="font-size:12px;color:var(--t5)">
-            Alertes envoyées à <strong style="color:var(--t3)">{{ member.email }}</strong>
-          </div>
+      <!-- Secteurs -->
+      <div class="card">
+        <div class="card-hd">
+          <div class="card-title">🏷 Secteurs surveillés</div>
+          <div style="font-size:12px;color:var(--tx-5)">Sélection: <span id="sel-count">{{ sel_sect|length }}</span></div>
         </div>
-        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;flex-shrink:0">
-          <div style="position:relative">
-            <input type="checkbox" name="notif_email" value="1" id="em-cb" {% if member.notif_email %}checked{% endif %} style="display:none" onchange="updateToggle('em-toggle',this.checked)">
-            <div id="em-toggle" style="width:48px;height:26px;border-radius:13px;background:{% if member.notif_email %}var(--g2){% else %}var(--c6){% endif %};transition:background .2s;cursor:pointer" onclick="document.getElementById('em-cb').click()">
-              <div style="width:20px;height:20px;border-radius:50%;background:#fff;margin:3px;transition:transform .2s;transform:{% if member.notif_email %}translateX(22px){% else %}translateX(0){% endif %}" id="em-thumb"></div>
-            </div>
+        <div style="display:flex;gap:6px;margin-bottom:14px">
+          {% for typ, lbl in [('all','Tous'),('T','Travaux'),('P','Produits'),('S','Services')] %}
+          <button type="button" onclick="filterSectors('{{ typ }}')" id="tab-{{ typ }}" class="btn btn-sm btn-ghost">{{ lbl }}</button>
+          {% endfor %}
+        </div>
+        <div class="sect-grid" id="sect-grid">
+          {% for code, info in SECTORS.items() %}
+          {% set t = info.type %}
+          <div class="sect-item {% if code in sel_sect %}on{% endif %}" data-code="{{ code }}" data-type="{{ t }}"
+               onclick="toggleSect(this, '{{ code }}')">
+            <span class="sect-code">{{ code }}</span>
+            <span class="sect-name">{{ info.label }}</span>
           </div>
-          <span style="font-size:13px;font-weight:600;color:var(--t3)">Activé</span>
-        </label>
+          {% endfor %}
+        </div>
+        <input type="hidden" name="secteurs" id="secteurs-input" value="{{ sel_sect|join(',') }}">
       </div>
+
+      <!-- Régions -->
+      <div class="card">
+        <div class="card-hd"><div class="card-title">📍 Régions préférées</div></div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px">
+          {% for reg in REGIONS_LIST %}
+          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;
+                        padding:8px 12px;border:1px solid var(--bdr-1);border-radius:var(--r-sm);
+                        transition:border-color .15s">
+            <input type="checkbox" name="_reg_{{ loop.index }}" value="{{ reg }}" class="reg-cb"
+                   {% if reg in sel_reg %}checked{% endif %} style="accent-color:var(--am)">
+            <span style="font-size:12.5px;color:var(--tx-3)">{{ reg }}</span>
+          </label>
+          {% endfor %}
+        </div>
+        <input type="hidden" name="regions_pref" id="regions-input" value="{{ sel_reg|join(',') }}">
+      </div>
+
     </div>
 
-    <!-- 3. Secteurs -->
-    <div class="card" style="margin-bottom:18px">
-      <div class="card-header">
-        <div>
-          <span class="card-title">🏭 Secteurs d'activité</span>
-          <div style="font-size:12px;color:var(--t5);margin-top:3px">Vous recevrez uniquement les marchés de ces secteurs. Laissez vide = tout recevoir.</div>
-        </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button type="button" class="btn btn-ghost btn-sm" onclick="filterSects('T')">Travaux</button>
-          <button type="button" class="btn btn-ghost btn-sm" onclick="filterSects('P')">Produits</button>
-          <button type="button" class="btn btn-ghost btn-sm" onclick="filterSects('S')">Services</button>
-          <button type="button" class="btn btn-ghost btn-sm" onclick="filterSects('')">Tous</button>
-          <button type="button" class="btn btn-danger btn-sm" onclick="clearSects()">✕</button>
-        </div>
-      </div>
-      <div class="secteur-grid" id="sg">
-        {% for s in SECTEURS_LIST %}
-        {% set code = s[:4] %}
-        {% set name = s[7:] if s[4:7] == ' · ' else s %}
-        <label class="secteur-item{% if s in selected_secteurs %} selected{% endif %}" data-code="{{ s[:1] }}" onclick="toggleSect(this)">
-          <input type="checkbox" name="_sb" value="{{ s }}" {% if s in selected_secteurs %}checked{% endif %} style="display:none">
-          <span class="sect-code">{{ code }}</span>
-          <span class="sect-name">{{ name }}</span>
-        </label>
-        {% endfor %}
-      </div>
-      <input type="hidden" name="secteurs" id="sect-h" value="{{ member.secteurs or '' }}">
-      <div style="margin-top:12px;font-size:12px;color:var(--t5)" id="sect-count">
-        {{ selected_secteurs|length }} secteur(s) sélectionné(s)
-      </div>
+    <div style="margin-top:20px;display:flex;gap:10px">
+      <button type="submit" class="btn btn-primary btn-lg">Sauvegarder les paramètres</button>
+      <a href="/tenders" class="btn btn-ghost">Annuler</a>
     </div>
 
-    <!-- 4. Mot de passe -->
-    <div class="card" style="margin-bottom:28px">
-      <div class="card-header">
-        <span class="card-title">🔒 Changer le mot de passe</span>
-        <span style="font-size:12px;color:var(--t5)">Laisser vide pour ne pas changer</span>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-        <div class="form-group">
-          <label class="form-label">Nouveau mot de passe</label>
-          <input type="password" name="password" class="form-control" placeholder="Min 8 caractères" minlength="8">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Confirmer</label>
-          <input type="password" name="password2" class="form-control" placeholder="Répéter">
-        </div>
-      </div>
-    </div>
-
-    <button type="submit" class="btn btn-primary btn-lg btn-block">
-      Sauvegarder les paramètres ✓
-    </button>
   </form>
+
+  <!-- API Token (Pro) -->
+  {% if member.plan != 'free' %}
+  <div class="card" style="margin-top:16px">
+    <div class="card-hd"><div class="card-title">🔑 Token API</div></div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <div style="flex:1;padding:10px 14px;background:var(--ink-1);border:1px solid var(--bdr-2);
+                  border-radius:var(--r-md);font-family:var(--ff-m);font-size:13px;color:var(--tx-4);
+                  overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="api-tk">
+        {{ member.api_token or '— Non généré' }}
+      </div>
+      <button class="btn btn-ghost" onclick="genToken()">Générer nouveau token</button>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Webhooks (Pro) -->
+  {% if member.plan != 'free' %}
+  <div class="card" style="margin-top:16px">
+    <div class="card-hd"><div class="card-title">🔗 Webhooks</div></div>
+    {% if webhooks %}
+    <table class="tbl" style="margin-bottom:16px">
+      <thead><tr><th>URL</th><th>Secret</th><th>Statut</th></tr></thead>
+      <tbody>
+        {% for w in webhooks %}
+        <tr>
+          <td style="font-family:var(--ff-m);font-size:11px">{{ w.url[:60] }}</td>
+          <td style="font-family:var(--ff-m);font-size:11px;color:var(--tx-5)">{{ w.secret[:20] }}…</td>
+          <td><span class="badge badge-ok">Actif</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+    <form method="post" action="/settings/webhook" style="display:flex;gap:10px;flex-wrap:wrap">
+      <input class="fld-ctrl" type="url" name="url" placeholder="https://your-endpoint.com/webhook" style="flex:1;min-width:200px">
+      <input class="fld-ctrl" type="text" name="secret" placeholder="Secret (optionnel)" style="max-width:200px">
+      <button type="submit" class="btn btn-ghost">Ajouter</button>
+    </form>
+  </div>
+  {% endif %}
+
+  <!-- Bookmarks -->
+  {% if bookmarks %}
+  <div class="card" style="margin-top:16px">
+    <div class="card-hd"><div class="card-title">★ Marchés sauvegardés</div></div>
+    <div style="display:grid;gap:8px">
+      {% for b in bookmarks %}
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;
+                  padding:12px 14px;background:var(--ink-3);border-radius:var(--r-md);border:1px solid var(--bdr-1)">
+        <div>
+          <div style="font-size:13px;color:var(--tx-2);font-weight:600">{{ b.objet[:70] }}</div>
+          <div style="font-size:11px;color:var(--tx-5);margin-top:4px">
+            {{ b.domaine }} · {{ b.date_limite or '?' }}
+          </div>
+        </div>
+        <a href="/tenders/{{ b.tender_id }}" class="btn btn-ghost btn-sm">Voir →</a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
 </div>
 
 <script>
-function toggleSect(el) {
-  el.classList.toggle('selected');
-  el.querySelector('input').checked = el.classList.contains('selected');
-  updateHidden();
+const selected = new Set({{ sel_sect | tojson }});
+function toggleSect(el, code) {
+  if(selected.has(code)) { selected.delete(code); el.classList.remove('on') }
+  else { selected.add(code); el.classList.add('on') }
+  document.getElementById('sel-count').textContent = selected.size;
+  document.getElementById('secteurs-input').value = [...selected].join(',');
 }
-function updateHidden() {
-  const vals = [...document.querySelectorAll('#sg input:checked')].map(i=>i.value);
-  document.getElementById('sect-h').value = vals.join(',');
-  document.getElementById('sect-count').textContent = vals.length + ' secteur(s) sélectionné(s)';
-}
-function filterSects(type) {
-  document.querySelectorAll('#sg .secteur-item').forEach(el => {
-    el.style.display = (!type || el.dataset.code === type) ? '' : 'none';
+function filterSectors(typ) {
+  document.querySelectorAll('#sect-grid .sect-item').forEach(el => {
+    el.style.display = (typ==='all' || el.dataset.type===typ) ? '' : 'none';
   });
 }
-function clearSects() {
-  document.querySelectorAll('#sg .secteur-item').forEach(el => {
-    el.classList.remove('selected');
-    el.querySelector('input').checked = false;
+
+// Toggles
+document.querySelectorAll('.toggle-wrap').forEach(wrap => {
+  wrap.addEventListener('click', () => {
+    const trackId = wrap.querySelector('[id$="_track"]').id;
+    const field   = trackId.replace('_track','');
+    const inp     = document.getElementById(field);
+    const track   = document.getElementById(trackId);
+    const newVal  = inp.value === '1' ? '0' : '1';
+    inp.value     = newVal;
+    track.classList.toggle('on', newVal === '1');
   });
-  updateHidden();
-}
-function updateToggle(id, checked) {
-  const toggle = document.getElementById(id);
-  const thumb  = document.getElementById(id.replace('toggle','thumb'));
-  toggle.style.background = checked ? 'var(--g2)' : 'var(--c6)';
-  if (thumb) thumb.style.transform = checked ? 'translateX(22px)' : 'translateX(0)';
+});
+
+// Regions aggregation on submit
+document.getElementById('settings-form').addEventListener('submit', () => {
+  const regs = [...document.querySelectorAll('.reg-cb:checked')].map(x => x.value);
+  document.getElementById('regions-input').value = regs.join(',');
+});
+
+async function genToken() {
+  const r = await fetch('/settings/api_token', {method:'POST'});
+  const d = await r.json();
+  document.getElementById('api-tk').textContent = d.token;
 }
 </script>
 {% endblock %}
