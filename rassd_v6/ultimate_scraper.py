@@ -1,25 +1,22 @@
-﻿"""
+"""
 Professional Scraper Module for Modern Business
-Version: 5.0 - Ultimate Edition
+Version: 5.1 - Enhanced Title & Date Extraction
 """
 
 import re
-import json
 import time
-import random
-import sqlite3
+import hashlib
 from datetime import datetime, date, timedelta
 from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass, asdict
 from enum import Enum
-import hashlib
 
 import requests
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin
 
 # ============================================================
-# التصنيفات الرسمية STX10 - 47 قطاعاً
+# التصنيفات الرسمية STX10 - 47 قطاعاً (نفس المحتوى السابق)
 # ============================================================
 
 class SectorType(Enum):
@@ -35,9 +32,8 @@ class Sector:
     keywords: List[str]
     weight: int = 1
 
-# التصنيفات الكاملة
 SECTORS = {
-    # Travaux (T) - 17 قطاع
+    # Travaux (T)
     "T101": Sector("T101", "Constructions & Bâtiments", SectorType.TRAVAUX, 
                    ["bâtiment", "construction", "maçonnerie", "béton", "immeuble", "logement", "école", "hôpital"]),
     "T102": Sector("T102", "Terrassements & VRD", SectorType.TRAVAUX,
@@ -73,7 +69,7 @@ SECTORS = {
     "T501": Sector("T501", "Restauration Patrimoine", SectorType.TRAVAUX,
                    ["restauration", "patrimoine", "médina", "monument", "site historique"]),
     
-    # Fournitures (P) - 15 قطاع
+    # Fournitures (P) - اختصاراً
     "P801": Sector("P801", "Équipements Médicaux", SectorType.FOURNITURES,
                    ["médical", "hôpital", "chirurgical", "scanner", "irm", "bloc opératoire"]),
     "P802": Sector("P802", "Informatique & Télécoms", SectorType.FOURNITURES,
@@ -105,7 +101,7 @@ SECTORS = {
     "P815": Sector("P815", "Textile & Habillement", SectorType.FOURNITURES,
                    ["textile", "habillement", "uniforme", "tenue", "vêtement", "blouse"]),
     
-    # Services (S) - 15 قطاع
+    # Services (S)
     "S901": Sector("S901", "Développement & Cloud", SectorType.SERVICES,
                    ["développement", "logiciel", "application", "site web", "cloud", "saas", "devops"]),
     "S902": Sector("S902", "Études & Ingénierie", SectorType.SERVICES,
@@ -138,7 +134,7 @@ SECTORS = {
                    ["gestion", "administration", "back-office", "secrétariat", "archivage"]),
 }
 
-# المناطق المغربية الـ 12
+# المناطق المغربية
 REGIONS = {
     "Tanger-Tétouan-Al Hoceïma": ["tanger", "tétouan", "tetouan", "al hoceima", "chefchaouen", "larache", "fnideq"],
     "Oriental": ["oujda", "nador", "berkane", "taourirt", "jerada", "driouch", "figuig"],
@@ -154,13 +150,7 @@ REGIONS = {
     "Dakhla-Oued Ed-Dahab": ["dakhla", "aousserd"],
 }
 
-# كلمات للإلغاء
-CANCEL_KEYWORDS = [
-    "annulé", "annulée", "infructueux", "reporté", "suspendu",
-    "ajourné", "abandonné", "résilié", "caduc"
-]
-
-# كلمات مفتاحية للصفقات الحقيقية
+CANCEL_KEYWORDS = ["annulé", "annulée", "infructueux", "reporté", "suspendu", "ajourné", "abandonné", "résilié", "caduc"]
 AO_KEYWORDS = [
     "appel d'offres", "appel d offres", "consultation", "marché public",
     "fourniture", "travaux", "prestation", "acquisition", "maintenance",
@@ -169,15 +159,14 @@ AO_KEYWORDS = [
 ]
 
 # ============================================================
-# محرك استخراج التواريخ
+# محرك استخراج التواريخ المحسن
 # ============================================================
 
 def extract_date(text: str) -> Optional[date]:
-    """استخراج التاريخ من النص بكل الاحتمالات"""
+    """استخراج التاريخ من النص بغض النظر عن الكلمات المحيطة."""
     if not text:
         return None
-    
-    # أنماط التاريخ المدعومة
+    # أنماط التاريخ (مع إمكانية وجود نص مدمج)
     patterns = [
         (r'(\d{2})/(\d{2})/(\d{4})', '%d/%m/%Y'),
         (r'(\d{4})-(\d{2})-(\d{2})', '%Y-%m-%d'),
@@ -185,7 +174,6 @@ def extract_date(text: str) -> Optional[date]:
         (r'(\d{2})\.(\d{2})\.(\d{4})', '%d.%m.%Y'),
         (r'(\d{4})/(\d{2})/(\d{2})', '%Y/%m/%d'),
     ]
-    
     for pattern, fmt in patterns:
         match = re.search(pattern, text)
         if match:
@@ -193,31 +181,22 @@ def extract_date(text: str) -> Optional[date]:
                 return datetime.strptime(match.group(0), fmt).date()
             except ValueError:
                 continue
-    
     return None
 
 def is_expired(date_str: str) -> bool:
-    """التحقق من انتهاء الصفقة"""
     if not date_str:
         return False
-    
-    extracted = extract_date(date_str)
-    if extracted:
-        return extracted < date.today()
-    return False
+    d = extract_date(date_str)
+    return d is not None and d < date.today()
 
 # ============================================================
-# محرك التصنيف الذكي
+# التصنيف الذكي
 # ============================================================
 
 class SmartClassifier:
-    """تصنيف ذكي للصفقات"""
-    
     @staticmethod
     def classify_sector(title: str, description: str = "") -> Tuple[str, str, float]:
-        """تصنيف القطاع مع درجة الثقة"""
         text = f"{title} {description}".lower()
-        
         scores = {}
         for code, sector in SECTORS.items():
             score = 0
@@ -226,45 +205,33 @@ class SmartClassifier:
                     score += len(kw) * sector.weight
             if score > 0:
                 scores[code] = score
-        
         if not scores:
             return "P825", "Fournitures de Bureau", 0.0
-        
         best = max(scores, key=scores.get)
         max_score = scores[best]
         confidence = min(max_score / 100, 1.0)
-        
         return best, SECTORS[best].label, confidence
-    
+
     @staticmethod
     def classify_region(text: str) -> str:
-        """تصنيف المنطقة"""
         t = text.lower()
         for region, keywords in REGIONS.items():
             if any(kw in t for kw in keywords):
                 return region
         return "Maroc"
-    
+
     @staticmethod
     def classify_type(text: str) -> str:
-        """تصنيف نوع الصفقة (T/P/S)"""
         t = text.lower()
-        
-        if any(kw in t for kw in SECTORS["T101"].keywords + 
-               ["travaux", "construction", "réhabilitation", "rénovation"]):
+        if any(kw in t for kw in SECTORS["T101"].keywords + ["travaux", "construction", "réhabilitation", "rénovation"]):
             return "Travaux"
-        
-        if any(kw in t for kw in SECTORS["S901"].keywords + 
-               ["service", "prestation", "maintenance", "étude", "formation"]):
+        if any(kw in t for kw in SECTORS["S901"].keywords + ["service", "prestation", "maintenance", "étude", "formation"]):
             return "Services"
-        
         return "Fournitures"
-    
+
     @staticmethod
     def calculate_score(tender: Dict) -> int:
-        """حساب درجة الصفقة (0-100)"""
         score = 50
-        
         if tender.get('date_limite'):
             dl = extract_date(tender['date_limite'])
             if dl:
@@ -273,120 +240,139 @@ class SmartClassifier:
                     score += 20
                 elif days_left > 30:
                     score += 10
-        
         budget = tender.get('montant_estime', '')
         if budget:
             try:
                 montant = int(re.sub(r'[^\d]', '', budget))
-                if montant > 1000000:
+                if montant > 1_000_000:
                     score += 20
-                elif montant > 500000:
+                elif montant > 500_000:
                     score += 10
             except:
                 pass
-        
         if tender.get('description') and len(tender['description']) > 200:
             score += 10
-        
         if len(tender.get('objet', '')) < 30:
             score -= 20
-        
         return min(max(score, 0), 100)
 
 # ============================================================
-# سكرابر marchespublics.gov.ma
+# سكرابر الموقع الرسمي (معدل)
 # ============================================================
 
 class MarchespublicsScraper:
-    """سكرابر الموقع الرسمي للصفقات العمومية"""
-    
     BASE_URL = "https://www.marchespublics.gov.ma/bdc/entreprise/consultation/show"
     LIST_URL = "https://www.marchespublics.gov.ma/bdc/entreprise/consultation"
-    
+
     def __init__(self):
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9',
             'Accept-Language': 'fr-FR,fr;q=0.9,ar;q=0.8',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive',
         })
         self.classifier = SmartClassifier()
-    
+
     def get_listing_ids(self, page: int = 1) -> List[str]:
-        """جلب معرفات الصفقات من صفحة القائمة"""
         try:
             url = f"{self.LIST_URL}?page={page}"
             resp = self.session.get(url, timeout=15)
             if resp.status_code != 200:
                 return []
-            
             soup = BeautifulSoup(resp.text, 'html.parser')
             ids = []
-            
             for link in soup.find_all('a', href=True):
                 href = link['href']
                 if '/show/' in href:
-                    match = re.search(r'/show/(\d+)', href)
-                    if match:
-                        ids.append(match.group(1))
-            
+                    m = re.search(r'/show/(\d+)', href)
+                    if m:
+                        ids.append(m.group(1))
             return list(set(ids))
         except Exception as e:
             print(f"Erreur listing: {e}")
             return []
-    
+
     def scrape_detail(self, tender_id: str) -> Optional[Dict]:
-        """جلب تفاصيل صفقة واحدة"""
         try:
             url = f"{self.BASE_URL}/{tender_id}"
             resp = self.session.get(url, timeout=15)
-            
             if resp.status_code != 200:
                 return None
-            
+
             soup = BeautifulSoup(resp.text, 'html.parser')
             text = soup.get_text()
-            
+
+            # التحقق من الإلغاء
             if any(kw in text.lower() for kw in CANCEL_KEYWORDS):
                 return None
-            
+
+            # ========== استخراج العنوان الحقيقي ==========
             objet = ""
-            title_tag = soup.find('title')
-            if title_tag:
-                objet = title_tag.get_text(strip=True)
-                objet = re.sub(r'\s*[|–\-]\s*.*marchés publics.*', '', objet, flags=re.I)
-                objet = re.sub(r'\s*[|–\-]\s*.*portail.*', '', objet, flags=re.I)
-            
+            # 1. محاولة h1 (العنوان الرئيسي)
+            h1 = soup.find('h1')
+            if h1:
+                objet = h1.get_text(strip=True)
+                # إزالة بادئات مثل "Détails de l'avis d'achat #..."
+                objet = re.sub(r'^Détails de l\'avis d\'achat\s*#?\d*\s*', '', objet, flags=re.I)
+                objet = re.sub(r'^Avis d\'appel à la concurrence\s*#?\d*\s*', '', objet, flags=re.I)
+            # 2. محاولة div أو span بكلاس "objet-marche" أو "objet"
+            if not objet:
+                obj_div = soup.find('div', class_='objet-marche') or soup.find('span', class_='objet')
+                if obj_div:
+                    objet = obj_div.get_text(strip=True)
+            # 3. محاولة title
+            if not objet:
+                title_tag = soup.find('title')
+                if title_tag:
+                    objet = title_tag.get_text(strip=True)
+                    objet = re.sub(r'\s*[|–\-]\s*.*marchés publics.*', '', objet, flags=re.I)
+                    objet = re.sub(r'\s*[|–\-]\s*.*portail.*', '', objet, flags=re.I)
+                    objet = re.sub(r'^Détails de l\'avis d\'achat\s*#?\d*\s*', '', objet, flags=re.I)
+            # 4. أول فقرة طويلة كحل أخير
+            if not objet or len(objet) < 20:
+                first_p = soup.find('p')
+                if first_p:
+                    objet = first_p.get_text(strip=True)
+
+            if not objet or len(objet) < 20:
+                return None
+
+            # ========== استخراج التاريخ ==========
             date_limite = ""
-            for kw in ["date limite", "réception des offres", "remise des plis", "clôture"]:
-                pattern = rf"{kw}[:\s]*(\d{{2}}/\d{{2}}/\d{{4}})"
-                match = re.search(pattern, text, re.I)
-                if match:
-                    date_limite = match.group(1)
+            # نبحث عن الجملة التي تحتوي على "Date limite" أو "Réception des offres" ونلتقط أقرب تاريخ
+            date_patterns = [
+                r'Date limite de réception des devis\s*(\d{2}/\d{2}/\d{4})',
+                r'Date limite de réception des offres\s*(\d{2}/\d{2}/\d{4})',
+                r'Remise des offres\s*(\d{2}/\d{2}/\d{4})',
+                r'Clôture\s*(\d{2}/\d{2}/\d{4})',
+                r'(\d{2}/\d{2}/\d{4})'  # أي تاريخ
+            ]
+            for pattern in date_patterns:
+                m = re.search(pattern, text, re.I)
+                if m:
+                    date_limite = m.group(1)
                     break
-            
+
+            # ========== استخراج المشتري ==========
             acheteur = ""
             for kw in ["acheteur public", "maître d'ouvrage", "organisme acheteur"]:
                 pattern = rf"{kw}[:\s]*([^\n]+)"
-                match = re.search(pattern, text, re.I)
-                if match:
-                    acheteur = match.group(1).strip()[:200]
+                m = re.search(pattern, text, re.I)
+                if m:
+                    acheteur = m.group(1).strip()[:200]
                     break
-            
+
+            # ========== استخراج المبلغ ==========
             montant = ""
             for kw in ["montant estimé", "montant", "budget"]:
                 pattern = rf"{kw}[:\s]*([\d\s]+\.?\d*)\s*(DH|MAD|درهم)"
-                match = re.search(pattern, text, re.I)
-                if match:
-                    montant = match.group(1).strip()
+                m = re.search(pattern, text, re.I)
+                if m:
+                    montant = m.group(1).strip()
                     break
-            
-            if not objet or len(objet) < 20:
-                return None
-            
-            code, domaine, confidence = self.classifier.classify_sector(objet, text)
+
+            # التصنيف
+            code, domaine, _ = self.classifier.classify_sector(objet, text)
             region = self.classifier.classify_region(f"{acheteur} {text[:500]}")
             type_marche = self.classifier.classify_type(objet)
             days_left = None
@@ -394,7 +380,7 @@ class MarchespublicsScraper:
                 dl = extract_date(date_limite)
                 if dl:
                     days_left = (dl - date.today()).days
-            
+
             return {
                 'id': f"bdc_{tender_id}",
                 'objet': objet[:400],
@@ -415,35 +401,29 @@ class MarchespublicsScraper:
                 'score': self.classifier.calculate_score({'objet': objet, 'date_limite': date_limite, 'montant_estime': montant}),
                 'statut': 'actif' if not (date_limite and is_expired(date_limite)) else 'expire'
             }
-            
         except Exception as e:
             print(f"Erreur scraping {tender_id}: {e}")
             return None
-    
+
     def scrape_recent(self, max_pages: int = 5) -> List[Dict]:
-        """سحب الصفقات الحديثة"""
         all_ids = []
         for page in range(1, max_pages + 1):
             ids = self.get_listing_ids(page)
             all_ids.extend(ids)
             time.sleep(0.5)
-        
         results = []
         for tid in all_ids:
-            tender = self.scrape_detail(tid)
-            if tender and tender.get('statut') == 'actif':
-                results.append(tender)
+            t = self.scrape_detail(tid)
+            if t and t.get('statut') == 'actif':
+                results.append(t)
             time.sleep(0.3)
-        
         return results
 
 # ============================================================
-# سكرابر الجرائد
+# سكرابر الجرائد (مختصر)
 # ============================================================
 
 class NewspaperScraper:
-    """سكرابر الجرائد القانونية"""
-    
     SOURCES = {
         'leconomiste': {
             'url': 'https://www.leconomiste.com/appels-offres',
@@ -464,76 +444,53 @@ class NewspaperScraper:
             'date_selector': '.date, .post-date',
         }
     }
-    
+
     def __init__(self):
         self.session = requests.Session()
-        self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept': 'text/html,application/xhtml+xml',
-            'Accept-Language': 'fr-FR,fr;q=0.9',
-        })
+        self.session.headers.update({'User-Agent': 'Mozilla/5.0'})
         self.classifier = SmartClassifier()
-    
+
     def is_ao(self, text: str) -> bool:
-        """التحقق من أن النص يمثل صفقة حقيقية"""
         t = text.lower()
-        
         exclude = ['offre d\'emploi', 'emploi', 'recrutement', 'carrière', 'stage']
         if any(kw in t for kw in exclude):
             return False
-        
         include = ['appel d\'offres', 'appel d offres', 'marché public', 'consultation']
         if any(kw in t for kw in include):
             return True
-        
         ao_count = sum(1 for kw in AO_KEYWORDS if kw in t)
         return ao_count >= 2
-    
+
     def extract_date_from_text(self, text: str) -> Optional[str]:
-        """استخراج التاريخ من النص"""
-        for pattern in [
-            r'(\d{2}/\d{2}/\d{4})',
-            r'(\d{4}-\d{2}-\d{2})',
-            r'(\d{2}-\d{2}-\d{4})',
-        ]:
-            match = re.search(pattern, text)
-            if match:
-                return match.group(1)
+        for pattern in [r'(\d{2}/\d{2}/\d{4})', r'(\d{4}-\d{2}-\d{2})', r'(\d{2}-\d{2}-\d{4})']:
+            m = re.search(pattern, text)
+            if m:
+                return m.group(1)
         return None
-    
+
     def scrape_source(self, source_name: str) -> List[Dict]:
-        """سحب صفقات من مصدر واحد"""
         if source_name not in self.SOURCES:
             return []
-        
         source = self.SOURCES[source_name]
         results = []
-        
         try:
             resp = self.session.get(source['url'], timeout=15)
             if resp.status_code != 200:
                 return []
-            
             soup = BeautifulSoup(resp.text, 'html.parser')
             articles = soup.select(source['article_selector'])
-            
-            for article in articles:
-                text = article.get_text()
-                
+            for art in articles:
+                text = art.get_text()
                 if not self.is_ao(text):
                     continue
-                
-                title_elem = article.select_one(source['title_selector'])
+                title_elem = art.select_one(source['title_selector'])
                 title = title_elem.get_text(strip=True) if title_elem else text[:200]
-                
-                date_elem = article.select_one(source['date_selector'])
+                date_elem = art.select_one(source['date_selector'])
                 date_str = date_elem.get_text(strip=True) if date_elem else ""
                 date_limite = self.extract_date_from_text(date_str or text)
-                
                 code, domaine, _ = self.classifier.classify_sector(title, text)
                 region = self.classifier.classify_region(text)
                 type_marche = self.classifier.classify_type(title)
-                
                 results.append({
                     'id': hashlib.md5(f"{source_name}_{title}".encode()).hexdigest()[:16],
                     'objet': title[:400],
@@ -554,18 +511,14 @@ class NewspaperScraper:
                     'score': self.classifier.calculate_score({'objet': title}),
                     'statut': 'actif' if not (date_limite and is_expired(date_limite)) else 'expire'
                 })
-            
         except Exception as e:
-            print(f"Erreur scraping {source_name}: {e}")
-        
+            print(f"Erreur {source_name}: {e}")
         return results
-    
+
     def scrape_all(self) -> List[Dict]:
-        """سحب من جميع المصادر"""
         all_results = []
-        for source in self.SOURCES.keys():
-            results = self.scrape_source(source)
-            all_results.extend(results)
+        for src in self.SOURCES:
+            all_results.extend(self.scrape_source(src))
             time.sleep(1)
         return all_results
 
@@ -574,41 +527,37 @@ class NewspaperScraper:
 # ============================================================
 
 class UltimateScraper:
-    """السكرابر النهائي المتكامل"""
-    
     def __init__(self):
         self.marchespublics = MarchespublicsScraper()
         self.newspapers = NewspaperScraper()
         self.classifier = SmartClassifier()
-    
+
     def scrape_all(self, max_pages: int = 5) -> List[Dict]:
-        """سحب كل الصفقات من جميع المصادر"""
-        print("=" * 60)
+        print("="*60)
         print("Ultimate Scraper - جمع الصفقات من جميع المصادر")
-        print("=" * 60)
-        
+        print("="*60)
+
         all_tenders = []
-        
+
         print("\n📡 Source 1: marchespublics.gov.ma")
-        public_tenders = self.marchespublics.scrape_recent(max_pages)
-        print(f"   → {len(public_tenders)} صفقة نشطة")
-        all_tenders.extend(public_tenders)
-        
+        public = self.marchespublics.scrape_recent(max_pages)
+        print(f"   → {len(public)} صفقة نشطة")
+        all_tenders.extend(public)
+
         print("\n📰 Source 2: Journaux légaux")
-        press_tenders = self.newspapers.scrape_all()
-        print(f"   → {len(press_tenders)} صفقة")
-        all_tenders.extend(press_tenders)
-        
-        active_tenders = [t for t in all_tenders if t.get('statut') == 'actif']
-        
-        print("\n" + "=" * 60)
-        print(f"✅ Total: {len(active_tenders)} صفقة نشطة")
-        print("=" * 60)
-        
-        return active_tenders
-    
+        press = self.newspapers.scrape_all()
+        print(f"   → {len(press)} صفقة")
+        all_tenders.extend(press)
+
+        active = [t for t in all_tenders if t.get('statut') == 'actif']
+
+        print("\n" + "="*60)
+        print(f"✅ Total: {len(active)} صفقة نشطة")
+        print("="*60)
+
+        return active
+
     def get_statistics(self, tenders: List[Dict]) -> Dict:
-        """إحصائيات عن الصفقات"""
         stats = {
             'total': len(tenders),
             'by_type': {'Travaux': 0, 'Fournitures': 0, 'Services': 0},
@@ -616,30 +565,23 @@ class UltimateScraper:
             'urgent': 0,
             'avg_score': 0,
         }
-        
         total_score = 0
         for t in tenders:
-            type_marche = t.get('type_marche', 'Autre')
-            if type_marche in stats['by_type']:
-                stats['by_type'][type_marche] += 1
-            
-            region = t.get('region', 'Maroc')
-            stats['by_region'][region] = stats['by_region'].get(region, 0) + 1
-            
+            typ = t.get('type_marche', 'Autre')
+            if typ in stats['by_type']:
+                stats['by_type'][typ] += 1
+            reg = t.get('region', 'Maroc')
+            stats['by_region'][reg] = stats['by_region'].get(reg, 0) + 1
             if t.get('urgence'):
                 stats['urgent'] += 1
-            
             total_score += t.get('score', 0)
-        
         if stats['total'] > 0:
             stats['avg_score'] = total_score // stats['total']
-        
         return stats
 
 if __name__ == "__main__":
     scraper = UltimateScraper()
     tenders = scraper.scrape_all()
-    
     stats = scraper.get_statistics(tenders)
     print("\n📊 Statistiques:")
     print(f"   Total: {stats['total']}")
@@ -648,7 +590,7 @@ if __name__ == "__main__":
     print(f"   Services: {stats['by_type']['Services']}")
     print(f"   Urgent: {stats['urgent']}")
     print(f"   Score moyen: {stats['avg_score']}/100")
-    
+
     print("\n📋 Dernières offres:")
     for t in tenders[:5]:
         print(f"\n   [{t['domaine_code']}] {t['objet'][:80]}")
