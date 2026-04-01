@@ -1,3 +1,105 @@
+
+# ════════════════════════════════════════════════════════════════
+# MASTER DATE ENGINE v2.0
+# Utilisé par: ClassifierAgent, ScraperAgent, multi_scraper, ingest
+# Règle absolue: date_limite < aujourd'hui → IGNORER la صفقة
+# ════════════════════════════════════════════════════════════════
+
+import re as _re_date
+from datetime import datetime as _DT, date as _DATE
+
+_DATE_FMTS = [
+    "%d/%m/%Y", "%Y-%m-%d", "%d-%m-%Y",
+    "%d.%m.%Y", "%Y/%m/%d", "%d/%m/%y",
+]
+
+_DEADLINE_LABELS = [
+    "date limite", "date de clôture", "date de cloture",
+    "date de remise", "date de dépôt", "date de depot",
+    "date de réception", "date de reception",
+    "réception des offres", "reception des offres",
+    "réception des devis", "reception des devis",
+    "remise des offres", "remise des plis",
+    "dépôt des offres", "depot des offres",
+    "soumission des offres", "avant le", "au plus tard",
+    "clôture", "cloture", "échéance", "echeance",
+    "heure limite", "dernier délai",
+    # Arabe
+    "آخر أجل", "الأجل", "تاريخ الإيداع", "موعد إيداع",
+]
+
+_DATE_RE = _re_date.compile(
+    r'(\d{2}/\d{2}/\d{4}|\d{4}-\d{2}-\d{2}|\d{2}-\d{2}-\d{4}|\d{2}\.\d{2}\.\d{4})'
+    r'(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?'  # heure optionnelle
+)
+
+
+def _parse_date(s: str):
+    """Convertit string → date ou None"""
+    if not s: return None
+    # Enlever partie heure si présente
+    s = str(s).strip().split()[0].split("T")[0]
+    for fmt in _DATE_FMTS:
+        try: return _DT.strptime(s, fmt).date()
+        except: pass
+    return None
+
+
+def extract_deadline(text: str):
+    """
+    Extrait la date limite depuis n'importe quel texte.
+    Retourne: objet date ou None
+    """
+    if not text: return None
+    text = str(text)
+    tl   = text.lower()
+
+    # Toutes les dates valides avec position
+    found = []
+    for m in _DATE_RE.finditer(text):
+        raw = m.group(1)  # juste la partie date sans heure
+        d = _parse_date(raw)
+        if d and _DATE(2025, 1, 1) <= d <= _DATE(2029, 12, 31):
+            found.append((m.start(), d))
+
+    if not found: return None
+
+    # Priorité 1: date après label deadline
+    for lbl in _DEADLINE_LABELS:
+        idx = tl.find(lbl)
+        if idx < 0: continue
+        nearby = [(p, d) for p, d in found if idx <= p <= idx + 200]
+        if nearby:
+            return min(nearby, key=lambda x: x[0])[1]
+
+    # Priorité 2: date la plus proche dans le futur
+    today = _DATE.today()
+    future = [(p, d) for p, d in found if d >= today]
+    if future:
+        return min(future, key=lambda x: abs((x[1] - today).days))[1]
+
+    # Priorité 3: dernière date mentionnée
+    return found[-1][1]
+
+
+def is_expired(text: str) -> bool:
+    """
+    True = date limite passée → ignorer cette صفقة
+    False = date future OU pas de date → garder
+    """
+    if not text: return False
+    text = str(text).strip()
+    if text in ("", "N/A", "—", "-", "null", "Non précisée"): return False
+    dl = extract_deadline(text)
+    if dl is None: return False  # pas de date = on garde
+    return dl < _DATE.today()
+
+
+def format_deadline(text: str) -> str:
+    """Retourne la date en format DD/MM/YYYY pour stockage"""
+    dl = extract_deadline(str(text)) if text else None
+    return dl.strftime("%d/%m/%Y") if dl else ""
+
 """
 Modern Business — Multi-Source Scraper v6.0 (20260321_143549)
 ══════════════════════════════════════════════════════════════
@@ -124,58 +226,6 @@ def _parse_date_str(s: str) -> "_date | None":
         except: pass
     return None
 
-
-def extract_deadline(text: str) -> str:
-    """
-    Extraction EXHAUSTIVE de la date limite depuis n'importe quel texte.
-    
-    Stratégie (par ordre de priorité):
-    1. Cherche les mots-clés "date limite", "remise des offres", etc.
-       → prend la première date dans les 200 chars suivants
-    2. Si plusieurs dates: filtre celles qui sont dans le futur
-    3. Fallback: dernière date du texte
-    4. Retourne "" si aucune date valide
-    
-    Format de sortie: DD/MM/YYYY (pour affichage) ou YYYY-MM-DD (pour DB)
-    """
-    if not text: return ""
-    text_l = text.lower()
-    today = _date.today()
-    
-    # Extraire TOUTES les dates du texte avec leur position
-    all_dates = []  # [(position, date_object, original_string)]
-    for pat, group in _DATE_PATTERNS:
-        for m in _re.finditer(pat, text):
-            d_str = m.group(1) if group == 0 else m.group(group)
-            d_obj = _parse_date_str(d_str)
-            if d_obj and _date(2020,1,1) <= d_obj <= _date(2030,12,31):
-                all_dates.append((m.start(), d_obj, d_str))
-    
-    if not all_dates:
-        return ""
-    
-    # Stratégie 1: chercher date après mot-clé deadline
-    for kw in _DEADLINE_KW:
-        idx = text_l.find(kw)
-        if idx < 0: continue
-        # Chercher la première date dans les 250 chars après le mot-clé
-        search_start = idx + len(kw)
-        search_end = search_start + 250
-        candidates = [(pos, d, s) for pos, d, s in all_dates
-                     if search_start <= pos <= search_end]
-        if candidates:
-            # Prendre la plus proche du mot-clé
-            best = min(candidates, key=lambda x: x[0])
-            return best[1].strftime("%Y-%m-%d")
-    
-    # Stratégie 2: date la plus dans le futur (pour les cas sans mot-clé)
-    future_dates = [(pos, d, s) for pos, d, s in all_dates if d >= today]
-    if future_dates:
-        # Prendre la plus éloignée dans le futur (= la deadline probable)
-        return max(future_dates, key=lambda x: x[1])[1].strftime("%Y-%m-%d")
-    
-    # Stratégie 3: toutes les dates sont passées → prendre la plus récente
-    return max(all_dates, key=lambda x: x[1])[1].strftime("%Y-%m-%d")
 
 
 def normalize_date(raw: str) -> str:
@@ -490,6 +540,12 @@ def detect_type(title):
     if any(k in t for k in ["service","prestation","maintenance","gardiennage","nettoyage","transport","restauration","hygiène"]): return "Services"
     if any(k in t for k in ["étude","mission","audit","conseil","formation","expertise","ingénierie","maîtrise","diagnostic"]): return "Études & Conseil"
     return "Fournitures"
+
+def normalize_date(raw: str) -> str:
+    """Normalise date → YYYY-MM-DD"""
+    d = _parse_date(str(raw).split()[0] if raw else "")
+    return d.strftime("%Y-%m-%d") if d else ""
+
 
 def build_tender(source, url, title, text, acheteur=""):
     """Build + validate. Returns None if not real or expired/cancelled."""

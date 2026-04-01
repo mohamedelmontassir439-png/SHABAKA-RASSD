@@ -1,50 +1,61 @@
 {% extends "base.html" %}
-{% block title %}Connexion — {{ BRAND }}{% endblock %}
-{% block content %}
-<div style="min-height:calc(100dvh - var(--nav-h));display:flex;align-items:center;justify-content:center;padding:40px 24px">
-  <div style="width:100%;max-width:420px">
+{% block title %}Connexion — Modern Business{% endblock %}
+{% block body %}
+<div style="min-height:calc(100dvh - var(--nh));display:grid;grid-template-columns:1fr 1fr;max-width:var(--max);margin:0 auto">
 
-    <!-- Logo -->
-    <div style="text-align:center;margin-bottom:40px">
-      <div style="width:56px;height:56px;background:var(--am);border-radius:14px;
-                  display:flex;align-items:center;justify-content:center;margin:0 auto 16px;
-                  font-family:var(--ff-d);font-weight:900;font-size:30px;color:var(--ink-0)">R</div>
-      <h1 style="font-family:var(--ff-d);font-size:28px;font-weight:900;letter-spacing:-.5px;margin-bottom:6px">{{ BRAND }}</h1>
-      <p style="color:var(--tx-5);font-size:13px">{{ TAGLINE }}</p>
+  <!-- Left: branding panel (desktop only) -->
+  <div class="hide-m" style="padding:60px var(--pad);display:flex;flex-direction:column;justify-content:space-between;border-right:1px solid var(--bdr);position:relative;overflow:hidden">
+    <div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 50%,rgba(201,168,76,.04),transparent);pointer-events:none"></div>
+    <div>
+      <div class="ngem" style="width:28px;height:28px;margin-bottom:20px"></div>
+      <h2 style="font-family:var(--serif);font-size:clamp(28px,3vw,44px);font-weight:900;line-height:1.05;margin-bottom:16px;font-style:italic">
+        Intelligence<br>marchés publics<br><span style="color:var(--g1)">Maroc</span>
+      </h2>
+      <p style="font-size:12px;color:var(--ink5);line-height:1.75;max-width:320px">
+        18 sources officielles · 5 agents IA · Alertes Telegram instantanées
+      </p>
     </div>
-
-    <!-- Form -->
-    <div class="card">
-      {% if error %}
-      <div class="alert-box alert-err" style="margin-bottom:20px">⚠ {{ error }}</div>
+    <div>
+      <div class="div-h mb20"></div>
+      {% if stats %}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div><div style="font-family:var(--serif);font-size:24px;font-weight:900;color:var(--g2);font-style:italic">{{ stats.tenders_active }}</div><div style="font-size:9px;color:var(--ink5);text-transform:uppercase;letter-spacing:1px">Marchés actifs</div></div>
+        <div><div style="font-family:var(--serif);font-size:24px;font-weight:900;color:var(--g2);font-style:italic">{{ stats.members }}</div><div style="font-size:9px;color:var(--ink5);text-transform:uppercase;letter-spacing:1px">Membres</div></div>
+      </div>
       {% endif %}
+    </div>
+  </div>
 
-      <h2 style="font-family:var(--ff-d);font-size:20px;font-weight:700;margin-bottom:24px">Connexion</h2>
+  <!-- Right: form -->
+  <div style="display:flex;align-items:center;justify-content:center;padding:60px var(--pad)">
+    <div style="width:100%;max-width:360px">
+      <div class="slbl mb16">Espace membre</div>
+      <h1 style="font-family:var(--serif);font-size:28px;font-weight:900;margin-bottom:6px;font-style:italic">Connexion</h1>
+      <p style="font-size:12px;color:var(--ink5);margin-bottom:28px">Accédez à vos alertes et marchés favoris</p>
+
+      {% if reset %}<div class="ok">✓ Mot de passe modifié</div>{% endif %}
+      {% if error %}<div class="err">{{ error }}</div>{% endif %}
 
       <form method="post" action="/login">
-        <input type="hidden" name="next_url" value="{{ next }}">
-        <div class="fld">
-          <label class="fld-label" for="email">Email</label>
-          <input class="fld-ctrl" type="email" id="email" name="email" required
-                 autofocus placeholder="email@societe.ma">
+        <div class="fg">
+          <label class="lbl">Email</label>
+          <input type="email" name="email" class="inp" placeholder="vous@entreprise.ma" required autofocus>
         </div>
-        <div class="fld">
-          <label class="fld-label" for="password">Mot de passe</label>
-          <input class="fld-ctrl" type="password" id="password" name="password" required
-                 placeholder="••••••••">
+        <div class="fg">
+          <div class="f fc fb mb5">
+            <label class="lbl" style="margin:0">Mot de passe</label>
+            <a href="/forgot" style="font-size:9px;color:var(--ink5);letter-spacing:.03em">Oublié ?</a>
+          </div>
+          <input type="password" name="password" class="inp" placeholder="••••••••" required>
         </div>
-        <button type="submit" class="btn btn-primary btn-blk btn-lg" style="margin-top:8px">
-          Se connecter →
-        </button>
+        <button type="submit" class="btn btn-gold btn-full btn-lg mt4">Se connecter →</button>
       </form>
 
-      <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--bdr-1);
-                  text-align:center;font-size:13px;color:var(--tx-5)">
-        Pas encore de compte ?
-        <a href="/register" style="color:var(--am);font-weight:600">Inscription gratuite →</a>
+      <div class="div-h mt24 mb20"></div>
+      <div style="text-align:center;font-size:12px;color:var(--ink5)">
+        Pas encore inscrit? <a href="/register" style="color:var(--g2);font-weight:600">Créer un compte gratuit</a>
       </div>
     </div>
-
   </div>
 </div>
 {% endblock %}

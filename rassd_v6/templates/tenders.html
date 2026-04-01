@@ -1,219 +1,141 @@
 {% extends "base.html" %}
-{% block title %}Marchés actifs — {{ BRAND }}{% endblock %}
-{% block content %}
-<div class="page" style="max-width:1400px">
-
-  <!-- Page header -->
-  <div class="page-hd">
+{% block title %}{% if page_title %}{{ page_title }}{% else %}Marchés Publics — {{ total }} actifs{% endif %}{% endblock %}
+{% block head %}
+<style>
+.filter-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:14px 16px;background:var(--raised);border:1px solid var(--bdr);border-radius:var(--r2);margin-bottom:20px}
+.tcard{background:var(--surface);border:1px solid var(--bdr);border-radius:var(--r2);padding:18px;transition:all .2s;display:block;color:inherit;text-decoration:none;position:relative;overflow:hidden}
+.tcard::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--bdr);transition:.2s}
+.tcard:hover{border-color:var(--bdr2);background:var(--raised);transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.tcard:hover::before{background:var(--g3)}
+.tcard-score-bar{height:2px;background:var(--bdr);border-radius:1px;overflow:hidden;margin-top:10px}
+.sort-btn{padding:4px 10px;font-size:9px;font-weight:700;border-radius:var(--r);border:1px solid var(--bdr);background:transparent;color:var(--ink5);cursor:pointer;text-transform:uppercase;letter-spacing:.06em;transition:.12s}
+.sort-btn.active,.sort-btn:hover{background:var(--raised);color:var(--ink2);border-color:var(--bdr2)}
+</style>
+{% endblock %}
+{% block body %}
+<div class="page">
+  <!-- Header -->
+  <div class="f fc fb fw g12 mb20">
     <div>
-      <h1 class="page-title">Marchés actifs
-        <span style="font-family:var(--ff-m);font-size:16px;color:var(--am);font-weight:600;margin-left:10px">{{ total | fmt_num }}</span>
-      </h1>
-      <div class="page-sub">
-        {% if q or code_f or region_f or source_f or type_f or urgence_f %}
-          Résultats filtrés ·
-          <a href="/tenders" style="color:var(--am)">Réinitialiser les filtres</a>
-        {% else %}
-          Mis à jour en continu depuis toutes les sources
-        {% endif %}
-      </div>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <!-- Sort -->
-      <form method="get" id="sort-form" style="display:contents">
-        <input type="hidden" name="q"         value="{{ q }}">
-        <input type="hidden" name="code_f"    value="{{ code_f }}">
-        <input type="hidden" name="region_f"  value="{{ region_f }}">
-        <input type="hidden" name="source_f"  value="{{ source_f }}">
-        <input type="hidden" name="type_f"    value="{{ type_f }}">
-        <input type="hidden" name="urgence_f" value="{{ urgence_f }}">
-        <select name="sort" class="fld-ctrl" style="min-width:160px;padding:8px 12px" onchange="this.form.submit()">
-          <option value="recent"   {% if sort=='recent'   %}selected{% endif %}>Plus récents</option>
-          <option value="deadline" {% if sort=='deadline' %}selected{% endif %}>Date limite ↑</option>
-          <option value="urgence"  {% if sort=='urgence'  %}selected{% endif %}>Urgents en premier</option>
-          <option value="az"       {% if sort=='az'       %}selected{% endif %}>A → Z</option>
-        </select>
-      </form>
-      <a href="/settings" class="btn btn-ghost btn-sm">⚙ Mes alertes</a>
-    </div>
-  </div>
-
-  <div style="display:grid;grid-template-columns:240px 1fr;gap:22px;align-items:start">
-
-    <!-- ── SIDEBAR FILTERS ──────────────────────────────────────── -->
-    <aside class="filters hide-md">
-
-      <!-- Search -->
-      <div style="margin-bottom:20px">
-        <form method="get" action="/tenders">
-          <input type="hidden" name="code_f"    value="{{ code_f }}">
-          <input type="hidden" name="region_f"  value="{{ region_f }}">
-          <input type="hidden" name="source_f"  value="{{ source_f }}">
-          <input type="hidden" name="type_f"    value="{{ type_f }}">
-          <input type="hidden" name="urgence_f" value="{{ urgence_f }}">
-          <input type="hidden" name="sort"      value="{{ sort }}">
-          <div style="position:relative">
-            <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--tx-5)">🔍</span>
-            <input type="text" name="q" class="search-input" value="{{ q }}"
-                   placeholder="Rechercher…" style="width:100%;padding-left:36px;border-radius:var(--r-md)">
-          </div>
-        </form>
-      </div>
-
-      <!-- Urgents -->
-      <div class="filter-section">
-        <div class="filter-title">⚡ Priorité</div>
-        <a href="/tenders?urgence_f=1&sort={{ sort }}" class="filter-btn {% if urgence_f %}active{% endif %}">
-          🔴 Marchés urgents
-          <span class="filter-cnt">{{ domaine_counts.values() | sum if urgence_f else '' }}</span>
-        </a>
-      </div>
-
-      <!-- Source type -->
-      <div class="filter-section">
-        <div class="filter-title">🌐 Source</div>
-        {% for src, cnt in source_counts.items() %}
-        <a href="/tenders?source_f={{ src }}&sort={{ sort }}&q={{ q }}&code_f={{ code_f }}&region_f={{ region_f }}"
-           class="filter-btn {% if source_f==src %}active{% endif %}">
-          <span>{{ {"public":"🏛 Public","parastatal":"⚙ Parastatal","semi-public":"🏢 Semi-public","prive":"🔒 Privé","journal":"📰 Journal"}.get(src, src) }}</span>
-          <span class="filter-cnt">{{ cnt }}</span>
-        </a>
-        {% endfor %}
-        {% if source_f %}
-        <a href="/tenders?sort={{ sort }}&q={{ q }}&code_f={{ code_f }}&region_f={{ region_f }}"
-           class="filter-btn" style="color:var(--ro)">✕ Réinitialiser</a>
-        {% endif %}
-      </div>
-
-      <!-- Sector codes -->
-      <div class="filter-section">
-        <div class="filter-title">🏷 Secteur</div>
-        {% for code, cnt in domaine_counts.items() %}
-        {% if code in SECTORS %}
-        {% set info = SECTORS[code] %}
-        {% set t = info.type %}
-        <a href="/tenders?code_f={{ code }}&sort={{ sort }}&q={{ q }}&source_f={{ source_f }}&region_f={{ region_f }}"
-           class="filter-btn {% if code_f==code %}active{% endif %}">
-          <span style="display:flex;align-items:center;gap:6px">
-            <span style="width:8px;height:8px;border-radius:2px;background:{% if t=='T' %}var(--sa){% elif t=='P' %}var(--te){% else %}var(--am){% endif %};flex-shrink:0"></span>
-            {{ info.label[:22] }}
-          </span>
-          <span class="filter-cnt">{{ cnt }}</span>
-        </a>
-        {% endif %}
-        {% endfor %}
-        {% if code_f %}
-        <a href="/tenders?sort={{ sort }}&q={{ q }}&source_f={{ source_f }}&region_f={{ region_f }}"
-           class="filter-btn" style="color:var(--ro)">✕ Réinitialiser</a>
-        {% endif %}
-      </div>
-
-      <!-- Regions -->
-      <div class="filter-section">
-        <div class="filter-title">📍 Région</div>
-        {% for reg, cnt in region_counts.items() %}
-        <a href="/tenders?region_f={{ reg }}&sort={{ sort }}&q={{ q }}&code_f={{ code_f }}&source_f={{ source_f }}"
-           class="filter-btn {% if region_f==reg %}active{% endif %}">
-          <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ reg[:22] }}</span>
-          <span class="filter-cnt">{{ cnt }}</span>
-        </a>
-        {% endfor %}
-        {% if region_f %}
-        <a href="/tenders?sort={{ sort }}&q={{ q }}&code_f={{ code_f }}&source_f={{ source_f }}"
-           class="filter-btn" style="color:var(--ro)">✕ Réinitialiser</a>
-        {% endif %}
-      </div>
-
-    </aside>
-
-    <!-- ── MAIN CONTENT ──────────────────────────────────────────── -->
-    <main>
-
-      <!-- Mobile search bar -->
-      <div style="display:none" class="show-mobile">
-        <form method="get" style="margin-bottom:16px">
-          <div style="position:relative">
-            <span class="search-icon">🔍</span>
-            <input type="text" name="q" class="search-input fld-ctrl" value="{{ q }}"
-                   placeholder="Rechercher un marché…" style="width:100%">
-          </div>
-        </form>
-      </div>
-
-      <!-- Results -->
-      {% if tenders %}
-      <div style="display:grid;gap:10px">
-        {% for t in tenders %}
-        {% set tc = t.domaine_code[:1] if t.domaine_code else 'P' %}
-        {% set dl = t.days_left %}
-        {% set dl_class = 'tc-dl-soon' if t.urgence or (dl is not none and dl <= 7) else ('tc-dl-ok' if t.date_limite else 'tc-dl-none') %}
-        <a href="/tenders/{{ t.id }}" class="tc{% if t.urgence %} urgente{% endif %}"
-           style="--tc-acc:{% if tc=='T' %}var(--sa){% elif tc=='P' %}var(--te){% else %}var(--am){% endif %}">
-          <div style="display:flex;align-items:flex-start;gap:16px">
-            <div style="flex:1;min-width:0">
-              <div class="tc-head">
-                <span class="badge badge-{{ tc }}">{{ t.domaine[:28] }}</span>
-                <span class="badge badge-dim">{{ t.type_marche }}</span>
-                <span class="src-{{ t.source_type }}">{{ t.source_type }}</span>
-                {% if t.urgence %}<span class="badge badge-err" style="font-size:10px">🔴 URGENT</span>{% endif %}
-              </div>
-              <div class="tc-title">{{ t.objet[:95] }}{% if t.objet|length > 95 %}…{% endif %}</div>
-              <div class="tc-meta">
-                {% if t.acheteur %}<span class="tc-mi">🏢 <b>{{ t.acheteur[:55] }}</b></span>{% endif %}
-                <span class="tc-mi">📍 <b>{{ t.region or 'Maroc' }}</b></span>
-                {% if t.date_publication %}<span class="tc-mi">📅 {{ t.date_publication }}</span>{% endif %}
-                <span class="tc-mi" style="margin-left:auto;font-family:var(--ff-m);font-size:10px;color:var(--tx-5)">{{ t.source }}</span>
-              </div>
-            </div>
-            <div style="text-align:right;flex-shrink:0">
-              {% if t.date_limite %}
-              <div class="tc-dl {{ dl_class }}">
-                ⏰ {{ t.date_limite }}
-              </div>
-              {% if dl is not none and dl >= 0 %}
-              <div style="font-family:var(--ff-m);font-size:10px;color:{% if dl <= 7 %}var(--ro){% else %}var(--tx-5){% endif %};margin-top:5px;text-align:right">
-                {{ dl }}j restant{{ 's' if dl > 1 else '' }}
-              </div>
-              {% endif %}
-              {% else %}
-              <div class="tc-dl tc-dl-none">Date ?</div>
-              {% endif %}
-            </div>
-          </div>
-        </a>
-        {% endfor %}
-      </div>
-
-      <!-- Pagination -->
-      {% if pages > 1 %}
-      {% macro purl(p) %}/tenders?page={{ p }}&q={{ q }}&code_f={{ code_f }}&region_f={{ region_f }}&source_f={{ source_f }}&type_f={{ type_f }}&urgence_f={{ urgence_f }}&sort={{ sort }}{% endmacro %}
-      <div class="pag">
-        {% if page > 1 %}<a href="{{ purl(page-1) }}" class="pag-btn">←</a>{% endif %}
-
-        {% for p in range(1, pages+1) %}
-          {% if p == page %}
-            <span class="pag-btn active">{{ p }}</span>
-          {% elif p <= 2 or p >= pages-1 or (p >= page-2 and p <= page+2) %}
-            <a href="{{ purl(p) }}" class="pag-btn">{{ p }}</a>
-          {% elif p == 3 or p == pages-2 %}
-            <span class="pag-dots">…</span>
-          {% endif %}
-        {% endfor %}
-
-        {% if page < pages %}<a href="{{ purl(page+1) }}" class="pag-btn">→</a>{% endif %}
-        <span style="font-size:12px;color:var(--tx-5);margin-left:6px">{{ page }}/{{ pages }}</span>
-      </div>
-      {% endif %}
-
+      {% if page_title %}
+      <div class="slbl mb8">{{ page_title }}</div>
       {% else %}
-      <div style="text-align:center;padding:100px 24px">
-        <div style="font-size:64px;margin-bottom:20px;opacity:.3">🔍</div>
-        <h3 style="font-family:var(--ff-d);font-size:24px;font-weight:700;color:var(--tx-3);margin-bottom:10px">Aucun résultat</h3>
-        <p style="color:var(--tx-5);margin-bottom:24px">Modifiez vos filtres ou attendez le prochain scraping</p>
-        <a href="/tenders" class="btn btn-ghost">Réinitialiser les filtres</a>
-      </div>
+      <div class="slbl mb8">marchespublics.gov.ma · 17 sources</div>
       {% endif %}
-    </main>
+      <h1 style="font-family:var(--serif);font-size:clamp(20px,2.5vw,28px);font-weight:900;font-style:italic;margin:0">
+        {% if page_title %}{{ page_title }}
+        {% else %}{{ total }} marchés actifs
+        {% endif %}
+      </h1>
+    </div>
+    <div class="f g8 fc">
+      <div class="live g6"><div class="ld"></div><span style="font-size:10px;color:var(--ink5)">Mis à jour toutes les 2h</span></div>
+      <a href="/tenders/export?q={{ q }}&code_f={{ code_f }}&region_f={{ region_f }}&easy={{ easy }}" class="btn btn-ghost btn-sm" title="Télécharger CSV">⬇ CSV</a>
+    </div>
   </div>
+
+  <!-- Filters -->
+  <form method="get" action="/tenders" class="filter-bar">
+    <input name="q" value="{{ q }}" placeholder="Rechercher…" class="inp" style="flex:1;min-width:160px;max-width:280px">
+    <select name="code_f" class="sel" style="min-width:80px">
+      <option value="">Tous codes</option>
+      <optgroup label="T — Travaux">
+        {% for s in SECTEURS_LIST %}{% if s[0]=='T' %}<option value="{{ s[:4] }}" {% if code_f==s[:4] %}selected{% endif %}>{{ s[:4] }}</option>{% endif %}{% endfor %}
+      </optgroup>
+      <optgroup label="P — Produits">
+        {% for s in SECTEURS_LIST %}{% if s[0]=='P' %}<option value="{{ s[:4] }}" {% if code_f==s[:4] %}selected{% endif %}>{{ s[:4] }}</option>{% endif %}{% endfor %}
+      </optgroup>
+      <optgroup label="S — Services">
+        {% for s in SECTEURS_LIST %}{% if s[0]=='S' %}<option value="{{ s[:4] }}" {% if code_f==s[:4] %}selected{% endif %}>{{ s[:4] }}</option>{% endif %}{% endfor %}
+      </optgroup>
+    </select>
+    <select name="region_f" class="sel" style="min-width:100px">
+      <option value="">Toutes régions</option>
+      {% for r in regions_list %}<option value="{{ r }}" {% if region_f==r %}selected{% endif %}>{{ r }}</option>{% endfor %}
+    </select>
+    <select name="easy" class="sel" style="min-width:110px">
+      <option value="" {% if easy!='1' %}selected{% endif %}>Tous</option>
+      <option value="1" {% if easy=='1' %}selected{% endif %}>⭐ Faciles (70+)</option>
+    </select>
+    {% if sources_list %}
+    <select name="source_f" class="sel" style="min-width:110px">
+      <option value="">Toutes sources</option>
+      {% for s in sources_list %}<option value="{{ s }}" {% if source_f==s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+    </select>
+    {% endif %}
+    <button type="submit" class="btn btn-gold btn-sm">Filtrer</button>
+    {% if q or code_f or region_f or easy or source_f %}<a href="/tenders" class="btn btn-ghost btn-sm">✕ Réinitialiser</a>{% endif %}
+  </form>
+
+  <!-- Sort -->
+  {% if tenders %}
+  <div class="f fc g6 mb16 flex-wrap">
+    <span style="font-size:10px;color:var(--ink5);text-transform:uppercase;letter-spacing:.08em">Trier:</span>
+    <a href="?q={{ q }}&code_f={{ code_f }}&region_f={{ region_f }}&easy={{ easy }}&sort=score" class="sort-btn {% if sort=='score' or not sort %}active{% endif %}">Score IA</a>
+    <a href="?q={{ q }}&code_f={{ code_f }}&region_f={{ region_f }}&easy={{ easy }}&sort=date" class="sort-btn {% if sort=='date' %}active{% endif %}">Plus récents</a>
+    <a href="?q={{ q }}&code_f={{ code_f }}&region_f={{ region_f }}&easy={{ easy }}&sort=deadline" class="sort-btn {% if sort=='deadline' %}active{% endif %}">Délai proche</a>
+    <span style="margin-left:auto;font-size:10px;color:var(--ink5)">{{ total }} résultats{% if total > tenders|length %} · page {{ page }}/{{ pages }}{% endif %}</span>
+  </div>
+
+  <!-- Grid -->
+  <div class="ga">
+    {% for t in tenders %}
+    <a href="/tenders/{{ t.id }}" class="tcard">
+      <!-- Top bar -->
+      <div class="f fc fb mb10">
+        <div class="f fc fw g4">
+          {% if t.domaine %}<span class="tag td mono" style="font-size:8px">{{ t.domaine[:4] }}</span>{% endif %}
+          {% if t.type_marche %}<span class="tag {% if t.type_marche=='Travaux' %}tb{% elif t.type_marche=='Fournitures' %}tg{% else %}td{% endif %}" style="font-size:8px">{{ t.type_marche }}</span>{% endif %}
+        </div>
+        {% if t.ai_score %}
+        <span class="score-chip {% if t.ai_score>=70 %}sc-hi{% elif t.ai_score>=40 %}sc-mi{% else %}sc-lo{% endif %}">
+          {{ t.ai_score }}{% if t.ai_score >= 70 %} ⭐{% endif %}
+        </span>
+        {% endif %}
+      </div>
+      <!-- Title -->
+      <div style="font-family:var(--serif);font-size:13px;font-weight:700;color:var(--ink2);line-height:1.35;margin-bottom:8px">{{ t.objet[:75] }}{% if t.objet|length > 75 %}…{% endif %}</div>
+      <!-- Acheteur -->
+      {% if t.acheteur %}<div style="font-size:11px;color:var(--ink5);margin-bottom:8px" class="trunc">🏛 {{ t.acheteur[:50] }}</div>{% endif %}
+      <!-- Score bar -->
+      {% if t.ai_score %}<div class="tcard-score-bar"><div style="width:{{ t.ai_score }}%;height:100%;background:{% if t.ai_score>=70 %}var(--grn){% elif t.ai_score>=40 %}var(--g2){% else %}var(--red2){% endif %};border-radius:1px"></div></div>{% endif %}
+      <!-- Footer -->
+      <div class="f fc fb mt10" style="border-top:1px solid var(--bdr);padding-top:8px">
+        {% if t.region %}<span style="font-size:10px;color:var(--ink6)">📍 {{ t.region[:20] }}</span>{% endif %}
+        {% if t.date_limite %}<span style="font-size:10px;color:{% if t.statut=='expire' %}var(--red2){% else %}var(--grn){% endif %}">⏱ {{ t.date_limite }}</span>{% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+
+  <!-- Pagination -->
+  {% if pages > 1 %}
+  <div class="f fc fj g8 mt32 fw">
+    {% if page > 1 %}<a href="?q={{ q }}&code_f={{ code_f }}&region_f={{ region_f }}&easy={{ easy }}&source_f={{ source_f }}&page={{ page-1 }}" class="btn btn-ghost btn-sm">← Précédent</a>{% endif %}
+    {% for p in range([1, page-2]|max, [pages+1, page+3]|min) %}
+    <a href="?q={{ q }}&code_f={{ code_f }}&region_f={{ region_f }}&easy={{ easy }}&source_f={{ source_f }}&page={{ p }}" class="btn {% if p==page %}btn-gold{% else %}btn-ghost{% endif %} btn-sm">{{ p }}</a>
+    {% endfor %}
+    {% if page < pages %}<a href="?q={{ q }}&code_f={{ code_f }}&region_f={{ region_f }}&easy={{ easy }}&source_f={{ source_f }}&page={{ page+1 }}" class="btn btn-ghost btn-sm">Suivant →</a>{% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <!-- Empty state -->
+  <div style="text-align:center;padding:72px 24px">
+    <div style="font-size:40px;opacity:.15;margin-bottom:16px">◈</div>
+    <div style="font-family:var(--serif);font-size:20px;font-weight:700;color:var(--ink4);margin-bottom:8px;font-style:italic">Aucun marché trouvé</div>
+    <div style="font-size:12px;color:var(--ink5);margin-bottom:20px">Essayez de modifier vos filtres ou d'élargir la recherche</div>
+    <a href="/tenders" class="btn btn-ghost btn-sm">Voir tous les marchés</a>
+  </div>
+  {% endif %}
+
+  <!-- Upgrade CTA for free -->
+  {% if not member %}
+  <div class="cta-band mt48">
+    <div style="font-family:var(--serif);font-size:20px;font-weight:900;margin-bottom:8px;font-style:italic">🔔 Recevoir ces marchés sur Telegram</div>
+    <div style="font-size:12px;color:var(--ink4);margin-bottom:20px">Inscription gratuite · Filtrage par secteur · Alertes instantanées</div>
+    <a href="/register" class="btn btn-gold">S'inscrire gratuitement →</a>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

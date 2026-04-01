@@ -1,251 +1,83 @@
 {% extends "base.html" %}
-{% block title %}Paramètres — {{ BRAND }}{% endblock %}
-{% block content %}
-<div class="page" style="max-width:960px">
-
-  <div class="page-hd">
-    <div>
-      <h1 class="page-title">Paramètres</h1>
-      <div class="page-sub">{{ member.email }} · Plan
-        <span class="badge badge-{{ 'am' if member.plan == 'pro' else 'dim' }}">{{ member.plan|upper }}</span>
-      </div>
-    </div>
-    <div style="display:flex;gap:8px">
-      {% if member.plan == 'free' %}
-      <div style="padding:10px 18px;background:var(--am-bg);border:1px solid var(--am-bd);
-                  border-radius:var(--r-md);font-size:12px;color:var(--am-l)">
-        ⬆ Passez Pro pour alertes illimitées + API + Webhooks
-      </div>
-      {% endif %}
-    </div>
+{% block title %}Paramètres  <div class="card mt20 p20" style="border-color:rgba(158,74,74,.15)">
+    <div style="font-family:var(--serif);font-size:16px;font-weight:700;margin-bottom:6px">🔒 Sécurité</div>
+    <p style="font-size:12px;color:var(--ink5);margin-bottom:14px">Modifiez votre mot de passe régulièrement pour sécuriser votre compte.</p>
+    <a href="/settings/password" class="btn btn-ghost btn-sm">Changer le mot de passe →</a>
   </div>
+{% endblock %}
+{% block body %}
 
-  {% if error %}<div class="alert-box alert-err">⚠ {{ error }}</div>{% endif %}
-
-  <!-- Stats rapides -->
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:28px">
-    {% set st = alert_stats %}
-    {% for icon, lbl, val, clr in [
-      ("📡","Via Telegram",   st.get('telegram',0),     "--sa"),
-      ("📧","Via Email",      st.get('email',0),        "--te"),
-      ("🔗","Via Webhook",    st.get('webhook',0),      "--or"),
-      ("★","Bookmarks",       bookmarks|length,          "--am"),
-    ] %}
-    <div class="stat" style="--stat-clr:{{ clr }}">
-      <div class="stat-n">{{ val }}</div>
-      <div class="stat-l">{{ icon }} {{ lbl }}</div>
-    </div>
+<div class="page" style="max-width:640px">
+  <!-- Settings nav -->
+  <div style="display:flex;gap:4px;margin-bottom:32px;border-bottom:1px solid var(--bdr);padding-bottom:0;overflow-x:auto">
+    {% for label,url,icon in [("Profil","/settings","⊞"),("Mot de passe","/settings/password","🔒"),("Notifications","/settings/notifications","🔔"),("Clés API","/settings/api","⌘")] %}
+    <a href="{{ url }}" style="display:flex;align-items:center;gap:6px;padding:8px 14px;font-size:11px;font-weight:600;color:{% if request.url.path==url %}var(--g2){% else %}var(--ink5){% endif %};border-bottom:2px solid {% if request.url.path==url %}var(--g2){% else %}transparent{% endif %};white-space:nowrap;transition:.15s;text-decoration:none;margin-bottom:-1px">
+      {{ icon }} {{ label }}
+    </a>
     {% endfor %}
   </div>
-
-  <form method="post" action="/settings" id="settings-form">
-
-    <div style="display:grid;gap:16px">
-
-      <!-- Profile -->
-      <div class="card">
-        <div class="card-hd"><div class="card-title">👤 Profil</div></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-          <div class="fld">
-            <label class="fld-label" for="nom">Nom</label>
-            <input class="fld-ctrl" type="text" id="nom" name="nom" value="{{ member.nom }}">
-          </div>
-          <div class="fld">
-            <label class="fld-label">Email</label>
-            <input class="fld-ctrl" value="{{ member.email }}" disabled style="opacity:.5">
-          </div>
-          <div class="fld">
-            <label class="fld-label" for="phone">Téléphone</label>
-            <input class="fld-ctrl" type="text" id="phone" name="phone" value="{{ member.phone or '' }}">
-          </div>
-          <div class="fld">
-            <label class="fld-label" for="telegram">Telegram ID</label>
-            <input class="fld-ctrl" type="text" id="telegram" name="telegram" value="{{ member.telegram or '' }}"
-                   placeholder="ID numérique">
-            <div class="fld-hint">Pour recevoir des alertes via <a href="https://t.me/MarchesMarocBot" style="color:var(--am)">@MarchesMarocBot</a></div>
-          </div>
-          <div class="fld">
-            <label class="fld-label" for="password">Nouveau mot de passe</label>
-            <input class="fld-ctrl" type="password" id="password" name="password" placeholder="Laisser vide = inchangé">
-          </div>
-          <div class="fld">
-            <label class="fld-label" for="password2">Confirmer</label>
-            <input class="fld-ctrl" type="password" id="password2" name="password2" placeholder="Répéter">
-          </div>
+<div style="max-width:580px;margin:0 auto;padding:32px var(--pad) 80px">
+  <div class="section-label mb16">Compte</div>
+  <h1 style="font-family:var(--serif);font-size:26px;font-weight:700;margin-bottom:24px">Paramètres</h1>
+  {% if success %}<div class="form-success mb16">{{ success }}</div>{% endif %}
+  {% if error %}<div class="form-error">{{ error }}</div>{% endif %}
+  <div class="card p24">
+    <form method="post" action="/settings">
+      <div class="g2">
+        <div class="form-group">
+          <label class="form-label">Nom *</label>
+          <input type="text" name="nom" class="form-input" value="{{ m.nom }}" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Entreprise</label>
+          <input type="text" name="entreprise" class="form-input" value="{{ m.entreprise or '' }}">
         </div>
       </div>
-
-      <!-- Notifications -->
-      <div class="card">
-        <div class="card-hd"><div class="card-title">📡 Notifications</div></div>
-        <div style="display:flex;flex-wrap:wrap;gap:24px">
-          {% for field, lbl, icon in [
-            ('notif_tg',     'Telegram',          '📡'),
-            ('notif_email',  'Email',              '📧'),
-            ('notif_urgence','Urgents seulement',  '🔴'),
-          ] %}
-          <label class="toggle-wrap" for="tgl_{{ field }}">
-            <div class="toggle-track {% if member.get(field, 1) %}on{% endif %}" id="tgl_{{ field }}_track">
-              <div class="toggle-thumb"></div>
-            </div>
-            <span class="toggle-label">{{ icon }} {{ lbl }}</span>
-            <input type="hidden" name="{{ field }}" id="tgl_{{ field }}" value="{{ '1' if member.get(field,1) else '0' }}">
-          </label>
-          {% endfor %}
+      <div class="g2">
+        <div class="form-group">
+          <label class="form-label">Téléphone</label>
+          <input type="tel" name="phone" class="form-input" value="{{ m.phone or '' }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ville</label>
+          <input type="text" name="ville" class="form-input" value="{{ m.ville or '' }}">
         </div>
       </div>
-
-      <!-- Secteurs -->
-      <div class="card">
-        <div class="card-hd">
-          <div class="card-title">🏷 Secteurs surveillés</div>
-          <div style="font-size:12px;color:var(--tx-5)">Sélection: <span id="sel-count">{{ sel_sect|length }}</span></div>
-        </div>
-        <div style="display:flex;gap:6px;margin-bottom:14px">
-          {% for typ, lbl in [('all','Tous'),('T','Travaux'),('P','Produits'),('S','Services')] %}
-          <button type="button" onclick="filterSectors('{{ typ }}')" id="tab-{{ typ }}" class="btn btn-sm btn-ghost">{{ lbl }}</button>
-          {% endfor %}
-        </div>
-        <div class="sect-grid" id="sect-grid">
-          {% for code, info in SECTORS.items() %}
-          {% set t = info.type %}
-          <div class="sect-item {% if code in sel_sect %}on{% endif %}" data-code="{{ code }}" data-type="{{ t }}"
-               onclick="toggleSect(this, '{{ code }}')">
-            <span class="sect-code">{{ code }}</span>
-            <span class="sect-name">{{ info.label }}</span>
-          </div>
-          {% endfor %}
-        </div>
-        <input type="hidden" name="secteurs" id="secteurs-input" value="{{ sel_sect|join(',') }}">
+      <div class="form-group">
+        <label class="form-label">Secteur principal</label>
+        <select name="secteur" class="form-select">
+          <option value="">— Aucun (tous les marchés) —</option>
+          {% for s in SECTEURS_LIST %}<option value="{{ s }}" {% if m.secteur==s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+        </select>
       </div>
-
-      <!-- Régions -->
-      <div class="card">
-        <div class="card-hd"><div class="card-title">📍 Régions préférées</div></div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px">
-          {% for reg in REGIONS_LIST %}
-          <label style="display:flex;align-items:center;gap:10px;cursor:pointer;
-                        padding:8px 12px;border:1px solid var(--bdr-1);border-radius:var(--r-sm);
-                        transition:border-color .15s">
-            <input type="checkbox" name="_reg_{{ loop.index }}" value="{{ reg }}" class="reg-cb"
-                   {% if reg in sel_reg %}checked{% endif %} style="accent-color:var(--am)">
-            <span style="font-size:12.5px;color:var(--tx-3)">{{ reg }}</span>
-          </label>
-          {% endfor %}
+      <div class="f fc g20 mb16 bt pt12">
+        <label class="f fc g8px" style="cursor:pointer">
+          <input type="checkbox" name="notif_email" {% if m.notif_email %}checked{% endif %}> <span class="t-sm">Alertes Email</span>
+        </label>
+        <label class="f fc g8px" style="cursor:pointer">
+          <input type="checkbox" name="notif_tg" {% if m.notif_tg %}checked{% endif %}> <span class="t-sm">Alertes Telegram</span>
+        </label>
+      </div>
+      <div class="div-h mb16"></div>
+      <div class="section-label mb12">Changer mot de passe (optionnel)</div>
+      <div class="g2">
+        <div class="form-group">
+          <label class="form-label">Mot de passe actuel</label>
+          <input type="password" name="password" class="form-input" placeholder="••••••••">
         </div>
-        <input type="hidden" name="regions_pref" id="regions-input" value="{{ sel_reg|join(',') }}">
+        <div class="form-group">
+          <label class="form-label">Nouveau mot de passe</label>
+          <input type="password" name="password_new" class="form-input" placeholder="Min. 8 chars">
+        </div>
       </div>
-
-    </div>
-
-    <div style="margin-top:20px;display:flex;gap:10px">
-      <button type="submit" class="btn btn-primary btn-lg">Sauvegarder les paramètres</button>
-      <a href="/tenders" class="btn btn-ghost">Annuler</a>
-    </div>
-
-  </form>
-
-  <!-- API Token (Pro) -->
-  {% if member.plan != 'free' %}
-  <div class="card" style="margin-top:16px">
-    <div class="card-hd"><div class="card-title">🔑 Token API</div></div>
-    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-      <div style="flex:1;padding:10px 14px;background:var(--ink-1);border:1px solid var(--bdr-2);
-                  border-radius:var(--r-md);font-family:var(--ff-m);font-size:13px;color:var(--tx-4);
-                  overflow:hidden;text-overflow:ellipsis;white-space:nowrap" id="api-tk">
-        {{ member.api_token or '— Non généré' }}
-      </div>
-      <button class="btn btn-ghost" onclick="genToken()">Générer nouveau token</button>
-    </div>
-  </div>
-  {% endif %}
-
-  <!-- Webhooks (Pro) -->
-  {% if member.plan != 'free' %}
-  <div class="card" style="margin-top:16px">
-    <div class="card-hd"><div class="card-title">🔗 Webhooks</div></div>
-    {% if webhooks %}
-    <table class="tbl" style="margin-bottom:16px">
-      <thead><tr><th>URL</th><th>Secret</th><th>Statut</th></tr></thead>
-      <tbody>
-        {% for w in webhooks %}
-        <tr>
-          <td style="font-family:var(--ff-m);font-size:11px">{{ w.url[:60] }}</td>
-          <td style="font-family:var(--ff-m);font-size:11px;color:var(--tx-5)">{{ w.secret[:20] }}…</td>
-          <td><span class="badge badge-ok">Actif</span></td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-    {% endif %}
-    <form method="post" action="/settings/webhook" style="display:flex;gap:10px;flex-wrap:wrap">
-      <input class="fld-ctrl" type="url" name="url" placeholder="https://your-endpoint.com/webhook" style="flex:1;min-width:200px">
-      <input class="fld-ctrl" type="text" name="secret" placeholder="Secret (optionnel)" style="max-width:200px">
-      <button type="submit" class="btn btn-ghost">Ajouter</button>
+      <button type="submit" class="btn btn-gold btn-full">Enregistrer les modifications →</button>
     </form>
   </div>
-  {% endif %}
-
-  <!-- Bookmarks -->
-  {% if bookmarks %}
-  <div class="card" style="margin-top:16px">
-    <div class="card-hd"><div class="card-title">★ Marchés sauvegardés</div></div>
-    <div style="display:grid;gap:8px">
-      {% for b in bookmarks %}
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;
-                  padding:12px 14px;background:var(--ink-3);border-radius:var(--r-md);border:1px solid var(--bdr-1)">
-        <div>
-          <div style="font-size:13px;color:var(--tx-2);font-weight:600">{{ b.objet[:70] }}</div>
-          <div style="font-size:11px;color:var(--tx-5);margin-top:4px">
-            {{ b.domaine }} · {{ b.date_limite or '?' }}
-          </div>
-        </div>
-        <a href="/tenders/{{ b.tender_id }}" class="btn btn-ghost btn-sm">Voir →</a>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-  {% endif %}
-
+  <div class="tc mt16"><a href="/logout" class="t-sm" style="color:var(--ruby2)">Déconnexion</a></div>
 </div>
-
-<script>
-const selected = new Set({{ sel_sect | tojson }});
-function toggleSect(el, code) {
-  if(selected.has(code)) { selected.delete(code); el.classList.remove('on') }
-  else { selected.add(code); el.classList.add('on') }
-  document.getElementById('sel-count').textContent = selected.size;
-  document.getElementById('secteurs-input').value = [...selected].join(',');
-}
-function filterSectors(typ) {
-  document.querySelectorAll('#sect-grid .sect-item').forEach(el => {
-    el.style.display = (typ==='all' || el.dataset.type===typ) ? '' : 'none';
-  });
-}
-
-// Toggles
-document.querySelectorAll('.toggle-wrap').forEach(wrap => {
-  wrap.addEventListener('click', () => {
-    const trackId = wrap.querySelector('[id$="_track"]').id;
-    const field   = trackId.replace('_track','');
-    const inp     = document.getElementById(field);
-    const track   = document.getElementById(trackId);
-    const newVal  = inp.value === '1' ? '0' : '1';
-    inp.value     = newVal;
-    track.classList.toggle('on', newVal === '1');
-  });
-});
-
-// Regions aggregation on submit
-document.getElementById('settings-form').addEventListener('submit', () => {
-  const regs = [...document.querySelectorAll('.reg-cb:checked')].map(x => x.value);
-  document.getElementById('regions-input').value = regs.join(',');
-});
-
-async function genToken() {
-  const r = await fetch('/settings/api_token', {method:'POST'});
-  const d = await r.json();
-  document.getElementById('api-tk').textContent = d.token;
-}
-</script>
+  <div class="card mt20 p20" style="border-color:rgba(158,74,74,.15)">
+    <div style="font-family:var(--serif);font-size:16px;font-weight:700;margin-bottom:6px">🔒 Sécurité</div>
+    <p style="font-size:12px;color:var(--ink5);margin-bottom:14px">Modifiez votre mot de passe régulièrement pour sécuriser votre compte.</p>
+    <a href="/settings/password" class="btn btn-ghost btn-sm">Changer le mot de passe →</a>
+  </div>
 {% endblock %}

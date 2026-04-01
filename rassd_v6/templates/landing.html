@@ -1,311 +1,208 @@
 {% extends "base.html" %}
-{% block title %}{{ BRAND }} — Alertes Marchés Publics Maroc en Temps Réel{% endblock %}
-{% block content %}
+{% block title %}Modern Business — Veille Marchés Publics Maroc{% endblock %}
+{% block head %}
+<style>
+.hero{min-height:calc(100dvh - var(--nh));display:flex;flex-direction:column;
+  justify-content:center;padding:80px var(--pad) 60px;max-width:var(--max);margin:0 auto;text-align:right}
+.hero::before{content:'';position:absolute;right:-5%;top:10%;width:55%;height:80%;
+  background:radial-gradient(ellipse at 70% 40%,rgba(201,168,76,.04),transparent);pointer-events:none;position:absolute}
+.hero-kicker{display:flex;align-items:center;justify-content:flex-end;gap:10px;
+  font-size:9px;font-weight:700;color:var(--g3);letter-spacing:2.5px;text-transform:uppercase;margin-bottom:20px}
+.hero-h1{font-size:clamp(36px,6vw,80px);font-weight:900;line-height:.95;margin-bottom:24px;
+  letter-spacing:-.04em;font-family:var(--serif)}
+.hero-h1 em{font-style:italic;color:var(--g1);display:block}
+.hero-sub{font-size:clamp(13px,1.5vw,16px);color:var(--ink3);line-height:1.8;
+  max-width:520px;margin-right:0;margin-left:auto;margin-bottom:40px;font-weight:300}
+.hero-cta{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:60px}
+.hero-stats{display:flex;align-items:center;justify-content:flex-end;gap:28px;flex-wrap:wrap;
+  padding-top:24px;border-top:1px solid var(--bdr)}
+.hs-n{font-family:var(--serif);font-size:26px;font-weight:900;color:var(--g1);font-style:italic;display:block;line-height:1}
+.hs-l{font-size:10px;color:var(--ink5);text-transform:uppercase;letter-spacing:.1em}
+.val-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--bdr);
+  border:1px solid var(--bdr);max-width:var(--max);margin:0 auto}
+.val-cell{background:var(--surface);padding:36px 28px;transition:.2s;position:relative;overflow:hidden}
+.val-cell:hover{background:var(--raised)}
+.val-icon{font-size:28px;margin-bottom:16px;opacity:.8}
+.val-title{font-family:var(--serif);font-size:20px;font-weight:700;margin-bottom:8px;color:var(--ink2)}
+.val-desc{font-size:12px;color:var(--ink5);line-height:1.75}
+.val-num{font-family:var(--serif);font-size:42px;font-weight:900;color:var(--g1);
+  font-style:italic;position:absolute;bottom:16px;right:20px;opacity:.08}
+.marquee-wrap{border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr);
+  background:var(--abyss);overflow:hidden;padding:13px 0}
+.marquee-inner{display:flex;gap:48px;white-space:nowrap;animation:scroll 35s linear infinite}
+@keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.mi-item{display:flex;align-items:center;gap:8px;font-size:9px;font-weight:600;
+  color:var(--ink6);text-transform:uppercase;letter-spacing:.1em;flex-shrink:0}
+.mi-dot{width:3px;height:3px;border-radius:50%;background:var(--g4)}
+.plan-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--bdr);
+  border:1px solid var(--bdr);border-radius:var(--r3);overflow:hidden;max-width:860px;margin:0 auto}
+.plan-c{background:var(--surface);padding:32px 24px}
+.plan-c.star{background:var(--raised)}
+.plan-c.star::before{content:'RECOMMANDÉ';position:absolute;top:12px;right:12px;
+  font-size:7px;font-weight:700;color:var(--g3);letter-spacing:2px;
+  padding:3px 8px;border:1px solid rgba(201,168,76,.2);border-radius:99px}
+.plan-c{position:relative}
+.plan-tier{font-size:9px;font-weight:700;color:var(--ink5);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px}
+.plan-name{font-family:var(--serif);font-size:24px;font-weight:900;margin-bottom:16px;font-style:italic}
+.plan-price{font-family:var(--serif);font-size:40px;font-weight:900;color:var(--g1);letter-spacing:-.04em;font-style:italic}
+.plan-per{font-size:11px;color:var(--ink5)}
+.plan-feat{list-style:none;margin:20px 0 24px;display:flex;flex-direction:column;gap:8px}
+.plan-feat li{font-size:11px;color:var(--ink3);display:flex;align-items:flex-start;gap:8px}
+.pf-y{color:var(--grn);flex-shrink:0}.pf-n{color:var(--ink6);flex-shrink:0}
+@media(max-width:768px){.val-grid,.plan-row{grid-template-columns:1fr}}
+@media(max-width:640px){.hero{text-align:center}.hero-cta,.hero-stats{justify-content:center}.hero-sub{margin:0 auto 40px}}
+</style>
+{% endblock %}
+{% block body %}
 
-<!-- ── HERO ──────────────────────────────────────────────────────── -->
-<section style="position:relative;padding:100px 28px 80px;overflow:hidden">
-  <!-- Radial glow -->
-  <div style="position:absolute;top:-100px;left:50%;transform:translateX(-50%);
-              width:800px;height:600px;
-              background:radial-gradient(ellipse at 50% 0%,rgba(233,164,32,.09),transparent 65%);
-              pointer-events:none"></div>
-  <!-- Horizontal line through middle -->
-  <div style="position:absolute;top:50%;left:0;right:0;height:1px;
-              background:linear-gradient(90deg,transparent,rgba(233,164,32,.08),transparent);
-              pointer-events:none"></div>
-
-  <div style="max-width:860px;margin:0 auto;position:relative;text-align:center">
-
-    <!-- Badge -->
-    <div style="display:inline-flex;align-items:center;gap:8px;
-                padding:6px 18px;border-radius:100px;
-                background:var(--am-bg);border:1px solid var(--am-bd);
-                color:var(--am);font-size:11px;font-weight:700;letter-spacing:1px;
-                text-transform:uppercase;margin-bottom:32px">
-      <span style="width:6px;height:6px;background:var(--am);border-radius:50%;animation:pulse-ring 2s infinite"></span>
-      Surveillance 24/7 · marchespublics.gov.ma · ONEE · OCP
-    </div>
-
-    <!-- Headline -->
-    <h1 style="font-family:var(--ff-d);font-size:clamp(40px,7vw,76px);
-               font-weight:800;line-height:1.08;letter-spacing:-2px;
-               margin-bottom:24px;color:var(--tx-1)">
-      Ne ratez plus jamais<br>
-      <span style="color:var(--am)">un marché public</span><br>
-      <span style="color:var(--tx-4)">au Maroc</span>
-    </h1>
-
-    <p style="font-size:clamp(15px,2.5vw,19px);color:var(--tx-4);
-              max-width:580px;margin:0 auto 40px;line-height:1.7">
-      Surveillance automatique de toutes les sources — classification par
-      <strong style="color:var(--tx-3)">47 secteurs</strong> — alerte
-      <strong style="color:var(--tx-3)">Telegram &amp; Email</strong>
-      dès la publication.
-    </p>
-
-    <!-- CTA Buttons -->
-    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:56px">
-      <a href="/register" class="btn btn-primary btn-xl">Commencer gratuitement →</a>
-      <a href="/tenders"  class="btn btn-ghost btn-lg" style="font-size:15px">
-        Voir les marchés actifs ↗
-      </a>
-    </div>
-
-    <!-- Live Stats Bar -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
-                gap:1px;background:var(--bdr-1);border-radius:var(--r-lg);
-                overflow:hidden;border:1px solid var(--bdr-1);max-width:700px;margin:0 auto">
-      {% set items = [
-        (stats.actif,   "Marchés actifs",   "--am"),
-        (stats.urgence, "🔴 Urgents",        "--ro"),
-        (47,            "Secteurs couverts", "--sa"),
-        (stats.members, "Entreprises",       "--te"),
-      ] %}
-      {% for n, lbl, clr in items %}
-      <div style="padding:20px 16px;background:var(--ink-2);text-align:center">
-        <div style="font-family:var(--ff-d);font-size:34px;font-weight:800;
-                    color:{{ clr }};line-height:1;margin-bottom:5px">
-          {{ n | fmt_num }}
-        </div>
-        <div style="font-size:10px;color:var(--tx-5);font-weight:700;
-                    text-transform:uppercase;letter-spacing:.7px">{{ lbl }}</div>
-      </div>
-      {% endfor %}
-    </div>
+<!-- HERO -->
+<section style="position:relative">
+<div class="hero">
+  <div class="hero-kicker">
+    <div class="ld"></div>
+    <span>Mis à jour toutes les 2h</span>
+    <span>18 sources · Maroc 🇲🇦</span>
   </div>
-</section>
-
-<!-- ── SOURCE BADGES ──────────────────────────────────────────────── -->
-<section style="padding:0 28px 60px">
-  <div style="max-width:900px;margin:0 auto;text-align:center">
-    <div style="font-size:11px;color:var(--tx-5);text-transform:uppercase;letter-spacing:.8px;font-weight:700;margin-bottom:16px">
-      Sources surveillées en continu
-    </div>
-    <div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center">
-      {% set sources = [
-        ("🏛 Marchés Publics","public","marchespublics.gov.ma"),
-        ("⚡ ONEE","parastatal","onee.ma"),
-        ("💎 OCP Group","parastatal","ocpgroup.com"),
-        ("✈ Royal Air Maroc","parastatal","royalairmaroc.com"),
-        ("🚂 ONCF","parastatal","oncf.ma"),
-        ("📰 Journal Al Alam","journal","alalame.com"),
-      ] %}
-      {% for lbl, typ, url in sources %}
-      <div style="display:flex;align-items:center;gap:8px;padding:10px 18px;
-                  background:var(--ink-2);border:1px solid var(--bdr-2);border-radius:100px;
-                  font-size:13px;font-weight:500;color:var(--tx-3)">
-        {{ lbl }}
-        <span class="src-{{ typ }}">{{ typ }}</span>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-
-<!-- ── HOW IT WORKS ───────────────────────────────────────────────── -->
-<section style="padding:0 28px 80px">
-  <div style="max-width:1100px;margin:0 auto">
-
-    <div style="text-align:center;margin-bottom:52px">
-      <h2 style="font-family:var(--ff-d);font-size:clamp(26px,4vw,40px);font-weight:800;letter-spacing:-.5px;margin-bottom:12px">
-        Intelligence automatisée
-      </h2>
-      <p style="color:var(--tx-4);font-size:15px">Du scraping à l'alerte en quelques secondes</p>
-    </div>
-
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px">
-      {% set steps = [
-        ("01","Collecte","🔍","Notre robot scrute toutes les sources marocaines en continu — marchés publics, parastataux, journaux légaux.","--sa"),
-        ("02","Classification IA","🧠","Chaque marché est classifié dans l'un des 47 secteurs par analyse linguistique multilingue (FR/AR).","--am"),
-        ("03","Filtrage précis","⚙","Vous définissez vos secteurs, régions et types de marchés. Seul ce qui vous correspond vous parvient.","--or"),
-        ("04","Alerte instantanée","📡","Telegram ou Email envoyé dans les minutes suivant la publication. Zéro délai, zéro manqué.","--te"),
-      ] %}
-      {% for num, title, icon, desc, clr in steps %}
-      <div style="padding:28px;background:var(--ink-2);border:1px solid var(--bdr-1);
-                  border-radius:var(--r-xl);position:relative;overflow:hidden;
-                  transition:border-color .2s">
-        <div style="position:absolute;bottom:-16px;right:-8px;font-family:var(--ff-d);
-                    font-size:90px;font-weight:900;color:var(--ink-3);line-height:1;
-                    user-select:none;pointer-events:none">{{ num }}</div>
-        <div style="width:46px;height:46px;background:rgba(from {{ clr }} r g b / .08);
-                    border:1px solid rgba(from {{ clr }} r g b / .18);
-                    border-radius:var(--r-lg);display:flex;align-items:center;
-                    justify-content:center;font-size:22px;margin-bottom:18px;position:relative">
-          {{ icon }}
-        </div>
-        <h3 style="font-family:var(--ff-d);font-size:17px;font-weight:700;margin-bottom:10px">{{ title }}</h3>
-        <p style="font-size:13px;color:var(--tx-4);line-height:1.65;position:relative">{{ desc }}</p>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-
-<!-- ── SECTORS PREVIEW ────────────────────────────────────────────── -->
-<section style="padding:0 28px 80px">
-  <div style="max-width:1000px;margin:0 auto">
-    <div style="text-align:center;margin-bottom:36px">
-      <h2 style="font-family:var(--ff-d);font-size:28px;font-weight:800;margin-bottom:8px">47 secteurs classifiés</h2>
-      <p style="color:var(--tx-4);font-size:14px">
-        <span style="color:var(--sa)">● Travaux</span> &nbsp;
-        <span style="color:var(--te)">● Produits</span> &nbsp;
-        <span style="color:var(--am)">● Services</span>
-      </p>
-    </div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">
-      {% for code, info in SECTORS.items() %}
-      {% set t = info.type %}
-      <span style="padding:5px 14px;border-radius:100px;font-size:11.5px;font-weight:600;
-        background:{% if t=='T' %}var(--sa-bg){% elif t=='P' %}var(--te-bg){% else %}var(--am-bg){% endif %};
-        color:{% if t=='T' %}var(--sa){% elif t=='P' %}var(--te){% else %}var(--am){% endif %};
-        border:1px solid {% if t=='T' %}var(--sa-bd){% elif t=='P' %}var(--te-bd){% else %}var(--am-bd){% endif %}">
-        {{ code }} · {{ info.label[:28] }}
-      </span>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-
-<!-- ── LATEST TENDERS PREVIEW ────────────────────────────────────── -->
-{% if recent %}
-<section style="padding:0 28px 80px">
-  <div style="max-width:900px;margin:0 auto">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px">
-      <h2 style="font-family:var(--ff-d);font-size:24px;font-weight:800">Derniers marchés publiés</h2>
-      {% if member %}<a href="/tenders" class="btn btn-ghost btn-sm">Voir tous →</a>{% endif %}
-    </div>
-
-    <div style="display:grid;gap:10px">
-      {% for t in recent %}
-      {% set tc = t.domaine_code[:1] if t.domaine_code else 'P' %}
-      {% set dl_class = 'tc-dl-soon' if t.urgence else ('tc-dl-ok' if t.date_limite else 'tc-dl-none') %}
-      <div class="tc{% if t.urgence %} urgente{% endif %}" style="--tc-acc:{% if tc=='T' %}var(--sa){% elif tc=='P' %}var(--te){% else %}var(--am){% endif %};
-        {% if not member %}opacity:.5;pointer-events:none;filter:blur(0.5px){% endif %}">
-        <div class="tc-head">
-          <span class="badge badge-{{ tc }}">{{ t.domaine[:30] }}</span>
-          <span class="badge badge-dim">{{ t.type_marche }}</span>
-          <span class="src-{{ t.source_type }}">{{ t.source_type }}</span>
-          {% if t.urgence %}<span class="badge badge-err">🔴 URGENT</span>{% endif %}
-        </div>
-        <div class="tc-title">{{ t.objet[:90] }}{% if t.objet|length > 90 %}…{% endif %}</div>
-        <div class="tc-meta">
-          {% if t.acheteur %}<span class="tc-mi">🏢 <b>{{ t.acheteur[:50] }}</b></span>{% endif %}
-          <span class="tc-mi">📍 <b>{{ t.region or 'Maroc' }}</b></span>
-          {% if t.date_limite %}
-          <span class="tc-dl {{ dl_class }}">⏰ {{ t.date_limite }}</span>
-          {% endif %}
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-
-    {% if not member %}
-    <div style="margin-top:28px;padding:28px;background:var(--am-bg);border:1px solid var(--am-bd);
-                border-radius:var(--r-xl);text-align:center">
-      <p style="color:var(--tx-3);margin-bottom:18px;font-size:14px">
-        Inscrivez-vous gratuitement pour accéder à tous les marchés et configurer vos alertes
-      </p>
-      <a href="/register" class="btn btn-primary btn-lg">Créer mon compte gratuit →</a>
-    </div>
+  <h1 class="hero-h1 up">
+    Ne ratez plus<br>
+    aucun appel d'offres<br>
+    <em>au Maroc</em>
+  </h1>
+  <p class="hero-sub up d2">
+    Modern Business surveille marchespublics.gov.ma et 17 autres sources officielles 24h/24.
+    Recevez uniquement les marchés de votre secteur, directement sur <strong>Telegram</strong>.
+  </p>
+  <div class="hero-cta up d3">
+    {% if member %}
+    <a href="/tenders" class="btn btn-gold btn-xl">Accéder aux marchés →</a>
+    <a href="/dashboard" class="btn btn-wire btn-xl">Mon espace</a>
+    {% else %}
+    <a href="/register" class="btn btn-gold btn-xl">Commencer gratuitement →</a>
+    <a href="/tarifs" class="btn btn-wire btn-xl">Voir les tarifs</a>
     {% endif %}
   </div>
+  <div class="hero-stats up d4">
+    <div><span class="hs-n">{{ stats.tenders_active or '0' }}</span><span class="hs-l">Marchés actifs</span></div>
+    <div style="width:1px;height:32px;background:var(--bdr)"></div>
+    <div class="hide-m"><span class="hs-n">18</span><span class="hs-l">Sources officielles</span></div>
+    <div style="width:1px;height:32px;background:var(--bdr)" class="hide-m"></div>
+    <div class="hide-m"><span class="hs-n">{{ stats.easy_to_win or '0' }}</span><span class="hs-l">Faciles à gagner</span></div>
+    <div style="width:1px;height:32px;background:var(--bdr)" class="hide-m"></div>
+    <div class="hide-m"><span class="hs-n">{{ stats.members or '0' }}</span><span class="hs-l">Entreprises</span></div>
+  </div>
+</div>
 </section>
-{% endif %}
 
-<!-- ── PLANS ──────────────────────────────────────────────────────── -->
-<section style="padding:0 28px 80px">
-  <div style="max-width:900px;margin:0 auto">
-    <div style="text-align:center;margin-bottom:48px">
-      <h2 style="font-family:var(--ff-d);font-size:30px;font-weight:800;margin-bottom:8px">Tarification transparente</h2>
-      <p style="color:var(--tx-4)">Commencez gratuitement, évoluez selon vos besoins</p>
+<!-- MARQUEE sources -->
+<div class="marquee-wrap">
+  <div class="marquee-inner">
+    {% for s in ["marchespublics.gov.ma","annonces.lematin.ma","ofppt.ma","chumarrakech.ma","tanmia.ma","lydec.ma","oncf.ma","redal.ma","amendis.ma","anp.org.ma","finances.gov.ma","flasheconomie.com","leconomiste.com","lavieeco.com","marsamaroc.co.ma","adm.co.ma","tangermed.ma","aujourd'hui.ma"] %}
+    <div class="mi-item"><div class="mi-dot"></div>{{ s }}</div>{% endfor %}
+    {% for s in ["marchespublics.gov.ma","annonces.lematin.ma","ofppt.ma","chumarrakech.ma","tanmia.ma","lydec.ma","oncf.ma","redal.ma","amendis.ma","anp.org.ma"] %}
+    <div class="mi-item"><div class="mi-dot"></div>{{ s }}</div>{% endfor %}
+  </div>
+</div>
+
+<!-- STATS BAND -->
+<div class="sband" style="grid-template-columns:repeat(4,1fr)">
+  <div class="sc2"><div class="sn">{{ stats.tenders_total or '—' }}</div><div class="sl">Total marchés</div></div>
+  <div class="sc2"><div class="sn">{{ stats.tenders_active or '—' }}</div><div class="sl">Actifs</div></div>
+  <div class="sc2"><div class="sn">{{ stats.easy_to_win or '—' }}</div><div class="sl">Score ≥ 70</div></div>
+  <div class="sc2"><div class="sn">{{ stats.members or '—' }}</div><div class="sl">Membres</div></div>
+</div>
+
+<!-- VALEURS / CE QUE VOUS OBTENEZ -->
+<section style="padding:80px 0 0">
+  <div class="wrap mb32" style="text-align:right">
+    <div class="slbl mb12">Ce que vous obtenez</div>
+    <h2 style="font-family:var(--serif);font-size:clamp(24px,3.5vw,44px);font-weight:900;max-width:500px;margin-right:0;margin-left:auto;line-height:1.05">
+      L'intelligence des marchés<br><em style="color:var(--g1)">à portée de main</em>
+    </h2>
+  </div>
+  <div class="val-grid">
+    {% for icon,title,desc,n in [
+      ("◈","Veille automatique","18 sources surveillées 24h/24. Alerté avant vos concurrents dès qu'un marché correspond à votre secteur.","01"),
+      ("⊡","Alertes Telegram","Notification push instantanée sur votre téléphone. Aucun email perdu, aucun délai. Répondez en temps réel.","02"),
+      ("◎","Score IA 0-100","Chaque marché est évalué par notre IA. Score 70+ = opportunité accessible aux PME. Concentrez vos efforts.","03"),
+      ("⊛","47 codes T/P/S","Filtrage précis par code officiel Travaux / Produits / Services. Vous ne recevez que ce qui concerne votre activité.","04"),
+      ("⊞","Résultats d'attribution","Consultez qui a remporté les marchés passés. Analysez la concurrence et ajustez vos offres.","05"),
+      ("◉","Marketplace B2B","Publiez vos offres, trouvez des sous-traitants, constituez des groupements. Annuaire 🇲🇦.","06"),
+    ] %}
+    <div class="val-cell">
+      <div class="val-icon">{{ icon }}</div>
+      <div class="val-title">{{ title }}</div>
+      <div class="val-desc">{{ desc }}</div>
+      <div class="val-num">{{ n }}</div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px">
-      <!-- Free -->
-      <div style="padding:32px;background:var(--ink-2);border:1px solid var(--bdr-2);border-radius:var(--r-xl)">
-        <div style="font-family:var(--ff-m);font-size:11px;color:var(--tx-5);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">GRATUIT</div>
-        <div style="font-family:var(--ff-d);font-size:40px;font-weight:800;color:var(--tx-1);margin-bottom:4px">0 MAD</div>
-        <div style="font-size:12px;color:var(--tx-5);margin-bottom:24px">Pour toujours</div>
-        <ul style="list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:28px">
-          {% for item in ["Marchespublics.gov.ma","10 alertes/jour","Tous les secteurs","Telegram + Email"] %}
-          <li style="display:flex;gap:8px;font-size:13px;color:var(--tx-3)">
-            <span style="color:var(--te)">✓</span> {{ item }}
-          </li>
-          {% endfor %}
-        </ul>
-        <a href="/register" class="btn btn-outline btn-blk">Commencer gratuitement</a>
-      </div>
-      <!-- Pro -->
-      <div style="padding:32px;background:var(--ink-2);border:2px solid var(--am-bd);border-radius:var(--r-xl);position:relative;overflow:hidden">
-        <div style="position:absolute;top:16px;right:16px;padding:3px 10px;background:var(--am);
-                    color:var(--ink-0);border-radius:100px;font-size:10px;font-weight:700">Recommandé</div>
-        <div style="font-family:var(--ff-m);font-size:11px;color:var(--am);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">PRO</div>
-        <div style="font-family:var(--ff-d);font-size:40px;font-weight:800;color:var(--am);margin-bottom:4px">499 MAD</div>
-        <div style="font-size:12px;color:var(--tx-5);margin-bottom:24px">par mois</div>
-        <ul style="list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:28px">
-          {% for item in ["Toutes les sources","Alertes illimitées","API REST access","Webhooks","Export CSV","Support prioritaire"] %}
-          <li style="display:flex;gap:8px;font-size:13px;color:var(--tx-3)">
-            <span style="color:var(--am)">✓</span> {{ item }}
-          </li>
-          {% endfor %}
-        </ul>
-        <a href="/register" class="btn btn-primary btn-blk">Démarrer en Pro</a>
-      </div>
-      <!-- Enterprise -->
-      <div style="padding:32px;background:var(--ink-2);border:1px solid var(--bdr-2);border-radius:var(--r-xl)">
-        <div style="font-family:var(--ff-m);font-size:11px;color:var(--or);letter-spacing:1px;text-transform:uppercase;margin-bottom:12px">ENTERPRISE</div>
-        <div style="font-family:var(--ff-d);font-size:40px;font-weight:800;color:var(--tx-1);margin-bottom:4px">Sur devis</div>
-        <div style="font-size:12px;color:var(--tx-5);margin-bottom:24px">Volume & personnalisation</div>
-        <ul style="list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:28px">
-          {% for item in ["Multi-utilisateurs","SLA garanti","Sources personnalisées","Intégration ERP","Formation incluse","Contrat annuel"] %}
-          <li style="display:flex;gap:8px;font-size:13px;color:var(--tx-3)">
-            <span style="color:var(--or)">✓</span> {{ item }}
-          </li>
-          {% endfor %}
-        </ul>
-        <a href="mailto:contact@rassd.ma" class="btn btn-outline btn-blk">Nous contacter</a>
-      </div>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- PLANS -->
+<section style="padding:80px var(--pad)">
+  <div class="wrap mb40" style="text-align:center">
+    <div class="slbl mb12" style="justify-content:center">Tarification simple</div>
+    <h2 style="font-family:var(--serif);font-size:clamp(24px,3.5vw,44px);font-weight:900;font-style:italic">
+      Commencez gratuitement
+    </h2>
+    <p style="color:var(--ink4);font-size:13px;margin-top:10px">Sans carte bancaire · Annulez quand vous voulez</p>
+  </div>
+  <div class="plan-row">
+    <div class="plan-c">
+      <div class="plan-tier">Plan 01</div>
+      <div class="plan-name">Gratuit</div>
+      <div><span class="plan-price">0</span><span class="plan-per"> DH/mois</span></div>
+      <ul class="plan-feat">
+        <li><span class="pf-y">✓</span> Inscription & profil</li>
+        <li><span class="pf-y">✓</span> Marketplace B2B</li>
+        <li><span class="pf-y">✓</span> Annuaire entreprises</li>
+        <li><span class="pf-n">×</span> <span style="color:var(--ink5)">Accès aux marchés</span></li>
+        <li><span class="pf-n">×</span> <span style="color:var(--ink5)">Alertes Telegram</span></li>
+      </ul>
+      <a href="/register" class="btn btn-ghost btn-full btn-sm">S'inscrire →</a>
+    </div>
+    <div class="plan-c star">
+      <div class="plan-tier">Plan 02</div>
+      <div class="plan-name">Pro</div>
+      <div><span class="plan-price">99</span><span class="plan-per"> DH/mois</span></div>
+      <ul class="plan-feat">
+        <li><span class="pf-y">✓</span> <b>Tous les marchés actifs</b></li>
+        <li><span class="pf-y">✓</span> <b>Alertes Telegram instantanées</b></li>
+        <li><span class="pf-y">✓</span> Score IA & filtres T/P/S</li>
+        <li><span class="pf-y">✓</span> Export CSV</li>
+        <li><span class="pf-y">✓</span> Digest hebdomadaire</li>
+      </ul>
+      <a href="/contact?subject=Abonnement+Pro" class="btn btn-gold btn-full btn-sm">Activer Pro →</a>
+    </div>
+    <div class="plan-c">
+      <div class="plan-tier">Plan 03</div>
+      <div class="plan-name">Entreprise</div>
+      <div><span class="plan-price">299</span><span class="plan-per"> DH/mois</span></div>
+      <ul class="plan-feat">
+        <li><span class="pf-y">✓</span> Tout le plan Pro</li>
+        <li><span class="pf-y">✓</span> Jusqu'à 5 utilisateurs</li>
+        <li><span class="pf-y">✓</span> API REST dédiée</li>
+        <li><span class="pf-y">✓</span> Webhooks</li>
+        <li><span class="pf-y">✓</span> Support dédié</li>
+      </ul>
+      <a href="/contact?subject=Abonnement+Entreprise" class="btn btn-wire btn-full btn-sm">Nous contacter →</a>
     </div>
   </div>
 </section>
 
-<!-- ── CTA FINAL ──────────────────────────────────────────────────── -->
-<section style="padding:0 28px 100px">
-  <div style="max-width:680px;margin:0 auto;text-align:center;
-              padding:64px 44px;background:var(--ink-2);border:1px solid var(--bdr-2);
-              border-radius:var(--r-xl);position:relative;overflow:hidden">
-    <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,var(--am-bg),transparent 65%);pointer-events:none"></div>
-    <div style="position:relative">
-      <div style="font-family:var(--ff-m);font-size:11px;color:var(--am-d);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:16px">
-        Démarrez maintenant
-      </div>
-      <h2 style="font-family:var(--ff-d);font-size:clamp(24px,4vw,36px);font-weight:900;margin-bottom:14px;letter-spacing:-.5px">
-        Votre prochaine opportunité<br>vous attend déjà
-      </h2>
-      <p style="color:var(--tx-4);font-size:14px;margin-bottom:32px;line-height:1.7;max-width:420px;margin-left:auto;margin-right:auto">
-        Inscription gratuite · Alertes en temps réel · 47 secteurs · Sources multiples
-      </p>
-      <a href="/register" class="btn btn-primary btn-xl">Créer mon compte gratuit →</a>
+<!-- CTA FINAL -->
+<section style="padding:0 var(--pad) 80px">
+  <div class="cta-band" style="max-width:var(--max);margin:0 auto">
+    <div class="slbl mb14" style="justify-content:center">Prêt à commencer ?</div>
+    <h2 style="font-family:var(--serif);font-size:clamp(26px,4vw,50px);font-weight:900;margin-bottom:12px;font-style:italic">
+      Votre prochain marché<br><span style="color:var(--g1)">vous attend</span>
+    </h2>
+    <p style="color:var(--ink4);font-size:13px;margin-bottom:28px">Inscription en 30 secondes</p>
+    <div class="f fj g12 fw">
+      <a href="/register" class="btn btn-gold btn-xl">Créer mon compte →</a>
+      <a href="/tarifs" class="btn btn-wire btn-xl">Voir tous les tarifs</a>
     </div>
   </div>
 </section>
-
-<!-- ── FOOTER ──────────────────────────────────────────────────────── -->
-<footer style="border-top:1px solid var(--bdr-1);padding:28px;text-align:center">
-  <div style="max-width:var(--max-w);margin:0 auto;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
-    <div style="font-size:12px;color:var(--tx-5)">
-      © {{ now.year }} <strong style="color:var(--tx-4)">{{ BRAND }}</strong> — {{ TAGLINE }} · Maroc
-    </div>
-    <div style="display:flex;gap:16px;font-size:12px">
-      <a href="/health"    style="color:var(--tx-5)">API Status</a>
-      <a href="/sitemap.xml" style="color:var(--tx-5)">Sitemap</a>
-      <a href="/admin/login" style="color:var(--tx-5)">Admin</a>
-    </div>
-    {% if last_run %}
-    <div style="font-family:var(--ff-m);font-size:10px;color:var(--tx-5)">
-      Dernier scrape: {{ last_run.started_at }} · {{ last_run.saved }} sauvegardés
-    </div>
-    {% endif %}
-  </div>
-</footer>
 
 {% endblock %}
