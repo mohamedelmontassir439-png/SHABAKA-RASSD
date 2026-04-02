@@ -1111,7 +1111,7 @@ class PublicOrgsScraper:
 SEMI_PUBLIC_PORTAILS = [
     # MARSA Maroc — même moteur que marchespublics (scan ID)
     {"source":"marsa","base":"https://achats.marsamaroc.co.ma/bdc/entreprise/consultation",
-     "acheteur":"MARSA Maroc — Gestion des Ports","region":"Maroc","start_id":1000},
+     "acheteur":"MARSA Maroc — Gestion des Ports","region":"Maroc","start_id":2000},
     # ADM Autoroutes — même moteur (scan ID)
     {"source":"adm","base":"https://achats.adm.co.ma/bdc/entreprise/consultation",
      "acheteur":"ADM — Autoroutes du Maroc","region":"Maroc","start_id":1000},

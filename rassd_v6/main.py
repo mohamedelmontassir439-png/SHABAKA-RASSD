@@ -705,7 +705,7 @@ class ScraperAgent:
         db.close()
 
         # Trouver le plus grand ID bdc_XXXXX connu
-        max_id = 310000
+        max_id = 310000  # minimum absolu
         for k in known:
             if k.startswith("bdc_"):
                 try:
@@ -713,11 +713,16 @@ class ScraperAgent:
                     if n > max_id: max_id = n
                 except: pass
 
-        # Scan 50 en arrière + 300 en avant depuis max connu
-        start_id = max(310000, max_id - 50)
-        end_id   = max_id + 300
+        # Si aucun ID connu récent, commencer à 312000+
+        if max_id < 311000:
+            max_id = 312000
+
+        # Scan: 30 en arrière (rattrapage) + 500 en avant (nouveaux)
+        start_id = max(max_id - 30, 310000)
+        end_id   = max_id + 500
         scan_ids = [str(i) for i in range(start_id, end_id + 1)
                     if f"bdc_{i}" not in known]
+        SLog.add(f"Max connu: #{max_id} | Scan #{start_id}→#{end_id} ({len(scan_ids)} IDs)")
 
         SState.total = len(scan_ids)
         SLog.add(f"Max connu: #{max_id} | Scan #{start_id}→#{end_id} ({len(scan_ids)} IDs)")
