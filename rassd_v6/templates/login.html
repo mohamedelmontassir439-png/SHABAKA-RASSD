@@ -1,61 +1,16 @@
 {% extends "base.html" %}
-{% block title %}Connexion — Modern Business{% endblock %}
+{% block title %}Connexion — RASSD{% endblock %}
 {% block body %}
-<div style="min-height:calc(100dvh - var(--nh));display:grid;grid-template-columns:1fr 1fr;max-width:var(--max);margin:0 auto">
-
-  <!-- Left: branding panel (desktop only) -->
-  <div class="hide-m" style="padding:60px var(--pad);display:flex;flex-direction:column;justify-content:space-between;border-right:1px solid var(--bdr);position:relative;overflow:hidden">
-    <div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 20% 50%,rgba(201,168,76,.04),transparent);pointer-events:none"></div>
-    <div>
-      <div class="ngem" style="width:28px;height:28px;margin-bottom:20px"></div>
-      <h2 style="font-family:var(--serif);font-size:clamp(28px,3vw,44px);font-weight:900;line-height:1.05;margin-bottom:16px;font-style:italic">
-        Intelligence<br>marchés publics<br><span style="color:var(--g1)">Maroc</span>
-      </h2>
-      <p style="font-size:12px;color:var(--ink5);line-height:1.75;max-width:320px">
-        18 sources officielles · 5 agents IA · Alertes Telegram instantanées
-      </p>
-    </div>
-    <div>
-      <div class="div-h mb20"></div>
-      {% if stats %}
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-        <div><div style="font-family:var(--serif);font-size:24px;font-weight:900;color:var(--g2);font-style:italic">{{ stats.tenders_active }}</div><div style="font-size:9px;color:var(--ink5);text-transform:uppercase;letter-spacing:1px">Marchés actifs</div></div>
-        <div><div style="font-family:var(--serif);font-size:24px;font-weight:900;color:var(--g2);font-style:italic">{{ stats.members }}</div><div style="font-size:9px;color:var(--ink5);text-transform:uppercase;letter-spacing:1px">Membres</div></div>
-      </div>
-      {% endif %}
-    </div>
+<div class="page-sm">
+  <div style="text-align:center;margin-bottom:32px">
+    <div style="font-family:var(--serif);font-size:28px;font-weight:700;font-style:italic;color:var(--gold);margin-bottom:8px">Connexion</div>
   </div>
-
-  <!-- Right: form -->
-  <div style="display:flex;align-items:center;justify-content:center;padding:60px var(--pad)">
-    <div style="width:100%;max-width:360px">
-      <div class="slbl mb16">Espace membre</div>
-      <h1 style="font-family:var(--serif);font-size:28px;font-weight:900;margin-bottom:6px;font-style:italic">Connexion</h1>
-      <p style="font-size:12px;color:var(--ink5);margin-bottom:28px">Accédez à vos alertes et marchés favoris</p>
-
-      {% if reset %}<div class="ok">✓ Mot de passe modifié</div>{% endif %}
-      {% if error %}<div class="err">{{ error }}</div>{% endif %}
-
-      <form method="post" action="/login">
-        <div class="fg">
-          <label class="lbl">Email</label>
-          <input type="email" name="email" class="inp" placeholder="vous@entreprise.ma" required autofocus>
-        </div>
-        <div class="fg">
-          <div class="f fc fb mb5">
-            <label class="lbl" style="margin:0">Mot de passe</label>
-            <a href="/forgot" style="font-size:9px;color:var(--ink5);letter-spacing:.03em">Oublié ?</a>
-          </div>
-          <input type="password" name="password" class="inp" placeholder="••••••••" required>
-        </div>
-        <button type="submit" class="btn btn-gold btn-full btn-lg mt4">Se connecter →</button>
-      </form>
-
-      <div class="div-h mt24 mb20"></div>
-      <div style="text-align:center;font-size:12px;color:var(--ink5)">
-        Pas encore inscrit? <a href="/register" style="color:var(--g2);font-weight:600">Créer un compte gratuit</a>
-      </div>
-    </div>
-  </div>
+  {% if err %}<div style="background:rgba(232,96,96,.1);border:1px solid rgba(232,96,96,.3);border-radius:var(--r);padding:12px 16px;color:var(--red);font-size:13px;margin-bottom:20px">{{ err }}</div>{% endif %}
+  <form method="post" style="display:flex;flex-direction:column;gap:16px">
+    <div><label>Email</label><input name="email" type="email" class="inp" required></div>
+    <div><label>Mot de passe</label><input name="pw" type="password" class="inp" required></div>
+    <button type="submit" class="btn btn-gold btn-full" style="padding:12px">Se connecter →</button>
+    <div style="text-align:center;font-size:12px;color:var(--ink4)">Pas de compte? <a href="/register" style="color:var(--gold)">S'inscrire</a></div>
+  </form>
 </div>
 {% endblock %}

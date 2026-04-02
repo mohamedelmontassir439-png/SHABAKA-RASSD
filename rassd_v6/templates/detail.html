@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}{{ t.objet[:60] }} — RASSD{% endblock %}
+{% block body %}
+<div class="page" style="max-width:800px">
+  <a href="/tenders" style="display:inline-flex;align-items:center;gap:6px;color:var(--ink4);font-size:12px;margin-bottom:24px;transition:.15s" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--ink4)'">← Retour aux marchés</a>
+
+  <div class="card" style="padding:32px;margin-bottom:20px">
+    <!-- Badges -->
+    <div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap">
+      <span class="badge badge-gold">{{ t.secteur }}</span>
+      <span class="badge" style="background:var(--raised);color:var(--ink3);font-size:9px">marchespublics.gov.ma</span>
+    </div>
+
+    <!-- Title -->
+    <h1 style="font-family:var(--serif);font-size:clamp(18px,3vw,26px);font-weight:700;font-style:italic;color:var(--ink1);line-height:1.4;margin-bottom:24px">{{ t.objet }}</h1>
+
+    <!-- Key Info Grid -->
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--bdr);border:1px solid var(--bdr);border-radius:var(--r);overflow:hidden;margin-bottom:24px">
+      {% for icon,label,val,color in [
+        ('🏢','Acheteur',t.acheteur or '—','var(--ink2)'),
+        ('🏷','Secteur',t.secteur,'var(--gold)'),
+        ('📅','Publication',t.date_publication or '—','var(--ink2)'),
+        ('⏰','Date limite',t.date_limite or '—','var(--red)'),
+        ('💰','Montant',t.montant or '—','var(--grn)'),
+        ('📁','Source','marchespublics.gov.ma','var(--ink3)'),
+      ] %}
+      <div style="background:var(--surface);padding:16px">
+        <div style="font-size:10px;color:var(--ink4);letter-spacing:.5px;text-transform:uppercase;margin-bottom:6px">{{ icon }} {{ label }}</div>
+        <div style="font-size:13px;font-weight:600;color:{{ color }}">{{ val }}</div>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% set dl = days_left(t.date_limite) %}
+    {% if dl %}
+    <div style="background:{% if 'Expiré' in dl %}rgba(232,96,96,.1){% elif '🔥' in dl %}rgba(240,160,48,.1){% else %}rgba(62,203,122,.08){% endif %};border:1px solid {% if 'Expiré' in dl %}rgba(232,96,96,.3){% elif '🔥' in dl %}rgba(240,160,48,.3){% else %}rgba(62,203,122,.2){% endif %};border-radius:var(--r);padding:14px 18px;margin-bottom:24px">
+      <span style="font-size:13px;font-weight:700;color:{% if 'Expiré' in dl %}var(--red){% elif '🔥' in dl %}#f0a030{% else %}var(--grn){% endif %}">{{ dl }}</span>
+      {% if t.date_limite %}<span style="font-size:12px;color:var(--ink3);margin-left:8px">— Date limite: {{ t.date_limite }}</span>{% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <a href="{{ t.url }}" target="_blank" class="btn btn-gold">Voir sur marchespublics.gov.ma ↗</a>
+      <button onclick="navigator.clipboard.writeText('{{ t.url }}');document.getElementById('toast').textContent='✓ Lien copié';document.getElementById('toast').style.display='block';setTimeout(()=>document.getElementById('toast').style.display='none',2500)" class="btn btn-ghost btn-sm">📋 Copier le lien</button>
+    </div>
+  </div>
+
+  <!-- Description -->
+  {% if t.description and t.description|length > 50 %}
+  <div class="card" style="padding:28px">
+    <h3 style="font-size:13px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:16px">Description complète</h3>
+    <div style="font-size:13px;color:var(--ink3);line-height:1.8;white-space:pre-wrap">{{ t.description[:3000] }}</div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

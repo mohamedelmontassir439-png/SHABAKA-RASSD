@@ -1,42 +1,31 @@
 {% extends "base.html" %}
-{% block title %}Inscription gratuite — Modern Business{% endblock %}
+{% block title %}Inscription — RASSD{% endblock %}
 {% block body %}
-<div style="min-height:calc(100dvh - var(--nh));display:flex;align-items:center;justify-content:center;padding:40px var(--pad)">
-  <div style="width:100%;max-width:460px">
-    <div class="tc mb24">
-      <div class="slbl mb12" style="justify-content:center">Gratuit · Sans CB</div>
-      <h1 style="font-family:var(--serif);font-size:clamp(24px,3.5vw,36px);font-weight:900;margin-bottom:6px;font-style:italic">Créer mon compte</h1>
-      <p style="font-size:12px;color:var(--ink5)">Recevez les marchés de votre secteur sur Telegram</p>
-    </div>
-    {% if error %}<div class="err">{{ error }}</div>{% endif %}
-    <div class="card p24">
-      <form method="post" action="/register">
-        <div class="g2c">
-          <div class="fg"><label class="lbl">Nom *</label><input type="text" name="nom" class="inp" placeholder="Mohammed" required></div>
-          <div class="fg"><label class="lbl">Entreprise</label><input type="text" name="entreprise" class="inp" placeholder="SARL BTP Maroc"></div>
-        </div>
-        <div class="fg"><label class="lbl">Email *</label><input type="email" name="email" class="inp" placeholder="vous@entreprise.ma" required></div>
-        <div class="g2c">
-          <div class="fg"><label class="lbl">Téléphone</label><input type="tel" name="phone" class="inp" placeholder="06XXXXXXXX"></div>
-          <div class="fg"><label class="lbl">Ville</label><input type="text" name="ville" class="inp" placeholder="Casablanca"></div>
-        </div>
-        <div class="fg">
-          <label class="lbl">Secteur principal</label>
-          <select name="secteur" class="sel">
-            <option value="">— Sélectionner —</option>
-            {% for s in SECTEURS_LIST %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
-          </select>
-        </div>
-        <div class="fg"><label class="lbl">Mot de passe * (min. 8 caractères)</label><input type="password" name="password" class="inp" placeholder="••••••••" required minlength="8"></div>
-        <button type="submit" class="btn btn-gold btn-full btn-lg">Créer mon compte →</button>
-        <div class="tc mt12" style="font-size:10px;color:var(--ink5)">
-          Après inscription: <span class="mono" style="color:var(--g2)">/link votre@email.com</span> → <a href="https://t.me/MarchesMarocBot" style="color:var(--g2)" target="_blank">@MarchesMarocBot</a>
-        </div>
-      </form>
-    </div>
-    <div class="tc mt16" style="font-size:12px;color:var(--ink5)">
-      Déjà inscrit? <a href="/login" style="color:var(--g2);font-weight:600">Se connecter</a>
-    </div>
+<div class="page-sm">
+  <div style="text-align:center;margin-bottom:32px">
+    <div style="font-family:var(--serif);font-size:28px;font-weight:700;font-style:italic;color:var(--gold);margin-bottom:8px">Créer mon compte</div>
+    <div style="font-size:12px;color:var(--ink4)">Recevez les marchés de votre secteur en temps réel</div>
   </div>
+  {% if err %}<div style="background:rgba(232,96,96,.1);border:1px solid rgba(232,96,96,.3);border-radius:var(--r);padding:12px 16px;color:var(--red);font-size:13px;margin-bottom:20px">{{ err }}</div>{% endif %}
+  <form method="post" style="display:flex;flex-direction:column;gap:16px">
+    <div><label>Nom complet</label><input name="nom" class="inp" placeholder="Mohamed Alaoui"></div>
+    <div><label>Email *</label><input name="email" type="email" class="inp" placeholder="email@entreprise.ma" required></div>
+    <div><label>Téléphone</label><input name="phone" class="inp" placeholder="+212 6xx xxxxxx"></div>
+    <div><label>Mot de passe *</label><input name="pw" type="password" class="inp" required minlength="6"></div>
+    <div>
+      <label>Vos secteurs d'activité (pour les alertes)</label>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+        {% for s in secteurs %}
+        <label style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--surface);border:1px solid var(--bdr);border-radius:99px;cursor:pointer;font-size:11px;color:var(--ink3);text-transform:none;letter-spacing:0;margin:0;transition:.15s">
+          <input type="checkbox" name="secteurs" value="{{ s }}" style="accent-color:var(--gold)">
+          {{ s }}
+        </label>
+        {% endfor %}
+      </div>
+      <div style="font-size:10px;color:var(--ink4);margin-top:8px">Si aucun sélectionné → vous recevez TOUS les marchés</div>
+    </div>
+    <button type="submit" class="btn btn-gold btn-full" style="padding:12px">Créer mon compte →</button>
+    <div style="text-align:center;font-size:12px;color:var(--ink4)">Déjà inscrit? <a href="/login" style="color:var(--gold)">Connexion</a></div>
+  </form>
 </div>
 {% endblock %}

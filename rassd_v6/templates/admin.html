@@ -1,285 +1,118 @@
-{% extends "base.html" %}
-{% block title %}Admin{% endblock %}
-{% block head %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Admin — RASSD</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-.terminal{background:#050505;border:1px solid #111;border-radius:8px;padding:14px;font-family:var(--mono);font-size:11px;color:#4ecb82;height:300px;overflow-y:auto;line-height:1.7}
-.terminal::-webkit-scrollbar{width:3px}.terminal::-webkit-scrollbar-thumb{background:#222}
-.notif-row{display:grid;grid-template-columns:60px 80px 1fr 70px 60px;gap:12px;align-items:center;padding:9px 13px;border-bottom:1px solid var(--wire);font-size:11px}
-.notif-row:last-child{border-bottom:none}
+:root{--bg:#060608;--surface:#0d0d12;--raised:#141420;--bdr:#1e1e2e;--gold:#c9a84c;--ink1:#f0ede6;--ink2:#d4cfc5;--ink3:#9b9592;--ink4:#5a5754;--grn:#3ecb7a;--red:#e86060}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink2);font-family:'DM Sans',sans-serif;font-size:13px}
+.h{background:var(--surface);border-bottom:1px solid var(--bdr);padding:0 24px;height:52px;display:flex;align-items:center;gap:16px}
+.h-brand{font-weight:700;color:var(--gold);font-family:'DM Mono',monospace}
+.page{max-width:1000px;margin:0 auto;padding:28px 24px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px}
+.stat{background:var(--surface);border:1px solid var(--bdr);border-radius:8px;padding:20px;text-align:center}
+.stat-n{font-size:32px;font-weight:700;color:var(--gold);font-family:'DM Mono',monospace}
+.stat-l{font-size:10px;color:var(--ink4);margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;transition:.15s}
+.btn-gold{background:var(--gold);color:#000}.btn-gold:hover{background:#e8c56a}
+.btn-ghost{background:transparent;border:1px solid var(--bdr);color:var(--ink2)}.btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
+.btn-red{background:rgba(232,96,96,.15);border:1px solid rgba(232,96,96,.3);color:var(--red)}
+.card{background:var(--surface);border:1px solid var(--bdr);border-radius:8px;margin-bottom:16px;overflow:hidden}
+.card-h{padding:14px 20px;border-bottom:1px solid var(--bdr);font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:flex;justify-content:space-between;align-items:center}
+.terminal{background:#030305;padding:16px;font-family:'DM Mono',monospace;font-size:11px;height:280px;overflow-y:auto;line-height:1.6}
 </style>
-{% endblock %}
-{% block body %}
+</head>
+<body>
+<div class="h">
+  <span class="h-brand">RASSD ADMIN</span>
+  <span style="color:var(--ink4);font-size:11px">marchespublics.gov.ma</span>
+  <div style="margin-left:auto;display:flex;gap:8px">
+    <a href="/" class="btn btn-ghost">← Site</a>
+    <a href="/admin/expire_now" class="btn btn-ghost" onclick="return confirm('Expirer les marchés passés?')">⏱ Expirer</a>
+    <a href="/admin/clear_db?confirm=yes" class="btn btn-red" onclick="return confirm('SUPPRIMER TOUS LES MARCHÉS?')">🗑 Vider DB</a>
+  </div>
+</div>
 <div class="page">
-  <div class="flex items-center justify-between mb-24 flex-wrap gap-12">
-    <div>
-      <div style="font-size:9px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:2px;margin-bottom:4px">Administration v3.0</div>
-      <h2 style="font-size:20px;margin:0">Modern Business — Agents Dashboard</h2>
-    </div>
-    <div class="flex gap-8">
-      <button id="scrapeBtn" onclick="launchScraper()" class="btn btn-gold btn-sm">▶ marchespublics.gov.ma</button>
-      <button onclick="launchMultiScraper()" class="btn btn-ghost btn-sm" id="multiBtn">🌐 4 Sites privés</button>
-      <a href="/admin/test_notify?pwd={{ pwd }}" class="btn btn-ghost btn-sm" target="_blank">📬 Test Notify</a>
-      <a href="/admin/cleanup?pwd={{ pwd }}" class="btn btn-ghost btn-sm">🗑 Cleanup</a>
-      <a href="/admin/notify_status?pwd={{ pwd }}" class="btn btn-ghost btn-sm" target="_blank">📊 Status</a>
-    </div>
+  <div class="grid">
+    <div class="stat"><div class="stat-n">{{ stats.tenders }}</div><div class="stat-l">Marchés actifs</div></div>
+    <div class="stat"><div class="stat-n">{{ stats.members }}</div><div class="stat-l">Membres</div></div>
+    <div class="stat"><div class="stat-n">{{ stats.notifs }}</div><div class="stat-l">Notifications envoyées</div></div>
   </div>
 
-  <!-- STATS -->
-  <div class="stat-grid mb-24">
-    <div class="stat-cell"><div class="stat-num">{{ stats.tenders_total }}</div><div class="stat-lbl">Total Marchés</div></div>
-    <div class="stat-cell"><div class="stat-num" style="color:#3ecb7a">{{ stats.tenders_active }}</div><div class="stat-lbl">Actifs</div></div>
-    <div class="stat-cell"><div class="stat-num" style="color:#e87070">{{ stats.tenders_expire }}</div><div class="stat-lbl">Expirés</div></div>
-    <div class="stat-cell"><div class="stat-num">{{ stats.members }}</div><div class="stat-lbl">Membres</div></div>
-    <div class="stat-cell"><div class="stat-num" style="color:var(--gold)">{{ stats.members_tg }}</div><div class="stat-lbl">Abonnés TG</div></div>
-    <div class="stat-cell"><div class="stat-num">{{ stats.posts }}</div><div class="stat-lbl">Marketplace</div></div>
-    <div class="stat-cell"><div class="stat-num" style="color:#3ecb7a">{{ stats.notif_sent }}</div><div class="stat-lbl">Notifs envoyées</div></div>
-    <div class="stat-cell"><div class="stat-num" style="color:{{ 'var(--gold)' if stats.notif_pending > 0 else '#3ecb7a' }}">{{ stats.notif_pending }}</div><div class="stat-lbl">Notifs en attente</div></div>
-    {% if stats.errors > 0 %}
-    <div class="stat-cell"><div class="stat-num" style="color:#e87070">{{ stats.errors }}</div><div class="stat-lbl">Erreurs</div></div>
-    {% endif %}
-  </div>
-
-  <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:18px;margin-bottom:18px">
-    <!-- SCRAPER AGENT -->
-    <div class="card">
-      <div class="card-header card-gold-header flex items-center justify-between">
-        <span>🕷 ScraperAgent</span>
-        <span id="scrapeStatusTag" class="tag {% if scrape_state.running %}tag-green{% else %}tag-gray{% endif %}">
-          {{ '⏳ En cours' if scrape_state.running else '⏸ En attente' }}
-        </span>
-      </div>
-      <div style="padding:14px">
-        <!-- Counters -->
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--wire);border:1px solid var(--wire);border-radius:6px;overflow:hidden;margin-bottom:12px">
-          {% for id,lbl,col in [('cntFound','Trouvés','var(--gold)'),('cntSaved','Sauvés','#3ecb7a'),('cntErrors','Erreurs','#e87070'),('cntCur','ID actuel','var(--dim)')] %}
-          <div style="background:var(--ink3);padding:10px;text-align:center">
-            <div id="{{ id }}" style="font-size:16px;font-weight:700;font-family:var(--mono);color:{{ col }}">
-              {{ scrape_state.found if id=='cntFound' else (scrape_state.saved if id=='cntSaved' else (scrape_state.errors if id=='cntErrors' else (scrape_state.current or '—'))) }}
-            </div>
-            <div style="font-size:9px;color:var(--ghost);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">{{ lbl }}</div>
-          </div>
-          {% endfor %}
-        </div>
-        <!-- Progress -->
-        <div id="progressWrap" style="margin-bottom:10px;display:{{ 'block' if scrape_state.running else 'none' }}">
-          <div class="flex justify-between mb-4 text-xs text-muted">
-            <span id="progressLabel">Initialisation…</span>
-            <span id="progressNums" class="mono">0 / 0</span>
-          </div>
-          <div class="progress"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
-        </div>
-        <!-- Terminal -->
-        <div class="terminal" id="terminal">
-          {% for log in scrape_log %}
-          <div style="color:{{ '#3ecb7a' if '✓' in log else ('#c9a84c' if '═══' in log else ('#e87070' if '✗' in log else '#666')) }}">{{ log }}</div>
-          {% endfor %}
-          {% if not scrape_log %}<div style="color:#222">Terminal prêt — Appuyez sur ▶ ScraperAgent</div>{% endif %}
-        </div>
-      </div>
-    </div>
-
-    <!-- NOTIFY AGENT + HISTORY -->
-    <div style="display:flex;flex-direction:column;gap:14px">
-      <!-- NotifyAgent queue -->
-      <div class="card">
-        <div class="card-header flex items-center justify-between">
-          <span>📬 NotifyAgent — File d'attente</span>
-          <span style="font-size:10px;color:var(--muted)">Worker actif</span>
-        </div>
-        <div style="overflow:hidden">
-          <div class="notif-row" style="background:var(--ink3)">
-            <div style="font-size:9px;font-weight:700;color:var(--ghost);text-transform:uppercase">Canal</div>
-            <div style="font-size:9px;font-weight:700;color:var(--ghost);text-transform:uppercase">Statut</div>
-            <div style="font-size:9px;font-weight:700;color:var(--ghost);text-transform:uppercase">Destinataire</div>
-            <div style="font-size:9px;font-weight:700;color:var(--ghost);text-transform:uppercase">Essais</div>
-            <div style="font-size:9px;font-weight:700;color:var(--ghost);text-transform:uppercase">Date</div>
-          </div>
-          {% for n in notifs %}
-          <div class="notif-row">
-            <span class="tag {{ 'tag-blue' if n.channel=='telegram' else 'tag-gold' }}">{{ n.channel }}</span>
-            <span class="tag {{ 'tag-green' if n.status=='sent' else ('tag-red' if n.status=='failed' else 'tag-gray') }}">{{ n.status }}</span>
-            <span class="truncate text-muted" style="max-width:180px" title="{{ n.recipient }}">{{ n.recipient[:22] }}</span>
-            <span class="font-mono text-xs text-muted">{{ n.attempts }}</span>
-            <span class="text-xs text-muted">{{ n.created_at[-5:] if n.created_at else '—' }}</span>
-          </div>
-          {% else %}
-          <div class="empty" style="padding:20px"><div style="font-size:12px;color:var(--muted)">Aucune notification</div></div>
-          {% endfor %}
-        </div>
-      </div>
-      <!-- Scrape history -->
-      <div class="card">
-        <div class="card-header">📈 Historique ScraperAgent</div>
-        <table class="table">
-          <tr><th>Démarré</th><th>Trouvés</th><th>Sauvés</th><th>Durée</th></tr>
-          {% for r in hist %}
-          <tr>
-            <td class="mono" style="font-size:10px">{{ r.started_at }}</td>
-            <td class="font-mono text-gold">{{ r.found }}</td>
-            <td class="mono" style="color:#3ecb7a">{{ r.saved }}</td>
-            <td class="font-mono text-xs text-muted">{{ '%.0f'|format(r.duration_sec or 0) }}s</td>
-          </tr>
-          {% else %}
-          <tr><td colspan="4" class="text-center text-muted" style="padding:14px">Aucun run</td></tr>
-          {% endfor %}
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- TENDERS TABLE -->
-  <div class="card mb-16">
-    <div class="card-header card-gold-header flex items-center justify-between">
-      <span>🏛 Marchés extraits ({{ stats.tenders_total }} total) — Visible Admin uniquement</span>
-      <span style="font-size:10px">marchespublics.gov.ma</span>
-    </div>
-    <div style="overflow-x:auto">
-      <table class="table">
-        <tr><th>Objet / Acheteur</th><th>Source</th><th>Région</th><th>Secteur</th><th>AI Score</th><th>Statut</th><th>Limite</th><th></th></tr>
-        {% for t in tenders %}
-        <tr>
-          <td style="max-width:280px">
-            <a href="{{ t.url }}" target="_blank" class="truncate" style="display:block;max-width:280px;font-size:12px;font-weight:600;color:var(--paper)">{{ t.objet[:65] }}</a>
-            <div class="truncate text-xs text-muted" style="max-width:280px">{{ t.acheteur[:50] or '—' }}</div>
-          </td>
-          <td><span class="tag tag-gray" style="font-size:9px">{{ (t.source or 'pmmp')[:15] }}</span></td>
-          <td class="text-xs text-muted">{{ t.region or '—' }}</td>
-          <td class="text-xs text-muted" style="max-width:110px">{{ t.domaine[:22] or '—' }}</td>
-          <td>{% if t.ai_score %}<span style="font-size:11px;font-weight:700;color:{{ '#3ecb7a' if t.ai_score >= 70 else ('#e87070' if t.ai_score < 40 else 'var(--gold)') }}">{{ t.ai_label or t.ai_score }}</span>{% else %}<span class="c-muted">—</span>{% endif %}</td>
-          <td>{% if t.statut=='actif' %}<span class="tag tag-green">Actif</span>{% elif t.statut=='expire' %}<span class="tag tag-red">Expiré</span>{% else %}<span class="tag tag-gray">{{ t.statut }}</span>{% endif %}</td>
-          <td class="font-mono text-xs text-muted">{{ t.date_limite or '—' }}</td>
-          <td><a href="/admin/delete_tender?pwd={{ pwd }}&tid={{ t.id }}" onclick="return confirm('Supprimer?')" class="text-muted text-sm" onmouseover="this.style.color='#e87070'" onmouseout="this.style.color=''">✕</a></td>
-        </tr>
-        {% else %}
-        <tr><td colspan="7" class="empty text-center">Aucun marché — Lancez ScraperAgent</td></tr>
-        {% endfor %}
-      </table>
-    </div>
-  </div>
-
-  <!-- MEMBERS -->
-  <div class="card mb-16">
-    <div class="card-header">👥 Membres récents</div>
-    <table class="table">
-      <tr><th>Nom</th><th>Email</th><th>Telegram</th><th>Plan</th><th>Action</th></tr>
-      {% for m in members %}
-      <tr>
-        <td style="color:var(--paper)">{{ m.nom[:22] }}</td>
-        <td class="text-xs text-muted">{{ m.email[:28] }}</td>
-        <td><span class="tag {{ 'tag-green' if m.telegram else 'tag-red' }}">{{ '✓' if m.telegram else '✗' }}</span></td>
-        <td><span class="tag {{ 'tag-gold' if m.plan!='free' else 'tag-gray' }}">{{ m.plan }}</span></td>
-        <td class="flex gap-8">
-          <a href="/admin/activate?pwd={{ pwd }}&member_id={{ m.id }}&plan=pro" class="text-xs text-gold">→Pro</a>
-          <a href="/admin/set_telegram?pwd={{ pwd }}&email={{ m.email }}&chat_id=..." class="text-xs text-muted" style="display:none">TG</a>
-        </td>
-      </tr>
-      {% endfor %}
-    </table>
-  </div>
-
-  <!-- ERRORS -->
-  {% if errors %}
+  <!-- Scraper -->
   <div class="card">
-    <div class="card-header" style="background:rgba(192,57,43,.06);color:#e87070">🛡 MonitorAgent — Erreurs ({{ errors|length }})</div>
-    <table class="table">
-      <tr><th>Agent</th><th>Route</th><th>Erreur</th><th>Count</th><th>Action</th></tr>
-      {% for e in errors %}
-      <tr>
-        <td class="font-mono text-xs text-gold">{{ e.agent }}</td>
-        <td class="font-mono text-xs">{{ e.route }}</td>
-        <td class="t-xs" style="max-width:280px">{{ e.error[:70] }}</td>
-        <td class="mono" style="color:#e87070">{{ e.count }}</td>
-        <td><a href="/admin/resolve_error?pwd={{ pwd }}&eid={{ e.id }}" class="t-xs" style="color:#3ecb7a">✓ Résolu</a></td>
-      </tr>
+    <div class="card-h">
+      <span>🔍 Scraper marchespublics.gov.ma</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span id="status" style="font-size:10px;color:{% if running %}var(--gold){% else %}var(--ink4){% endif %}">
+          {% if running %}● En cours…{% else %}○ Inactif{% endif %}
+        </span>
+        <button onclick="launchScraper()" id="scrapeBtn" class="btn btn-gold" {% if running %}disabled{% endif %}>▶ Lancer scan</button>
+      </div>
+    </div>
+    <div class="terminal" id="terminal">
+      {% for log in logs %}<div style="color:{% if '✓' in log %}var(--grn){% elif '❌' in log or '✗' in log %}var(--red){% elif '═══' in log %}var(--gold){% else %}var(--ink3){% endif %}">{{ log }}</div>{% endfor %}
+    </div>
+  </div>
+
+  <!-- Sectors -->
+  {% if sectors_count %}
+  <div class="card">
+    <div class="card-h">Répartition par secteur</div>
+    <div style="padding:16px;display:flex;flex-wrap:wrap;gap:8px">
+      {% for s in sectors_count %}
+      <div style="display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--raised);border-radius:99px;font-size:10px">
+        <span style="color:var(--ink2)">{{ s.secteur[:25] }}</span>
+        <span style="color:var(--gold);font-weight:700">{{ s.cnt }}</span>
+      </div>
       {% endfor %}
-    </table>
+    </div>
   </div>
   {% endif %}
-
 </div>
 
 <script>
-const PWD = '{{ pwd }}';
 let sse = null;
-
 async function launchScraper(){
   const btn = document.getElementById('scrapeBtn');
-  btn.disabled = true; btn.textContent = '⏳ En cours…';
-  document.getElementById('scrapeStatusTag').textContent = '⏳ En cours';
-  document.getElementById('scrapeStatusTag').className = 'tag tag-green';
-  document.getElementById('progressWrap').style.display = 'block';
   const t = document.getElementById('terminal');
-  t.innerHTML = '<div style="color:#c9a84c">═══ ScraperAgent démarré ═══</div>';
+  btn.disabled = true; btn.textContent = '⏳ En cours…';
+  document.getElementById('status').textContent = '● En cours…';
+  document.getElementById('status').style.color = 'var(--gold)';
+  t.innerHTML = '<div style="color:var(--gold)">═══ Lancement scan marchespublics.gov.ma ═══</div>';
 
-  const r = await fetch(`/admin/scrape?pwd=${PWD}`);
+  const r = await fetch('/admin/scrape');
   const d = await r.json();
-  if(!d.ok){
-    t.innerHTML += `<div style="color:#e87070">${d.msg}</div>`;
-    btn.disabled=false; btn.textContent='▶ ScraperAgent'; return;
-  }
+  if(!d.ok){ t.innerHTML += `<div style="color:var(--red)">${d.msg||'Erreur'}</div>`; btn.disabled=false; btn.textContent='▶ Lancer scan'; return; }
 
   if(sse) sse.close();
-  sse = new EventSource(`/admin/scrape_stream?pwd=${PWD}`);
+  sse = new EventSource('/admin/scrape_stream');
   sse.onmessage = e => {
     const data = JSON.parse(e.data);
     if(data.log){
       const div = document.createElement('div');
       const l = data.log;
-      div.style.color = l.includes('═══')?'#c9a84c':l.includes('✓')?'#3ecb7a':l.includes('✗')?'#e87070':'#555';
+      div.style.color = l.includes('═══')?'var(--gold)':l.includes('✓')?'var(--grn)':l.includes('❌')||l.includes('✗')?'var(--red)':'var(--ink4)';
       div.textContent = l;
-      t.appendChild(div); t.scrollTop=t.scrollHeight;
-    }
-    if(data.state){
-      const s = data.state;
-      document.getElementById('cntFound').textContent = s.found||0;
-      document.getElementById('cntSaved').textContent = s.saved||0;
-      document.getElementById('cntErrors').textContent = s.errors||0;
-      document.getElementById('cntCur').textContent = s.current||'—';
-      if(s.total>0){
-        const pct = Math.min(100,(s.current/s.total)*100);
-        document.getElementById('progressFill').style.width = pct+'%';
-        document.getElementById('progressLabel').textContent = `#${s.current} / ${s.total}`;
-        document.getElementById('progressNums').textContent = `${s.current} / ${s.total}`;
-      }
+      t.appendChild(div); t.scrollTop = t.scrollHeight;
     }
     if(data.done){
       sse.close();
-      btn.disabled=false; btn.textContent='▶ ScraperAgent';
-      document.getElementById('scrapeStatusTag').textContent='✓ Terminé';
-      document.getElementById('progressFill').style.width='100%';
+      btn.disabled=false; btn.textContent='▶ Lancer scan';
+      document.getElementById('status').textContent = '○ Inactif';
+      document.getElementById('status').style.color = 'var(--ink4)';
       const d2=document.createElement('div');
-      d2.style.color='#c9a84c';
-      d2.textContent=`═══ ${data.state?.saved||0} nouveaux marchés sauvegardés ═══`;
+      d2.style.color='var(--gold)';
+      d2.textContent=`═══ ${data.saved||0} nouveaux marchés sauvegardés ═══`;
       t.appendChild(d2); t.scrollTop=t.scrollHeight;
-      setTimeout(()=>location.reload(),2500);
+      setTimeout(()=>location.reload(),3000);
     }
   };
-  sse.onerror = ()=>{ sse.close(); btn.disabled=false; btn.textContent='▶ ScraperAgent'; };
 }
-
-{% if scrape_state.running %}
-document.addEventListener('DOMContentLoaded', launchScraper);
-{% endif %}
-
-async function launchMultiScraper(){
-  const btn = document.getElementById('multiBtn');
-  btn.disabled = true; btn.textContent = '⏳ Scraping...';
-  const t = document.getElementById('terminal');
-  t.innerHTML += '<div style="color:#c9a84c">═══ Multi-Scraper: LeMatin + SNRT + 20 organismes publics ═══</div>';
-
-  try {
-    const r = await fetch(`/admin/scrape_multi?pwd=${PWD}`);
-    const d = await r.json();
-    if(d.ok){
-      t.innerHTML += '<div style="color:#3ecb7a">✅ ' + d.msg + '</div>';
-    } else {
-      t.innerHTML += '<div style="color:#e87070">✗ ' + (d.msg||'Erreur') + '</div>';
-    }
-  } catch(e){
-    t.innerHTML += '<div style="color:#e87070">Erreur connexion</div>';
-  }
-  t.scrollTop = t.scrollHeight;
-  setTimeout(()=>{ btn.disabled=false; btn.textContent='🌐 4 Sites privés'; }, 3000);
-}
+// Auto-scroll terminal
+document.getElementById('terminal').scrollTop = document.getElementById('terminal').scrollHeight;
 </script>
-{% endblock %}
+</body>
+</html>

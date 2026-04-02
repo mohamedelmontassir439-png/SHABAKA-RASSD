@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block body %}
+<div class="page-sm" style="padding-top:80px">
+  <div style="text-align:center;margin-bottom:32px">
+    <div style="font-family:var(--serif);font-size:22px;font-weight:700;font-style:italic;color:var(--ink3)">Administration</div>
+  </div>
+  {% if err %}<div style="color:var(--red);font-size:13px;margin-bottom:16px;text-align:center">{{ err }}</div>{% endif %}
+  <form method="post" action="/admin/login" style="display:flex;flex-direction:column;gap:12px">
+    <input name="pwd" type="password" class="inp" placeholder="Mot de passe admin" autofocus>
+    <button type="submit" class="btn btn-gold btn-full">Accéder →</button>
+  </form>
+</div>
+{% endblock %}
