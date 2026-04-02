@@ -19,11 +19,7 @@
       <button id="scrapeBtn" onclick="launchScraper()" class="btn btn-gold btn-sm">▶ marchespublics.gov.ma</button>
       <button onclick="launchMultiScraper()" class="btn btn-ghost btn-sm" id="multiBtn">🌐 4 Sites privés</button>
       <a href="/admin/test_notify?pwd={{ pwd }}" class="btn btn-ghost btn-sm" target="_blank">📬 Test Notify</a>
-      <a href="/admin/expire_now?pwd={{ ADMIN_PASS }}" style="margin-left:8px">⏰ Expirer</a><a href="/admin/cleanup?pwd={{ pwd }}" class="btn btn-ghost btn-sm">🗑 Cleanup</a>
-      <a href="/admin/heal_now?pwd={{ pwd }}" class="btn btn-ghost btn-sm" style="color:var(--grn)" title="Réparer maintenant">🔧 Heal</a>
-      <a href="/admin/healing?pwd={{ pwd }}" class="btn btn-ghost btn-sm" target="_blank" title="Rapport SelfHealingAgent">📊 Health</a>
-      <a href="/admin/backup?pwd={{ pwd }}" class="btn btn-ghost btn-sm" title="Télécharger la DB">💾 Backup</a>
-      <a href="/admin/logout" class="btn btn-ghost btn-sm" style="color:var(--red2)">↩ Déconnexion</a>
+      <a href="/admin/cleanup?pwd={{ pwd }}" class="btn btn-ghost btn-sm">🗑 Cleanup</a>
       <a href="/admin/notify_status?pwd={{ pwd }}" class="btn btn-ghost btn-sm" target="_blank">📊 Status</a>
     </div>
   </div>
@@ -218,8 +214,8 @@ async function launchScraper(){
   const r = await fetch(`/admin/scrape?pwd=${PWD}`);
   const d = await r.json();
   if(!d.ok){
-    t.innerHTML += `<div style="color:#e87070">${d.msg || 'Erreur inconnue'}</div>`;
-    btn.disabled=false; btn.textContent='▶ marchespublics.gov.ma'; return;
+    t.innerHTML += `<div style="color:#e87070">${d.msg}</div>`;
+    btn.disabled=false; btn.textContent='▶ ScraperAgent'; return;
   }
 
   if(sse) sse.close();
@@ -253,8 +249,7 @@ async function launchScraper(){
       document.getElementById('progressFill').style.width='100%';
       const d2=document.createElement('div');
       d2.style.color='#c9a84c';
-      const savedCount = (data.state && data.state.saved) ? data.state.saved : 0;
-      d2.textContent=`═══ ${savedCount} nouveaux marchés sauvegardés ═══`;
+      d2.textContent=`═══ ${data.state?.saved||0} nouveaux marchés sauvegardés ═══`;
       t.appendChild(d2); t.scrollTop=t.scrollHeight;
       setTimeout(()=>location.reload(),2500);
     }

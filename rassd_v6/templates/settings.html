@@ -1,21 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Paramètres  <div class="card mt20 p20" style="border-color:rgba(158,74,74,.15)">
-    <div style="font-family:var(--serif);font-size:16px;font-weight:700;margin-bottom:6px">🔒 Sécurité</div>
-    <p style="font-size:12px;color:var(--ink5);margin-bottom:14px">Modifiez votre mot de passe régulièrement pour sécuriser votre compte.</p>
-    <a href="/settings/password" class="btn btn-ghost btn-sm">Changer le mot de passe →</a>
-  </div>
-{% endblock %}
+{% block title %}Paramètres{% endblock %}
 {% block body %}
-
-<div class="page" style="max-width:640px">
-  <!-- Settings nav -->
-  <div style="display:flex;gap:4px;margin-bottom:32px;border-bottom:1px solid var(--bdr);padding-bottom:0;overflow-x:auto">
-    {% for label,url,icon in [("Profil","/settings","⊞"),("Mot de passe","/settings/password","🔒"),("Notifications","/settings/notifications","🔔"),("Clés API","/settings/api","⌘")] %}
-    <a href="{{ url }}" style="display:flex;align-items:center;gap:6px;padding:8px 14px;font-size:11px;font-weight:600;color:{% if request.url.path==url %}var(--g2){% else %}var(--ink5){% endif %};border-bottom:2px solid {% if request.url.path==url %}var(--g2){% else %}transparent{% endif %};white-space:nowrap;transition:.15s;text-decoration:none;margin-bottom:-1px">
-      {{ icon }} {{ label }}
-    </a>
-    {% endfor %}
-  </div>
 <div style="max-width:580px;margin:0 auto;padding:32px var(--pad) 80px">
   <div class="section-label mb16">Compte</div>
   <h1 style="font-family:var(--serif);font-size:26px;font-weight:700;margin-bottom:24px">Paramètres</h1>
@@ -75,9 +60,4 @@
   </div>
   <div class="tc mt16"><a href="/logout" class="t-sm" style="color:var(--ruby2)">Déconnexion</a></div>
 </div>
-  <div class="card mt20 p20" style="border-color:rgba(158,74,74,.15)">
-    <div style="font-family:var(--serif);font-size:16px;font-weight:700;margin-bottom:6px">🔒 Sécurité</div>
-    <p style="font-size:12px;color:var(--ink5);margin-bottom:14px">Modifiez votre mot de passe régulièrement pour sécuriser votre compte.</p>
-    <a href="/settings/password" class="btn btn-ghost btn-sm">Changer le mot de passe →</a>
-  </div>
 {% endblock %}
