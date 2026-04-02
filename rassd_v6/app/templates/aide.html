@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Aide & FAQ — Modern Business{% endblock %}
+{% block body %}
+<div class="page" style="max-width:780px">
+  <div class="mb40">
+    <div class="slbl mb12">Centre d'aide</div>
+    <h1 style="font-family:var(--serif);font-size:clamp(26px,4vw,42px);font-weight:900;font-style:italic">Aide & FAQ</h1>
+    <p style="color:var(--ink4);font-size:13px;margin-top:8px">Réponses aux questions les plus fréquentes</p>
+  </div>
+
+  <!-- Search -->
+  <div style="margin-bottom:32px;position:relative">
+    <input id="faqSearch" type="text" placeholder="Rechercher dans l'aide…" oninput="filterFaq(this.value)"
+      style="width:100%;padding:11px 40px 11px 16px;background:var(--raised);border:1px solid var(--bdr2);border-radius:var(--r2);font-size:13px;color:var(--ink);outline:none;font-family:var(--sans)">
+    <span style="position:absolute;right:14px;top:50%;transform:translateY(-50%);color:var(--ink5)">⌕</span>
+  </div>
+
+  {% for section, faqs in [
+    ("🚀 Démarrage", [
+      ("Comment m'inscrire?","Cliquez sur 'S'inscrire' en haut à droite. L'inscription est gratuite et ne nécessite pas de carte bancaire."),
+      ("Comment activer les alertes Telegram?","Après inscription, ouvrez @MarchesMarocBot sur Telegram et envoyez /link votre@email.com. Votre compte sera lié en quelques secondes."),
+      ("Quelle est la différence entre les plans?","Plan Gratuit: accès au marketplace et annuaire uniquement. Plan Pro (99 DH/mois): accès aux marchés actifs, alertes Telegram, filtres secteur, export CSV. Plan Entreprise (299 DH/mois): tout Pro + 5 utilisateurs + API + webhooks."),
+      ("Comment passer au plan Pro?","Contactez-nous via le formulaire ou directement sur Telegram @MarchesMarocBot. Activation sous 24h après confirmation du paiement (virement, CIH Money)."),
+    ]),
+    ("📊 Marchés & Alertes", [
+      ("À quelle fréquence les marchés sont-ils mis à jour?","Toutes les 2 heures automatiquement via 5 agents IA qui surveillent 18 sources officielles."),
+      ("Comment filtrer par secteur?","Dans 'Mes Filtres', choisissez votre code T/P/S officiel. Sur Telegram, envoyez /secteur T101 (par exemple) pour recevoir uniquement les travaux BTP."),
+      ("Que signifie le score IA?","Un score entre 0 et 100. ≥ 70 = marché accessible aux PME (montant raisonnable, critères simples, délai suffisant). < 40 = marché complexe (grands groupes)."),
+      ("Les marchés expirés sont-ils affichés?","Non. Le système vérifie et supprime automatiquement les marchés dont la date limite est passée, toutes les heures."),
+      ("Comment exporter en CSV?","Sur la page Marchés, cliquez sur le bouton ⬇ CSV en haut des filtres. Disponible pour les membres Pro uniquement."),
+    ]),
+    ("🔧 Compte & Sécurité", [
+      ("Comment changer mon mot de passe?","Dashboard → 🔒 Mot de passe, ou directement via /settings/password."),
+      ("Comment supprimer mon compte?","Contactez-nous via /contact. Suppression effective sous 72h conformément au RGPD/CNDP."),
+      ("Comment gérer mes clés API?","Dashboard → Paramètres → API (réservé aux membres Pro). Vous pouvez générer et révoquer des clés à tout moment."),
+      ("Mes données sont-elles sécurisées?","Oui. Mots de passe hashés (SHA-256), connexions HTTPS uniquement, conformité CNDP (loi 09-08 Maroc), aucune vente de données."),
+    ]),
+    ("💳 Facturation", [
+      ("Quels sont les modes de paiement acceptés?","Virement bancaire (CIH, Attijariwafa, BMCE, BP), CIH Money, Wafacash, PayPal pour les clients à l'étranger."),
+      ("Y a-t-il un engagement minimum?","Non. Vous pouvez annuler à tout moment. Votre accès reste actif jusqu'à la fin de la période payée."),
+      ("Y a-t-il une réduction pour l'abonnement annuel?","Oui: 2 mois offerts. Pro annuel: 990 DH (au lieu de 1188 DH). Entreprise annuel: 2990 DH."),
+    ]),
+  ] %}
+  <div style="margin-bottom:40px">
+    <div style="font-family:var(--serif);font-size:19px;font-weight:700;margin-bottom:16px;color:var(--ink2)">{{ section }}</div>
+    {% for q,a in faqs %}
+    <div class="faq-item" style="border-bottom:1px solid var(--bdr);padding:16px 0">
+      <button onclick="toggleFaq(this)" style="display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:none;cursor:pointer;text-align:right;padding:0;gap:12px">
+        <span class="faq-q" style="font-size:13px;font-weight:600;color:var(--ink2)">{{ q }}</span>
+        <span style="color:var(--ink5);font-size:14px;flex-shrink:0">﹢</span>
+      </button>
+      <div class="faq-a" style="display:none;font-size:12px;color:var(--ink4);line-height:1.75;padding-top:10px">{{ a }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+
+  <!-- Contact CTA -->
+  <div class="cta-band mt32">
+    <div style="font-size:20px;font-weight:800;font-family:var(--serif);margin-bottom:8px;font-style:italic">Pas trouvé votre réponse?</div>
+    <p style="color:var(--ink4);font-size:12px;margin-bottom:20px">Notre équipe répond sous 24h</p>
+    <div class="f fj g12">
+      <a href="/contact" class="btn btn-gold">Contacter le support →</a>
+      <a href="https://t.me/MarchesMarocBot" target="_blank" class="btn btn-wire">Telegram Bot</a>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleFaq(btn){
+  const a=btn.parentNode.querySelector('.faq-a');
+  const ic=btn.querySelector('span:last-child');
+  const open=a.style.display==='block';
+  a.style.display=open?'none':'block';
+  ic.textContent=open?'﹢':'－';
+}
+function filterFaq(q){
+  q=q.toLowerCase();
+  document.querySelectorAll('.faq-item').forEach(el=>{
+    const text=el.textContent.toLowerCase();
+    el.style.display=text.includes(q)||q===''?'':'none';
+  });
+}
+</script>
+{% endblock %}

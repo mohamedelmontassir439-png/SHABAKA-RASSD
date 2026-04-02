@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — {{ m.nom }}{% endblock %}
+{% block body %}
+<div class="page">
+
+  <!-- Header -->
+  <div class="f fc fb fw g12 mb28">
+    <div>
+      <div class="slbl mb8">Mon espace</div>
+      <h1 style="font-family:var(--serif);font-size:clamp(20px,3vw,30px);font-weight:900;font-style:italic;margin:0">
+        Bonjour, {{ m.nom }}
+        <span class="tag {% if m.plan=='pro' %}tg{% elif m.plan=='enterprise' %}tb{% else %}td{% endif %}" style="vertical-align:middle;font-size:9px">{{ m.plan|upper }}</span>
+      </h1>
+      <div style="font-size:11px;color:var(--ink5);margin-top:5px">{{ m.email }} · Membre depuis {{ m.created_at[:10] if m.created_at else '—' }}</div>
+    </div>
+    <div class="f g8">
+      {% if m.plan == 'free' %}<a href="/tarifs" class="btn btn-gold btn-sm">⬆ Passer Pro</a>{% endif %}
+      <a href="/settings" class="btn btn-ghost btn-sm">⚙ Paramètres</a>
+      <a href="/settings/password" class="btn btn-ghost btn-sm">🔒 Mot de passe</a>
+    </div>
+  </div>
+
+  <!-- Banners -->
+  {% if not m.verified %}
+  <div style="background:rgba(201,168,76,.06);border:1px solid rgba(201,168,76,.18);border-radius:var(--r2);padding:12px 16px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <div><span style="color:var(--g1);font-weight:600;font-size:12px">📧 Confirmez votre email</span><span style="font-size:11px;color:var(--ink5);margin-left:8px">pour activer toutes les alertes</span></div>
+    <a href="/resend-verify" class="btn btn-gold btn-sm">Renvoyer →</a>
+  </div>
+  {% elif request.query_params.get('verified') %}
+  <div class="ok mb16">✓ Email vérifié — compte pleinement actif !</div>
+  {% endif %}
+  {% if m.plan == 'free' %}
+  <div style="background:rgba(90,158,120,.04);border:1px solid rgba(90,158,120,.14);border-radius:var(--r2);padding:12px 16px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+    <div style="font-size:11px;color:var(--ink4)">Plan Gratuit: <b>10 marchés/jour</b> · Sans alertes Telegram · Sans API</div>
+    <a href="/tarifs" class="btn btn-gold btn-sm">Pro 99 DH/mois →</a>
+  </div>
+  {% endif %}
+
+
+  <!-- Onboarding Checklist -->
+  <div id="onboardingBox" class="card mb24" style="display:none">
+    <div class="card-head" style="justify-content:space-between">
+      <span>🚀 Démarrage rapide</span>
+      <span id="onbPct" style="font-family:var(--mono);font-size:10px;color:var(--g2)">0%</span>
+    </div>
+    <div style="padding:4px 0">
+      <div class="bar" style="height:3px;margin:0 14px 0"><div id="onbBar" class="bar-f bg2" style="width:0;transition:width .6s"></div></div>
+    </div>
+    <div id="onbSteps" style="padding:8px 0"></div>
+  </div>
+
+  <script>
+  (async function(){
+    try{
+      const r=await fetch('/api/onboarding');
+      const d=await r.json();
+      if(d.pct===100){return;}  // Hide if complete
+      const box=document.getElementById('onboardingBox');
+      box.style.display='block';
+      document.getElementById('onbBar').style.width=d.pct+'%';
+      document.getElementById('onbPct').textContent=d.done+'/'+d.total+' complété';
+      const el=document.getElementById('onbSteps');
+      el.innerHTML=d.steps.map(s=>
+        '<a href="'+s.url+'" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--bdr);text-decoration:none;transition:.15s" onmouseover="this.style.background='var(--raised)'" onmouseout="this.style.background=''">'
+        +'<span style="font-size:13px;flex-shrink:0">'+(s.done?'✅':'○')+'</span>'
+        +'<span style="font-size:12px;color:'+(s.done?'var(--ink5)':'var(--ink2)')+';"'+(s.done?' style="text-decoration:line-through;color:var(--ink5)"':'')+'>'+s.label+'</span>'
+        +(s.done?'':'<span style="margin-left:auto;font-size:10px;color:var(--ink6)">→</span>')
+        +'</a>'
+      ).join('');
+    }catch(e){}
+  })();
+  </script>
+  <!-- Stats rapides -->
+  <div class="sband mb24" style="grid-template-columns:repeat(4,1fr);border:1px solid var(--bdr);border-radius:var(--r2)">
+    {% for n,l in [(stats.tenders_active,'Marchés actifs'),(stats.easy_to_win,'Score ≥ 70'),(stats.members,'Membres'),(stats.notif_sent or 0,'Notifs envoyées')] %}
+    <div class="sc2 {% if not loop.last %}br{% endif %}"><div class="sn">{{ n }}</div><div class="sl">{{ l }}</div></div>
+    {% endfor %}
+  </div>
+
+  <div class="g2c">
+    <!-- Telegram -->
+    <div class="card">
+      <div class="card-head">🔔 Alertes Telegram</div>
+      <div class="p20">
+        {% if m.telegram %}
+        <div class="f fc g8 mb12"><div class="ld"></div><span class="tag tgr">Activé</span></div>
+        <div style="font-size:11px;color:var(--ink4);margin-bottom:8px">Secteur: <span style="color:var(--g2);font-weight:600">{{ m.secteur or 'Tous secteurs' }}</span></div>
+        <div style="font-size:10px;color:var(--ink5);font-family:var(--mono)">Chat ID: {{ m.telegram }}</div>
+        {% else %}
+        <div class="tag tr mb12">Non configuré</div>
+        <div style="font-size:11px;color:var(--ink4);margin-bottom:12px">Pour recevoir les alertes:</div>
+        <div class="card p14 mb12" style="background:var(--raised)">
+          <div style="font-size:10px;color:var(--ink5);margin-bottom:5px">1. Ouvrez le bot Telegram:</div>
+          <a href="https://t.me/MarchesMarocBot" target="_blank" style="color:var(--g2);font-weight:600;font-size:12px">@MarchesMarocBot</a>
+          <div style="font-size:10px;color:var(--ink5);margin-top:8px;margin-bottom:4px">2. Envoyez:</div>
+          <div class="mono" style="font-size:11px;color:var(--g1);background:var(--surface);padding:5px 9px;border-radius:var(--r)">/link {{ m.email }}</div>
+        </div>
+        {% endif %}
+        <a href="/settings" class="btn btn-ghost btn-sm w100 mt8">Configurer</a>
+      </div>
+    </div>
+
+    <!-- Secteur -->
+    <div class="card">
+      <div class="card-head">🏷 Mon secteur</div>
+      <div class="p20">
+        {% if m.secteur %}
+        <div class="mono" style="font-size:11px;color:var(--g2);margin-bottom:10px">{{ m.secteur }}</div>
+        <div style="font-size:11px;color:var(--ink5);margin-bottom:14px">Vous recevez uniquement les marchés de ce secteur.</div>
+        {% else %}
+        <div style="font-size:11px;color:var(--ink4);margin-bottom:14px">Aucun secteur défini → vous recevez tous les marchés.</div>
+        {% endif %}
+        <a href="/filters" class="btn btn-wire btn-sm w100">Gérer mes filtres</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick actions -->
+  <div class="mt24">
+    <div class="slbl mb14">Accès rapide</div>
+    <div class="f g8 fw">
+      <a href="/tenders?easy=1" class="btn btn-gold btn-sm">⭐ Marchés faciles</a>
+      <a href="/favoris" class="btn btn-ghost btn-sm">★ Mes favoris</a>
+      <a href="/tenders" class="btn btn-ghost btn-sm">◈ Tous les marchés</a>
+      <a href="/filters" class="btn btn-ghost btn-sm">⊞ Mes filtres</a>
+      <a href="/marketplace/new" class="btn btn-ghost btn-sm">+ Publier annonce</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
