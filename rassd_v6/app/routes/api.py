@@ -13,6 +13,13 @@ from typing import Optional
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+from app.core.config import cfg
+SITE_URL      = cfg.SITE_URL
+ADMIN_PASS    = cfg.ADMIN_PASS
+TELEGRAM_BOT  = cfg.TELEGRAM_BOT
+ANTHROPIC_KEY = cfg.ANTHROPIC_KEY
+PLAN_LIMITS   = cfg.PLAN_LIMITS
+
 from app.utils.helpers import (
     templates, get_member, render, hash_pw,
     check_token, verify_pw
