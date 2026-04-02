@@ -557,7 +557,25 @@ class ScraperAgent:
             soup = BS(html, "html.parser")
             full = soup.get_text(" ", strip=True)
 
-            # ── Labels qui indiquent une DATE LIMITE sur marchespublics ──
+            # ── Cell lookup: cherche valeur dans tableau par label ──
+            def cell(*labels):
+                for row in soup.find_all("tr"):
+                    tds = row.find_all(["td","th"])
+                    if len(tds) < 2: continue
+                    lbl = tds[0].get_text(strip=True).lower()
+                    for label in labels:
+                        if label.lower() in lbl:
+                            val = " ".join(t.get_text(strip=True) for t in tds[1:])
+                            if val.strip(): return val.strip()[:500]
+                return ""
+
+            # ── Labels OBJET du marché ──
+            OBJET_LABELS = [
+                "objet du marché","objet de la consultation","objet",
+                "intitulé","désignation","nature des travaux",
+                "nature des fournitures","nature des prestations","libellé",
+            ]
+            # ── Labels DATE LIMITE ──
             DATE_LABELS = [
                 "date et heure limite de remise des devis",
                 "date et heure limite de remise des offres",
@@ -566,112 +584,89 @@ class ScraperAgent:
                 "date limite de réception des offres",
                 "date limite de réception des devis",
                 "date de remise des offres",
-                "date de clôture",
-                "heure limite",
-                "date limite",
+                "date de clôture des offres",
+                "heure limite de remise",
+                "date limite","heure limite","clôture",
+            ]
+            # Labels qui NE SONT PAS des objets
+            NOT_OBJET = [
+                "date","heure","limite","remise","réception","soumission",
+                "dépôt","publication","ouverture","montant","budget",
+                "maître","organisme","objet du marché :",
             ]
 
-            # ── Labels qui indiquent l'OBJET (titre) ──
-            OBJET_LABELS = [
-                "objet du marché", "objet de la consultation",
-                "objet", "intitulé", "désignation",
-                "nature des travaux", "nature des fournitures",
-                "nature des prestations",
-            ]
-
-            def cell_exact(label_keywords):
-                """Trouve la cellule valeur pour un label donné"""
-                for row in soup.find_all("tr"):
-                    cells = row.find_all(["td","th"])
-                    if len(cells) < 2: continue
-                    label_text = cells[0].get_text(strip=True).lower()
-                    for kw in label_keywords:
-                        if kw.lower() in label_text:
-                            # Valeur = toutes les cellules suivantes concaténées
-                            val = " ".join(c.get_text(strip=True) for c in cells[1:])
-                            val = val.strip()
-                            if val and len(val) > 1:
-                                return val[:500]
-                return ""
-
-            # ── 1. Extraire OBJET du marché ──
+            # ══ 1. OBJET ══
             objet = ""
-            # CSS selectors spécifiques marchespublics
-            for sel in [
-                ".objet-marche", ".consultation-objet", ".consultation-title",
-                "[class*='objet']", "[class*='title']", "h1", "h2", "h3"
-            ]:
-                el = soup.select_one(sel)
-                if el:
-                    txt = el.get_text(strip=True)
-                    # Exclure navigation et labels de date
-                    skip = ["accueil","connexion","portail","liste",
-                            "date","heure","limite","remise","réception",
-                            "soumission","dépôt"]
-                    if (10 < len(txt) < 600 and
-                        not any(s in txt.lower() for s in skip)):
-                        objet = txt
-                        break
 
-            # Depuis le tableau
-            if not objet:
-                objet = cell_exact(OBJET_LABELS)
+            # Priorité 1: cellule tableau "objet du marché"
+            objet = cell(*OBJET_LABELS)
 
-            # Fallback: première phrase significative du texte
+            # Priorité 2: CSS selectors
             if not objet:
-                for line in full.split("\n"):
-                    line = line.strip()
-                    skip = ["date","heure","limite","remise","réception",
-                            "accueil","connexion","portail","marché public",
-                            "appel","consultation"]
-                    if (15 < len(line) < 500 and
-                        not any(s in line.lower() for s in skip[:6])):
-                        objet = line
-                        break
+                for sel in [".consultation-objet",".objet-marche",
+                            "[class*='objet']","[class*='title']"]:
+                    el = soup.select_one(sel)
+                    if el:
+                        t = el.get_text(strip=True)
+                        if len(t) > 10 and not any(n in t.lower() for n in NOT_OBJET):
+                            objet = t; break
+
+            # Priorité 3: h1/h2 si pas un label de date
+            if not objet:
+                for tag in soup.find_all(["h1","h2","h3"])[:5]:
+                    t = tag.get_text(strip=True)
+                    if (10 < len(t) < 600 and
+                        not any(n in t.lower() for n in NOT_OBJET) and
+                        not any(n in t.lower() for n in ["accueil","connexion","portail","liste"])):
+                        objet = t; break
 
             if not objet: return None
             objet = ClassifierAgent.clean_objet(objet)
 
-            # Exclure si objet ressemble à un label de date
-            if any(lbl in objet.lower() for lbl in ["date et heure", "date limite",
-                                                      "heure limite", "remise des"]):
+            # Rejeter si objet ressemble à un label de date
+            if any(lbl in objet.lower() for lbl in [
+                "date et heure","date limite","heure limite",
+                "remise des","réception des","clôture"]):
                 return None
 
-            # ── 2. Extraire DATE LIMITE ──
+            # ══ 2. DATE LIMITE ══
             date_lim = ""
-            # Chercher dans le tableau avec les labels spécifiques
-            raw_date_cell = cell_exact(DATE_LABELS)
-            if raw_date_cell:
-                # Extraire la date depuis la valeur (peut contenir "05/03/2026 12:00")
-                m = re.search(r'(\d{2}/\d{2}/\d{4})', raw_date_cell)
-                if m:
-                    date_lim = ClassifierAgent.extract_date(m.group(1))
 
-            # Fallback: chercher dans le texte complet après les mots-clés
+            # Chercher dans les cellules du tableau
+            raw_dl = cell(*DATE_LABELS)
+            if raw_dl:
+                m = re.search(r'(\d{2}/\d{2}/\d{4})', raw_dl)
+                if m: date_lim = ClassifierAgent.extract_date(m.group(1))
+
+            # Fallback: chercher dans le texte complet
             if not date_lim:
-                full_lower = full.lower()
+                fl = full.lower()
                 for lbl in DATE_LABELS:
-                    idx = full_lower.find(lbl)
-                    if idx >= 0:
-                        snippet = full[idx:idx+100]
-                        m = re.search(r'(\d{2}/\d{2}/\d{4})', snippet)
-                        if m:
-                            date_lim = ClassifierAgent.extract_date(m.group(1))
-                            break
+                    idx = fl.find(lbl)
+                    if idx < 0: continue
+                    snippet = full[idx:idx+120]
+                    m = re.search(r'(\d{2}/\d{2}/\d{4})', snippet)
+                    if m:
+                        date_lim = ClassifierAgent.extract_date(m.group(1))
+                        break
 
-            # ── 3. Vérifier expiration ──
+            # ══ 3. Vérifier expiration ══
             if date_lim and ClassifierAgent.is_expired(date_lim):
-                return None  # Ignorer les صفقات expirées
+                return None  # Ignorer directement
 
-            # ── 4. Autres champs ──
-            acheteur = (cell_exact(["maître d\'ouvrage","maître d ouvrage",
-                                    "organisme","administration"]) or "").strip()
+            # ══ 4. Autres champs ══
+            acheteur = cell("maître d'ouvrage","maître d ouvrage",
+                           "organisme","administration maître","entité").strip()
             date_pub  = ClassifierAgent.extract_date(
-                cell_exact(["date de publication","date d\'ouverture","publication"]) or "")
-            mon_raw   = cell_exact(["montant","budget","estimation"]) or ""
+                cell("date de publication","date d'ouverture","publication") or "")
+            mon_raw   = cell("montant estimé","montant","budget","estimation") or ""
             if not mon_raw:
                 m = re.search(r'(\d[\d\s,.]+)\s*(?:DH|MAD)', full, re.I)
                 if m: mon_raw = m.group(0)[:80]
+
+            # ══ 5. Log avec date ══
+            dl_log = date_lim or "?"
+            SLog.add(f"✓ #{tid} │ {ClassifierAgent.secteur(objet)[:4]} │ {objet[:45]} │ ⏰{dl_log}")
 
             return {
                 "id":               f"bdc_{tid}",
