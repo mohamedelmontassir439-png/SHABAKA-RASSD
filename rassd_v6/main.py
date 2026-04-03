@@ -16,7 +16,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 import sqlite3, bcrypt, schedule, time as _time
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("rassd")
 
 # ══ CONFIG ══════════════════════════════════════════════════

@@ -168,13 +168,19 @@ def parse_classic(html: str, tid: str) -> Optional[dict]:
             if m_ao:
                 objet = m_ao.group(1).strip()
 
-        if not objet: return None
+        if not objet:
+            logger.debug(f"[{tid}] NO OBJET FOUND")
+            return None
 
         objet = re.sub(r'\s+', ' ', objet).strip()
         # Enlever le numéro AO en préfixe si présent: "#1Bec..." → garder tout
         # Mais nettoyer si l'objet commence par "Détails de"
-        if objet.lower().startswith("détails de"): return None
-        if len(objet) < 6: return None
+        if objet.lower().startswith("détails de"):
+            logger.debug(f"[{tid}] REJECTED: starts with 'détails de': {objet[:50]}")
+            return None
+        if len(objet) < 6:
+            logger.debug(f"[{tid}] REJECTED: too short: '{objet}'")
+            return None
 
         # ── DATE LIMITE: chercher dans le texte complet ──
         date_lim = ""
@@ -205,8 +211,12 @@ def parse_classic(html: str, tid: str) -> Optional[dict]:
                     break
 
         # Règle absolue: ignorer si expiré
-        if date_lim and is_expired(date_lim): return None
-        if any(w in full.lower() for w in ["annulé","annulée","sans suite","infructueux"]): return None
+        if date_lim and is_expired(date_lim):
+            logger.debug(f"[{tid}] REJECTED: expired: {date_lim}")
+            return None
+        if any(w in full.lower() for w in ["annulé","annulée","sans suite","infructueux"]):
+            logger.debug(f"[{tid}] REJECTED: annulé/sans suite")
+            return None
 
         # ── AUTRES CHAMPS ──
         acheteur = _cell(soup, *ACHETEUR_LABELS).strip()
