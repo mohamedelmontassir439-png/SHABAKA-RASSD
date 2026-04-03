@@ -238,7 +238,8 @@ def run(known_ids: set, log_fn=print) -> list:
                 if n > max_id: max_id = n
             except: pass
     if max_id <= 312000:
-        start_id, end_id = 312400, 313200
+        # DB vide — scanner les IDs récents (avril 2026 ≈ 313000+)
+        start_id, end_id = 313000, 314000
     else:
         start_id = max(max_id - 20, 310000)
         end_id   = max_id + 600
