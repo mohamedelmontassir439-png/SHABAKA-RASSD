@@ -124,41 +124,105 @@ def _cell(soup, *labels) -> str:
     return ""
 
 def parse_classic(html: str, tid: str) -> Optional[dict]:
-    """Extraction classique par labels HTML"""
+    """
+    Extraction adaptée à la structure réelle de marchespublics.gov.ma:
+    - <h2> contient le titre du marché (ex: "#1Bec électrique...")
+    - Pas de tableau <tr> standard — les données sont en texte
+    - Date limite dans le texte après les labels
+    """
     try:
         from bs4 import BeautifulSoup as BS
         soup = BS(html, "html.parser")
         full = soup.get_text(" ", strip=True)
 
-        objet = _cell(soup, *OBJET_LABELS)
-        if not objet:
-            for sel in [".consultation-objet","[class*='objet']","h1","h2"]:
-                el = soup.select_one(sel)
-                if el:
-                    t = el.get_text(strip=True)
-                    if 10 < len(t) < 600 and not any(n in t.lower() for n in NOT_OBJET):
-                        objet = t; break
-        if not objet: return None
-        if any(x in objet.lower() for x in ["date et heure","date limite","remise des","heure limite"]):
-            return None
-        objet = re.sub(r'\s+', ' ', objet).strip()
-        if len(objet) < 8: return None
+        # ── OBJET: chercher dans h2/h1/h3 et cellules tableau ──
+        objet = ""
 
-        date_lim = _extract_date(_cell(soup, *DATE_LABELS))
+        # 1. Tableau avec labels (si présent)
+        objet = _cell(soup, *OBJET_LABELS)
+
+        # 2. H1/H2/H3 — structure réelle marchespublics
+        if not objet:
+            for tag in soup.find_all(["h1","h2","h3"])[:8]:
+                t = tag.get_text(strip=True)
+                # Accepter si:
+                # - Assez long
+                # - Pas un titre de navigation
+                # - Pas un label de date
+                skip_words = ["accueil","connexion","portail","liste des avis",
+                              "résultats","invité","retour","consultation"]
+                date_words = ["date et heure","date limite","remise des","heure limite","clôture"]
+                if (8 < len(t) < 600
+                        and not any(s in t.lower() for s in skip_words)
+                        and not any(d in t.lower() for d in date_words)):
+                    objet = t
+                    break
+
+        # 3. Chercher dans le texte "Détails de l'avis d'achat" → prendre le titre
+        if not objet:
+            # Pattern: "Détails de l'avis d'achat #X/Y/Z Titre réel"
+            m_ao = re.search(
+                r'[Dd]étails de l\'avis d\'achat\s+[#\w/]+\s+(.{10,300}?)\s*(?:Accueil|Se connecter|Retour|$)',
+                full
+            )
+            if m_ao:
+                objet = m_ao.group(1).strip()
+
+        if not objet: return None
+
+        objet = re.sub(r'\s+', ' ', objet).strip()
+        # Enlever le numéro AO en préfixe si présent: "#1Bec..." → garder tout
+        # Mais nettoyer si l'objet commence par "Détails de"
+        if objet.lower().startswith("détails de"): return None
+        if len(objet) < 6: return None
+
+        # ── DATE LIMITE: chercher dans le texte complet ──
+        date_lim = ""
+
+        # Tableau (si présent)
+        raw_dl = _cell(soup, *DATE_LABELS)
+        if raw_dl:
+            date_lim = _extract_date(raw_dl)
+
+        # Texte complet après mot-clé
         if not date_lim:
             fl = full.lower()
             for lbl in DATE_LABELS:
                 idx = fl.find(lbl)
                 if idx >= 0:
-                    date_lim = _extract_date(full[idx:idx+150])
+                    snippet = full[idx:idx+200]
+                    date_lim = _extract_date(snippet)
                     if date_lim: break
 
+        # Chercher toute date DD/MM/YYYY dans le texte si toujours rien
+        if not date_lim:
+            all_dates = DATE_RE.findall(full)
+            today = date.today()
+            for d_str in all_dates:
+                d_obj = _parse_date(d_str)
+                if d_obj and d_obj >= today:
+                    date_lim = d_obj.strftime("%d/%m/%Y")
+                    break
+
+        # Règle absolue: ignorer si expiré
         if date_lim and is_expired(date_lim): return None
         if any(w in full.lower() for w in ["annulé","annulée","sans suite","infructueux"]): return None
 
+        # ── AUTRES CHAMPS ──
         acheteur = _cell(soup, *ACHETEUR_LABELS).strip()
-        date_pub  = _extract_date(_cell(soup,"date de publication","publication"))
-        montant   = _cell(soup,"montant estimé","montant","budget") or ""
+        # Si pas dans tableau, chercher dans le texte
+        if not acheteur:
+            for lbl in ACHETEUR_LABELS:
+                idx = full.lower().find(lbl)
+                if idx >= 0:
+                    snippet = full[idx+len(lbl):idx+len(lbl)+100].strip()
+                    snippet = re.sub(r'^[:\s]+', '', snippet)
+                    if snippet and len(snippet) > 3:
+                        acheteur = snippet.split("\n")[0][:150]
+                        break
+
+        date_pub = _extract_date(_cell(soup,"date de publication","publication"))
+        montant  = _cell(soup,"montant estimé","montant","budget") or ""
         if not montant:
             m2 = re.search(r'(\d[\d\s,.]+)\s*(?:DH|MAD)', full, re.I)
             if m2: montant = m2.group(0)[:80]
