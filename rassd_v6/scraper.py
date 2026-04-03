@@ -1,20 +1,22 @@
 """
 RASSD — Scraper marchespublics.gov.ma
-Règle absolue: date_limite < aujourd'hui → ignorer
 """
-import re, time, logging, requests, urllib3
+import re, time, logging, ssl, random
 from datetime import datetime, date
 from typing import Optional
 
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 logger = logging.getLogger("rassd.scraper")
 
 BASE = "https://www.marchespublics.gov.ma/bdc/entreprise/consultation"
+
 UA = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/121.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
 ]
+
 OBJET_LABELS = [
     "objet du marché","objet de la consultation","objet de l'appel d'offres",
     "objet","intitulé","désignation","nature des travaux",
@@ -103,8 +105,6 @@ def parse_page(html, tid):
         from bs4 import BeautifulSoup as BS
         soup = BS(html, "html.parser")
         full = soup.get_text(" ", strip=True)
-
-        # ── OBJET ──
         objet = _cell(soup, *OBJET_LABELS)
         if not objet:
             for sel in [".consultation-objet",".objet-marche","[class*='objet']","h1","h2"]:
@@ -118,8 +118,6 @@ def parse_page(html, tid):
             return None
         objet = re.sub(r'\s+', ' ', objet).strip()
         if len(objet) < 8: return None
-
-        # ── DATE LIMITE ──
         date_lim = ""
         raw = _cell(soup, *DATE_LABELS)
         if raw: date_lim = _extract_date(raw)
@@ -130,47 +128,59 @@ def parse_page(html, tid):
                 if idx < 0: continue
                 date_lim = _extract_date(full[idx:idx+150])
                 if date_lim: break
-
         if date_lim and is_expired(date_lim): return None
         if any(w in full.lower() for w in ["annulé","annulée","sans suite","infructueux"]): return None
-
         acheteur = _cell(soup, *ACHETEUR_LABELS).strip()
         date_pub  = _extract_date(_cell(soup,"date de publication","date d'ouverture","publication"))
         montant   = _cell(soup,"montant estimé","montant","budget","estimation") or ""
         if not montant:
             m2 = re.search(r'(\d[\d\s,.]+)\s*(?:DH|MAD)', full, re.I)
             if m2: montant = m2.group(0)[:80]
-
         return {
-            "id":               f"bdc_{tid}",
-            "objet":            objet[:400],
-            "acheteur":         acheteur[:200],
-            "date_publication": date_pub,
-            "date_limite":      date_lim,
-            "montant":          montant[:80],
-            "secteur":          _detect_secteur(objet + " " + full[:500]),
-            "url":              f"{BASE}/show/{tid}",
-            "source":           "marchespublics",
-            "statut":           "actif",
-            "description":      full[:3000],
-            "scraped_at":       datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "id":f"bdc_{tid}","objet":objet[:400],"acheteur":acheteur[:200],
+            "date_publication":date_pub,"date_limite":date_lim,"montant":montant[:80],
+            "secteur":_detect_secteur(objet+" "+full[:500]),
+            "url":f"{BASE}/show/{tid}","source":"marchespublics","statut":"actif",
+            "description":full[:3000],"scraped_at":datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
     except Exception as e:
         logger.error(f"[parse #{tid}] {e}")
         return None
 
 
-def run(known_ids: set, log_fn=print) -> list:
-    import random
+def _make_session():
+    """Session HTTP avec SSL permissif + headers complets"""
+    import requests
+    import urllib3
+    from requests.adapters import HTTPAdapter
+    urllib3.disable_warnings()
+
+    class TLSAdapter(HTTPAdapter):
+        def init_poolmanager(self, *args, **kwargs):
+            ctx = ssl.create_default_context()
+            ctx.set_ciphers("DEFAULT@SECLEVEL=1")
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            kwargs["ssl_context"] = ctx
+            return super().init_poolmanager(*args, **kwargs)
+
     s = requests.Session()
+    s.mount("https://", TLSAdapter(max_retries=urllib3.Retry(total=3, backoff_factor=1)))
     s.verify = False
     s.headers.update({
-        "User-Agent": random.choice(UA),
-        "Accept": "text/html,application/xhtml+xml,*/*;q=0.8",
-        "Accept-Language": "fr-MA,fr;q=0.9,ar;q=0.8",
-        "Connection": "keep-alive",
+        "User-Agent":              random.choice(UA),
+        "Accept":                  "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language":         "fr-MA,fr;q=0.9,ar;q=0.8,en;q=0.7",
+        "Accept-Encoding":         "gzip, deflate, br",
+        "Connection":              "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
+        "Cache-Control":           "max-age=0",
+        "DNT":                     "1",
     })
+    return s
 
+
+def run(known_ids: set, log_fn=print) -> list:
     max_id = 312000
     for kid in known_ids:
         if kid.startswith("bdc_"):
@@ -187,49 +197,35 @@ def run(known_ids: set, log_fn=print) -> list:
 
     log_fn(f"Plage: #{start_id}→#{end_id} ({len(scan_ids)} IDs)")
 
+    s = _make_session()
     results = []; errors = 0; consec_empty = 0; first_err = None
 
     for i, tid in enumerate(scan_ids):
-        if i % 80 == 0 and i > 0:
+        if i % 100 == 0 and i > 0:
             s.headers["User-Agent"] = random.choice(UA)
         try:
             r = s.get(f"{BASE}/show/{tid}", timeout=20)
-            if r.status_code == 404:
-                consec_empty += 1; continue
-            if r.status_code != 200 or len(r.text) < 1500:
-                consec_empty += 1; continue
+            if r.status_code == 404: consec_empty += 1; continue
+            if r.status_code != 200 or len(r.text) < 1500: consec_empty += 1; continue
             if consec_empty > 80 and len(results) == 0:
-                log_fn("80 IDs vides consécutifs, arrêt"); break
+                log_fn("80 IDs vides, arrêt"); break
             consec_empty = 0
             t = parse_page(r.text, tid)
             if not t: continue
             results.append(t)
             log_fn(f"✓ {tid} │ {t['secteur'][:18]:18} │ {t['objet'][:45]} │ ⏰{t['date_limite'] or '?'}")
             time.sleep(0.3)
-        except requests.exceptions.SSLError as e:
-            errors += 1
-            if not first_err:
-                first_err = f"SSL: {e}"
-                log_fn(f"⚠ SSL error (s.verify=False normalement suffisant): {str(e)[:60]}")
-            consec_empty += 1
-        except requests.exceptions.ConnectionError as e:
-            errors += 1
-            if not first_err:
-                first_err = f"Connection: {e}"
-                log_fn(f"⚠ Connexion impossible: {str(e)[:80]}")
-            consec_empty += 1
-            if consec_empty > 5:
-                log_fn("❌ Serveur inaccessible depuis Railway — vérifier l'accès réseau")
-                break
         except Exception as e:
             errors += 1
             if not first_err:
-                first_err = str(e)
-                log_fn(f"⚠ Erreur [{tid}]: {str(e)[:80]}")
+                first_err = str(e)[:80]
+                log_fn(f"⚠ [{tid}]: {first_err}")
             consec_empty += 1
+            if consec_empty > 8 and errors > 5:
+                log_fn(f"❌ Serveur inaccessible. Vérifier depuis Railway: curl https://www.marchespublics.gov.ma")
+                break
 
-    if errors > 0 and first_err:
-        log_fn(f"Total erreurs: {errors} | Première: {first_err[:60]}")
-
+    if errors > 0:
+        log_fn(f"Erreurs: {errors} | {first_err or '?'}")
     log_fn(f"Terminé: {len(results)} marchés actifs | {errors} erreurs")
     return results
