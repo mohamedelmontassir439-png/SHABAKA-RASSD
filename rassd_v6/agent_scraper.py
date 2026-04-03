@@ -404,8 +404,14 @@ class ScrapingAgent:
                 except: pass
         if max_id < 311000: max_id = 312500
 
-        start_id = max(max_id - 20, 310000)
-        end_id   = max_id + 600
+        # IDs actuels marchespublics ~312000-313000
+        if max_id <= 312000:
+            # DB vide ou IDs trop vieux → chercher autour de 312500
+            start_id = 312400
+            end_id   = 313100
+        else:
+            start_id = max(max_id - 20, 310000)
+            end_id   = max_id + 600
         scan_ids = [str(i) for i in range(start_id, end_id + 1)
                     if f"bdc_{i}" not in known_ids]
 
@@ -417,8 +423,8 @@ class ScrapingAgent:
         self._ensure_session()
         consec_empty = 0
 
+        debug_done = False  # Afficher structure 1 fois
         for i, tid in enumerate(scan_ids):
-            # Rotation UA tous les 100 IDs
             if i % 100 == 0 and i > 0:
                 self._rotate_ua()
 
@@ -442,6 +448,30 @@ class ScrapingAgent:
                 consec_empty = 0
                 self.stats["found"] += 1
                 html = r.text
+
+                # ── DEBUG: analyser structure de la première page ──
+                if not debug_done and self.stats["found"] == 1:
+                    debug_done = True
+                    try:
+                        from bs4 import BeautifulSoup as BS
+                        soup = BS(html, "html.parser")
+                        full = soup.get_text(" ", strip=True)
+                        # Montrer les 10 premières lignes de tableau
+                        self.log(f"[DEBUG #{tid}] Taille HTML: {len(html)} chars")
+                        rows = soup.find_all("tr")[:15]
+                        for row in rows:
+                            cells = row.find_all(["td","th"])
+                            if len(cells) >= 2:
+                                lbl = cells[0].get_text(strip=True)[:40]
+                                val = cells[1].get_text(strip=True)[:60]
+                                if lbl: self.log(f"  [{lbl}] → [{val}]")
+                        # Montrer h1/h2
+                        for tag in soup.find_all(["h1","h2","h3"])[:5]:
+                            self.log(f"  <{tag.name}>: {tag.get_text(strip=True)[:80]}")
+                        # Montrer extrait du texte complet
+                        self.log(f"  TEXTE: {full[:300]}")
+                    except Exception as e:
+                        self.log(f"[DEBUG] Erreur: {e}")
 
                 # ── Extraction classique ──
                 tender = parse_classic(html, tid)
