@@ -239,7 +239,10 @@ async def do_scrape():
     State.started = datetime.now().strftime("%H:%M:%S")
     State.log("═══ Scan marchespublics.gov.ma ═══")
     try:
-        from scraper import run
+        try:
+            from agent_scraper import run
+        except ImportError:
+            from scraper import run
         c = db()
         known = {r[0] for r in c.execute("SELECT id FROM tenders").fetchall()}
         c.close()
