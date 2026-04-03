@@ -9,7 +9,7 @@ from typing import Optional
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 logger = logging.getLogger("rassd.scraper")
 
-BASE = "https://marchespublics.gov.ma/bdc/entreprise/consultation"
+BASE = "https://www.marchespublics.gov.ma/bdc/entreprise/consultation"
 UA = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/121.0 Safari/537.36",
