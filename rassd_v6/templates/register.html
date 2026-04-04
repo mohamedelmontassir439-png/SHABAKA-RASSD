@@ -1,30 +1,39 @@
 {% extends "base.html" %}
 {% block title %}Inscription — RASSD{% endblock %}
 {% block body %}
-<div class="page-sm">
+<div class="page-narrow">
   <div style="text-align:center;margin-bottom:36px">
-    <div style="font-family:var(--mono);font-size:9px;color:var(--g);letter-spacing:2px;margin-bottom:12px">CRÉER UN COMPTE</div>
-    <div style="font-family:var(--serif);font-style:italic;font-size:28px;color:var(--t1)">Démarrer les alertes</div>
+    <div style="font-family:var(--mono);font-size:9px;color:var(--gold);letter-spacing:2px;margin-bottom:12px">CRÉER UN COMPTE</div>
+    <h1 style="font-family:var(--serif);font-style:italic;font-size:30px;color:var(--text1)">Commencer gratuitement</h1>
+    <p style="color:var(--text3);font-size:13px;margin-top:8px">14 jours d'essai · Aucune carte requise</p>
   </div>
-  {% if err %}<div style="background:rgba(224,92,92,.08);border:1px solid rgba(224,92,92,.25);border-radius:var(--r);padding:12px 16px;color:var(--red);font-size:12px;margin-bottom:20px">{{ err }}</div>{% endif %}
+  {% if err %}<div class="alert alert-err" style="margin-bottom:20px">{{ err }}</div>{% endif %}
   <form method="post" style="display:flex;flex-direction:column;gap:16px">
-    <div><label class="lbl">Nom complet</label><input name="nom" class="inp" placeholder="Mohamed Alaoui"></div>
-    <div><label class="lbl">Email *</label><input name="email" type="email" class="inp" placeholder="email@entreprise.ma" required></div>
-    <div><label class="lbl">Téléphone</label><input name="phone" class="inp" placeholder="+212 6xx xxxxxx"></div>
-    <div><label class="lbl">Mot de passe *</label><input name="pw" type="password" class="inp" required minlength="6"></div>
-    <div>
-      <label class="lbl">Vos secteurs d'activité</label>
-      <div style="font-size:11px;color:var(--t4);margin-bottom:10px">Laissez vide pour recevoir tous les marchés</div>
+    <div class="grid-2">
+      <div class="field"><label>Nom complet</label><input name="nom" class="inp" placeholder="Mohamed Alaoui" value="{{ (vals or {}).get('nom','') }}"></div>
+      <div class="field"><label>Email *</label><input name="email" type="email" class="inp" placeholder="email@entreprise.ma" required value="{{ (vals or {}).get('email','') }}"></div>
+    </div>
+    <div class="grid-2">
+      <div class="field"><label>Téléphone</label><input name="phone" class="inp" placeholder="+212 6xx xxxxxx" value="{{ (vals or {}).get('phone','') }}"></div>
+      <div class="field"><label>Entreprise</label><input name="company" class="inp" placeholder="Nom de votre société" value="{{ (vals or {}).get('company','') }}"></div>
+    </div>
+    <div class="grid-2">
+      <div class="field"><label>Mot de passe *</label><input name="pw" type="password" class="inp" required minlength="8" placeholder="Min. 8 caractères"></div>
+      <div class="field"><label>Confirmer *</label><input name="pw2" type="password" class="inp" required placeholder="Répéter le mot de passe"></div>
+    </div>
+    <div class="field">
+      <label>Vos secteurs d'activité</label>
+      <p style="font-size:11px;color:var(--text4);margin-bottom:10px">Laissez vide pour recevoir tous les marchés</p>
       <div style="display:flex;flex-wrap:wrap;gap:7px">
         {% for s in secteurs %}
-        <label style="display:inline-flex;align-items:center;gap:6px;padding:7px 13px;background:var(--s1);border:1px solid var(--bdr);border-radius:99px;cursor:pointer;font-size:11px;color:var(--t3);transition:.15s;user-select:none">
-          <input type="checkbox" name="secteurs_sel" value="{{ s }}" style="accent-color:var(--g)" onchange="const l=this.parentElement;l.style.borderColor=this.checked?'var(--g)':'var(--bdr)';l.style.color=this.checked?'var(--g)':'var(--t3)'">{{ s }}
+        <label style="display:inline-flex;align-items:center;gap:6px;padding:7px 13px;background:var(--bg2);border:1px solid var(--bdr);border-radius:99px;cursor:pointer;font-size:11px;color:var(--text3);transition:.15s;user-select:none">
+          <input type="checkbox" name="secteurs_sel" value="{{ s }}" style="accent-color:var(--gold)" onchange="const l=this.parentElement;l.style.borderColor=this.checked?'var(--gold)':'var(--bdr)';l.style.color=this.checked?'var(--gold)':'var(--text3)'">{{ s }}
         </label>
         {% endfor %}
       </div>
     </div>
-    <button type="submit" class="btn btn-g btn-w" style="padding:13px;margin-top:4px">Créer mon compte →</button>
-    <div style="text-align:center;font-size:12px;color:var(--t4)">Déjà inscrit ? <a href="/login" style="color:var(--g)">Se connecter</a></div>
+    <button type="submit" class="btn btn-primary btn-full" style="padding:13px;font-size:14px;margin-top:4px">Créer mon compte →</button>
+    <p style="text-align:center;font-size:12px;color:var(--text4)">Déjà inscrit ? <a href="/login" style="color:var(--gold)">Se connecter</a></p>
   </form>
 </div>
 {% endblock %}

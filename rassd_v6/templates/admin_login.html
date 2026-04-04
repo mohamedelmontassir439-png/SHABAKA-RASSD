@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% block body %}
-<div class="page-sm" style="padding-top:80px">
-  <div style="text-align:center;margin-bottom:32px">
-    <div style="font-family:var(--mono);font-size:9px;color:var(--t4);letter-spacing:2px">ADMINISTRATION</div>
+<div class="page-narrow" style="max-width:380px;padding-top:80px">
+  <div style="text-align:center;margin-bottom:28px">
+    <div style="font-family:var(--mono);font-size:9px;color:var(--text4);letter-spacing:2px">ADMINISTRATION · RASSD</div>
   </div>
-  {% if err %}<div style="color:var(--red);font-size:12px;text-align:center;margin-bottom:16px">{{ err }}</div>{% endif %}
-  <form method="post" action="/admin/login" style="display:flex;flex-direction:column;gap:12px">
-    <input name="pwd" type="password" class="inp" placeholder="Mot de passe admin" autofocus>
-    <button type="submit" class="btn btn-g btn-w">Accéder →</button>
+  {% if err %}<div class="alert alert-err" style="margin-bottom:16px">{{ err }}</div>{% endif %}
+  <form method="post" style="display:flex;flex-direction:column;gap:12px">
+    <input name="pwd" type="password" class="inp" placeholder="Mot de passe administrateur" autofocus>
+    <button type="submit" class="btn btn-primary btn-full" style="padding:12px">Accéder →</button>
   </form>
 </div>
 {% endblock %}

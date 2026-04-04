@@ -1,81 +1,177 @@
-<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
-<title>Admin — RASSD</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Admin — RASSD</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
+:root{--bg:#050508;--bg2:#0a0a0f;--bg3:#0f0f18;--bdr:#181826;--bdr2:#222234;--gold:#d4a843;--t1:#f0ede8;--t2:#c8c4bc;--t3:#888480;--t4:#484440;--grn:#38d47e;--red:#e05454;--blue:#5090e8}
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#05050a;--s1:#0a0a12;--s2:#0f0f1a;--bdr:#1a1a28;--g:#c8a850;--t1:#f0ede6;--t2:#c8c4bc;--t3:#8a8680;--t4:#484644;--grn:#3dd68c;--red:#e05c5c}
-body{background:var(--bg);color:var(--t2);font-family:'Syne',sans-serif;font-size:13px}
-.hd{background:var(--s1);border-bottom:1px solid var(--bdr);height:52px;display:flex;align-items:center;padding:0 24px;gap:16px}
-.brand{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--g);font-weight:700;letter-spacing:2px}
-.page{max-width:1000px;margin:0 auto;padding:28px 24px}
+body{background:var(--bg);color:var(--t2);font-family:'Inter',sans-serif;font-size:13px;min-height:100vh}
+.topbar{background:var(--bg2);border-bottom:1px solid var(--bdr);height:54px;display:flex;align-items:center;padding:0 28px;gap:16px;position:sticky;top:0;z-index:100}
+.brand{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--gold);font-weight:500;letter-spacing:2px}
+.page{max-width:1080px;margin:0 auto;padding:28px 24px}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
-.stat{background:var(--s1);border:1px solid var(--bdr);border-radius:10px;padding:20px;text-align:center}
-.sn{font-family:'JetBrains Mono',monospace;font-size:34px;font-weight:500;color:var(--g)}
-.sl{font-size:9px;color:var(--t4);margin-top:4px;letter-spacing:1px;text-transform:uppercase}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:'Syne',sans-serif;letter-spacing:.3px;transition:.15s}
-.bg{background:var(--g);color:#000}.bg:hover{background:#e4c96a}
-.bo{background:transparent;border:1px solid var(--bdr);color:var(--t2)}.bo:hover{border-color:var(--g);color:var(--g)}
-.br{background:rgba(224,92,92,.1);border:1px solid rgba(224,92,92,.25);color:var(--red)}
-.card{background:var(--s1);border:1px solid var(--bdr);border-radius:10px;overflow:hidden;margin-bottom:16px}
-.ch{padding:13px 20px;border-bottom:1px solid var(--bdr);font-size:10px;font-weight:700;color:var(--t3);letter-spacing:1px;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center}
-.terminal{background:#030307;padding:16px;font-family:'JetBrains Mono',monospace;font-size:10.5px;height:300px;overflow-y:auto;line-height:1.7}
-</style></head><body>
-<div class="hd">
-  <span class="brand">RASSD ADMIN</span>
-  <span style="font-size:10px;color:var(--t4);font-family:'JetBrains Mono',monospace">v2.0</span>
+.grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+.stat{background:var(--bg2);border:1px solid var(--bdr);border-radius:10px;padding:20px;text-align:center}
+.stat-n{font-family:'JetBrains Mono',monospace;font-size:32px;color:var(--gold);line-height:1}
+.stat-l{font-size:9px;color:var(--t4);margin-top:6px;letter-spacing:1.5px;text-transform:uppercase}
+.card{background:var(--bg2);border:1px solid var(--bdr);border-radius:10px;overflow:hidden;margin-bottom:16px}
+.card-h{padding:13px 20px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between}
+.card-ht{font-size:10px;font-weight:600;color:var(--t3);letter-spacing:1px;text-transform:uppercase}
+.card-b{padding:20px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:none;font-family:'Inter',sans-serif;transition:.15s}
+.btn-p{background:var(--gold);color:#000}.btn-p:hover{background:#e8c060}
+.btn-o{background:transparent;border:1px solid var(--bdr2);color:var(--t2)}.btn-o:hover{border-color:var(--gold);color:var(--gold)}
+.btn-d{background:rgba(224,84,84,.1);border:1px solid rgba(224,84,84,.25);color:var(--red)}
+.terminal{background:#03030a;padding:16px;font-family:'JetBrains Mono',monospace;font-size:10.5px;height:320px;overflow-y:auto;line-height:1.7;border-top:1px solid var(--bdr)}
+.log-ok{color:var(--grn)}.log-err{color:var(--red)}.log-hdr{color:var(--gold)}.log-n{color:var(--t4)}
+.badge{display:inline-flex;padding:2px 8px;border-radius:99px;font-size:9px;font-weight:700;letter-spacing:.3px}
+.b-g{background:rgba(212,168,67,.12);color:var(--gold)}.b-r{background:rgba(224,84,84,.1);color:var(--red)}.b-grn{background:rgba(56,212,126,.08);color:var(--grn)}
+.member-row{display:grid;grid-template-columns:1fr auto auto auto;gap:12px;align-items:center;padding:10px 0;border-bottom:1px solid var(--bdr)}
+.member-row:last-child{border-bottom:none}
+.inp{background:var(--bg3);border:1px solid var(--bdr2);border-radius:6px;padding:6px 10px;color:var(--t1);font-size:11px;outline:none;width:90px}
+.sel{background:var(--bg3);border:1px solid var(--bdr2);border-radius:6px;padding:5px 8px;color:var(--t1);font-size:11px;outline:none}
+table{width:100%;border-collapse:collapse}
+th{font-size:9px;font-weight:600;color:var(--t4);letter-spacing:1px;text-transform:uppercase;padding:8px 12px;text-align:left;border-bottom:1px solid var(--bdr)}
+td{padding:10px 12px;border-bottom:1px solid var(--bdr);font-size:12px;color:var(--t2)}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.01)}
+</style></head>
+<body>
+<div class="topbar">
+  <span class="brand">RASSD</span>
+  <span style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t4)">Administration v3.0</span>
   <div style="margin-left:auto;display:flex;gap:8px">
-    <a href="/" class="btn bo">← Site</a>
-    <a href="/admin/expire_now" class="btn bo" onclick="return confirm('Expirer les marchés passés ?')">⏱ Expirer</a>
-    <a href="/admin/clear_db?confirm=yes" class="btn br" onclick="return confirm('SUPPRIMER TOUS LES MARCHÉS ?')">🗑 Vider</a>
+    <a href="/" class="btn btn-o">← Site public</a>
+    <a href="/admin/expire" class="btn btn-o" onclick="return confirm('Expirer les marchés passés ?')">⏱ Expirer</a>
+    <a href="/admin/clear?confirm=yes" class="btn btn-d" onclick="return confirm('SUPPRIMER TOUS LES MARCHÉS ? Cette action est irréversible.')">🗑 Vider DB</a>
   </div>
 </div>
+
 <div class="page">
-  <div class="grid3">
-    <div class="stat"><div class="sn">{{ stats.tenders }}</div><div class="sl">Marchés actifs</div></div>
-    <div class="stat"><div class="sn">{{ stats.members }}</div><div class="sl">Membres</div></div>
-    <div class="stat"><div class="sn">{{ stats.notifs }}</div><div class="sl">Notifications</div></div>
+  <!-- Stats -->
+  <div class="grid3" style="grid-template-columns:repeat(6,1fr)">
+    {% for n,l in [(stats.tenders,'Marchés actifs'),(stats.today,'Publiés aujourd\'hui'),(stats.members,'Membres'),(stats.notifs,'Notifs (7j)'),(stats.expired,'Expirés'),(stats.scrapes,'Scans total')] %}
+    <div class="stat"><div class="stat-n">{{ n }}</div><div class="stat-l">{{ l }}</div></div>
+    {% endfor %}
   </div>
-  <div class="card">
-    <div class="ch">
-      <span>🔍 Scraper Real-Time</span>
-      <div style="display:flex;gap:8px;align-items:center">
-        <span id="st" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:{% if running %}var(--g){% else %}var(--t4){% endif %}">{% if running %}● EN COURS{% else %}○ INACTIF{% endif %}</span>
-        <button onclick="launch()" id="btn" class="btn bg" {% if running %}disabled{% endif %}>▶ Lancer</button>
+
+  <div class="grid2">
+    <!-- Scraper -->
+    <div>
+      <div class="card">
+        <div class="card-h">
+          <span class="card-ht">🔍 Scraper Real-Time</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span id="st" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:{% if running %}var(--gold){% else %}var(--t4){% endif %}">{% if running %}● EN COURS{% else %}○ INACTIF{% endif %}</span>
+            <button onclick="launch()" id="btn" class="btn btn-p" {% if running %}disabled{% endif %}>▶ Lancer scan</button>
+          </div>
+        </div>
+        {% if last_run %}
+        <div style="padding:10px 20px;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t4);border-bottom:1px solid var(--bdr)">Dernier scan: {{ last_run[:16] }}</div>
+        {% endif %}
+        <div class="terminal" id="trm">
+          {% for l in logs %}
+          <div class="{% if '✓' in l %}log-ok{% elif '❌' in l or '⚠' in l %}log-err{% elif '═' in l or '✅' in l %}log-hdr{% else %}log-n{% endif %}">{{ l }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Scrape history -->
+      {% if scrapes %}
+      <div class="card">
+        <div class="card-h"><span class="card-ht">📊 Historique des scans</span></div>
+        <table>
+          <tr><th>Date</th><th>Trouvés</th><th>Sauvés</th><th>Erreurs</th></tr>
+          {% for s in scrapes %}
+          <tr>
+            <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t4)">{{ s.run_at[:16] }}</td>
+            <td style="color:var(--blue)">{{ s.found }}</td>
+            <td style="color:var(--grn)">{{ s.saved }}</td>
+            <td style="color:{{ 'var(--red)' if s.errors > 0 else 'var(--t4)' }}">{{ s.errors }}</td>
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Members + Sectors -->
+    <div>
+      <!-- Sectors -->
+      <div class="card">
+        <div class="card-h"><span class="card-ht">📂 Répartition secteurs</span></div>
+        <div class="card-b" style="display:flex;flex-wrap:wrap;gap:6px">
+          {% for s in sectors %}
+          <div style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;background:var(--bg3);border:1px solid var(--bdr2);border-radius:99px;font-size:10px">
+            <span style="color:var(--t2)">{{ s.secteur[:22] }}</span>
+            <span style="font-family:'JetBrains Mono',monospace;color:var(--gold);font-weight:600">{{ s.cnt }}</span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Members -->
+      <div class="card">
+        <div class="card-h">
+          <span class="card-ht">👥 Derniers membres</span>
+          <span style="font-size:10px;color:var(--t4)">{{ stats.members }} total</span>
+        </div>
+        <table>
+          <tr><th>Nom/Email</th><th>Plan</th><th>Inscrit</th></tr>
+          {% for m in members %}
+          <tr>
+            <td>
+              <div style="color:var(--t1);font-size:12px">{{ m.nom or '—' }}</div>
+              <div style="color:var(--t4);font-size:10px;font-family:'JetBrains Mono',monospace">{{ m.email[:28] }}</div>
+            </td>
+            <td>
+              <form method="post" action="/admin/member/{{ m.id }}/plan">
+                <select name="plan" class="sel" onchange="this.form.submit()">
+                  <option value="free" {% if m.plan=='free' %}selected{% endif %}>Gratuit</option>
+                  <option value="pro" {% if m.plan=='pro' %}selected{% endif %}>Pro</option>
+                  <option value="business" {% if m.plan=='business' %}selected{% endif %}>Business</option>
+                </select>
+              </form>
+            </td>
+            <td style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t4)">{{ m.created_at[:10] }}</td>
+          </tr>
+          {% endfor %}
+        </table>
       </div>
     </div>
-    <div class="terminal" id="trm">{% for l in logs %}<div style="color:{% if '✓' in l %}var(--grn){% elif '❌' in l or '⚠' in l %}var(--red){% elif '═══' in l %}var(--g){% else %}var(--t4){% endif %}">{{ l }}</div>{% endfor %}</div>
   </div>
-  {% if sects %}
-  <div class="card">
-    <div class="ch">Répartition secteurs</div>
-    <div style="padding:16px;display:flex;flex-wrap:wrap;gap:8px">
-      {% for s in sects %}
-      <div style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;background:var(--s2);border:1px solid var(--bdr);border-radius:99px;font-size:10px">
-        <span style="color:var(--t2)">{{ s.secteur[:24] }}</span>
-        <span style="font-family:'JetBrains Mono',monospace;color:var(--g);font-weight:700">{{ s.cnt }}</span>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-  {% endif %}
 </div>
+
 <script>
-let sse=null;
+let sse = null;
 async function launch(){
-  const btn=document.getElementById('btn'),trm=document.getElementById('trm'),st=document.getElementById('st');
-  btn.disabled=true;btn.textContent='⏳ En cours…';
-  st.textContent='● EN COURS';st.style.color='var(--g)';
-  trm.innerHTML='<div style="color:var(--g)">═══ Lancement scan marchespublics.gov.ma ═══</div>';
-  const r=await fetch('/admin/scrape');const d=await r.json();
-  if(!d.ok){trm.innerHTML+=`<div style="color:var(--red)">${d.msg||'Erreur'}</div>`;btn.disabled=false;btn.textContent='▶ Lancer';return}
-  if(sse)sse.close();
-  sse=new EventSource('/admin/scrape_stream');
-  sse.onmessage=e=>{
-    const data=JSON.parse(e.data);
-    if(data.log){const div=document.createElement('div');const l=data.log;div.style.color=l.includes('✓')?'var(--grn)':l.includes('❌')||l.includes('⚠')?'var(--red)':l.includes('═══')?'var(--g)':'var(--t4)';div.textContent=l;trm.appendChild(div);trm.scrollTop=trm.scrollHeight}
-    if(data.done){sse.close();btn.disabled=false;btn.textContent='▶ Lancer';st.textContent='○ INACTIF';st.style.color='var(--t4)';const d2=document.createElement('div');d2.style.color='var(--g)';d2.textContent=`═══ ${data.saved||0} nouveaux marchés sauvegardés ═══`;trm.appendChild(d2);trm.scrollTop=trm.scrollHeight;setTimeout(()=>location.reload(),3000)}
+  const btn=document.getElementById('btn'), trm=document.getElementById('trm'), st=document.getElementById('st');
+  btn.disabled=true; btn.textContent='⏳ En cours…';
+  st.textContent='● EN COURS'; st.style.color='var(--gold)';
+  trm.innerHTML='<div class="log-hdr">═══ Lancement scraper real-time ═══</div>';
+  const r = await fetch('/admin/scrape');
+  const d = await r.json();
+  if(!d.ok){ trm.innerHTML+=`<div class="log-err">${d.msg||'Erreur'}</div>`; btn.disabled=false; btn.textContent='▶ Lancer scan'; return; }
+  if(sse) sse.close();
+  sse = new EventSource('/admin/scrape_stream');
+  sse.onmessage = e => {
+    const data = JSON.parse(e.data);
+    if(data.log){
+      const div = document.createElement('div');
+      const l = data.log;
+      div.className = l.includes('✓') ? 'log-ok' : (l.includes('❌')||l.includes('⚠')) ? 'log-err' : l.includes('═')||l.includes('✅') ? 'log-hdr' : 'log-n';
+      div.textContent = l;
+      trm.appendChild(div); trm.scrollTop = trm.scrollHeight;
+    }
+    if(data.done){
+      sse.close();
+      btn.disabled=false; btn.textContent='▶ Lancer scan';
+      st.textContent='○ INACTIF'; st.style.color='var(--t4)';
+      const d2=document.createElement('div'); d2.className='log-hdr';
+      d2.textContent=`✅ ${data.saved||0} nouveaux marchés sauvegardés (${data.found||0} trouvés)`;
+      trm.appendChild(d2); trm.scrollTop=trm.scrollHeight;
+      setTimeout(()=>location.reload(), 3000);
+    }
   };
 }
-document.getElementById('trm').scrollTop=document.getElementById('trm').scrollHeight;
+document.getElementById('trm').scrollTop = document.getElementById('trm').scrollHeight;
 </script>
 </body></html>
