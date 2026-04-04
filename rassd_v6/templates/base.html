@@ -137,6 +137,7 @@ body::after {
     <a href="/tenders" class="nav-link {% if request.url.path.startswith('/tenders') %}active{% endif %}">
       <span class="dot-live"></span>Marchés
     </a>
+    <a href="/tarifs" class="nav-link {% if request.url.path == '/tarifs' %}active{% endif %}">Tarifs</a>
     {% if member %}
     <a href="/dashboard" class="nav-link {% if request.url.path == '/dashboard' %}active{% endif %}">Dashboard</a>
     <a href="/favorites" class="nav-link {% if request.url.path == '/favorites' %}active{% endif %}">Favoris</a>

@@ -64,20 +64,23 @@ def is_plan_allowed(member: dict, feature: str) -> bool:
         return limit == 0  # 0 = unlimited
     return False
 
-def days_left(dl: str) -> tuple[int, str]:
-    if not dl: return 999, ""
-    import re
-    m = re.search(r'(\d{2}/\d{2}/\d{4}|\d{4}-\d{2}-\d{2})', str(dl))
-    if not m: return 999, ""
+def days_left(dl: str):
+    """Retourne (nb_jours: int, label: str)"""
+    if not dl or str(dl).strip() in ("", "N/A", "—", "-"):
+        return 999, ""
+    import re as _re
+    m = _re.search(r'(\d{2}/\d{2}/\d{4}|\d{4}-\d{2}-\d{2})', str(dl))
+    if not m:
+        return 999, ""
     try:
-        fmt = "%d/%m/%Y" if "/" in m.group(1)[:3] else "%Y-%m-%d"
-        d = datetime.strptime(m.group(1), fmt).date()
+        fmt   = "%d/%m/%Y" if "/" in m.group(1)[:3] else "%Y-%m-%d"
+        d     = datetime.strptime(m.group(1), fmt).date()
         delta = (d - date.today()).days
         if delta < 0:   return delta, "Expiré"
-        if delta == 0:  return 0, "Aujourd'hui !"
-        if delta == 1:  return 1, "Demain"
+        if delta == 0:  return 0,     "Aujourd'hui !"
+        if delta == 1:  return 1,     "Demain"
         if delta <= 3:  return delta, f"{delta}j 🔥"
         if delta <= 7:  return delta, f"{delta}j ⏳"
         return delta, f"{delta} jours"
-    except:
+    except Exception:
         return 999, ""
