@@ -1,81 +1,56 @@
 {% extends "base.html" %}
-{% block title %}RASSD — Alertes Marchés Publics Maroc en temps réel{% endblock %}
+{% block title %}RASSD — Marchés Publics Maroc en temps réel{% endblock %}
 {% block body %}
-
 <!-- HERO -->
-<section style="padding:80px 24px 60px;text-align:center;position:relative;overflow:hidden">
-  <div style="position:absolute;inset:0;background:radial-gradient(ellipse 80% 50% at 50% 0%,rgba(201,168,76,.08),transparent);pointer-events:none"></div>
-  <div style="position:absolute;top:20px;left:50%;transform:translateX(-50%);width:1px;height:60px;background:linear-gradient(var(--gold),transparent);opacity:.4"></div>
-  
-  <div style="display:inline-block;padding:4px 14px;border:1px solid rgba(201,168,76,.3);border-radius:99px;font-size:10px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;margin-bottom:24px">
-    Source officielle · marchespublics.gov.ma
+<section style="padding:90px 28px 70px;text-align:center;position:relative;z-index:1">
+  <div style="display:inline-flex;align-items:center;gap:8px;padding:5px 16px;border:1px solid rgba(200,168,80,.3);border-radius:99px;font-family:var(--mono);font-size:9px;color:var(--g);letter-spacing:2px;text-transform:uppercase;margin-bottom:28px">
+    <span style="width:5px;height:5px;background:var(--grn);border-radius:50%;animation:pulse 2s infinite"></span>
+    Scraping en temps réel · marchespublics.gov.ma
   </div>
-  
-  <h1 style="font-family:var(--serif);font-size:clamp(36px,6vw,72px);font-weight:700;font-style:italic;color:var(--ink1);line-height:1.1;max-width:760px;margin:0 auto 20px">
-    Chaque marché.<br>
-    <span style="color:var(--gold)">Instantanément.</span>
+  <style>@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}</style>
+  <h1 style="font-family:var(--serif);font-size:clamp(42px,7vw,84px);font-weight:700;font-style:italic;color:var(--t1);line-height:1.05;margin-bottom:22px;max-width:800px;margin-left:auto;margin-right:auto">
+    Chaque marché.<br><span style="color:var(--g)">Dès sa publication.</span>
   </h1>
-  
-  <p style="color:var(--ink3);font-size:16px;max-width:500px;margin:0 auto 36px;line-height:1.7">
-    RASSD surveille le portail officiel en continu et vous alerte dès qu'un marché paraît dans votre secteur.
+  <p style="color:var(--t3);font-size:16px;max-width:480px;margin:0 auto 40px;line-height:1.8">
+    RASSD surveille le portail officiel et vous alerte instantanément par Email et Telegram dès qu'un marché correspond à votre secteur.
   </p>
-  
   <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-    <a href="/register" class="btn btn-gold" style="padding:14px 32px;font-size:15px">Créer mon alerte gratuite →</a>
-    <a href="/tenders" class="btn btn-ghost" style="padding:14px 32px;font-size:15px">Voir les marchés</a>
+    <a href="/register" class="btn btn-g" style="padding:14px 36px;font-size:14px">Créer mon alerte →</a>
+    <a href="/tenders" class="btn btn-o" style="padding:14px 36px;font-size:14px">Voir les marchés</a>
   </div>
-
-  <!-- Stats -->
-  <div style="display:flex;gap:48px;justify-content:center;margin-top:56px;flex-wrap:wrap">
-    {% for n,l in [(stats.total,'Marchés actifs'),(stats.today,'Aujourd\'hui'),(stats.members,'Entreprises')] %}
-    <div>
-      <div style="font-family:var(--serif);font-size:36px;font-weight:700;color:var(--gold);font-style:italic">{{ n }}</div>
-      <div style="font-size:11px;color:var(--ink4);letter-spacing:1px;text-transform:uppercase;margin-top:4px">{{ l }}</div>
+  <!-- STATS -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);max-width:480px;margin:60px auto 0;gap:1px;background:var(--bdr);border:1px solid var(--bdr);border-radius:var(--r2);overflow:hidden">
+    {% for n,l in [(stats.total,'Marchés actifs'),(stats.today,'Publiés aujourd\'hui'),(stats.members,'Abonnés')] %}
+    <div style="background:var(--s1);padding:20px 16px;text-align:center">
+      <div style="font-family:var(--serif);font-size:32px;font-weight:700;font-style:italic;color:var(--g)">{{ n }}</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--t4);margin-top:4px;letter-spacing:1px;text-transform:uppercase">{{ l }}</div>
     </div>
     {% endfor %}
   </div>
 </section>
 
-<!-- HOW IT WORKS -->
-<section style="padding:48px 24px;border-top:1px solid var(--bdr)">
-  <div class="page" style="padding-top:0;padding-bottom:0">
-    <div class="sh"><h2>Comment ça marche</h2><div class="sh-line"></div></div>
-    <div class="grid-3" style="margin-bottom:48px">
-      {% for n,icon,title,desc in [
-        ('01','🔍','Scan en continu','RASSD scrute marchespublics.gov.ma chaque heure et détecte les nouvelles publications immédiatement.'),
-        ('02','🎯','Filtrage par secteur','Chaque marché est classifié automatiquement: BTP, IT, Santé, Transport…'),
-        ('03','⚡','Alerte instantanée','Vous recevez un email + Telegram dès qu\'un marché paraît dans votre secteur.'),
-      ] %}
-      <div class="card" style="padding:24px">
-        <div style="font-family:var(--mono);font-size:10px;color:var(--gold);margin-bottom:12px;letter-spacing:1px">{{ n }}</div>
-        <div style="font-size:24px;margin-bottom:10px">{{ icon }}</div>
-        <div style="font-weight:700;color:var(--ink1);margin-bottom:8px;font-size:15px">{{ title }}</div>
-        <div style="color:var(--ink3);font-size:12px;line-height:1.7">{{ desc }}</div>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-
 <!-- RECENT TENDERS -->
 {% if recent %}
-<section style="padding:48px 24px;border-top:1px solid var(--bdr)">
-  <div class="page" style="padding-top:0;padding-bottom:0">
-    <div class="sh">
-      <h2>Derniers marchés publiés</h2>
-      <div class="sh-line"></div>
-      <a href="/tenders" class="btn btn-ghost btn-sm">Voir tout</a>
+<section style="padding:0 28px 70px;position:relative;z-index:1">
+  <div style="max-width:1180px;margin:0 auto">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px">
+      <span style="font-family:var(--serif);font-style:italic;font-size:22px;color:var(--t1)">Derniers marchés</span>
+      <div style="flex:1;height:1px;background:var(--bdr)"></div>
+      <a href="/tenders" style="font-family:var(--mono);font-size:10px;color:var(--g);letter-spacing:1px">VOIR TOUT →</a>
     </div>
-    <div class="grid-3">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
       {% for t in recent %}
-      <a href="/tenders/{{ t.id }}" class="tc" style="display:block">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
-          <span class="badge badge-gold" style="font-size:9px">{{ t.secteur[:20] }}</span>
-          {% if t.date_limite %}<span class="tc-dl" style="font-size:10px">⏰ {{ t.date_limite }}</span>{% endif %}
+      <a href="/tenders/{{ t.id }}" class="tc">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:10px">
+          <span class="badge badge-g" style="font-size:9px">{{ t.secteur[:22] }}</span>
+          {% if t.date_limite %}
+          {% set d=dl(t.date_limite) %}
+          <span style="font-family:var(--mono);font-size:9px;color:{% if '🔥' in d or 'Expiré' in d %}var(--red){% elif '⏳' in d %}var(--g){% else %}var(--t4){% endif %}">⏰ {{ t.date_limite }}</span>
+          {% endif %}
         </div>
-        <div class="tc-title">{{ t.objet[:90] }}</div>
-        <div style="font-size:11px;color:var(--ink4)">{{ t.acheteur[:50] or 'Organisme public' }}</div>
-        {% if t.montant %}<div style="font-size:11px;color:var(--gold);margin-top:6px;font-weight:600">{{ t.montant }}</div>{% endif %}
+        <div style="font-size:13px;font-weight:600;color:var(--t1);line-height:1.45;margin-bottom:8px">{{ t.objet[:80] }}</div>
+        <div style="font-size:11px;color:var(--t4)">{{ t.acheteur[:55] or '—' }}</div>
+        {% if t.montant %}<div style="font-size:11px;color:var(--g);margin-top:6px;font-family:var(--mono)">{{ t.montant[:35] }}</div>{% endif %}
       </a>
       {% endfor %}
     </div>
@@ -83,15 +58,35 @@
 </section>
 {% endif %}
 
+<!-- HOW -->
+<section style="padding:60px 28px;border-top:1px solid var(--bdr);position:relative;z-index:1">
+  <div style="max-width:900px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:44px">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--g);letter-spacing:2px;margin-bottom:12px">COMMENT ÇA MARCHE</div>
+      <div style="font-family:var(--serif);font-style:italic;font-size:32px;color:var(--t1)">Simple. Rapide. Précis.</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+      {% for n,ico,ti,tx in [('01','⚡','Scan continu','RASSD scrute marchespublics.gov.ma toutes les heures et détecte chaque nouvelle publication instantanément.'),('02','🎯','Filtrage secteur','Chaque marché est classifié automatiquement: BTP, IT, Santé, Transport… Vous ne recevez que ce qui vous correspond.'),('03','📲','Alerte immédiate','Email HTML + Telegram avec tous les détails: titre, acheteur, date limite, montant et lien direct.')] %}
+      <div class="card" style="padding:24px">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--g);letter-spacing:1.5px;margin-bottom:14px">{{ n }}</div>
+        <div style="font-size:22px;margin-bottom:12px">{{ ico }}</div>
+        <div style="font-weight:700;color:var(--t1);margin-bottom:8px;font-size:14px">{{ ti }}</div>
+        <div style="color:var(--t3);font-size:12px;line-height:1.75">{{ tx }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
 <!-- SECTORS -->
-<section style="padding:48px 24px 64px;border-top:1px solid var(--bdr)">
-  <div class="page" style="padding-top:0;padding-bottom:0">
-    <div class="sh"><h2>Secteurs surveillés</h2><div class="sh-line"></div></div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px">
-      {% for s in secteurs %}
-      <a href="/tenders?secteur={{ s|urlencode }}" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--surface);border:1px solid var(--bdr);border-radius:99px;font-size:12px;color:var(--ink2);transition:.15s" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--bdr)';this.style.color='var(--ink2)'">
-        {{ s }}
-        {% for sc in sectors %}{% if sc.secteur == s %}<span style="color:var(--ink4);font-size:10px">({{ sc.cnt }})</span>{% endif %}{% endfor %}
+<section style="padding:60px 28px 80px;position:relative;z-index:1">
+  <div style="max-width:900px;margin:0 auto;text-align:center">
+    <div style="font-family:var(--mono);font-size:9px;color:var(--g);letter-spacing:2px;margin-bottom:24px">14 SECTEURS COUVERTS</div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">
+      {% for sc in sectors %}
+      <a href="/tenders?s={{ sc.secteur|urlencode }}" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--s1);border:1px solid var(--bdr);border-radius:99px;font-size:11px;color:var(--t3);transition:.15s" onmouseover="this.style.borderColor='var(--g)';this.style.color='var(--g)'" onmouseout="this.style.borderColor='var(--bdr)';this.style.color='var(--t3)'">
+        {{ sc.secteur }}
+        <span style="font-family:var(--mono);font-size:9px;color:var(--t4)">({{ sc.cnt }})</span>
       </a>
       {% endfor %}
     </div>
@@ -99,11 +94,11 @@
 </section>
 
 <!-- CTA -->
-<section style="padding:64px 24px;border-top:1px solid var(--bdr);text-align:center">
-  <div style="max-width:560px;margin:0 auto">
-    <h2 style="font-family:var(--serif);font-size:36px;font-weight:700;font-style:italic;margin-bottom:16px">Ne manquez plus aucun marché</h2>
-    <p style="color:var(--ink3);margin-bottom:28px;font-size:14px">Inscription gratuite · Alerte par Email & Telegram · Filtrage par secteur</p>
-    <a href="/register" class="btn btn-gold" style="padding:14px 40px;font-size:15px">Commencer gratuitement →</a>
+<section style="padding:70px 28px;border-top:1px solid var(--bdr);text-align:center;position:relative;z-index:1">
+  <div style="max-width:520px;margin:0 auto">
+    <div style="font-family:var(--serif);font-style:italic;font-size:36px;color:var(--t1);margin-bottom:14px">Ne manquez aucun marché</div>
+    <p style="color:var(--t3);font-size:13px;margin-bottom:28px;line-height:1.8">Inscription gratuite · Email & Telegram · Filtrage par secteur · Sans engagement</p>
+    <a href="/register" class="btn btn-g" style="padding:15px 44px;font-size:14px">Commencer maintenant →</a>
   </div>
 </section>
 {% endblock %}

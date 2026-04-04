@@ -1,118 +1,81 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
 <title>Admin — RASSD</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#060608;--surface:#0d0d12;--raised:#141420;--bdr:#1e1e2e;--gold:#c9a84c;--ink1:#f0ede6;--ink2:#d4cfc5;--ink3:#9b9592;--ink4:#5a5754;--grn:#3ecb7a;--red:#e86060}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--ink2);font-family:'DM Sans',sans-serif;font-size:13px}
-.h{background:var(--surface);border-bottom:1px solid var(--bdr);padding:0 24px;height:52px;display:flex;align-items:center;gap:16px}
-.h-brand{font-weight:700;color:var(--gold);font-family:'DM Mono',monospace}
+:root{--bg:#05050a;--s1:#0a0a12;--s2:#0f0f1a;--bdr:#1a1a28;--g:#c8a850;--t1:#f0ede6;--t2:#c8c4bc;--t3:#8a8680;--t4:#484644;--grn:#3dd68c;--red:#e05c5c}
+body{background:var(--bg);color:var(--t2);font-family:'Syne',sans-serif;font-size:13px}
+.hd{background:var(--s1);border-bottom:1px solid var(--bdr);height:52px;display:flex;align-items:center;padding:0 24px;gap:16px}
+.brand{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--g);font-weight:700;letter-spacing:2px}
 .page{max-width:1000px;margin:0 auto;padding:28px 24px}
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px}
-.stat{background:var(--surface);border:1px solid var(--bdr);border-radius:8px;padding:20px;text-align:center}
-.stat-n{font-size:32px;font-weight:700;color:var(--gold);font-family:'DM Mono',monospace}
-.stat-l{font-size:10px;color:var(--ink4);margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;font-family:'DM Sans',sans-serif;transition:.15s}
-.btn-gold{background:var(--gold);color:#000}.btn-gold:hover{background:#e8c56a}
-.btn-ghost{background:transparent;border:1px solid var(--bdr);color:var(--ink2)}.btn-ghost:hover{border-color:var(--gold);color:var(--gold)}
-.btn-red{background:rgba(232,96,96,.15);border:1px solid rgba(232,96,96,.3);color:var(--red)}
-.card{background:var(--surface);border:1px solid var(--bdr);border-radius:8px;margin-bottom:16px;overflow:hidden}
-.card-h{padding:14px 20px;border-bottom:1px solid var(--bdr);font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;display:flex;justify-content:space-between;align-items:center}
-.terminal{background:#030305;padding:16px;font-family:'DM Mono',monospace;font-size:11px;height:280px;overflow-y:auto;line-height:1.6}
-</style>
-</head>
-<body>
-<div class="h">
-  <span class="h-brand">RASSD ADMIN</span>
-  <span style="color:var(--ink4);font-size:11px">marchespublics.gov.ma</span>
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+.stat{background:var(--s1);border:1px solid var(--bdr);border-radius:10px;padding:20px;text-align:center}
+.sn{font-family:'JetBrains Mono',monospace;font-size:34px;font-weight:500;color:var(--g)}
+.sl{font-size:9px;color:var(--t4);margin-top:4px;letter-spacing:1px;text-transform:uppercase}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:'Syne',sans-serif;letter-spacing:.3px;transition:.15s}
+.bg{background:var(--g);color:#000}.bg:hover{background:#e4c96a}
+.bo{background:transparent;border:1px solid var(--bdr);color:var(--t2)}.bo:hover{border-color:var(--g);color:var(--g)}
+.br{background:rgba(224,92,92,.1);border:1px solid rgba(224,92,92,.25);color:var(--red)}
+.card{background:var(--s1);border:1px solid var(--bdr);border-radius:10px;overflow:hidden;margin-bottom:16px}
+.ch{padding:13px 20px;border-bottom:1px solid var(--bdr);font-size:10px;font-weight:700;color:var(--t3);letter-spacing:1px;text-transform:uppercase;display:flex;justify-content:space-between;align-items:center}
+.terminal{background:#030307;padding:16px;font-family:'JetBrains Mono',monospace;font-size:10.5px;height:300px;overflow-y:auto;line-height:1.7}
+</style></head><body>
+<div class="hd">
+  <span class="brand">RASSD ADMIN</span>
+  <span style="font-size:10px;color:var(--t4);font-family:'JetBrains Mono',monospace">v2.0</span>
   <div style="margin-left:auto;display:flex;gap:8px">
-    <a href="/" class="btn btn-ghost">← Site</a>
-    <a href="/admin/expire_now" class="btn btn-ghost" onclick="return confirm('Expirer les marchés passés?')">⏱ Expirer</a>
-    <a href="/admin/clear_db?confirm=yes" class="btn btn-red" onclick="return confirm('SUPPRIMER TOUS LES MARCHÉS?')">🗑 Vider DB</a>
+    <a href="/" class="btn bo">← Site</a>
+    <a href="/admin/expire_now" class="btn bo" onclick="return confirm('Expirer les marchés passés ?')">⏱ Expirer</a>
+    <a href="/admin/clear_db?confirm=yes" class="btn br" onclick="return confirm('SUPPRIMER TOUS LES MARCHÉS ?')">🗑 Vider</a>
   </div>
 </div>
 <div class="page">
-  <div class="grid">
-    <div class="stat"><div class="stat-n">{{ stats.tenders }}</div><div class="stat-l">Marchés actifs</div></div>
-    <div class="stat"><div class="stat-n">{{ stats.members }}</div><div class="stat-l">Membres</div></div>
-    <div class="stat"><div class="stat-n">{{ stats.notifs }}</div><div class="stat-l">Notifications envoyées</div></div>
+  <div class="grid3">
+    <div class="stat"><div class="sn">{{ stats.tenders }}</div><div class="sl">Marchés actifs</div></div>
+    <div class="stat"><div class="sn">{{ stats.members }}</div><div class="sl">Membres</div></div>
+    <div class="stat"><div class="sn">{{ stats.notifs }}</div><div class="sl">Notifications</div></div>
   </div>
-
-  <!-- Scraper -->
   <div class="card">
-    <div class="card-h">
-      <span>🔍 Scraper marchespublics.gov.ma</span>
+    <div class="ch">
+      <span>🔍 Scraper Real-Time</span>
       <div style="display:flex;gap:8px;align-items:center">
-        <span id="status" style="font-size:10px;color:{% if running %}var(--gold){% else %}var(--ink4){% endif %}">
-          {% if running %}● En cours…{% else %}○ Inactif{% endif %}
-        </span>
-        <button onclick="launchScraper()" id="scrapeBtn" class="btn btn-gold" {% if running %}disabled{% endif %}>▶ Lancer scan</button>
+        <span id="st" style="font-family:'JetBrains Mono',monospace;font-size:9px;color:{% if running %}var(--g){% else %}var(--t4){% endif %}">{% if running %}● EN COURS{% else %}○ INACTIF{% endif %}</span>
+        <button onclick="launch()" id="btn" class="btn bg" {% if running %}disabled{% endif %}>▶ Lancer</button>
       </div>
     </div>
-    <div class="terminal" id="terminal">
-      {% for log in logs %}<div style="color:{% if '✓' in log %}var(--grn){% elif '❌' in log or '✗' in log %}var(--red){% elif '═══' in log %}var(--gold){% else %}var(--ink3){% endif %}">{{ log }}</div>{% endfor %}
-    </div>
+    <div class="terminal" id="trm">{% for l in logs %}<div style="color:{% if '✓' in l %}var(--grn){% elif '❌' in l or '⚠' in l %}var(--red){% elif '═══' in l %}var(--g){% else %}var(--t4){% endif %}">{{ l }}</div>{% endfor %}</div>
   </div>
-
-  <!-- Sectors -->
-  {% if sectors_count %}
+  {% if sects %}
   <div class="card">
-    <div class="card-h">Répartition par secteur</div>
+    <div class="ch">Répartition secteurs</div>
     <div style="padding:16px;display:flex;flex-wrap:wrap;gap:8px">
-      {% for s in sectors_count %}
-      <div style="display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--raised);border-radius:99px;font-size:10px">
-        <span style="color:var(--ink2)">{{ s.secteur[:25] }}</span>
-        <span style="color:var(--gold);font-weight:700">{{ s.cnt }}</span>
+      {% for s in sects %}
+      <div style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;background:var(--s2);border:1px solid var(--bdr);border-radius:99px;font-size:10px">
+        <span style="color:var(--t2)">{{ s.secteur[:24] }}</span>
+        <span style="font-family:'JetBrains Mono',monospace;color:var(--g);font-weight:700">{{ s.cnt }}</span>
       </div>
       {% endfor %}
     </div>
   </div>
   {% endif %}
 </div>
-
 <script>
-let sse = null;
-async function launchScraper(){
-  const btn = document.getElementById('scrapeBtn');
-  const t = document.getElementById('terminal');
-  btn.disabled = true; btn.textContent = '⏳ En cours…';
-  document.getElementById('status').textContent = '● En cours…';
-  document.getElementById('status').style.color = 'var(--gold)';
-  t.innerHTML = '<div style="color:var(--gold)">═══ Lancement scan marchespublics.gov.ma ═══</div>';
-
-  const r = await fetch('/admin/scrape');
-  const d = await r.json();
-  if(!d.ok){ t.innerHTML += `<div style="color:var(--red)">${d.msg||'Erreur'}</div>`; btn.disabled=false; btn.textContent='▶ Lancer scan'; return; }
-
-  if(sse) sse.close();
-  sse = new EventSource('/admin/scrape_stream');
-  sse.onmessage = e => {
-    const data = JSON.parse(e.data);
-    if(data.log){
-      const div = document.createElement('div');
-      const l = data.log;
-      div.style.color = l.includes('═══')?'var(--gold)':l.includes('✓')?'var(--grn)':l.includes('❌')||l.includes('✗')?'var(--red)':'var(--ink4)';
-      div.textContent = l;
-      t.appendChild(div); t.scrollTop = t.scrollHeight;
-    }
-    if(data.done){
-      sse.close();
-      btn.disabled=false; btn.textContent='▶ Lancer scan';
-      document.getElementById('status').textContent = '○ Inactif';
-      document.getElementById('status').style.color = 'var(--ink4)';
-      const d2=document.createElement('div');
-      d2.style.color='var(--gold)';
-      d2.textContent=`═══ ${data.saved||0} nouveaux marchés sauvegardés ═══`;
-      t.appendChild(d2); t.scrollTop=t.scrollHeight;
-      setTimeout(()=>location.reload(),3000);
-    }
+let sse=null;
+async function launch(){
+  const btn=document.getElementById('btn'),trm=document.getElementById('trm'),st=document.getElementById('st');
+  btn.disabled=true;btn.textContent='⏳ En cours…';
+  st.textContent='● EN COURS';st.style.color='var(--g)';
+  trm.innerHTML='<div style="color:var(--g)">═══ Lancement scan marchespublics.gov.ma ═══</div>';
+  const r=await fetch('/admin/scrape');const d=await r.json();
+  if(!d.ok){trm.innerHTML+=`<div style="color:var(--red)">${d.msg||'Erreur'}</div>`;btn.disabled=false;btn.textContent='▶ Lancer';return}
+  if(sse)sse.close();
+  sse=new EventSource('/admin/scrape_stream');
+  sse.onmessage=e=>{
+    const data=JSON.parse(e.data);
+    if(data.log){const div=document.createElement('div');const l=data.log;div.style.color=l.includes('✓')?'var(--grn)':l.includes('❌')||l.includes('⚠')?'var(--red)':l.includes('═══')?'var(--g)':'var(--t4)';div.textContent=l;trm.appendChild(div);trm.scrollTop=trm.scrollHeight}
+    if(data.done){sse.close();btn.disabled=false;btn.textContent='▶ Lancer';st.textContent='○ INACTIF';st.style.color='var(--t4)';const d2=document.createElement('div');d2.style.color='var(--g)';d2.textContent=`═══ ${data.saved||0} nouveaux marchés sauvegardés ═══`;trm.appendChild(d2);trm.scrollTop=trm.scrollHeight;setTimeout(()=>location.reload(),3000)}
   };
 }
-// Auto-scroll terminal
-document.getElementById('terminal').scrollTop = document.getElementById('terminal').scrollHeight;
+document.getElementById('trm').scrollTop=document.getElementById('trm').scrollHeight;
 </script>
-</body>
-</html>
+</body></html>

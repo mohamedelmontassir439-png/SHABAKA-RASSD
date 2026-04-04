@@ -2,78 +2,60 @@
 {% block title %}Marchés Publics — RASSD{% endblock %}
 {% block body %}
 <div class="page">
-  <!-- Header -->
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px">
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px">
     <div>
-      <h1 style="font-family:var(--serif);font-size:28px;font-weight:700;font-style:italic;color:var(--ink1)">Marchés actifs</h1>
-      <div style="font-size:12px;color:var(--ink4);margin-top:4px">{{ total }} marchés · marchespublics.gov.ma</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--g);letter-spacing:2px;margin-bottom:8px">MARCHÉS ACTIFS</div>
+      <div style="font-family:var(--serif);font-style:italic;font-size:28px;color:var(--t1)">{{ total }} marchés disponibles</div>
     </div>
-    {% if not member %}
-    <a href="/register" class="btn btn-gold btn-sm">🔔 Activer mes alertes</a>
-    {% endif %}
+    {% if not member %}<a href="/register" class="btn btn-g btn-sm">🔔 Activer mes alertes</a>{% endif %}
   </div>
-
-  <!-- Filters -->
+  <!-- FILTERS -->
   <form method="get" style="display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap">
-    <input name="q" value="{{ q }}" class="inp" placeholder="Rechercher..." style="flex:1;min-width:200px">
-    <select name="secteur" class="sel" style="width:220px" onchange="this.form.submit()">
+    <input name="q" value="{{ q }}" class="inp" placeholder="Rechercher un marché…" style="flex:1;min-width:200px">
+    <select name="s" class="sel" style="width:210px" onchange="this.form.submit()">
       <option value="">Tous les secteurs</option>
-      {% for s in secteurs %}<option value="{{ s }}" {% if s==secteur_f %}selected{% endif %}>{{ s }}</option>{% endfor %}
+      {% for sec in secteurs %}<option value="{{ sec }}" {% if sec==sf %}selected{% endif %}>{{ sec }}</option>{% endfor %}
     </select>
-    <button type="submit" class="btn btn-gold btn-sm">Filtrer</button>
-    {% if q or secteur_f %}<a href="/tenders" class="btn btn-ghost btn-sm">✕ Effacer</a>{% endif %}
+    <button type="submit" class="btn btn-g btn-sm">Filtrer</button>
+    {% if q or sf %}<a href="/tenders" class="btn btn-o btn-sm">✕</a>{% endif %}
   </form>
-
-  <!-- Tenders -->
+  <!-- LIST -->
   {% if tenders %}
-  <div style="display:flex;flex-direction:column;gap:12px">
+  <div style="display:flex;flex-direction:column;gap:8px">
     {% for t in tenders %}
-    {% set dl_days = days_left(t.date_limite) %}
-    <a href="/tenders/{{ t.id }}" class="tc" style="display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start">
+    {% set d=dl(t.date_limite) %}
+    <a href="/tenders/{{ t.id }}" class="tc" style="display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center">
       <div>
         <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
-          <span class="badge badge-gold" style="font-size:9px">{{ t.secteur[:22] }}</span>
-          {% if t.montant %}<span class="badge" style="background:rgba(62,203,122,.08);color:var(--grn);font-size:9px">{{ t.montant[:30] }}</span>{% endif %}
-          {% if dl_days %}
-          <span class="badge {% if 'Expiré' in dl_days %}badge-red{% elif '🔥' in dl_days %}badge-red{% elif '⏳' in dl_days %}badge-gold{% else %}badge-grn{% endif %}" style="font-size:9px">{{ dl_days }}</span>
-          {% endif %}
+          <span class="badge badge-g" style="font-size:9px">{{ t.secteur[:24] }}</span>
+          {% if t.montant %}<span class="badge badge-grn" style="font-size:9px">{{ t.montant[:28] }}</span>{% endif %}
+          {% if d %}<span class="badge {% if 'Expiré' in d or '🔥' in d %}badge-r{% elif '⏳' in d %}badge-g{% else %}badge-b{% endif %}" style="font-size:9px">{{ d }}</span>{% endif %}
         </div>
-        <div class="tc-title">{{ t.objet[:120] }}</div>
-        <div style="font-size:11px;color:var(--ink4);margin-top:6px">
-          {% if t.acheteur %}🏢 {{ t.acheteur[:60] }}{% endif %}
-        </div>
+        <div style="font-size:13px;font-weight:600;color:var(--t1);line-height:1.45;margin-bottom:6px">{{ t.objet[:120] }}</div>
+        {% if t.acheteur %}<div style="font-size:11px;color:var(--t4)">🏢 {{ t.acheteur[:65] }}</div>{% endif %}
       </div>
-      <div style="text-align:right;flex-shrink:0">
-        {% if t.date_limite %}
-        <div style="font-size:11px;color:var(--red);font-weight:700;margin-bottom:4px">⏰ {{ t.date_limite }}</div>
-        {% endif %}
-        <div style="font-size:10px;color:var(--ink4)">{{ t.scraped_at[:10] }}</div>
-        <div style="font-size:11px;color:var(--gold);margin-top:8px">Détails →</div>
+      <div style="text-align:right;flex-shrink:0;min-width:100px">
+        {% if t.date_limite %}<div style="font-family:var(--mono);font-size:10px;color:var(--red);font-weight:700;margin-bottom:4px">{{ t.date_limite }}</div>{% endif %}
+        <div style="font-family:var(--mono);font-size:9px;color:var(--t4)">{{ t.scraped_at[:10] }}</div>
+        <div style="font-size:11px;color:var(--g);margin-top:8px;font-weight:600">Détails →</div>
       </div>
     </a>
     {% endfor %}
   </div>
-
-  <!-- Pagination -->
-  {% if pages > 1 %}
-  <div style="display:flex;gap:8px;justify-content:center;margin-top:32px;flex-wrap:wrap">
-    {% for p in range(1, pages+1) %}
-    {% if p == page %}
-    <span class="btn btn-gold btn-sm">{{ p }}</span>
-    {% elif p == 1 or p == pages or (p >= page-2 and p <= page+2) %}
-    <a href="?q={{ q }}&secteur={{ secteur_f }}&page={{ p }}" class="btn btn-ghost btn-sm">{{ p }}</a>
-    {% elif p == page-3 or p == page+3 %}
-    <span style="color:var(--ink4);padding:6px">…</span>
-    {% endif %}
+  {% if pages>1 %}
+  <div style="display:flex;gap:6px;justify-content:center;margin-top:32px;flex-wrap:wrap">
+    {% for pp in range(1,pages+1) %}
+    {% if pp==page %}<span class="btn btn-g btn-sm">{{ pp }}</span>
+    {% elif pp==1 or pp==pages or (pp>=page-2 and pp<=page+2) %}<a href="?q={{ q }}&s={{ sf }}&page={{ pp }}" class="btn btn-o btn-sm">{{ pp }}</a>
+    {% elif pp==page-3 or pp==page+3 %}<span style="color:var(--t4);padding:6px">…</span>{% endif %}
     {% endfor %}
   </div>
   {% endif %}
-
   {% else %}
-  <div style="text-align:center;padding:64px;color:var(--ink4)">
-    <div style="font-size:40px;margin-bottom:16px">📋</div>
-    <div style="font-size:16px;margin-bottom:8px">Aucun marché trouvé</div>
-    <div style="font-size:13px">{% if q or secteur_f %}Essayez d'autres filtres{% else %}Le scan est en cours…{% endif %}</div>
+  <div style="text-align:center;padding:80px;color:var(--t4)">
+    <div style="font-size:36px;margin-bottom:16px">📋</div>
+    <div style="font-size:15px;color:var(--t2);margin-bottom:8px">Aucun marché trouvé</div>
+    <div style="font-size:12px">{% if q or sf %}Modifiez vos filtres{% else %}Scan en cours…{% endif %}</div>
   </div>
   {% endif %}
 </div>

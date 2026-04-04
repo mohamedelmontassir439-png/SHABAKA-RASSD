@@ -2,44 +2,42 @@
 {% block title %}Mes alertes — RASSD{% endblock %}
 {% block body %}
 <div class="page-sm">
-  <h1 style="font-family:var(--serif);font-size:26px;font-weight:700;font-style:italic;margin-bottom:24px">Mes alertes</h1>
-  <form method="post" style="display:flex;flex-direction:column;gap:20px">
-    <div class="card" style="padding:24px">
-      <div style="font-size:13px;font-weight:700;color:var(--ink1);margin-bottom:16px">Profil</div>
-      <div style="display:flex;flex-direction:column;gap:12px">
-        <div><label>Nom</label><input name="nom" value="{{ member.nom }}" class="inp"></div>
-        <div><label>Téléphone</label><input name="phone" value="{{ member.phone }}" class="inp"></div>
-        <div><label>Telegram Chat ID <span style="color:var(--ink4);font-size:9px;text-transform:none">(pour recevoir sur Telegram)</span></label>
-          <input name="telegram" value="{{ member.telegram }}" class="inp" placeholder="ex: 123456789">
-          <div style="font-size:10px;color:var(--ink4);margin-top:4px">Envoyez /start à votre bot Telegram pour obtenir votre Chat ID</div>
-        </div>
+  <div style="margin-bottom:32px">
+    <div style="font-family:var(--mono);font-size:9px;color:var(--g);letter-spacing:2px;margin-bottom:8px">PARAMÈTRES</div>
+    <div style="font-family:var(--serif);font-style:italic;font-size:26px;color:var(--t1)">Mes alertes</div>
+  </div>
+  <form method="post" style="display:flex;flex-direction:column;gap:16px">
+    <div class="card" style="padding:24px;display:flex;flex-direction:column;gap:14px">
+      <div style="font-size:11px;font-weight:700;color:var(--t1);letter-spacing:.5px;margin-bottom:4px">Profil</div>
+      <div><label class="lbl">Nom</label><input name="nom" value="{{ member.nom }}" class="inp"></div>
+      <div><label class="lbl">Téléphone</label><input name="phone" value="{{ member.phone }}" class="inp"></div>
+      <div>
+        <label class="lbl">Telegram Chat ID</label>
+        <input name="telegram" value="{{ member.telegram }}" class="inp" placeholder="ex: 123456789">
+        <div style="font-size:10px;color:var(--t4);margin-top:6px">Envoyez /start à votre bot pour obtenir votre ID</div>
       </div>
     </div>
-
     <div class="card" style="padding:24px">
-      <div style="font-size:13px;font-weight:700;color:var(--ink1);margin-bottom:16px">Canaux de notification</div>
-      {% for fname,flabel,fval in [('notif_email','📧 Email',member.notif_email),('notif_tg','📱 Telegram',member.notif_tg)] %}
-      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:12px;text-transform:none;letter-spacing:0;font-size:13px;color:var(--ink2)">
-        <input type="checkbox" name="{{ fname }}" value="1" {% if fval %}checked{% endif %} style="accent-color:var(--gold);width:16px;height:16px">
-        {{ flabel }}
+      <div style="font-size:11px;font-weight:700;color:var(--t1);letter-spacing:.5px;margin-bottom:16px">Canaux</div>
+      {% for fn,fl in [('notif_email','📧  Email'),('notif_tg','📱  Telegram')] %}
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:12px;font-size:13px;color:var(--t2)">
+        <input type="checkbox" name="{{ fn }}" value="1" {% if member[fn] %}checked{% endif %} style="accent-color:var(--g);width:15px;height:15px">{{ fl }}
       </label>
       {% endfor %}
     </div>
-
     <div class="card" style="padding:24px">
-      <div style="font-size:13px;font-weight:700;color:var(--ink1);margin-bottom:4px">Mes secteurs</div>
-      <div style="font-size:11px;color:var(--ink4);margin-bottom:16px">Vous ne recevrez des alertes que pour ces secteurs</div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px">
+      <div style="font-size:11px;font-weight:700;color:var(--t1);letter-spacing:.5px;margin-bottom:6px">Mes secteurs</div>
+      <div style="font-size:11px;color:var(--t4);margin-bottom:14px">Vide = tous les marchés</div>
+      <div style="display:flex;flex-wrap:wrap;gap:7px">
         {% for s in secteurs %}
-        <label style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:var(--raised);border:1px solid {% if s in member_secteurs %}var(--gold){% else %}var(--bdr){% endif %};border-radius:99px;cursor:pointer;font-size:11px;color:{% if s in member_secteurs %}var(--gold){% else %}var(--ink3){% endif %};text-transform:none;letter-spacing:0;margin:0;transition:.15s">
-          <input type="checkbox" name="secteurs" value="{{ s }}" {% if s in member_secteurs %}checked{% endif %} style="accent-color:var(--gold)" onchange="const l=this.parentElement;l.style.borderColor=this.checked?'var(--gold)':'var(--bdr)';l.style.color=this.checked?'var(--gold)':'var(--ink3)'">
-          {{ s }}
+        {% set checked = s in ms %}
+        <label style="display:inline-flex;align-items:center;gap:6px;padding:7px 13px;background:var(--s2);border:1px solid {% if checked %}var(--g){% else %}var(--bdr){% endif %};border-radius:99px;cursor:pointer;font-size:11px;color:{% if checked %}var(--g){% else %}var(--t3){% endif %};transition:.15s;user-select:none">
+          <input type="checkbox" name="secteurs_sel" value="{{ s }}" {% if checked %}checked{% endif %} style="accent-color:var(--g)" onchange="const l=this.parentElement;l.style.borderColor=this.checked?'var(--g)':'var(--bdr)';l.style.color=this.checked?'var(--g)':'var(--t3)'">{{ s }}
         </label>
         {% endfor %}
       </div>
     </div>
-
-    <button type="submit" class="btn btn-gold btn-full" style="padding:12px">Enregistrer mes alertes →</button>
+    <button type="submit" class="btn btn-g btn-w" style="padding:13px">Enregistrer →</button>
   </form>
 </div>
 {% endblock %}
