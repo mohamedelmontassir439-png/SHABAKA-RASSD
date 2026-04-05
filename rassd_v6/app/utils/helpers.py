@@ -2,15 +2,47 @@
 Modern Business — Fonctions utilitaires
 get_member, render, hash_pw, check_token, etc.
 """
-import bcrypt, secrets, re, json
-from datetime import datetime
+import os, re, json, secrets, hashlib, sqlite3, time, smtplib, logging, asyncio
+import bcrypt
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Optional
+from collections import defaultdict
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from fastapi import Request
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
-from app.core.config   import cfg
-from app.core.database import get_db
+from app.core.config import cfg
 
+logger = logging.getLogger(__name__)
 templates = Jinja2Templates(directory="app/templates")
+
+# ── Config vars ───────────────────────────────────────
+DB_PATH       = cfg.DB_PATH
+SECRET_KEY    = cfg.SECRET_KEY
+SITE_URL      = cfg.SITE_URL
+ADMIN_PASS    = cfg.ADMIN_PASS
+TELEGRAM_BOT  = cfg.TELEGRAM_BOT
+ADMIN_CHAT_ID = cfg.ADMIN_CHAT_ID
+BREVO_KEY     = cfg.BREVO_KEY
+RESEND_KEY    = os.getenv("RESEND_KEY", "")
+GMAIL_USER    = cfg.GMAIL_USER
+GMAIL_PASS    = cfg.GMAIL_PASS
+ANTHROPIC_KEY = cfg.ANTHROPIC_KEY
+BRAND         = cfg.APP_NAME
+SCRAPE_HOURS  = max(1, cfg.SCAN_INTERVAL_MIN // 60)
+
+# Multi-source imports (optional)
+HAS_MULTI = False
+MULTI_SRC: dict = {}
+AIClassifier = None
+try:
+    from app.scrapers.marchespublics import run as _mp_run
+    HAS_MULTI = True
+    MULTI_SRC = {"marchespublics": _mp_run}
+except Exception:
+    pass
 
 
 def get_db() -> sqlite3.Connection:
@@ -221,8 +253,93 @@ def hash_pw(pw: str) -> str:
 def check_pw(pw: str, h: str) -> bool:
     return hash_pw(pw) == h
 
+# Alias expected by route files
+def verify_pw(pw: str, h: str) -> bool:
+    return check_pw(pw, h)
+
 def now_str() -> str:
     return datetime.now().strftime("%Y-%m-%d %H:%M")
+
+# ── Session management ────────────────────────────────
+def _session_token(uid: int) -> str:
+    return hashlib.sha256(f"sid:{uid}:{SECRET_KEY}".encode()).hexdigest()[:40]
+
+def session_get(req: Request) -> Optional[int]:
+    token = req.cookies.get("_session", "")
+    if not token:
+        return None
+    db = get_db()
+    try:
+        rows = db.execute("SELECT id FROM members WHERE actif=1").fetchall()
+        for row in rows:
+            if secrets.compare_digest(token, _session_token(row["id"])):
+                return row["id"]
+    except Exception:
+        pass
+    finally:
+        db.close()
+    return None
+
+def session_create(resp, uid: int):
+    resp.set_cookie("_session", _session_token(uid),
+                    max_age=86400 * 30, httponly=True, samesite="lax")
+
+def session_delete(resp):
+    resp.delete_cookie("_session")
+
+# ── Admin token check ─────────────────────────────────
+def check_token(pwd: str) -> bool:
+    """Returns True if pwd matches the admin password."""
+    return pwd == ADMIN_PASS
+
+# ── Counter (stub — logs to logger) ──────────────────
+def counter(key: str):
+    logger.debug(f"[counter] {key}")
+
+# ── Template renderer ─────────────────────────────────
+def render(req: Request, tpl: str, ctx: dict = {}):
+    m = get_member(req)
+    return templates.TemplateResponse(tpl, {
+        "request":  req,
+        "member":   m,
+        "cfg":      cfg,
+        "SITE_URL": SITE_URL,
+        "BRAND":    BRAND,
+        **ctx
+    })
+
+# ── Rate limiter (stub — no-op) ───────────────────────
+_rl_store: dict = {}
+def rl(req: Request, key: str, limit: int = 10, window: int = 3600):
+    """Simple in-memory rate limiter. Raises HTTPException 429 on breach."""
+    from fastapi import HTTPException
+    now = time.time()
+    bucket = _rl_store.get(key, [])
+    bucket = [t for t in bucket if now - t < window]
+    if len(bucket) >= limit:
+        raise HTTPException(429, "Trop de requêtes")
+    bucket.append(now)
+    _rl_store[key] = bucket
+
+# ── Shared token stores ───────────────────────────────
+RESET_TOKENS:  dict = {}   # token → {email, expires}
+VERIFY_TOKENS: dict = {}   # token → {uid, expires}
+
+def send_verify_email(uid: int, email: str, nom: str):
+    token = secrets.token_urlsafe(32)
+    VERIFY_TOKENS[token] = {"uid": uid, "expires": datetime.now() + timedelta(hours=24)}
+    url = f"{SITE_URL}/verify?token={token}"
+    html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+<body style="background:#080808;padding:20px">
+<div style="font-family:Georgia,serif;background:#0d0d0d;color:#fff;padding:28px;max-width:500px;margin:0 auto;border-radius:10px">
+  <div style="font-size:18px;font-weight:700;color:#c9a84c;margin-bottom:14px">◆ {BRAND}</div>
+  <h2 style="margin-bottom:10px">Confirmez votre email</h2>
+  <p style="color:#aaa;font-size:13px;margin-bottom:20px">Bonjour {nom}, cliquez pour activer votre compte:</p>
+  <a href="{url}" style="display:inline-block;padding:10px 22px;background:#c9a84c;color:#000;border-radius:6px;font-weight:700;text-decoration:none">Activer →</a>
+  <p style="color:#555;font-size:11px;margin-top:16px">Lien valide 24h.</p>
+</div></body></html>"""
+    NotifyAgent.enqueue(uid, "email", email, f"Activez votre compte {BRAND}", html)
+
 
 def get_member(req: Request) -> Optional[dict]:
     uid = session_get(req)
@@ -574,7 +691,6 @@ class ScraperAgent:
             return None
 
     @classmethod
-    @classmethod
     def run(cls) -> list:
         """Scan séquentiel des IDs — contourne le JS du portail"""
         import random as rnd
@@ -665,7 +781,6 @@ class ScraperAgent:
         except: pass
         SState.running = False
         SLog.add(f"═══ Terminé en {duration:.0f}s | {SState.saved} sauvegardés | {SState.errors} erreurs ═══")
-        counter("scrape_runs"); return new_tenders
         counter("scrape_runs"); return new_tenders
 
 # ══════════════════════════════════════════════════════

@@ -38,5 +38,14 @@ class Settings:
         "Communication","Énergie","Hydraulique","Fournitures Bureau",
         "Mobilier","Agriculture","Environnement","Autres",
     ])
+    # AI
+    ANTHROPIC_KEY: str = os.getenv("ANTHROPIC_KEY", "")
+    # Plan limits
+    PLAN_LIMITS: dict = field(default_factory=lambda: {
+        "free":       {"tenders_per_day": 10,  "telegram": False, "api": False, "filters": 2},
+        "pro":        {"tenders_per_day": 999, "telegram": True,  "api": True,  "filters": 999},
+        "business":   {"tenders_per_day": 999, "telegram": True,  "api": True,  "filters": 999},
+        "enterprise": {"tenders_per_day": 999, "telegram": True,  "api": True,  "filters": 999},
+    })
 
 cfg = Settings()

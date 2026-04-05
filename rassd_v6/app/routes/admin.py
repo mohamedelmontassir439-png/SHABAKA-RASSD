@@ -1,14 +1,14 @@
 """
 Modern Business — Routes: Administration
 """
+import asyncio, re, json, csv, io, secrets, logging, os
 from fastapi import Request, Form
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse, Response
 from fastapi.routing import APIRouter
 from app.core.config   import cfg
 from app.core.database import get_db
 from app.core.dates    import is_expired, format_deadline
-import re, json, csv, io, secrets, logging
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from typing import Optional
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -19,11 +19,22 @@ ADMIN_PASS    = cfg.ADMIN_PASS
 TELEGRAM_BOT  = cfg.TELEGRAM_BOT
 ANTHROPIC_KEY = cfg.ANTHROPIC_KEY
 PLAN_LIMITS   = cfg.PLAN_LIMITS
+ADMIN_CHAT_ID = cfg.ADMIN_CHAT_ID
 
 from app.utils.helpers import (
     templates, get_member, render, hash_pw,
-    check_token, verify_pw
+    check_token, verify_pw,
+    BREVO_KEY, RESEND_KEY, GMAIL_USER, DB_PATH,
+    NotifyAgent, MonitorAgent, ScraperAgent, SState, SLog,
+    SelfHealingAgent, AIClassifier, HAS_MULTI, MULTI_SRC,
+    counter,
 )
+
+# chk(): vérifie le mot de passe admin ou lève une exception
+def chk(pwd: str):
+    from fastapi import HTTPException
+    if not check_token(pwd):
+        raise HTTPException(403, "Non autorisé")
 
 @router.get("/admin/set_plan")
 async def admin_set_plan(pwd: str="", member_id: int=0, plan: str="free"):

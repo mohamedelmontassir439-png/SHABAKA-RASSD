@@ -3,8 +3,12 @@ Modern Business — Agents IA background
 ClassifierAgent, ScraperAgent, NotifyAgent,
 MonitorAgent, SelfHealingAgent, ChatAgent
 """
-import re, json, asyncio, logging, secrets
-from datetime import datetime, date
+import os, re, json, asyncio, logging, secrets, smtplib, time, hashlib
+from datetime import datetime, date, timedelta
+from typing import Optional
+from collections import defaultdict
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from app.core.config   import cfg
 from app.core.database import get_db
 from app.core.dates    import is_expired, format_deadline, extract_deadline
@@ -16,6 +20,52 @@ from app.scrapers.journaux       import run_all as scrape_journaux
 from app.scrapers.ofppt          import run as scrape_ofppt
 
 logger = logging.getLogger(__name__)
+
+# ── Config vars ───────────────────────────────────────
+SITE_URL      = cfg.SITE_URL
+BRAND         = cfg.APP_NAME
+TELEGRAM_BOT  = cfg.TELEGRAM_BOT
+ADMIN_CHAT_ID = cfg.ADMIN_CHAT_ID
+BREVO_KEY     = cfg.BREVO_KEY
+RESEND_KEY    = os.getenv("RESEND_KEY", "")
+GMAIL_USER    = cfg.GMAIL_USER
+GMAIL_PASS    = cfg.GMAIL_PASS
+ANTHROPIC_KEY = cfg.ANTHROPIC_KEY
+
+def now_str() -> str:
+    return datetime.now().strftime("%Y-%m-%d %H:%M")
+
+def counter(key: str):
+    logger.debug(f"[counter] {key}")
+
+# ── Classification data ───────────────────────────────
+REGIONS = {
+    "Rabat-Salé-Kénitra":        ["rabat","salé","kénitra","kenitra","témara","khémisset"],
+    "Casablanca-Settat":         ["casablanca","settat","mohammedia","berrechid"],
+    "Marrakech-Safi":            ["marrakech","safi","essaouira","kelaa"],
+    "Fès-Meknès":                ["fès","fez","meknès","meknes","ifrane","taza"],
+    "Tanger-Tétouan-Al Hoceima": ["tanger","tétouan","tetouan","al hoceima","larache"],
+    "Oriental":                  ["oujda","nador","berkane","taourirt"],
+    "Béni Mellal-Khénifra":     ["béni mellal","khénifra","azilal","khouribga"],
+    "Souss-Massa":               ["agadir","tiznit","taroudant"],
+    "Drâa-Tafilalet":            ["errachidia","ouarzazate","zagora"],
+    "Laâyoune":                  ["laayoune","boujdour"],
+    "Dakhla":                    ["dakhla"],
+    "Guelmim":                   ["guelmim","tan-tan"],
+}
+
+SECTEURS = {
+    "T101 - Constructions & Bâtiments": ["bâtiment","construction","maçonnerie","béton","rénovation"],
+    "T110 - Génie Civil":               ["génie civil","pont","infrastructure"],
+    "T301 - Travaux Routiers":          ["route","voirie","chaussée","bitume","asphalte"],
+    "T401 - Électricité & Éclairage":   ["électricité","éclairage","câblage"],
+    "P813 - Équipements Médicaux":      ["médical","hôpital","laboratoire","médicament"],
+    "P818 - Informatique":              ["informatique","ordinateur","pc","serveur","logiciel"],
+    "P825 - Fournitures Bureau":        ["fournitures","papier","mobilier","bureau"],
+    "S902 - Études & Conseil":          ["étude","conseil","audit","expertise"],
+    "S906 - Maintenance":               ["maintenance","entretien","réparation"],
+    "S908 - Gardiennage":               ["gardiennage","sécurité","surveillance"],
+}
 
 class ClassifierAgent:
     @staticmethod

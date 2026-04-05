@@ -1,29 +1,37 @@
 """
 Modern Business — Routes: Auth (login/register)
 """
-from fastapi import Request, Form
+from fastapi import Request, Form, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse, StreamingResponse, Response
 from fastapi.routing import APIRouter
 from app.core.config   import cfg
 from app.core.database import get_db
 from app.core.dates    import is_expired, format_deadline
-import re, json, csv, io, secrets, logging
-from datetime import datetime, date
+import re, json, secrets, logging
+from datetime import datetime, date, timedelta
 from typing import Optional
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-from app.core.config import cfg
 SITE_URL      = cfg.SITE_URL
 ADMIN_PASS    = cfg.ADMIN_PASS
 TELEGRAM_BOT  = cfg.TELEGRAM_BOT
 ANTHROPIC_KEY = cfg.ANTHROPIC_KEY
 PLAN_LIMITS   = cfg.PLAN_LIMITS
+BRAND         = cfg.APP_NAME
 
 from app.utils.helpers import (
     templates, get_member, render, hash_pw,
-    check_token, verify_pw
+    check_token, verify_pw, check_pw, now_str,
+    session_create, session_delete, session_get,
+    counter, rl,
+    NotifyAgent,
+    RESET_TOKENS, VERIFY_TOKENS, send_verify_email,
 )
+
+def get_ip(req: Request) -> str:
+    xff = req.headers.get("X-Forwarded-For", "")
+    return xff.split(",")[0].strip() if xff else (req.client.host if req.client else "unknown")
 
 @router.get("/register", response_class=HTMLResponse)
 async def reg_get(req: Request):
