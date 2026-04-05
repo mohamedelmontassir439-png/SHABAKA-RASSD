@@ -30,18 +30,23 @@ async def home(req: Request):
     db = get_db()
     try:
         stats = {
-            "tenders_total":  db.execute("SELECT COUNT(*) FROM tenders").fetchone()[0],
-            "tenders_active": db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif'").fetchone()[0],
-            "easy_to_win":    db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif' AND ai_score>=70").fetchone()[0],
-            "members":        db.execute("SELECT COUNT(*) FROM members WHERE actif=1").fetchone()[0],
-            "members_tg":     db.execute("SELECT COUNT(*) FROM members WHERE telegram IS NOT NULL AND telegram!='' AND actif=1").fetchone()[0],
+            "tenders": db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif'").fetchone()[0],
+            "today":   db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif' AND date_extraction>=date('now')").fetchone()[0],
+            "members": db.execute("SELECT COUNT(*) FROM members WHERE actif=1").fetchone()[0],
         }
-        sources = [dict(r) for r in db.execute(
-            "SELECT source, COUNT(*) as active FROM tenders WHERE statut='actif' GROUP BY source ORDER BY active DESC"
+        recent = [dict(r) for r in db.execute(
+            "SELECT id, objet, domaine AS secteur, date_limite, acheteur, montant"
+            " FROM tenders WHERE statut='actif'"
+            " ORDER BY date_extraction DESC LIMIT 3"
+        ).fetchall()]
+        sectors = [dict(r) for r in db.execute(
+            "SELECT domaine AS secteur, COUNT(*) AS cnt"
+            " FROM tenders WHERE statut='actif' AND domaine!=''"
+            " GROUP BY domaine ORDER BY cnt DESC LIMIT 16"
         ).fetchall()]
     finally: db.close()
     counter("pv:home")
-    return render(req, "landing.html", {"stats":stats,"sources":sources})
+    return render(req, "landing.html", {"stats": stats, "recent": recent, "sectors": sectors})
 
 # Plan limits
 
