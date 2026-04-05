@@ -192,6 +192,15 @@ def init_db():
         last_seen  TEXT DEFAULT '',
         resolved   INTEGER DEFAULT 0
     );
+
+    CREATE TABLE IF NOT EXISTS favoris (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        member_id  INTEGER NOT NULL,
+        tender_id  TEXT NOT NULL,
+        created_at TEXT DEFAULT '',
+        UNIQUE(member_id, tender_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_fav_member ON favoris(member_id);
     """)
     # Migrations
     migrations = [
@@ -210,6 +219,8 @@ def init_db():
         "ALTER TABLE tenders ADD COLUMN ai_score INTEGER DEFAULT 50",
         "ALTER TABLE tenders ADD COLUMN ai_category TEXT DEFAULT ''",
         "ALTER TABLE tenders ADD COLUMN ai_reason TEXT DEFAULT ''",
+        "ALTER TABLE tenders ADD COLUMN date_extraction TEXT DEFAULT ''",
+        "ALTER TABLE tenders ADD COLUMN domaine TEXT DEFAULT ''",
     ]
     for sql in migrations:
         try: db.execute(sql)

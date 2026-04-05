@@ -7,8 +7,8 @@ from fastapi.routing import APIRouter
 from app.core.config   import cfg
 from app.core.database import get_db
 from app.core.dates    import is_expired, format_deadline
-import re, json, csv, io, secrets, logging
-from datetime import datetime, date
+import re, json, csv, io, secrets, logging, asyncio
+from datetime import datetime, date, timedelta
 from typing import Optional
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -23,17 +23,28 @@ from app.utils.helpers import (
     templates, get_member, render, hash_pw,
     check_token, verify_pw, counter,
     SECTEURS_LIST, REGIONS,
+    MonitorAgent, NotifyAgent, ScraperAgent, SState, SLog,
+    SelfHealingAgent, AIClassifier, HAS_MULTI, MULTI_SRC,
+    BREVO_KEY, RESEND_KEY, GMAIL_USER, GMAIL_PASS, DB_PATH,
+    now_str, rl, session_create, session_delete, check_pw,
+    RESET_TOKENS, VERIFY_TOKENS, send_verify_email,
+    SECTEURS, BRAND as HELPERS_BRAND,
+    ChatAgent,
 )
+
+BRAND = HELPERS_BRAND
+COUNTERS: dict = {}
+
+def get_ip(req: Request) -> str:
+    xff = req.headers.get("X-Forwarded-For", "")
+    return xff.split(",")[0].strip() if xff else (req.client.host if req.client else "unknown")
+
 
 @router.get("/", response_class=HTMLResponse)
 async def home(req: Request):
     db = get_db()
     try:
-        stats = {
-            "tenders": db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif'").fetchone()[0],
-            "today":   db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif' AND date_extraction>=date('now')").fetchone()[0],
-            "members": db.execute("SELECT COUNT(*) FROM members WHERE actif=1").fetchone()[0],
-        }
+        stats = MonitorAgent.get_stats()
         recent = [dict(r) for r in db.execute(
             "SELECT id, objet, domaine AS secteur, date_limite, acheteur, montant"
             " FROM tenders WHERE statut='actif'"
@@ -44,7 +55,14 @@ async def home(req: Request):
             " FROM tenders WHERE statut='actif' AND domaine!=''"
             " GROUP BY domaine ORDER BY cnt DESC LIMIT 16"
         ).fetchall()]
-    finally: db.close()
+    except Exception as e:
+        logger.error(f"[home] {e}")
+        stats = {"tenders_active": 0, "tenders_total": 0, "easy_to_win": 0, "members": 0}
+        recent = []
+        sectors = []
+    finally:
+        try: db.close()
+        except: pass
     counter("pv:home")
     return render(req, "landing.html", {"stats": stats, "recent": recent, "sectors": sectors})
 
@@ -432,23 +450,7 @@ async def conditions(req: Request):
     return render(req, "conditions.html", {})
 
 # ── EMAIL VERIFICATION ──
-VERIFY_TOKENS: dict = {}  # token -> {uid, expires}
-
-def send_verify_email(uid: int, email: str, nom: str):
-    """Queue verification email"""
-    token = secrets.token_urlsafe(32)
-    VERIFY_TOKENS[token] = {"uid": uid, "expires": datetime.now() + timedelta(hours=24)}
-    url = f"{SITE_URL}/verify?token={token}"
-    html = f"""<!DOCTYPE html><html><head><meta charset="utf-8"></head>
-<body style="background:#080808;padding:20px">
-<div style="font-family:Georgia,serif;background:#0d0d0d;color:#fff;padding:28px;max-width:500px;margin:0 auto;border-radius:10px">
-  <div style="font-size:18px;font-weight:700;color:#c9a84c;margin-bottom:14px">◆ Modern Business</div>
-  <h2 style="margin-bottom:10px">Confirmez votre email</h2>
-  <p style="color:#aaa;font-size:13px;margin-bottom:20px">Bonjour {nom}, cliquez pour activer votre compte:</p>
-  <a href="{url}" style="display:inline-block;padding:10px 22px;background:#c9a84c;color:#000;border-radius:6px;font-weight:700;text-decoration:none">Activer mon compte →</a>
-  <p style="color:#555;font-size:11px;margin-top:16px">Lien valide 24h. Ignorez si vous n'avez pas créé de compte.</p>
-</div></body></html>"""
-    NotifyAgent.enqueue(uid, "email", email, f"Activez votre compte {BRAND}", html)
+# VERIFY_TOKENS and send_verify_email are imported from helpers
 
 
 @router.get("/verify", response_class=HTMLResponse)

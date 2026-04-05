@@ -171,8 +171,10 @@ async def favoris_page(req: Request):
         db.close()
     return render(req, "tenders.html", {
         "tenders": tenders, "total": len(tenders), "page": 1, "pages": 1,
-        "q": "", "code_f": "", "region": "", "easy": "", "source_f": "",
-        "member": m, "page_title": "★ Mes Favoris",
+        "q": "", "code_f": "", "region_f": "", "easy": "", "source_f": "",
+        "sort": "score", "type_f": "",
+        "regions_list": [], "sources_list": [],
+        "page_title": "★ Mes Favoris",
         "SECTEURS_LIST": SECTEURS_LIST, "REGIONS": REGIONS,
     })
 
