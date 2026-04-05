@@ -54,7 +54,7 @@
   {% if tenders %}
   <div style="display:flex;flex-direction:column;gap:8px">
     {% for t in tenders %}
-    {% set dl_n, dl_l = days_left(t.date_limite) %}
+    {% set dl_n, dl_l = dl(t.date_limite) %}
     <a href="/tenders/{{ t.id }}" class="tc-row" style="text-decoration:none;color:inherit">
       <div>
         <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
