@@ -24,7 +24,7 @@ ADMIN_CHAT_ID = cfg.ADMIN_CHAT_ID
 from app.utils.helpers import (
     templates, get_member, render, hash_pw,
     check_token, verify_pw,
-    BREVO_KEY, RESEND_KEY, GMAIL_USER, DB_PATH,
+    BREVO_KEY, RESEND_KEY, GMAIL_USER, GMAIL_PASS, DB_PATH,
     NotifyAgent, MonitorAgent, ScraperAgent, SState, SLog,
     SelfHealingAgent, AIClassifier, HAS_MULTI, MULTI_SRC,
     counter,
@@ -149,6 +149,7 @@ async def admin(req: Request, pwd:str=""):
         "stats":stats,"tenders":tenders,"members":members,
         "hist":hist,"errors":errors,"notifs":notifs,
         "scrape_state":SState,"scrape_log":SLog.last(80),"pwd":pwd,
+        "ADMIN_PASS":ADMIN_PASS,
         "multi_available":HAS_MULTI,
         "multi_sources":list(MULTI_SRC.keys()) if HAS_MULTI else [],
     })
