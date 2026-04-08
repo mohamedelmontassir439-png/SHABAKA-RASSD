@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Mes alertes — RASSD{% endblock %}
+{% block body %}
+<div class="page" style="max-width:680px">
+  <div style="margin-bottom:28px">
+    <div style="font-family:var(--mono);font-size:9px;color:var(--gold);letter-spacing:2px;margin-bottom:8px">PARAMÈTRES</div>
+    <h1 style="font-family:var(--serif);font-style:italic;font-size:28px;color:var(--text1)">Mes alertes</h1>
+  </div>
+  <div class="card card-p" style="margin-bottom:18px">
+    <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-size:13px;color:var(--text1);margin-bottom:6px">Plan actuel</div>
+        <div style="font-size:18px;color:var(--gold);font-weight:700">{{ plan_name }}</div>
+      </div>
+      <div>
+        <div style="font-size:13px;color:var(--text1);margin-bottom:6px">Essai restant</div>
+        <div style="font-size:18px;color:var(--gold);font-weight:700">{{ trial_left }} jours</div>
+      </div>
+      <div style="min-width:220px;text-align:right">
+        <div style="font-size:13px;color:var(--text1);margin-bottom:6px">Email vérifié</div>
+        <div style="font-size:18px;color:{{ 'var(--grn)' if verified else 'var(--red)' }};font-weight:700">{{ 'Oui' if verified else 'Non' }}</div>
+      </div>
+    </div>
+    {% if not verified %}
+    <p style="color:var(--text4);font-size:13px;margin-top:16px">Votre email n'est pas vérifié. <a href="/resend-verification" style="color:var(--gold)">Renvoyer le lien de vérification</a></p>
+    {% endif %}
+  </div>
+  <form method="post" style="display:flex;flex-direction:column;gap:16px">
+    <div class="card card-p">
+      <h3 style="font-size:13px;font-weight:600;color:var(--text1);margin-bottom:18px">Profil</h3>
+      <div class="grid-2" style="gap:14px">
+        <div class="field"><label>Nom</label><input name="nom" value="{{ member.nom }}" class="inp"></div>
+        <div class="field"><label>Téléphone</label><input name="phone" value="{{ member.phone }}" class="inp"></div>
+        <div class="field" style="grid-column:1/-1"><label>Entreprise</label><input name="company" value="{{ member.company }}" class="inp"></div>
+      </div>
+    </div>
+
+    <div class="card card-p">
+      <h3 style="font-size:13px;font-weight:600;color:var(--text1);margin-bottom:6px">Telegram</h3>
+      <p style="font-size:11px;color:var(--text4);margin-bottom:14px">Entrez votre Chat ID pour recevoir les alertes sur Telegram. Envoyez <code style="background:var(--bg3);padding:1px 5px;border-radius:3px;color:var(--gold)">/start</code> à votre bot pour obtenir votre ID.</p>
+      <div class="field"><label>Chat ID Telegram</label><input name="telegram" value="{{ member.telegram }}" class="inp" placeholder="ex: 123456789"></div>
+    </div>
+
+    <div class="card card-p">
+      <h3 style="font-size:13px;font-weight:600;color:var(--text1);margin-bottom:16px">Canaux de notification</h3>
+      {% for fn,ico,label,desc in [
+        ('notif_email','📧','Email','Recevoir les alertes par email HTML'),
+        ('notif_tg','📱','Telegram','Recevoir les alertes sur Telegram'),
+        ('notif_digest','📊','Digest hebdo','Résumé des marchés chaque lundi matin'),
+      ] %}
+      <label style="display:flex;align-items:center;gap:12px;cursor:pointer;margin-bottom:14px;padding:12px;background:var(--bg3);border:1px solid var(--bdr);border-radius:var(--r);transition:.15s" onmouseover="this.style.borderColor='var(--bdr2)'" onmouseout="this.style.borderColor='var(--bdr)'">
+        <input type="checkbox" name="{{ fn }}" value="1" {% if member[fn] %}checked{% endif %} style="accent-color:var(--gold);width:16px;height:16px;flex-shrink:0">
+        <div>
+          <div style="font-size:13px;color:var(--text1);font-weight:500">{{ ico }} {{ label }}</div>
+          <div style="font-size:11px;color:var(--text4);margin-top:2px">{{ desc }}</div>
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+
+    <div class="card card-p">
+      <h3 style="font-size:13px;font-weight:600;color:var(--text1);margin-bottom:6px">Mes secteurs</h3>
+      <p style="font-size:11px;color:var(--text4);margin-bottom:16px">Sélectionnez vos secteurs pour ne recevoir que les marchés qui vous correspondent. Laissez vide pour tout recevoir.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        {% for s in secteurs %}
+        {% set checked = s in ms %}
+        <label style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:var(--bg3);border:1px solid {% if checked %}var(--gold){% else %}var(--bdr){% endif %};border-radius:99px;cursor:pointer;font-size:11px;color:{% if checked %}var(--gold){% else %}var(--text3){% endif %};transition:.15s;user-select:none">
+          <input type="checkbox" name="secteurs_sel" value="{{ s }}" {% if checked %}checked{% endif %} style="accent-color:var(--gold)" onchange="const l=this.parentElement;l.style.borderColor=this.checked?'var(--gold)':'var(--bdr)';l.style.color=this.checked?'var(--gold)':'var(--text3)'">{{ s }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-full" style="padding:13px;font-size:14px">Enregistrer les paramètres →</button>
+  </form>
+
+  <div class="card card-p">
+    <h3 style="font-size:13px;font-weight:600;color:var(--text1);margin-bottom:12px">Clé API</h3>
+    {% if api_allowed %}
+    <div class="field"><label>Votre clé API</label><input class="inp" readonly value="{{ api_key or 'Aucune clé générée pour le moment' }}"></div>
+    <form method="post" action="/settings/api-key" style="margin-top:12px">
+      <button type="submit" class="btn btn-primary btn-full" style="padding:12px;font-size:14px">Générer / régénérer la clé API</button>
+    </form>
+    <p style="font-size:11px;color:var(--text4);margin-top:10px">Cette clé permet d'accéder aux API RASSD selon votre plan.</p>
+    {% else %}
+    <p style="font-size:13px;color:var(--text4);margin-bottom:10px">Votre plan actuel ne permet pas d'utiliser l'API.</p>
+    <p style="font-size:12px;color:var(--text4)">Passez au plan Pro ou Business pour activer l'accès API.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

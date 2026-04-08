@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — RASSD{% endblock %}
+{% block body %}
+<div class="page">
+  <div style="margin-bottom:32px">
+    <div style="font-family:var(--mono);font-size:9px;color:var(--gold);letter-spacing:2px;margin-bottom:8px">MON ESPACE</div>
+    <h1 style="font-family:var(--serif);font-style:italic;font-size:30px;color:var(--text1)">Bonjour, {{ member.nom or 'Bienvenue' }} 👋</h1>
+    {% if not verified %}
+    <div class="alert alert-info" style="margin-top:20px">Votre email n'est pas vérifié. <a href="/resend-verification" style="color:var(--gold)">Renvoyer le lien</a></div>
+    {% endif %}
+  </div>
+
+  <!-- Stats -->
+  <div class="grid-4" style="margin-bottom:28px">
+    <div class="card card-p" style="text-align:center">
+      <div style="font-size:22px;margin-bottom:8px">⭐</div>
+      <div style="font-family:var(--serif);font-style:italic;font-size:26px;color:var(--gold)">{{ stats.favs }}</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text4);margin-top:4px;letter-spacing:1px">Favoris</div>
+    </div>
+    <div class="card card-p" style="text-align:center">
+      <div style="font-size:22px;margin-bottom:8px">🔔</div>
+      <div style="font-family:var(--serif);font-style:italic;font-size:26px;color:var(--gold)">{{ stats.notifs }}</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text4);margin-top:4px;letter-spacing:1px">Alertes reçues</div>
+    </div>
+    <div class="card card-p" style="text-align:center">
+      <div style="font-size:22px;margin-bottom:8px">💼</div>
+      <div style="font-family:var(--serif);font-style:italic;font-size:26px;color:var(--gold)">{{ plan_name }}</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text4);margin-top:4px;letter-spacing:1px">Plan actuel</div>
+    </div>
+    <div class="card card-p" style="text-align:center">
+      <div style="font-size:22px;margin-bottom:8px">⏳</div>
+      <div style="font-family:var(--serif);font-style:italic;font-size:26px;color:var(--gold)">{{ trial_left }}j</div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text4);margin-top:4px;letter-spacing:1px">Essai restant</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <!-- Recommandés -->
+    <div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text4);letter-spacing:2px;margin-bottom:14px">MARCHÉS RECOMMANDÉS POUR VOUS</div>
+      {% if recs %}
+      <div style="display:flex;flex-direction:column;gap:8px">
+        {% for t in recs %}
+        {% set dl_n,dl_l = days_left(t.date_limite) %}
+        <a href="/tenders/{{ t.id }}" class="card card-p" style="display:block;transition:.2s" onmouseover="this.style.borderColor='var(--bdr2)'" onmouseout="this.style.borderColor='var(--bdr)'">
+          <div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:6px">
+            <span class="badge badge-gold" style="font-size:9px">{{ t.secteur[:20] }}</span>
+            {% if dl_l and dl_n <= 7 %}<span class="badge badge-red" style="font-size:9px">{{ dl_l }}</span>{% endif %}
+          </div>
+          <div style="font-size:13px;font-weight:500;color:var(--text1);margin-bottom:4px">{{ t.objet[:80] }}</div>
+          <div style="font-size:11px;color:var(--text4)">⏰ {{ t.date_limite or '—' }}</div>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="card card-p" style="text-align:center">
+        <div style="font-size:13px;color:var(--text4);margin-bottom:12px">Définissez vos secteurs pour voir des recommandations personnalisées.</div>
+        <a href="/settings" class="btn btn-outline btn-sm">Configurer mes secteurs</a>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Dernières notifications -->
+    <div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text4);letter-spacing:2px;margin-bottom:14px">DERNIÈRES NOTIFICATIONS</div>
+      {% if notifs %}
+      <div style="display:flex;flex-direction:column;gap:8px">
+        {% for n in notifs %}
+        <div class="card card-p" style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center">
+          <div>
+            <div style="font-size:12px;color:var(--text1);margin-bottom:4px">{{ n.objet[:70] }}</div>
+            <div style="font-family:var(--mono);font-size:9px;color:var(--text4)">{{ n.channel }} · {{ n.sent_at[:10] }}</div>
+          </div>
+          <span class="badge {% if n.channel=='email' %}badge-blue{% else %}badge-gold{% endif %}" style="font-size:9px">{{ '📧' if n.channel=='email' else '📱' }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="card card-p" style="text-align:center">
+        <div style="font-size:13px;color:var(--text4);margin-bottom:12px">Aucune notification reçue pour l'instant.</div>
+        <a href="/settings" class="btn btn-primary btn-sm">Activer les alertes</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Quick links -->
+  <div style="margin-top:28px;padding:20px;background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r2);display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <span style="font-size:12px;color:var(--text4);flex:1">Accès rapide :</span>
+    <a href="/tenders" class="btn btn-outline btn-sm">Tous les marchés</a>
+    <a href="/favorites" class="btn btn-outline btn-sm">⭐ Favoris</a>
+    <a href="/settings" class="btn btn-outline btn-sm">⚙ Alertes</a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="RASSD — Veille marchés publics Maroc en temps réel">
+<title>{% block title %}RASSD{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:    #060609;
+  --bg2:   #0b0b10;
+  --bg3:   #101018;
+  --bdr:   #18182a;
+  --bdr2:  #22223a;
+  --gold:  #d4a843;
+  --gold2: #e8c060;
+  --golda: rgba(212,168,67,.12);
+  --text1: #f0ede8;
+  --text2: #c8c4bc;
+  --text3: #888480;
+  --text4: #484440;
+  --grn:   #38d47e;
+  --red:   #e05454;
+  --blue:  #5090e8;
+  --serif: 'Instrument Serif', Georgia, serif;
+  --sans:  'Inter', system-ui, sans-serif;
+  --mono:  'JetBrains Mono', monospace;
+  --r:     6px; --r2: 10px; --r3: 16px;
+  --shadow: 0 4px 24px rgba(0,0,0,.5);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--text2); font-family: var(--sans); font-size: 14px; line-height: 1.6; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+a { color: inherit; text-decoration: none; }
+img { max-width: 100%; }
+
+/* Grain overlay */
+body::after {
+  content: ''; position: fixed; inset: 0; z-index: 9999; pointer-events: none; opacity: .35;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");
+}
+
+/* NAV */
+.nav { position: sticky; top: 0; z-index: 100; height: 60px; display: flex; align-items: center; padding: 0 32px; gap: 32px; background: rgba(6,6,9,.92); backdrop-filter: blur(20px); border-bottom: 1px solid var(--bdr); }
+.nav-brand { display: flex; align-items: baseline; gap: 8px; }
+.nav-logo { font-family: var(--serif); font-style: italic; font-size: 24px; font-weight: 400; color: var(--gold); letter-spacing: .5px; }
+.nav-ver { font-family: var(--mono); font-size: 9px; color: var(--text4); letter-spacing: 1.5px; text-transform: uppercase; }
+.nav-links { display: flex; gap: 2px; }
+.nav-link { padding: 6px 13px; border-radius: var(--r); font-size: 13px; font-weight: 500; color: var(--text3); transition: all .15s; }
+.nav-link:hover { background: var(--bg2); color: var(--text1); }
+.nav-link.active { background: var(--bg3); color: var(--text1); border: 1px solid var(--bdr); }
+.nav-link:not(.active) { border: 1px solid transparent; }
+.nav-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.nav-user { font-size: 12px; color: var(--text3); font-family: var(--mono); }
+.dot-live { display: inline-block; width: 6px; height: 6px; background: var(--grn); border-radius: 50%; animation: livepulse 2s infinite; margin-right: 6px; }
+@keyframes livepulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
+
+/* BUTTONS */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 18px; border-radius: var(--r2); font-family: var(--sans); font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all .2s; letter-spacing: .1px; white-space: nowrap; }
+.btn-primary { background: var(--gold); color: #000; }
+.btn-primary:hover { background: var(--gold2); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(212,168,67,.3); }
+.btn-outline { background: transparent; border: 1px solid var(--bdr2); color: var(--text2); }
+.btn-outline:hover { border-color: var(--gold); color: var(--gold); }
+.btn-ghost { background: transparent; color: var(--text3); }
+.btn-ghost:hover { color: var(--text1); background: var(--bg2); }
+.btn-danger { background: rgba(224,84,84,.1); border: 1px solid rgba(224,84,84,.25); color: var(--red); }
+.btn-sm { padding: 6px 13px; font-size: 12px; }
+.btn-lg { padding: 13px 28px; font-size: 15px; }
+.btn-full { width: 100%; }
+
+/* FORM */
+.field { display: flex; flex-direction: column; gap: 7px; }
+.field label { font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: .8px; text-transform: uppercase; }
+.inp, .sel, .textarea { width: 100%; background: var(--bg2); border: 1px solid var(--bdr); border-radius: var(--r); padding: 10px 14px; color: var(--text1); font-family: var(--sans); font-size: 13px; outline: none; transition: border-color .2s, box-shadow .2s; appearance: none; }
+.inp:focus, .sel:focus, .textarea:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(212,168,67,.08); }
+.inp::placeholder, .textarea::placeholder { color: var(--text4); }
+.textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
+
+/* LAYOUT */
+.page { max-width: 1200px; margin: 0 auto; padding: 36px 24px; }
+.page-narrow { max-width: 520px; margin: 0 auto; padding: 52px 24px; }
+
+/* GRID */
+.grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+.grid-2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+
+/* CARDS */
+.card { background: var(--bg2); border: 1px solid var(--bdr); border-radius: var(--r3); }
+.card-p { padding: 24px; }
+
+/* BADGE */
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 99px; font-size: 10px; font-weight: 700; letter-spacing: .3px; white-space: nowrap; }
+.badge-gold { background: var(--golda); color: var(--gold); border: 1px solid rgba(212,168,67,.2); }
+.badge-grn  { background: rgba(56,212,126,.08); color: var(--grn); }
+.badge-red  { background: rgba(224,84,84,.08); color: var(--red); }
+.badge-blue { background: rgba(80,144,232,.08); color: var(--blue); }
+.badge-gray { background: var(--bg3); color: var(--text3); border: 1px solid var(--bdr); }
+
+/* DIVIDER */
+.divider { height: 1px; background: var(--bdr); margin: 0; }
+
+/* ALERT */
+.alert { padding: 12px 16px; border-radius: var(--r); font-size: 13px; }
+.alert-err { background: rgba(224,84,84,.08); border: 1px solid rgba(224,84,84,.2); color: var(--red); }
+.alert-ok  { background: rgba(56,212,126,.06); border: 1px solid rgba(56,212,126,.2); color: var(--grn); }
+.alert-info{ background: rgba(212,168,67,.06); border: 1px solid rgba(212,168,67,.2); color: var(--gold); }
+
+/* TOAST */
+.toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; background: var(--bg3); border: 1px solid var(--gold); border-radius: var(--r2); color: var(--gold); font-size: 12px; font-family: var(--mono); z-index: 9000; display: none; animation: toastIn .3s ease; box-shadow: var(--shadow); }
+@keyframes toastIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+
+/* SCROLLBAR */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-thumb { background: var(--bdr2); border-radius: 4px; }
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .nav { padding: 0 16px; gap: 12px; }
+  .nav-links { display: none; }
+  .page { padding: 20px 14px; }
+  .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .grid-2 { grid-template-columns: 1fr; }
+}
+</style>
+{% block head %}{% endblock %}
+</head>
+<body>
+<nav class="nav">
+  <a href="/" class="nav-brand">
+    <span class="nav-logo">Rassd</span>
+    <span class="nav-ver">Beta</span>
+  </a>
+  <div class="nav-links">
+    <a href="/tenders" class="nav-link {% if request.url.path.startswith('/tenders') %}active{% endif %}">
+      <span class="dot-live"></span>Marchés
+    </a>
+    <a href="/tarifs" class="nav-link {% if request.url.path == '/tarifs' %}active{% endif %}">Tarifs</a>
+    {% if member %}
+    <a href="/dashboard" class="nav-link {% if request.url.path == '/dashboard' %}active{% endif %}">Dashboard</a>
+    <a href="/favorites" class="nav-link {% if request.url.path == '/favorites' %}active{% endif %}">Favoris</a>
+    <a href="/settings"  class="nav-link {% if request.url.path == '/settings' %}active{% endif %}">Alertes</a>
+    {% endif %}
+  </div>
+  <div class="nav-right">
+    {% if member %}
+      <span class="nav-user">{{ member.nom or member.email[:20] }}</span>
+      <a href="/logout" class="btn btn-ghost btn-sm">Déconnexion</a>
+    {% else %}
+      <a href="/login" class="btn btn-outline btn-sm">Connexion</a>
+      <a href="/register" class="btn btn-primary btn-sm">S'inscrire</a>
+    {% endif %}
+  </div>
+</nav>
+
+{% block body %}{% endblock %}
+
+<div class="toast" id="toast"></div>
+<script>
+(function(){
+  const p = new URLSearchParams(location.search);
+  if(p.get('ok')){
+    const t = document.getElementById('toast');
+    t.textContent = '✓ Enregistré avec succès';
+    t.style.display = 'block';
+    setTimeout(()=>t.style.display='none', 3000);
+    history.replaceState({}, '', location.pathname);
+  }
+  if(p.get('welcome')){
+    const t = document.getElementById('toast');
+    t.textContent = '🎉 Bienvenue sur RASSD !';
+    t.style.display = 'block';
+    setTimeout(()=>t.style.display='none', 4000);
+    history.replaceState({}, '', location.pathname);
+  }
+})();
+</script>
+</body>
+</html>

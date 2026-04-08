@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.env
+*.venv
+venv/
+ENV/
+.env
+.venv
+
+# Packages
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# PyCharm
+.idea/
+
+# VS Code
+.vscode/
+
+# Mac
+.DS_Store
+
+# Railway / deployment
+*.log
+
+# SQLite
+*.db
+
+# Ignore nested environment and system files
+*.sqlite3
+*.db-journal
+
+# Node
+node_modules/
+
+# Misc
+*.swp
+*~

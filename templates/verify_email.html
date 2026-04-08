@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Vérification email — RASSD{% endblock %}
+{% block body %}
+<div class="page-narrow">
+  <div style="text-align:center;margin-bottom:36px">
+    <div style="font-family:var(--mono);font-size:9px;color:var(--gold);letter-spacing:2px;margin-bottom:12px">VÉRIFICATION</div>
+    <h1 style="font-family:var(--serif);font-style:italic;font-size:30px;color:var(--text1)">{% if ok %}Email vérifié{% else %}Vérification en attente{% endif %}</h1>
+  </div>
+  {% if err %}
+  <div class="alert alert-err" style="margin-bottom:20px">{{ err }}</div>
+  {% elif ok %}
+  <div class="alert alert-ok" style="margin-bottom:20px">{{ ok }}</div>
+  {% else %}
+  <div class="alert alert-info" style="margin-bottom:20px">Lien de vérification introuvable ou expiré.</div>
+  {% endif %}
+  <p style="color:var(--text3);font-size:13px">Vous pouvez maintenant <a href="/login" style="color:var(--gold)">vous connecter</a> ou <a href="/resend-verification" style="color:var(--gold)">renvoyer le lien</a>.</p>
+</div>
+{% endblock %}
