@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ t.objet[:60] }} — RASSD{% endblock %}
+{% block title %}{{ (t.objet or '')[:60] }} — RASSD{% endblock %}
 {% block body %}
 <style>
 .detail-grid { display:grid; grid-template-columns:1fr 320px; gap:20px; }
@@ -39,7 +39,7 @@
             ('📅','Publication', t.date_publication or '—','var(--text3)'),
             ('⏰','Date limite', t.date_limite or '—',     'var(--red)'),
             ('💰','Montant',     t.montant or '—',         'var(--grn)'),
-            ('👁','Vues',        t.views|string,           'var(--text3)'),
+            ('👁','Vues',        (t.views or 0)|string,    'var(--text3)'),
           ] %}
           <div class="info-cell">
             <div class="info-label">{{ ico }} {{ lbl }}</div>
@@ -48,7 +48,7 @@
           {% endfor %}
         </div>
 
-        {% if t.description and t.description|length > 80 %}
+        {% if t.description and (t.description or '')|length > 80 %}
         <div style="margin-top:4px">
           <div style="font-family:var(--mono);font-size:9px;color:var(--text4);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px">Description complète</div>
           <div id="desc" style="font-size:13px;color:var(--text3);line-height:1.85;white-space:pre-wrap;max-height:220px;overflow:hidden;transition:.3s">{{ t.description[:3000] }}</div>

@@ -172,8 +172,9 @@ except Exception:
 
 
 # ── Helpers ──────────────────────────────────────────────
-def render(req: Request, tpl: str, ctx: dict = {}):
+def render(req: Request, tpl: str, ctx: dict = None):
     m = get_member(req)
+    ctx = ctx or {}
     return templates.TemplateResponse(tpl, {
         "request":   req,
         "member":    m,
