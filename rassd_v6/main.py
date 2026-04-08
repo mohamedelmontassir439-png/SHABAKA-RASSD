@@ -175,13 +175,14 @@ except Exception:
 def render(req: Request, tpl: str, ctx: dict = {}):
     m = get_member(req)
     return templates.TemplateResponse(tpl, {
-        "request":  req,
-        "member":   m,
-        "cfg":      cfg,
-        "secteurs": cfg.SECTEURS,
-        "plans":    cfg.PLANS,
-        "dl":       days_left,
-        "now":      datetime.now(),
+        "request":   req,
+        "member":    m,
+        "cfg":       cfg,
+        "secteurs":  cfg.SECTEURS,
+        "plans":     cfg.PLANS,
+        "dl":        days_left,
+        "days_left": days_left,
+        "now":       datetime.now(),
         **ctx
     })
 
@@ -309,20 +310,30 @@ async def tender_detail(req: Request, tid: str):
         db.close()
         return HTMLResponse("Marché introuvable", 404)
 
-    db.execute("UPDATE tenders SET views=views+1 WHERE id=?", (tid,))
+    try:
+        db.execute("UPDATE tenders SET views=views+1 WHERE id=?", (tid,))
+    except Exception:
+        pass  # views column might not exist in old DBs
+    secteur = t["secteur"] if t["secteur"] else ""
     related = [dict(r) for r in db.execute(
         "SELECT * FROM tenders WHERE secteur=? AND id!=? AND statut='actif' ORDER BY scraped_at DESC LIMIT 4",
-        (t["secteur"], tid)
-    ).fetchall()]
+        (secteur, tid)
+    ).fetchall()] if secteur else []
 
     member = get_member(req)
     is_fav = False
     if member:
-        is_fav = bool(db.execute(
-            "SELECT id FROM favorites WHERE member_id=? AND tender_id=?",
-            (member["id"], tid)
-        ).fetchone())
-    db.commit()
+        try:
+            is_fav = bool(db.execute(
+                "SELECT id FROM favorites WHERE member_id=? AND tender_id=?",
+                (member["id"], tid)
+            ).fetchone())
+        except Exception:
+            pass
+    try:
+        db.commit()
+    except Exception:
+        pass
     db.close()
     return render(req, "detail.html", {
         "t": dict(t), "related": related, "is_fav": is_fav,
