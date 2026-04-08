@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% block title %}Modern Business — Veille Marchés Publics Maroc{% endblock %}
+{% block head %}
+<style>
+.hero{min-height:calc(100dvh - var(--nh));display:flex;flex-direction:column;
+  justify-content:center;padding:80px var(--pad) 60px;max-width:var(--max);margin:0 auto;text-align:right}
+.hero::before{content:'';position:absolute;right:-5%;top:10%;width:55%;height:80%;
+  background:radial-gradient(ellipse at 70% 40%,rgba(201,168,76,.04),transparent);pointer-events:none;position:absolute}
+.hero-kicker{display:flex;align-items:center;justify-content:flex-end;gap:10px;
+  font-size:9px;font-weight:700;color:var(--g3);letter-spacing:2.5px;text-transform:uppercase;margin-bottom:20px}
+.hero-h1{font-size:clamp(36px,6vw,80px);font-weight:900;line-height:.95;margin-bottom:24px;
+  letter-spacing:-.04em;font-family:var(--serif)}
+.hero-h1 em{font-style:italic;color:var(--g1);display:block}
+.hero-sub{font-size:clamp(13px,1.5vw,16px);color:var(--ink3);line-height:1.8;
+  max-width:520px;margin-right:0;margin-left:auto;margin-bottom:40px;font-weight:300}
+.hero-cta{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:60px}
+.hero-stats{display:flex;align-items:center;justify-content:flex-end;gap:28px;flex-wrap:wrap;
+  padding-top:24px;border-top:1px solid var(--bdr)}
+.hs-n{font-family:var(--serif);font-size:26px;font-weight:900;color:var(--g1);font-style:italic;display:block;line-height:1}
+.hs-l{font-size:10px;color:var(--ink5);text-transform:uppercase;letter-spacing:.1em}
+.val-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--bdr);
+  border:1px solid var(--bdr);max-width:var(--max);margin:0 auto}
+.val-cell{background:var(--surface);padding:36px 28px;transition:.2s;position:relative;overflow:hidden}
+.val-cell:hover{background:var(--raised)}
+.val-icon{font-size:28px;margin-bottom:16px;opacity:.8}
+.val-title{font-family:var(--serif);font-size:20px;font-weight:700;margin-bottom:8px;color:var(--ink2)}
+.val-desc{font-size:12px;color:var(--ink5);line-height:1.75}
+.val-num{font-family:var(--serif);font-size:42px;font-weight:900;color:var(--g1);
+  font-style:italic;position:absolute;bottom:16px;right:20px;opacity:.08}
+.marquee-wrap{border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr);
+  background:var(--abyss);overflow:hidden;padding:13px 0}
+.marquee-inner{display:flex;gap:48px;white-space:nowrap;animation:scroll 35s linear infinite}
+@keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.mi-item{display:flex;align-items:center;gap:8px;font-size:9px;font-weight:600;
+  color:var(--ink6);text-transform:uppercase;letter-spacing:.1em;flex-shrink:0}
+.mi-dot{width:3px;height:3px;border-radius:50%;background:var(--g4)}
+.plan-row{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--bdr);
+  border:1px solid var(--bdr);border-radius:var(--r3);overflow:hidden;max-width:860px;margin:0 auto}
+.plan-c{background:var(--surface);padding:32px 24px}
+.plan-c.star{background:var(--raised)}
+.plan-c.star::before{content:'RECOMMANDÉ';position:absolute;top:12px;right:12px;
+  font-size:7px;font-weight:700;color:var(--g3);letter-spacing:2px;
+  padding:3px 8px;border:1px solid rgba(201,168,76,.2);border-radius:99px}
+.plan-c{position:relative}
+.plan-tier{font-size:9px;font-weight:700;color:var(--ink5);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px}
+.plan-name{font-family:var(--serif);font-size:24px;font-weight:900;margin-bottom:16px;font-style:italic}
+.plan-price{font-family:var(--serif);font-size:40px;font-weight:900;color:var(--g1);letter-spacing:-.04em;font-style:italic}
+.plan-per{font-size:11px;color:var(--ink5)}
+.plan-feat{list-style:none;margin:20px 0 24px;display:flex;flex-direction:column;gap:8px}
+.plan-feat li{font-size:11px;color:var(--ink3);display:flex;align-items:flex-start;gap:8px}
+.pf-y{color:var(--grn);flex-shrink:0}.pf-n{color:var(--ink6);flex-shrink:0}
+@media(max-width:768px){.val-grid,.plan-row{grid-template-columns:1fr}}
+@media(max-width:640px){.hero{text-align:center}.hero-cta,.hero-stats{justify-content:center}.hero-sub{margin:0 auto 40px}}
+</style>
+{% endblock %}
+{% block body %}
+
+<!-- HERO -->
+<section style="position:relative">
+<div class="hero">
+  <div class="hero-kicker">
+    <div class="ld"></div>
+    <span>Mis à jour toutes les 2h</span>
+    <span>18 sources · Maroc 🇲🇦</span>
+  </div>
+  <h1 class="hero-h1 up">
+    Ne ratez plus<br>
+    aucun appel d'offres<br>
+    <em>au Maroc</em>
+  </h1>
+  <p class="hero-sub up d2">
+    Modern Business surveille marchespublics.gov.ma et 17 autres sources officielles 24h/24.
+    Recevez uniquement les marchés de votre secteur, directement sur <strong>Telegram</strong>.
+  </p>
+  <div class="hero-cta up d3">
+    {% if member %}
+    <a href="/tenders" class="btn btn-gold btn-xl">Accéder aux marchés →</a>
+    <a href="/dashboard" class="btn btn-wire btn-xl">Mon espace</a>
+    {% else %}
+    <a href="/register" class="btn btn-gold btn-xl">Commencer gratuitement →</a>
+    <a href="/tarifs" class="btn btn-wire btn-xl">Voir les tarifs</a>
+    {% endif %}
+  </div>
+  <div class="hero-stats up d4">
+    <div><span class="hs-n">{{ stats.tenders_active or '0' }}</span><span class="hs-l">Marchés actifs</span></div>
+    <div style="width:1px;height:32px;background:var(--bdr)"></div>
+    <div class="hide-m"><span class="hs-n">18</span><span class="hs-l">Sources officielles</span></div>
+    <div style="width:1px;height:32px;background:var(--bdr)" class="hide-m"></div>
+    <div class="hide-m"><span class="hs-n">{{ stats.easy_to_win or '0' }}</span><span class="hs-l">Faciles à gagner</span></div>
+    <div style="width:1px;height:32px;background:var(--bdr)" class="hide-m"></div>
+    <div class="hide-m"><span class="hs-n">{{ stats.members or '0' }}</span><span class="hs-l">Entreprises</span></div>
+  </div>
+</div>
+</section>
+
+<!-- MARQUEE sources -->
+<div class="marquee-wrap">
+  <div class="marquee-inner">
+    {% for s in ["marchespublics.gov.ma","annonces.lematin.ma","ofppt.ma","chumarrakech.ma","tanmia.ma","lydec.ma","oncf.ma","redal.ma","amendis.ma","anp.org.ma","finances.gov.ma","flasheconomie.com","leconomiste.com","lavieeco.com","marsamaroc.co.ma","adm.co.ma","tangermed.ma","aujourd'hui.ma"] %}
+    <div class="mi-item"><div class="mi-dot"></div>{{ s }}</div>{% endfor %}
+    {% for s in ["marchespublics.gov.ma","annonces.lematin.ma","ofppt.ma","chumarrakech.ma","tanmia.ma","lydec.ma","oncf.ma","redal.ma","amendis.ma","anp.org.ma"] %}
+    <div class="mi-item"><div class="mi-dot"></div>{{ s }}</div>{% endfor %}
+  </div>
+</div>
+
+<!-- STATS BAND -->
+<div class="sband" style="grid-template-columns:repeat(4,1fr)">
+  <div class="sc2"><div class="sn">{{ stats.tenders_total or '—' }}</div><div class="sl">Total marchés</div></div>
+  <div class="sc2"><div class="sn">{{ stats.tenders_active or '—' }}</div><div class="sl">Actifs</div></div>
+  <div class="sc2"><div class="sn">{{ stats.easy_to_win or '—' }}</div><div class="sl">Score ≥ 70</div></div>
+  <div class="sc2"><div class="sn">{{ stats.members or '—' }}</div><div class="sl">Membres</div></div>
+</div>
+
+<!-- VALEURS / CE QUE VOUS OBTENEZ -->
+<section style="padding:80px 0 0">
+  <div class="wrap mb32" style="text-align:right">
+    <div class="slbl mb12">Ce que vous obtenez</div>
+    <h2 style="font-family:var(--serif);font-size:clamp(24px,3.5vw,44px);font-weight:900;max-width:500px;margin-right:0;margin-left:auto;line-height:1.05">
+      L'intelligence des marchés<br><em style="color:var(--g1)">à portée de main</em>
+    </h2>
+  </div>
+  <div class="val-grid">
+    {% for icon,title,desc,n in [
+      ("◈","Veille automatique","18 sources surveillées 24h/24. Alerté avant vos concurrents dès qu'un marché correspond à votre secteur.","01"),
+      ("⊡","Alertes Telegram","Notification push instantanée sur votre téléphone. Aucun email perdu, aucun délai. Répondez en temps réel.","02"),
+      ("◎","Score IA 0-100","Chaque marché est évalué par notre IA. Score 70+ = opportunité accessible aux PME. Concentrez vos efforts.","03"),
+      ("⊛","47 codes T/P/S","Filtrage précis par code officiel Travaux / Produits / Services. Vous ne recevez que ce qui concerne votre activité.","04"),
+      ("⊞","Résultats d'attribution","Consultez qui a remporté les marchés passés. Analysez la concurrence et ajustez vos offres.","05"),
+      ("◉","Marketplace B2B","Publiez vos offres, trouvez des sous-traitants, constituez des groupements. Annuaire 🇲🇦.","06"),
+    ] %}
+    <div class="val-cell">
+      <div class="val-icon">{{ icon }}</div>
+      <div class="val-title">{{ title }}</div>
+      <div class="val-desc">{{ desc }}</div>
+      <div class="val-num">{{ n }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- PLANS -->
+<section style="padding:80px var(--pad)">
+  <div class="wrap mb40" style="text-align:center">
+    <div class="slbl mb12" style="justify-content:center">Tarification simple</div>
+    <h2 style="font-family:var(--serif);font-size:clamp(24px,3.5vw,44px);font-weight:900;font-style:italic">
+      Commencez gratuitement
+    </h2>
+    <p style="color:var(--ink4);font-size:13px;margin-top:10px">Sans carte bancaire · Annulez quand vous voulez</p>
+  </div>
+  <div class="plan-row">
+    <div class="plan-c">
+      <div class="plan-tier">Plan 01</div>
+      <div class="plan-name">Gratuit</div>
+      <div><span class="plan-price">0</span><span class="plan-per"> DH/mois</span></div>
+      <ul class="plan-feat">
+        <li><span class="pf-y">✓</span> Inscription & profil</li>
+        <li><span class="pf-y">✓</span> Marketplace B2B</li>
+        <li><span class="pf-y">✓</span> Annuaire entreprises</li>
+        <li><span class="pf-n">×</span> <span style="color:var(--ink5)">Accès aux marchés</span></li>
+        <li><span class="pf-n">×</span> <span style="color:var(--ink5)">Alertes Telegram</span></li>
+      </ul>
+      <a href="/register" class="btn btn-ghost btn-full btn-sm">S'inscrire →</a>
+    </div>
+    <div class="plan-c star">
+      <div class="plan-tier">Plan 02</div>
+      <div class="plan-name">Pro</div>
+      <div><span class="plan-price">99</span><span class="plan-per"> DH/mois</span></div>
+      <ul class="plan-feat">
+        <li><span class="pf-y">✓</span> <b>Tous les marchés actifs</b></li>
+        <li><span class="pf-y">✓</span> <b>Alertes Telegram instantanées</b></li>
+        <li><span class="pf-y">✓</span> Score IA & filtres T/P/S</li>
+        <li><span class="pf-y">✓</span> Export CSV</li>
+        <li><span class="pf-y">✓</span> Digest hebdomadaire</li>
+      </ul>
+      <a href="/contact?subject=Abonnement+Pro" class="btn btn-gold btn-full btn-sm">Activer Pro →</a>
+    </div>
+    <div class="plan-c">
+      <div class="plan-tier">Plan 03</div>
+      <div class="plan-name">Entreprise</div>
+      <div><span class="plan-price">299</span><span class="plan-per"> DH/mois</span></div>
+      <ul class="plan-feat">
+        <li><span class="pf-y">✓</span> Tout le plan Pro</li>
+        <li><span class="pf-y">✓</span> Jusqu'à 5 utilisateurs</li>
+        <li><span class="pf-y">✓</span> API REST dédiée</li>
+        <li><span class="pf-y">✓</span> Webhooks</li>
+        <li><span class="pf-y">✓</span> Support dédié</li>
+      </ul>
+      <a href="/contact?subject=Abonnement+Entreprise" class="btn btn-wire btn-full btn-sm">Nous contacter →</a>
+    </div>
+  </div>
+</section>
+
+<!-- CTA FINAL -->
+<section style="padding:0 var(--pad) 80px">
+  <div class="cta-band" style="max-width:var(--max);margin:0 auto">
+    <div class="slbl mb14" style="justify-content:center">Prêt à commencer ?</div>
+    <h2 style="font-family:var(--serif);font-size:clamp(26px,4vw,50px);font-weight:900;margin-bottom:12px;font-style:italic">
+      Votre prochain marché<br><span style="color:var(--g1)">vous attend</span>
+    </h2>
+    <p style="color:var(--ink4);font-size:13px;margin-bottom:28px">Inscription en 30 secondes</p>
+    <div class="f fj g12 fw">
+      <a href="/register" class="btn btn-gold btn-xl">Créer mon compte →</a>
+      <a href="/tarifs" class="btn btn-wire btn-xl">Voir tous les tarifs</a>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

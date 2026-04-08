@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block title %}RASSD — Veille Marchés Publics Maroc en temps réel{% endblock %}
+{% block body %}
+<style>
+.hero { padding: 100px 24px 80px; text-align: center; position: relative; overflow: hidden; }
+.hero-bg { position: absolute; inset: 0; background: radial-gradient(ellipse 100% 60% at 50% 0%, rgba(212,168,67,.07) 0%, transparent 70%); pointer-events: none; }
+.hero-pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; border: 1px solid rgba(212,168,67,.25); border-radius: 99px; font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 32px; background: rgba(212,168,67,.05); }
+.hero h1 { font-family: var(--serif); font-size: clamp(44px, 7vw, 88px); font-weight: 400; font-style: italic; color: var(--text1); line-height: 1.05; margin-bottom: 22px; max-width: 820px; margin-left: auto; margin-right: auto; }
+.hero h1 em { color: var(--gold); font-style: italic; }
+.hero p { color: var(--text3); font-size: 16px; max-width: 460px; margin: 0 auto 40px; line-height: 1.8; }
+.hero-cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 72px; }
+.stats-bar { display: flex; gap: 48px; justify-content: center; flex-wrap: wrap; }
+.stat-item { text-align: center; }
+.stat-n { font-family: var(--serif); font-size: 40px; font-style: italic; color: var(--gold); line-height: 1; font-weight: 400; }
+.stat-l { font-family: var(--mono); font-size: 9px; color: var(--text4); margin-top: 4px; letter-spacing: 1.5px; text-transform: uppercase; }
+
+.section { padding: 64px 24px; }
+.section-inner { max-width: 1200px; margin: 0 auto; }
+.section-header { display: flex; align-items: center; gap: 16px; margin-bottom: 32px; }
+.section-header h2 { font-family: var(--serif); font-style: italic; font-size: 28px; font-weight: 400; color: var(--text1); }
+.section-line { flex: 1; height: 1px; background: var(--bdr); }
+.section-link { font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: 1px; transition: opacity .15s; white-space: nowrap; }
+.section-link:hover { opacity: .7; }
+
+/* Tender card mini */
+.tc { background: var(--bg2); border: 1px solid var(--bdr); border-radius: var(--r2); padding: 18px; transition: all .2s; position: relative; overflow: hidden; display: block; }
+.tc::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: transparent; transition: background .2s; }
+.tc:hover { border-color: var(--bdr2); transform: translateY(-2px); box-shadow: 0 12px 36px rgba(0,0,0,.5); }
+.tc:hover::before { background: var(--gold); }
+.tc-badge-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.tc-title { font-size: 13px; font-weight: 500; color: var(--text1); line-height: 1.45; margin-bottom: 8px; }
+.tc-meta { font-size: 11px; color: var(--text4); }
+.tc-deadline { font-family: var(--mono); font-size: 10px; color: var(--red); }
+
+/* Features */
+.features { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+.feature { background: var(--bg2); border: 1px solid var(--bdr); border-radius: var(--r3); padding: 28px; }
+.feature-num { font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: 2px; margin-bottom: 16px; }
+.feature-icon { font-size: 26px; margin-bottom: 14px; }
+.feature h3 { font-size: 15px; font-weight: 600; color: var(--text1); margin-bottom: 10px; }
+.feature p { font-size: 12px; color: var(--text3); line-height: 1.75; }
+
+/* Sectors */
+.sector-tag { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: var(--bg2); border: 1px solid var(--bdr); border-radius: 99px; font-size: 12px; color: var(--text3); transition: all .15s; cursor: pointer; }
+.sector-tag:hover { border-color: var(--gold); color: var(--gold); }
+.sector-count { font-family: var(--mono); font-size: 9px; color: var(--text4); }
+
+/* CTA section */
+.cta-section { background: linear-gradient(135deg, rgba(212,168,67,.06), transparent); border: 1px solid rgba(212,168,67,.15); border-radius: var(--r3); padding: 56px 40px; text-align: center; margin: 64px 0; }
+.cta-section h2 { font-family: var(--serif); font-style: italic; font-size: 36px; font-weight: 400; color: var(--text1); margin-bottom: 14px; }
+.cta-section p { color: var(--text3); font-size: 14px; margin-bottom: 28px; }
+
+@media(max-width:768px){ .features { grid-template-columns: 1fr; } .stats-bar { gap: 28px; } }
+</style>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-pill">
+    <span class="dot-live"></span>
+    Scraping temps réel · marchespublics.gov.ma
+  </div>
+  <h1>Chaque marché public.<br><em>Dès sa publication.</em></h1>
+  <p>RASSD surveille le portail officiel marocain en continu et vous alerte instantanément dès qu'un marché correspond à votre secteur d'activité.</p>
+  <div class="hero-cta">
+    <a href="/register" class="btn btn-primary btn-lg">Créer mon alerte gratuite →</a>
+    <a href="/tenders" class="btn btn-outline btn-lg">Explorer les marchés</a>
+  </div>
+  <div class="stats-bar">
+    <div class="stat-item"><div class="stat-n">{{ stats.tenders }}</div><div class="stat-l">Marchés actifs</div></div>
+    <div class="stat-item"><div class="stat-n">{{ stats.today }}</div><div class="stat-l">Publiés aujourd'hui</div></div>
+    <div class="stat-item"><div class="stat-n">{{ stats.members }}</div><div class="stat-l">Entreprises inscrites</div></div>
+  </div>
+</section>
+
+<!-- RECENT TENDERS -->
+{% if recent %}
+<section class="section" style="border-top:1px solid var(--bdr)">
+  <div class="section-inner">
+    <div class="section-header">
+      <h2>Derniers marchés publiés</h2>
+      <div class="section-line"></div>
+      <a href="/tenders" class="section-link">VOIR TOUT →</a>
+    </div>
+    <div class="grid-3">
+      {% for t in recent %}
+      {% set dl_n, dl_l = days_left(t.date_limite) %}
+      <a href="/tenders/{{ t.id }}" class="tc">
+        <div class="tc-badge-row">
+          <span class="badge badge-gold">{{ t.secteur[:22] }}</span>
+          {% if t.date_limite %}<span class="tc-deadline">{{ t.date_limite }}</span>{% endif %}
+        </div>
+        <div class="tc-title">{{ t.objet[:85] }}</div>
+        <div class="tc-meta">{{ t.acheteur[:55] or '—' }}</div>
+        {% if t.montant %}<div style="font-family:var(--mono);font-size:10px;color:var(--gold);margin-top:8px">{{ t.montant[:35] }}</div>{% endif %}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- FEATURES -->
+<section class="section" style="border-top:1px solid var(--bdr)">
+  <div class="section-inner">
+    <div class="section-header">
+      <h2>Comment ça fonctionne</h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="features">
+      <div class="feature">
+        <div class="feature-num">01</div>
+        <div class="feature-icon">🔍</div>
+        <h3>Scan continu</h3>
+        <p>RASSD interroge marchespublics.gov.ma toutes les heures. Il détecte automatiquement les nouvelles publications grâce à la recherche du dernier ID.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-num">02</div>
+        <div class="feature-icon">🎯</div>
+        <h3>Classification IA</h3>
+        <p>Chaque marché est classifié dans l'un des 16 secteurs disponibles : BTP, IT, Santé, Transport… Vous ne recevez que ce qui vous correspond.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-num">03</div>
+        <div class="feature-icon">⚡</div>
+        <h3>Alerte instantanée</h3>
+        <p>Email HTML complet + message Telegram avec objet, acheteur, date limite, montant et lien direct vers marchespublics.gov.ma.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTORS -->
+<section class="section" style="border-top:1px solid var(--bdr)">
+  <div class="section-inner">
+    <div class="section-header">
+      <h2>Secteurs surveillés</h2>
+      <div class="section-line"></div>
+      <span style="font-family:var(--mono);font-size:10px;color:var(--text4)">{{ sectors|length }} secteurs</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      {% for s in sectors %}
+      <a href="/tenders?s={{ s.secteur|urlencode }}" class="sector-tag">
+        {{ s.secteur }}
+        <span class="sector-count">{{ s.cnt }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="page">
+  <div class="cta-section">
+    <h2>Ne ratez plus aucune opportunité</h2>
+    <p>Inscription gratuite · Email &amp; Telegram · Filtrage par secteur · Sans engagement</p>
+    <a href="/register" class="btn btn-primary btn-lg">Commencer maintenant →</a>
+  </div>
+</div>
+{% endblock %}

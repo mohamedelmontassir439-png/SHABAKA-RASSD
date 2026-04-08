@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Marchés Publics — RASSD{% endblock %}
+{% block body %}
+<style>
+.tenders-header { display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:28px; gap:16px; flex-wrap:wrap; }
+.tenders-title { font-family:var(--serif); font-style:italic; font-size:30px; color:var(--text1); }
+.tenders-count { font-family:var(--mono); font-size:11px; color:var(--text4); margin-top:4px; }
+.filters { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
+.tc-row { background:var(--bg2); border:1px solid var(--bdr); border-radius:var(--r2); padding:16px 20px; display:grid; grid-template-columns:1fr auto; gap:20px; align-items:center; transition:all .2s; position:relative; overflow:hidden; }
+.tc-row::before { content:''; position:absolute; left:0; top:0; bottom:0; width:2px; background:transparent; transition:.2s; }
+.tc-row:hover { border-color:var(--bdr2); transform:translateY(-1px); box-shadow:0 8px 24px rgba(0,0,0,.4); }
+.tc-row:hover::before { background:var(--gold); }
+.tc-row-right { text-align:right; flex-shrink:0; min-width:110px; }
+.fav-btn { background:none; border:none; cursor:pointer; font-size:16px; padding:4px; opacity:.5; transition:.2s; }
+.fav-btn:hover { opacity:1; transform:scale(1.2); }
+.fav-btn.active { opacity:1; }
+.tag { display:inline-flex; padding:2px 8px; background:var(--bg3); border:1px solid var(--bdr); border-radius:4px; font-size:10px; color:var(--text4); font-family:var(--mono); }
+.sort-tabs { display:flex; gap:4px; }
+.sort-tab { padding:5px 12px; border-radius:var(--r); font-size:12px; font-weight:500; cursor:pointer; border:1px solid var(--bdr); background:transparent; color:var(--text3); transition:.15s; }
+.sort-tab.on { background:var(--bg3); color:var(--text1); border-color:var(--bdr2); }
+.pagination { display:flex; gap:6px; justify-content:center; margin-top:28px; flex-wrap:wrap; align-items:center; }
+.pag-btn { padding:7px 12px; border-radius:var(--r); font-size:12px; border:1px solid var(--bdr); background:var(--bg2); color:var(--text3); transition:.15s; }
+.pag-btn:hover { border-color:var(--gold); color:var(--gold); }
+.pag-btn.current { background:var(--gold); color:#000; border-color:var(--gold); font-weight:700; }
+.empty-state { text-align:center; padding:80px 24px; }
+.empty-icon { font-size:40px; margin-bottom:16px; }
+</style>
+<div class="page">
+  <div class="tenders-header">
+    <div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--gold);letter-spacing:2px;margin-bottom:8px">MARCHÉS ACTIFS</div>
+      <div class="tenders-title">{{ total }} marchés disponibles</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div class="sort-tabs">
+        <a href="?q={{ q }}&s={{ sf }}&sort=recent&page=1" class="sort-tab {% if sort=='recent' %}on{% endif %}">Récents</a>
+        <a href="?q={{ q }}&s={{ sf }}&sort=deadline&page=1" class="sort-tab {% if sort=='deadline' %}on{% endif %}">Deadline</a>
+      </div>
+      {% if not member %}<a href="/register" class="btn btn-primary btn-sm">🔔 Activer alertes</a>{% endif %}
+    </div>
+  </div>
+
+  <form method="get" class="filters">
+    <input name="q" value="{{ q }}" class="inp" placeholder="Rechercher un marché…" style="flex:1;min-width:200px;max-width:340px">
+    <select name="s" class="sel" style="width:200px" onchange="this.form.submit()">
+      <option value="">Tous les secteurs</option>
+      {% for sec in secteurs %}<option value="{{ sec }}" {% if sec==sf %}selected{% endif %}>{{ sec }}</option>{% endfor %}
+    </select>
+    <button type="submit" class="btn btn-primary btn-sm">Filtrer</button>
+    {% if q or sf %}<a href="/tenders" class="btn btn-outline btn-sm">✕ Effacer</a>{% endif %}
+    <input type="hidden" name="sort" value="{{ sort }}">
+  </form>
+
+  {% if tenders %}
+  <div style="display:flex;flex-direction:column;gap:8px">
+    {% for t in tenders %}
+    {% set dl_n, dl_l = days_left(t.date_limite) %}
+    <a href="/tenders/{{ t.id }}" class="tc-row" style="text-decoration:none;color:inherit">
+      <div>
+        <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;align-items:center">
+          <span class="badge badge-gold">{{ t.secteur[:24] }}</span>
+          {% if t.montant %}<span class="badge badge-grn">{{ t.montant[:30] }}</span>{% endif %}
+          {% if dl_l and dl_n <= 7 and dl_n >= 0 %}
+          <span class="badge {% if dl_n <= 2 %}badge-red{% elif dl_n <= 5 %}badge-gold{% else %}badge-blue{% endif %}">{{ dl_l }}</span>
+          {% endif %}
+          {% if t.region %}<span class="tag">{{ t.region[:20] }}</span>{% endif %}
+        </div>
+        <div style="font-size:13px;font-weight:500;color:var(--text1);line-height:1.45;margin-bottom:6px">{{ t.objet[:130] }}</div>
+        {% if t.acheteur %}<div style="font-size:11px;color:var(--text4)">🏢 {{ t.acheteur[:70] }}</div>{% endif %}
+      </div>
+      <div class="tc-row-right">
+        {% if t.date_limite %}
+        <div style="font-family:var(--mono);font-size:10px;color:{% if dl_n < 0 %}var(--text4){% elif dl_n <= 3 %}var(--red){% elif dl_n <= 7 %}var(--gold){% else %}var(--text3){% endif %};font-weight:600;margin-bottom:4px">⏰ {{ t.date_limite }}</div>
+        {% endif %}
+        <div style="font-family:var(--mono);font-size:9px;color:var(--text4)">{{ t.scraped_at[:10] }}</div>
+        {% if member %}
+        <button class="fav-btn {% if t.id in favs %}active{% endif %}" onclick="event.preventDefault();event.stopPropagation();toggleFav(this,'{{ t.id }}')" title="Favori">{% if t.id in favs %}⭐{% else %}☆{% endif %}</button>
+        {% endif %}
+        <div style="font-size:11px;color:var(--gold);margin-top:6px;font-weight:600">Voir →</div>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+
+  {% if pages > 1 %}
+  <div class="pagination">
+    {% if page > 1 %}<a href="?q={{ q }}&s={{ sf }}&sort={{ sort }}&page={{ page-1 }}" class="pag-btn">← Préc.</a>{% endif %}
+    {% for pp in range(1, pages+1) %}
+      {% if pp == page %}<span class="pag-btn current">{{ pp }}</span>
+      {% elif pp == 1 or pp == pages or (pp >= page-2 and pp <= page+2) %}<a href="?q={{ q }}&s={{ sf }}&sort={{ sort }}&page={{ pp }}" class="pag-btn">{{ pp }}</a>
+      {% elif pp == page-3 or pp == page+3 %}<span style="color:var(--text4);padding:4px">…</span>{% endif %}
+    {% endfor %}
+    {% if page < pages %}<a href="?q={{ q }}&s={{ sf }}&sort={{ sort }}&page={{ page+1 }}" class="pag-btn">Suiv. →</a>{% endif %}
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">📋</div>
+    <div style="font-size:16px;color:var(--text2);margin-bottom:8px">Aucun marché trouvé</div>
+    <div style="font-size:13px;color:var(--text4)">{% if q or sf %}Modifiez vos filtres{% else %}Le scan est en cours…{% endif %}</div>
+    {% if q or sf %}<div style="margin-top:16px"><a href="/tenders" class="btn btn-outline btn-sm">Voir tous les marchés</a></div>{% endif %}
+  </div>
+  {% endif %}
+</div>
+<script>
+async function toggleFav(btn, tid) {
+  const r = await fetch(`/tenders/${tid}/favorite`, {method:'POST'});
+  const d = await r.json();
+  if(d.ok) { btn.textContent = d.fav ? '⭐' : '☆'; btn.classList.toggle('active', d.fav); }
+}
+</script>
+{% endblock %}

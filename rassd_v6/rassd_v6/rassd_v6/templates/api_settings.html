@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Clés API — Modern Business{% endblock %}
+{% block body %}
+<div class="page" style="max-width:700px">
+  <div class="mb32">
+    <div class="slbl mb10">Développeurs · Plan Pro</div>
+    <h1 style="font-family:var(--serif);font-size:28px;font-weight:900;font-style:italic">Clés API</h1>
+    <p style="font-size:12px;color:var(--ink5);margin-top:6px">Accédez aux marchés via notre REST API. Documentation: <a href="/api/v1/stats" style="color:var(--g2)" target="_blank">/api/v1/stats</a></p>
+  </div>
+
+  {% if member.plan == 'free' %}
+  <div class="cta-band">
+    <div style="font-size:18px;font-weight:800;font-family:var(--serif);margin-bottom:8px;font-style:italic">Fonctionnalité Pro</div>
+    <p style="color:var(--ink4);font-size:12px;margin-bottom:20px">Les clés API sont disponibles pour les membres Pro et Entreprise.</p>
+    <a href="/tarifs" class="btn btn-gold">Passer à Pro — 99 DH/mois →</a>
+  </div>
+  {% else %}
+
+  <!-- Generate -->
+  <div class="card mb24">
+    <div class="card-head">Générer une nouvelle clé</div>
+    <div class="p20">
+      <p style="font-size:12px;color:var(--ink5);margin-bottom:14px">Les clés API permettent d'accéder aux endpoints <code style="background:var(--raised);padding:2px 6px;border-radius:3px;font-size:11px">/api/v1/tenders</code> depuis vos applications.</p>
+      <form method="post" action="/settings/api/generate">
+        <button type="submit" class="btn btn-gold btn-sm">+ Générer une clé API</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Keys list -->
+  {% if keys %}
+  <div class="card mb24">
+    <div class="card-head">Clés actives ({{ keys|length }})</div>
+    {% for k in keys %}
+    <div style="padding:14px 16px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <code style="font-family:var(--mono);font-size:11px;color:var(--g2);background:var(--raised);padding:5px 10px;border-radius:4px;flex:1;min-width:200px;word-break:break-all">{{ k.key }}</code>
+      <div style="font-size:10px;color:var(--ink6)">Créée: {{ k.created_at[:10] }}</div>
+      <form method="post" action="/settings/api/revoke">
+        <input type="hidden" name="key_id" value="{{ k.id }}">
+        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Révoquer cette clé?')">Révoquer</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card p24 mb24 tc">
+    <div style="font-size:28px;opacity:.2;margin-bottom:10px">⌘</div>
+    <div style="font-size:13px;color:var(--ink5)">Aucune clé API. Générez-en une ci-dessus.</div>
+  </div>
+  {% endif %}
+
+  <!-- Docs -->
+  <div class="card">
+    <div class="card-head">Documentation rapide</div>
+    <div class="p20">
+      <div style="font-size:11px;font-weight:700;color:var(--ink4);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">Endpoints disponibles</div>
+      {% for method,path,desc in [
+        ("GET","/api/v1/tenders","Liste des marchés actifs (filtres: code, region, easy, q)"),
+        ("GET","/api/v1/tenders/new","Nouveaux marchés (dernières 24h)"),
+        ("GET","/api/v1/tenders/easy","Marchés score ≥ 70"),
+        ("GET","/api/v1/tenders/{id}","Détail d'un marché"),
+        ("GET","/api/v1/stats","Statistiques globales"),
+        ("GET","/api/v1/sources","AO par source"),
+      ] %}
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--bdr)">
+        <span style="font-family:var(--mono);font-size:9px;font-weight:700;color:var(--grn);background:rgba(90,158,120,.1);border:1px solid rgba(90,158,120,.2);padding:2px 6px;border-radius:3px;flex-shrink:0">{{ method }}</span>
+        <code style="font-family:var(--mono);font-size:11px;color:var(--g2);flex:1">{{ path }}</code>
+        <span style="font-size:11px;color:var(--ink5)">{{ desc }}</span>
+      </div>
+      {% endfor %}
+      <div style="margin-top:14px;background:var(--raised);border-radius:var(--r2);padding:12px 14px;font-family:var(--mono);font-size:11px;color:var(--ink4)">
+        <span style="color:var(--ink5)"># Exemple cURL</span><br>
+        curl "https://web-production-b4ae4.up.railway.app/api/v1/tenders?easy=1" \<br>
+        &nbsp;&nbsp;-H "Authorization: Bearer <span style="color:var(--g2)">mb_live_...</span>"
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

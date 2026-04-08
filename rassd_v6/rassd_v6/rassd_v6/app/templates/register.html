@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Inscription gratuite — Modern Business{% endblock %}
+{% block body %}
+<div style="min-height:calc(100dvh - var(--nh));display:flex;align-items:center;justify-content:center;padding:40px var(--pad)">
+  <div style="width:100%;max-width:460px">
+    <div class="tc mb24">
+      <div class="slbl mb12" style="justify-content:center">Gratuit · Sans CB</div>
+      <h1 style="font-family:var(--serif);font-size:clamp(24px,3.5vw,36px);font-weight:900;margin-bottom:6px;font-style:italic">Créer mon compte</h1>
+      <p style="font-size:12px;color:var(--ink5)">Recevez les marchés de votre secteur sur Telegram</p>
+    </div>
+    {% if error %}<div class="err">{{ error }}</div>{% endif %}
+    <div class="card p24">
+      <form method="post" action="/register">
+        <div class="g2c">
+          <div class="fg"><label class="lbl">Nom *</label><input type="text" name="nom" class="inp" placeholder="Mohammed" required></div>
+          <div class="fg"><label class="lbl">Entreprise</label><input type="text" name="entreprise" class="inp" placeholder="SARL BTP Maroc"></div>
+        </div>
+        <div class="fg"><label class="lbl">Email *</label><input type="email" name="email" class="inp" placeholder="vous@entreprise.ma" required></div>
+        <div class="g2c">
+          <div class="fg"><label class="lbl">Téléphone</label><input type="tel" name="phone" class="inp" placeholder="06XXXXXXXX"></div>
+          <div class="fg"><label class="lbl">Ville</label><input type="text" name="ville" class="inp" placeholder="Casablanca"></div>
+        </div>
+        <div class="fg">
+          <label class="lbl">Secteur principal</label>
+          <select name="secteur" class="sel">
+            <option value="">— Sélectionner —</option>
+            {% for s in SECTEURS_LIST %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="fg"><label class="lbl">Mot de passe * (min. 8 caractères)</label><input type="password" name="password" class="inp" placeholder="••••••••" required minlength="8"></div>
+        <button type="submit" class="btn btn-gold btn-full btn-lg">Créer mon compte →</button>
+        <div class="tc mt12" style="font-size:10px;color:var(--ink5)">
+          Après inscription: <span class="mono" style="color:var(--g2)">/link votre@email.com</span> → <a href="https://t.me/MarchesMarocBot" style="color:var(--g2)" target="_blank">@MarchesMarocBot</a>
+        </div>
+      </form>
+    </div>
+    <div class="tc mt16" style="font-size:12px;color:var(--ink5)">
+      Déjà inscrit? <a href="/login" style="color:var(--g2);font-weight:600">Se connecter</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

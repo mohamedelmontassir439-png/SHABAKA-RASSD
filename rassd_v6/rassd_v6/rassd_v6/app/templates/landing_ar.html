@@ -1,0 +1,175 @@
+{% extends "base_ar.html" %}
+{% block title %}مودرن بيزنس — مراقبة الصفقات العمومية بالمغرب{% endblock %}
+{% block head %}
+<style>
+.hero{min-height:calc(100dvh - var(--nh));display:flex;flex-direction:column;justify-content:center;
+  padding:80px var(--pad) 60px;max-width:var(--max);margin:0 auto;position:relative;text-align:right}
+.hero::before{content:'';position:absolute;left:-5%;top:10%;width:55%;height:80%;
+  background:radial-gradient(ellipse at 30% 40%,rgba(201,168,76,.04),transparent);pointer-events:none}
+.hero-kicker{display:flex;align-items:center;justify-content:flex-end;gap:10px;
+  font-size:11px;font-weight:700;color:var(--g3);letter-spacing:.1em;margin-bottom:20px}
+.hero-kicker span{display:block;width:28px;height:1px;background:var(--g3);opacity:.5}
+.hero-h1{font-size:clamp(36px,6vw,80px);font-weight:900;line-height:1.05;margin-bottom:24px;letter-spacing:-.01em}
+.hero-h1 em{font-style:normal;color:var(--g1);display:block}
+.hero-sub{font-size:clamp(14px,1.6vw,17px);color:var(--ink3);line-height:1.8;
+  max-width:540px;margin:0 0 40px auto}
+.hero-cta{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:60px}
+.hero-trust{display:flex;align-items:center;justify-content:flex-end;gap:24px;flex-wrap:wrap;
+  padding-top:24px;border-top:1px solid var(--bdr)}
+.ht-item{font-size:12px;color:var(--ink5);text-align:center}
+.ht-n{font-size:24px;font-weight:900;color:var(--ink2);display:block;line-height:1}
+.feat-cell{padding:28px 24px;background:var(--surface);border-right:1px solid var(--bdr);
+  border-bottom:1px solid var(--bdr);transition:.2s;text-align:right}
+.feat-cell:hover{background:var(--raised)}
+.feat-icon{width:38px;height:38px;border-radius:var(--r2);background:var(--glow2);
+  border:1px solid rgba(201,168,76,.12);display:flex;align-items:center;justify-content:center;
+  font-size:18px;margin-bottom:14px;margin-right:0;margin-left:auto}
+.feat-title{font-size:16px;font-weight:800;margin-bottom:6px;color:var(--ink2)}
+.feat-desc{font-size:12px;color:var(--ink5);line-height:1.75}
+.marquee-wrap{border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr);
+  background:var(--abyss);overflow:hidden;padding:14px 0}
+.marquee-inner{display:flex;gap:48px;white-space:nowrap;animation:scroll 35s linear infinite;direction:ltr}
+@keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.mi-item{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:600;
+  color:var(--ink6);font-family:var(--mono);flex-shrink:0}
+.mi-dot{width:3px;height:3px;border-radius:50%;background:var(--g4)}
+@media(max-width:640px){.hero{text-align:center}.hero-cta{justify-content:center}
+  .hero-trust{justify-content:center}.slbl{justify-content:center}.feat-icon{margin:0 auto 14px}}
+</style>
+{% endblock %}
+{% block body %}
+
+<!-- HERO -->
+<section>
+<div class="hero">
+  <div class="hero-kicker">
+    <span>المغرب 🇲🇦</span>
+    <div class="ld"></div>
+    تحديث كل ساعتين
+  </div>
+  <h1 class="hero-h1 up">
+    الصفقات العمومية<br>بالمغرب،
+    <em>بين يديك</em>
+  </h1>
+  <p class="hero-sub up d2">
+    5 عوامل ذكاء اصطناعي تراقب 18 مصدراً رسمياً على مدار الساعة.
+    استقبل فقط العروض التي تتناسب مع قطاعك فور نشرها على تيليغرام.
+  </p>
+  <div class="hero-cta up d3">
+    <a href="/ar/register" class="btn btn-gold btn-xl">← تسجيل مجاني</a>
+    <a href="/ar/tenders" class="btn btn-wire btn-xl">استعراض الصفقات</a>
+  </div>
+  <div class="hero-trust up d4">
+    <div class="ht-item"><span class="ht-n">{{ stats.tenders_active or '0' }}</span>صفقة نشطة</div>
+    <div style="width:1px;height:28px;background:var(--bdr)"></div>
+    <div class="ht-item hide-m"><span class="ht-n">{{ stats.members or '0' }}</span>شركة مسجلة</div>
+    <div style="width:1px;height:28px;background:var(--bdr)" class="hide-m"></div>
+    <div class="ht-item hide-m"><span class="ht-n">{{ stats.easy_to_win or '0' }}</span>سهل الفوز</div>
+    <div style="width:1px;height:28px;background:var(--bdr)" class="hide-m"></div>
+    <div class="ht-item hide-m"><span class="ht-n">18</span>مصدر رسمي</div>
+  </div>
+</div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-wrap">
+  <div class="marquee-inner">
+    {% set items = ["marchespublics.gov.ma","annonces.lematin.ma","ofppt.ma","chumarrakech.ma","tanmia.ma","flasheconomie.com","marsamaroc.co.ma","adm.co.ma","anp.org.ma","safakate.com","lesoffres.ma","mtaess.gov.ma","ofppt.ma","creditagricole.ma","ammc.ma"] %}
+    {% for i in items %}<div class="mi-item"><div class="mi-dot"></div>{{ i }}</div>{% endfor %}
+    {% for i in items %}<div class="mi-item"><div class="mi-dot"></div>{{ i }}</div>{% endfor %}
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="sband" style="grid-template-columns:repeat(5,1fr)">
+  <div class="sc2"><div class="sn">{{ stats.tenders_total or '—' }}</div><div class="sl">مجموع الصفقات</div></div>
+  <div class="sc2"><div class="sn">{{ stats.tenders_active or '—' }}</div><div class="sl">نشطة</div></div>
+  <div class="sc2"><div class="sn">{{ stats.easy_to_win or '—' }}</div><div class="sl">درجة ≥ 70</div></div>
+  <div class="sc2"><div class="sn">{{ stats.members or '—' }}</div><div class="sl">أعضاء</div></div>
+  <div class="sc2"><div class="sn">18</div><div class="sl">مصدر</div></div>
+</div>
+
+<!-- FEATURES -->
+<section style="padding:80px 0 0">
+  <div class="wrap mb32" style="text-align:right">
+    <div class="slbl mb12">المميزات</div>
+    <h2 style="font-size:clamp(24px,3.5vw,44px);font-weight:900;max-width:500px;margin-right:0;margin-left:auto;line-height:1.1">
+      كل ما تحتاجه<br><span style="color:var(--g1)">مؤسستك</span>
+    </h2>
+  </div>
+  <div style="border-top:1px solid var(--bdr);border-right:1px solid var(--bdr)">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr)">
+      {% for icon,title,desc in [
+        ('◈','5 عوامل ذكاء اصطناعي','سكرابر · مصنف · منبه · مراقب · مساعد. هندسة متعددة العوامل، 18 مصدراً في آن واحد.'),
+        ('⊞','18 مصدراً رسمياً','marchespublics.gov.ma وجرائد قانونية و16 هيئة عمومية. لا مصدر مدفوع.'),
+        ('◎','نقطة الذكاء 0-100','كل صفقة تحصل على نقطة سهولة. 70+ = المقاولة الصغيرة تنافسية. صفّي فوراً.'),
+        ('⊡','تنبيه تيليغرام فوري','إشعار دفع فور النشر. بدون تأخير. تصفية دقيقة بكود T/P/S الرسمي.'),
+        ('◉','47 كود T/P/S','أشغال · منتجات · خدمات. التصنيف الرسمي لـ marchespublics.gov.ma.'),
+        ('⊛','السوق B2B','انشر عروضك، ابحث عن شركاء، قيّم متعاونيك. دليل 🇲🇦.'),
+      ] %}
+      <div class="feat-cell">
+        <div class="feat-icon">{{ icon }}</div>
+        <div class="feat-title">{{ title }}</div>
+        <div class="feat-desc">{{ desc }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- RECENT TENDERS -->
+{% if tenders %}
+<section style="padding:72px 0">
+  <div class="wrap">
+    <div class="f fc fb fw g12 mb24">
+      <a href="/ar/tenders" class="btn btn-wire btn-sm">← استعراض الكل</a>
+      <div class="slbl" style="margin:0">أحدث الصفقات</div>
+    </div>
+    <div class="ga">
+      {% for t in tenders[:6] %}
+      <a href="/tenders/{{ t.id }}" class="tcard">
+        <div class="f fc fb mb8">
+          <div class="tcard-code">{{ t.domaine[:12] if t.domaine else '—' }}</div>
+          {% if t.ai_score %}
+          <span class="score-chip {% if t.ai_score >= 70 %}sc-hi{% elif t.ai_score >= 40 %}sc-mi{% else %}sc-lo{% endif %}">{{ t.ai_score }}%</span>
+          {% endif %}
+        </div>
+        <div class="tcard-title">{{ t.objet[:70] }}</div>
+        <div class="tcard-meta trunc">{{ t.acheteur[:50] if t.acheteur else '' }}</div>
+        {% if t.ai_score %}
+        <div class="bar mt12"><div class="bar-f {% if t.ai_score >= 70 %}bg{% elif t.ai_score >= 40 %}bg2{% else %}br2{% endif %}" style="width:{{ t.ai_score }}%"></div></div>
+        {% endif %}
+        <div class="f fc fb mt12 bt" style="padding-top:10px">
+          <span class="tcard-meta">{{ t.region }}</span>
+          <span class="tcard-meta">⏱ {{ t.date_limite or '—' }}</span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- CTA -->
+<section style="padding:72px var(--pad)">
+  <div class="cta-band" style="max-width:var(--max);margin:0 auto">
+    <div class="slbl mb14" style="justify-content:center">ابدأ الآن</div>
+    <h2 style="font-size:clamp(24px,3.5vw,48px);font-weight:900;margin-bottom:12px">
+      لا تفوّت أي صفقة<br><span style="color:var(--g1)">مناسبة لك</span>
+    </h2>
+    <p style="color:var(--ink4);font-size:13px;margin-bottom:28px">
+      تسجيل مجاني · تنبيهات تيليغرام · بدون بطاقة بنكية
+    </p>
+    <div class="f fj g12 fw">
+      <a href="/ar/register" class="btn btn-gold btn-xl">← إنشاء حسابي</a>
+      <a href="/ar/tenders" class="btn btn-wire btn-xl">استعراض الصفقات</a>
+    </div>
+    <div class="f fj g16 fw mt20" style="font-size:11px;color:var(--ink5)">
+      <span>✓ مجاني للأبد</span>
+      <span>✓ بيانات رسمية</span>
+      <span>✓ مطابق CNDP</span>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}À propos — Modern Business{% endblock %}
+{% block body %}
+<div style="max-width:820px;margin:0 auto;padding:36px var(--pad) 100px">
+
+  <!-- Hero -->
+  <div class="mb52" style="padding-bottom:48px;border-bottom:1px solid var(--bdr)">
+    <div class="slbl mb16">Notre mission</div>
+    <h1 style="font-family:var(--serif);font-size:clamp(32px,5vw,60px);font-weight:900;line-height:.95;margin-bottom:20px;font-style:italic">
+      Rendre les marchés<br>publics accessibles<br><span style="color:var(--g1)">aux PME</span>
+    </h1>
+    <p style="font-size:14px;color:var(--ink4);line-height:1.75;max-width:560px">
+      Modern Business est une plateforme marocaine de veille intelligente sur les appels d'offres.
+      Nous aidons les PME, artisans et bureaux d'études à ne plus rater aucune opportunité.
+    </p>
+  </div>
+
+  <!-- Problem / Solution -->
+  <div class="g2c mb48">
+    <div>
+      <div class="slbl mb12" style="--g3:var(--red)">Le problème</div>
+      <p style="font-size:12px;color:var(--ink4);line-height:1.8">
+        Des milliers d'AO sont publiés chaque semaine sur marchespublics.gov.ma.
+        La majorité des PME n'en savent rien — faute de temps, faute d'outils,
+        faute de veille automatisée.<br><br>
+        Les grands groupes captent les marchés non pas parce qu'ils sont meilleurs,
+        mais parce qu'ils ont les moyens de surveiller.
+      </p>
+    </div>
+    <div>
+      <div class="slbl mb12" style="--g3:var(--grn)">Notre solution</div>
+      <p style="font-size:12px;color:var(--ink4);line-height:1.8">
+        5 agents IA surveillent 18 sources officielles 24h/24.
+        Chaque marché est classifié, scoré et envoyé uniquement
+        aux membres concernés sur Telegram.<br><br>
+        Vous recevez uniquement ce qui correspond à votre activité.
+        Zéro bruit. Zéro manqué.
+      </p>
+    </div>
+  </div>
+
+  <!-- Chiffres -->
+  <div class="sband mb48" style="grid-template-columns:repeat(4,1fr);border:1px solid var(--bdr);border-radius:var(--r2)">
+    {% for n,l in [('18','Sources'),('2h','Scraping'),('47','Codes T/P/S'),('5','Agents IA')] %}
+    <div class="sc2" style="{% if not loop.last %}border-right:1px solid var(--bdr){% endif %}"><div class="sn">{{ n }}</div><div class="sl">{{ l }}</div></div>
+    {% endfor %}
+  </div>
+
+  <!-- Architecture -->
+  <div class="mb48">
+    <div class="slbl mb20">Architecture des agents IA</div>
+    <div style="border:1px solid var(--bdr);border-radius:var(--r2);overflow:hidden">
+      {% for agent,color,desc in [
+        ('ScraperAgent','var(--g2)','marchespublics.gov.ma + 17 sources — cycle toutes les 2h'),
+        ('ClassifierAgent','var(--blu2)','Codes T/P/S officiels · région · budget · type marché · score'),
+        ('NotifyAgent','var(--grn)','Queue DB → Brevo email → Telegram instantané · retry 3x'),
+        ('MonitorAgent','var(--ink3)','Expiration auto · cleanup · logging · métriques horaires'),
+        ('ChatAgent','var(--g1)','Claude Haiku — conseiller marchés publics IA 24h/24'),
+      ] %}
+      <div style="display:flex;align-items:flex-start;gap:16px;padding:16px 20px;border-bottom:1px solid var(--bdr);{% if loop.last %}border-bottom:none{% endif %}">
+        <div style="width:3px;flex-shrink:0;align-self:stretch;background:{{ color }};border-radius:2px;min-height:40px"></div>
+        <div>
+          <div style="font-family:var(--mono);font-size:10px;font-weight:500;color:{{ color }};margin-bottom:4px">{{ agent }}</div>
+          <div style="font-size:11px;color:var(--ink4);line-height:1.5">{{ desc }}</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Sources -->
+  <div class="mb48">
+    <div class="slbl mb16">18 sources surveillées</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(175px,1fr));gap:7px">
+      {% for s in ['marchespublics.gov.ma','annonces.lematin.ma','ofppt.ma','onssa.gov.ma','ada.gov.ma','radeema.ma','amendis.ma','creditagricole.ma','chumarrakech.ma','tanmia.ma','mtaess.gov.ma','equipement.gov.ma','flasheconomie.com','leconomiste.com','lavieeco.com','ammc.ma','aujourdhui.ma','redal.ma'] %}
+      <div style="background:var(--surface);border:1px solid var(--bdr);border-radius:var(--r);padding:8px 12px;display:flex;align-items:center;gap:6px">
+        <div class="ld" style="width:4px;height:4px"></div>
+        <span style="font-size:9px;font-family:var(--mono);color:var(--ink4)">{{ s }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Values -->
+  <div class="mb48">
+    <div class="slbl mb20">Nos valeurs</div>
+    <div class="g3c">
+      {% for icon,t,d in [
+        ('◈','Transparence','Sources officielles publiques uniquement. Aucune donnée inventée ou estimée.'),
+        ('◎','Accessibilité','Les PME méritent les mêmes outils que les grands groupes. Notre mission: rééquilibrer.'),
+        ('⊛','Fiabilité','5 agents + monitoring continu. Si une source tombe, nous le détectons immédiatement.'),
+      ] %}
+      <div style="padding:20px;background:var(--surface);border:1px solid var(--bdr);border-radius:var(--r2)">
+        <div style="font-size:20px;color:var(--g2);margin-bottom:10px">{{ icon }}</div>
+        <div style="font-family:var(--serif);font-size:15px;font-weight:700;margin-bottom:6px;color:var(--ink2)">{{ t }}</div>
+        <div style="font-size:11px;color:var(--ink5);line-height:1.65">{{ d }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Contact CTA -->
+  <div class="cta-band">
+    <div style="font-family:var(--serif);font-size:22px;font-weight:900;margin-bottom:8px;font-style:italic">Une question? Parlons-nous.</div>
+    <p style="color:var(--ink4);font-size:12px;margin-bottom:20px">Réponse sous 24h · Basés à Fès, Maroc 🇲🇦</p>
+    <div class="f fj g12 fw">
+      <a href="/contact" class="btn btn-gold">Nous contacter →</a>
+      <a href="/tarifs" class="btn btn-wire">Voir les tarifs</a>
+    </div>
+    <div class="mt16" style="font-size:11px;color:var(--ink5)">
+      Telegram: <a href="https://t.me/MarchesMarocBot" style="color:var(--g2)" target="_blank">@MarchesMarocBot</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

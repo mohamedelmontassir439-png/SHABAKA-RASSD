@@ -1,0 +1,41 @@
+{
+  "name": "Modern Business",
+  "short_name": "ModBiz",
+  "description": "Intelligence des March\u00e9s Publics \u2014 Maroc",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "lang": "fr",
+  "orientation": "portrait-primary",
+  "categories": [
+    "business",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "/static/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/static/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Marketplace",
+      "url": "/marketplace",
+      "description": "Annonces B2B"
+    },
+    {
+      "name": "Dashboard",
+      "url": "/dashboard",
+      "description": "Mon espace"
+    }
+  ]
+}

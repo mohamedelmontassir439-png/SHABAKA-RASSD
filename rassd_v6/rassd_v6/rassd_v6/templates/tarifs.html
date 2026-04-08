@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Tarifs — RASSD{% endblock %}
+{% block body %}
+<style>
+.pricing-hero{text-align:center;padding:72px 24px 52px}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:960px;margin:0 auto;padding:0 24px 80px}
+.plan{background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r3);padding:32px;position:relative;transition:.2s}
+.plan.featured{border-color:var(--gold);background:linear-gradient(135deg,rgba(212,168,67,.06),var(--bg2))}
+.plan-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--gold);color:#000;padding:4px 16px;border-radius:99px;font-size:10px;font-weight:700;letter-spacing:1px;white-space:nowrap}
+.plan-name{font-family:var(--mono);font-size:10px;color:var(--text4);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px}
+.plan-price{font-family:var(--serif);font-style:italic;font-size:48px;color:var(--text1);line-height:1;margin-bottom:6px}
+.plan-period{font-size:12px;color:var(--text4);margin-bottom:24px}
+.plan-features{list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:28px}
+.plan-features li{font-size:13px;color:var(--text3);display:flex;align-items:center;gap:8px}
+.plan-features li::before{content:'✓';color:var(--grn);font-weight:700;flex-shrink:0}
+.plan-features li.no::before{content:'✕';color:var(--text4)}
+.plan-features li.no{color:var(--text4)}
+@media(max-width:768px){.pricing-grid{grid-template-columns:1fr}}
+</style>
+
+<div class="pricing-hero">
+  <div style="font-family:var(--mono);font-size:9px;color:var(--gold);letter-spacing:2px;margin-bottom:12px">TARIFS</div>
+  <h1 style="font-family:var(--serif);font-style:italic;font-size:clamp(36px,5vw,60px);color:var(--text1);margin-bottom:14px">Simple &amp; transparent</h1>
+  <p style="color:var(--text3);font-size:15px;max-width:440px;margin:0 auto">Commencez gratuitement. Passez au plan Pro quand vous êtes prêt.</p>
+</div>
+
+<div class="pricing-grid">
+  <!-- FREE -->
+  <div class="plan">
+    <div class="plan-name">Gratuit</div>
+    <div class="plan-price">0</div>
+    <div class="plan-period">MAD / mois · Pour toujours</div>
+    <ul class="plan-features">
+      <li>Accès à 15 marchés/jour</li>
+      <li>Recherche &amp; filtres</li>
+      <li>Favoris illimités</li>
+      <li>Alertes Email basiques</li>
+      <li class="no">Alertes Telegram</li>
+      <li class="no">Alertes illimitées</li>
+      <li class="no">Accès API</li>
+      <li class="no">Export CSV</li>
+    </ul>
+    <a href="/register" class="btn btn-outline btn-full">Commencer gratuitement</a>
+  </div>
+
+  <!-- PRO -->
+  <div class="plan featured">
+    <div class="plan-badge">⭐ LE PLUS POPULAIRE</div>
+    <div class="plan-name">Pro</div>
+    <div class="plan-price" style="color:var(--gold)">99</div>
+    <div class="plan-period">MAD / mois · Accès complet</div>
+    <ul class="plan-features">
+      <li>Marchés illimités</li>
+      <li>Recherche &amp; filtres avancés</li>
+      <li>Favoris illimités</li>
+      <li>Alertes Email HTML complètes</li>
+      <li>Alertes Telegram instantanées</li>
+      <li>Filtrage par 16 secteurs</li>
+      <li>Accès API v1</li>
+      <li class="no">Export CSV</li>
+    </ul>
+    <a href="/register" class="btn btn-primary btn-full">Essai 14 jours gratuit →</a>
+  </div>
+
+  <!-- BUSINESS -->
+  <div class="plan">
+    <div class="plan-name">Business</div>
+    <div class="plan-price">299</div>
+    <div class="plan-period">MAD / mois · Équipes</div>
+    <ul class="plan-features">
+      <li>Tout le plan Pro</li>
+      <li>Export CSV illimité</li>
+      <li>API avec volume élevé</li>
+      <li>Accès multi-utilisateurs</li>
+      <li>Support prioritaire</li>
+      <li>Webhook notifications</li>
+      <li>Rapport hebdomadaire</li>
+      <li>Intégration sur mesure</li>
+    </ul>
+    <a href="mailto:contact@rassd.ma" class="btn btn-outline btn-full">Contacter les ventes</a>
+  </div>
+</div>
+
+<!-- Payment info -->
+<div style="max-width:680px;margin:0 auto;padding:0 24px 80px;text-align:center">
+  <div class="card card-p">
+    <div style="font-size:20px;margin-bottom:12px">💳</div>
+    <h3 style="font-size:15px;font-weight:600;color:var(--text1);margin-bottom:8px">Paiement facile &amp; sécurisé</h3>
+    <p style="font-size:13px;color:var(--text3);line-height:1.7;margin-bottom:16px">Nous acceptons les virements bancaires CIH, Attijariwafa, Banque Populaire, ainsi que les paiements par CIH Money et Cash Plus. Contactez-nous après inscription pour activer votre plan.</p>
+    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+      <span class="badge badge-gray">🏦 Virement bancaire</span>
+      <span class="badge badge-gray">📱 CIH Money</span>
+      <span class="badge badge-gray">💵 Cash Plus</span>
+      <span class="badge badge-gray">📧 Facture fournie</span>
+    </div>
+  </div>
+</div>
+
+<!-- FAQ -->
+<div style="max-width:680px;margin:0 auto;padding:0 24px 80px">
+  <div style="font-family:var(--mono);font-size:9px;color:var(--gold);letter-spacing:2px;margin-bottom:24px;text-align:center">FAQ</div>
+  {% for q,a in [
+    ("Puis-je annuler à tout moment ?","Oui, aucun engagement. Vous pouvez arrêter votre abonnement quand vous voulez."),
+    ("Quel est la source des marchés ?","Nous scrapons uniquement marchespublics.gov.ma, le portail officiel des marchés publics marocains."),
+    ("Comment fonctionne l'alerte Telegram ?","Configurez votre Chat ID dans les paramètres. Vous recevrez un message immédiatement après chaque nouveau marché dans vos secteurs."),
+    ("Puis-je tester gratuitement ?","Oui, l'essai de 14 jours donne accès à toutes les fonctionnalités Pro sans engagement."),
+  ] %}
+  <div style="margin-bottom:16px;padding:18px 20px;background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r2)">
+    <div style="font-size:13px;font-weight:600;color:var(--text1);margin-bottom:6px">{{ q }}</div>
+    <div style="font-size:12px;color:var(--text3);line-height:1.7">{{ a }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
