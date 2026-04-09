@@ -84,7 +84,7 @@
     </div>
     <div class="grid-3">
       {% for t in recent %}
-      {% set dl_n, dl_l = days_left(t.date_limite) %}
+      {% set dl_n, dl_l = (days_left if days_left is defined else dl)(t.date_limite) %}
       <a href="/tenders/{{ t.id }}" class="tc">
         <div class="tc-badge-row">
           <span class="badge badge-gold">{{ t.secteur[:22] }}</span>
