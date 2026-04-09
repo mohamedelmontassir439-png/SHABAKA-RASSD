@@ -17,7 +17,7 @@ from app.core.database import get_db, init_db
 from app.core.security import (hash_pw, verify_pw, make_token,
                                 get_member, validate_email,
                                 validate_password, days_left)
-from app.services.notifications import dispatch_notifications, tg_admin
+from app.services.notifications import dispatch_notifications, tg_admin, test_notifications
 
 logging.basicConfig(
     level=logging.INFO,
@@ -795,6 +795,21 @@ async def api_secteurs():
 # ══════════════════════════════════════════════════════════
 # UTILS
 # ══════════════════════════════════════════════════════════
+@app.get("/admin/test_notif")
+async def admin_test_notif(req: Request, email: str = "", tg: str = ""):
+    if not _is_admin(req):
+        return JSONResponse({"ok": False}, 401)
+    member = get_member(req)
+    test_email = email or (member["email"] if member else "")
+    test_tg    = tg or ""
+    # Use admin chat ID as fallback
+    from app.core.config import cfg as _cfg
+    if not test_tg and _cfg.ADMIN_CHAT_ID:
+        test_tg = _cfg.ADMIN_CHAT_ID
+    results = test_notifications(test_email, test_tg)
+    return JSONResponse({"ok": True, "results": results,
+                         "email_tested": test_email, "tg_tested": test_tg})
+
 @app.get("/health")
 async def health():
     db  = get_db()
