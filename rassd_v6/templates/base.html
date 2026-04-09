@@ -145,6 +145,7 @@ body::after {
     {% endif %}
   </div>
   <div class="nav-right">
+    <a href="/admin" class="btn btn-ghost btn-sm" style="font-family:var(--mono);font-size:10px;color:var(--text4);letter-spacing:1px" title="Administration">⚙</a>
     {% if member %}
       <span class="nav-user">{{ member.nom or member.email[:20] }}</span>
       <a href="/logout" class="btn btn-ghost btn-sm">Déconnexion</a>
