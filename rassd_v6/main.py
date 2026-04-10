@@ -18,6 +18,11 @@ from app.core.security import (hash_pw, verify_pw, make_token,
                                 get_member, validate_email,
                                 validate_password, days_left)
 from app.services.notifications import dispatch_notifications, tg_admin, test_notifications
+try:
+    from app.services.multi_scraper import run_all as multi_scrape_run
+    MULTI_SCRAPER_OK = True
+except ImportError:
+    MULTI_SCRAPER_OK = False
 
 logging.basicConfig(
     level=logging.INFO,
@@ -57,6 +62,10 @@ async def do_scrape():
 
     try:
         from app.services.scraper import run
+        if MULTI_SCRAPER_OK:
+            try:
+                from app.services.multi_scraper import run_all as multi_scrape_run
+            except: pass
     except ImportError as e:
         State.log(f"❌ Import scraper: {e}")
         State.running = False
@@ -809,6 +818,25 @@ async def admin_test_notif(req: Request, email: str = "", tg: str = ""):
     results = test_notifications(test_email, test_tg)
     return JSONResponse({"ok": True, "results": results,
                          "email_tested": test_email, "tg_tested": test_tg})
+
+@app.get("/api/v1/sources")
+async def api_sources():
+    """Liste toutes les sources disponibles"""
+    sources = [
+        {"name": "marchespublics.gov.ma", "type": "public",     "status": "active"},
+        {"name": "ONDA",                  "type": "semi-public", "status": "active"},
+        {"name": "Le Matin Annonces",     "type": "journal",     "status": "active"},
+        {"name": "ONEE",                  "type": "semi-public", "status": "active"},
+        {"name": "ONCF",                  "type": "semi-public", "status": "active"},
+        {"name": "IAM Maroc Telecom",     "type": "semi-private","status": "active"},
+        {"name": "SNRT",                  "type": "semi-public", "status": "active"},
+        {"name": "Crédit Agricole",       "type": "private",     "status": "active"},
+        {"name": "BCP",                   "type": "private",     "status": "active"},
+        {"name": "Équipement",            "type": "public",      "status": "active"},
+        {"name": "AMMC",                  "type": "semi-public", "status": "active"},
+    ]
+    return {"ok": True, "total": len(sources), "sources": sources,
+            "multi_scraper": MULTI_SCRAPER_OK}
 
 @app.get("/health")
 async def health():
