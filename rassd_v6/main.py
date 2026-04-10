@@ -61,69 +61,93 @@ async def do_scrape():
     t0_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     try:
-        from app.services.scraper import run
+        loop        = asyncio.get_event_loop()
+        new_tenders = []
+
+        # ── Source 1: marchespublics.gov.ma ──────────────
+        try:
+            from app.services.scraper import run
+            db    = get_db()
+            known = {r[0] for r in db.execute("SELECT id FROM tenders").fetchall()}
+            db.close()
+            tenders = await loop.run_in_executor(None, lambda: run(known, State.log))
+            State.found += len(tenders)
+            db = get_db()
+            for t in tenders:
+                try:
+                    db.execute("""INSERT OR IGNORE INTO tenders
+                        (id,objet,acheteur,secteur,region,montant,
+                         date_publication,date_limite,description,
+                         url,statut,scraped_at,updated_at)
+                        VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                        (t["id"],t["objet"],t["acheteur"],
+                         t.get("secteur",""),t.get("region",""),
+                         t.get("montant",""),t.get("date_publication",""),
+                         t.get("date_limite",""),t.get("description",""),
+                         t["url"],t["statut"],t["scraped_at"],t["scraped_at"]))
+                    if db.execute("SELECT changes()").fetchone()[0]:
+                        State.saved += 1
+                        new_tenders.append(t)
+                except Exception as e:
+                    State.errors += 1
+            db.commit(); db.close()
+            State.log(f"✅ marchespublics: {State.saved} nouveaux marchés")
+        except Exception as e:
+            State.log(f"❌ marchespublics: {e}")
+            logger.error(f"[scraper] {e}", exc_info=True)
+
+        # ── Source 2-10: Multi-sources ────────────────────
         if MULTI_SCRAPER_OK:
             try:
-                from app.services.multi_scraper import run_all as multi_scrape_run
-            except: pass
-    except ImportError as e:
-        State.log(f"❌ Import scraper: {e}")
-        State.running = False
-        return
-
-    try:
-        db = get_db()
-        known = {r[0] for r in db.execute("SELECT id FROM tenders").fetchall()}
-        db.close()
-
-        loop = asyncio.get_event_loop()
-        tenders = await loop.run_in_executor(None, lambda: run(known, State.log))
-        State.found = len(tenders)
-
-        db = get_db()
-        new_tenders = []
-        for t in tenders:
-            try:
-                db.execute("""
-                    INSERT OR IGNORE INTO tenders
-                    (id,objet,acheteur,secteur,region,montant,
-                     date_publication,date_limite,description,
-                     url,statut,scraped_at,updated_at)
-                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)
-                """, (
-                    t["id"], t["objet"], t["acheteur"],
-                    t.get("secteur",""), t.get("region",""),
-                    t.get("montant",""), t.get("date_publication",""),
-                    t.get("date_limite",""), t.get("description",""),
-                    t["url"], t["statut"],
-                    t["scraped_at"], t["scraped_at"],
-                ))
-                if db.execute("SELECT changes()").fetchone()[0]:
-                    State.saved += 1
-                    new_tenders.append(t)
+                State.log("🔍 Multi-source: ONDA, Le Matin, ONEE, ONCF, IAM, SNRT, BCP, CA...")
+                from app.services.multi_scraper import run_all
+                db     = get_db()
+                known2 = {r[0] for r in db.execute("SELECT id FROM tenders").fetchall()}
+                db.close()
+                multi  = await loop.run_in_executor(None, lambda: run_all(known2, State.log))
+                State.found += len(multi)
+                multi_saved  = 0
+                db = get_db()
+                for t in multi:
+                    try:
+                        db.execute("""INSERT OR IGNORE INTO tenders
+                            (id,objet,acheteur,secteur,region,montant,
+                             date_publication,date_limite,description,
+                             url,statut,scraped_at,updated_at)
+                            VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                            (t["id"],t["objet"],t["acheteur"],
+                             t.get("secteur",""),t.get("region",""),
+                             t.get("montant",""),t.get("date_publication",""),
+                             t.get("date_limite",""),t.get("description",""),
+                             t["url"],t["statut"],t["scraped_at"],t["scraped_at"]))
+                        if db.execute("SELECT changes()").fetchone()[0]:
+                            multi_saved  += 1
+                            State.saved  += 1
+                            new_tenders.append(t)
+                    except Exception as e:
+                        State.errors += 1
+                db.commit(); db.close()
+                State.log(f"✅ Multi-sources: {multi_saved} nouveaux marchés")
             except Exception as e:
-                State.errors += 1
-                logger.error(f"[save {t.get('id')}] {e}")
+                State.log(f"⚠ Multi-scraper: {e}")
+                logger.error(f"[multi] {e}")
 
-        # Log scrape run
-        db.execute(
-            "INSERT INTO scrape_log(found,saved,errors,run_at) VALUES(?,?,?,?)",
-            (State.found, State.saved, State.errors, t0_str)
-        )
-        db.commit()
-        db.close()
-
+        # ── Log + Notify ──────────────────────────────────
+        db = get_db()
+        db.execute("INSERT INTO scrape_log(found,saved,errors,run_at) VALUES(?,?,?,?)",
+                   (State.found, State.saved, State.errors, t0_str))
+        db.commit(); db.close()
         State.last_run = t0_str
-        State.log(f"✅ {State.saved} nouveaux marchés sauvegardés")
+        State.log(f"{'═'*48}")
+        State.log(f"  ✅ TOTAL: {State.saved} nouveaux marchés sauvegardés")
+        State.log(f"  📊 Trouvés: {State.found} | Erreurs: {State.errors}")
+        State.log(f"{'═'*48}")
 
-        # Send notifications async
         if new_tenders:
-            await loop.run_in_executor(
-                None, lambda: dispatch_notifications(new_tenders)
-            )
+            await loop.run_in_executor(None, lambda: dispatch_notifications(new_tenders))
 
     except Exception as e:
-        State.log(f"❌ Erreur scraper: {e}")
+        State.log(f"❌ do_scrape: {e}")
         logger.error(f"[do_scrape] {e}", exc_info=True)
     finally:
         State.running = False

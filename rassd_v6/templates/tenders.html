@@ -64,6 +64,11 @@
           <span class="badge {% if dl_n <= 2 %}badge-red{% elif dl_n <= 5 %}badge-gold{% else %}badge-blue{% endif %}">{{ dl_l }}</span>
           {% endif %}
           {% if t.region %}<span class="tag">{{ t.region[:20] }}</span>{% endif %}
+          {% if t.description and 'Source:' in t.description %}
+          {% set src_name = t.description.split('Source:')[1].split('|')[0].strip()[:15] %}
+          {% if src_name != 'marchespublics.gov.ma' %}
+          <span class="tag" style="color:var(--blue);border-color:rgba(80,144,232,.3)">{{ src_name }}</span>
+          {% endif %}{% endif %}
         </div>
         <div style="font-size:13px;font-weight:500;color:var(--text1);line-height:1.45;margin-bottom:6px">{{ t.objet[:130] }}</div>
         {% if t.acheteur %}<div style="font-size:11px;color:var(--text4)">🏢 {{ t.acheteur[:70] }}</div>{% endif %}
