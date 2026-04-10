@@ -1,5 +1,5 @@
 """
-RASSD Multi-Source Scraper v1.0
+ATLAS PRO Multi-Source Scraper v1.0
 ================================
 Sources: marchespublics + ONDA + Le Matin + ONEE + ONCF + IAM + SNRT + BCP + Crédit Agricole
 """
@@ -11,7 +11,7 @@ from bs4 import BeautifulSoup as BS
 from requests.adapters import HTTPAdapter
 
 urllib3.disable_warnings()
-logger = logging.getLogger("rassd.multi")
+logger = logging.getLogger("atlas.multi")
 
 UA_POOL = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0 Safari/537.36",
@@ -401,7 +401,7 @@ def run_all(known_ids: set, log_fn=print) -> list:
     errors  = []
 
     log_fn("═" * 48)
-    log_fn("  RASSD Multi-Source Scraper v1.0")
+    log_fn("  ATLAS PRO Multi-Source Scraper v1.0")
     log_fn(f"  {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
     log_fn("═" * 48)
 

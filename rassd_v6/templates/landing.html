@@ -1,95 +1,229 @@
 {% extends "base.html" %}
-{% block title %}RASSD — Veille Marchés Publics Maroc en temps réel{% endblock %}
+{% block title %}ATLAS PRO — Portail Marchés Publics & Privés Maroc{% endblock %}
 {% block body %}
 <style>
-.hero { padding: 100px 24px 80px; text-align: center; position: relative; overflow: hidden; }
-.hero-bg { position: absolute; inset: 0; background: radial-gradient(ellipse 100% 60% at 50% 0%, rgba(212,168,67,.07) 0%, transparent 70%); pointer-events: none; }
-.hero-pill { display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; border: 1px solid rgba(212,168,67,.25); border-radius: 99px; font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 32px; background: rgba(212,168,67,.05); }
-.hero h1 { font-family: var(--serif); font-size: clamp(44px, 7vw, 88px); font-weight: 400; font-style: italic; color: var(--text1); line-height: 1.05; margin-bottom: 22px; max-width: 820px; margin-left: auto; margin-right: auto; }
+/* ── HERO ──────────────────────────────────── */
+.hero { padding: 90px 0 80px; position: relative; overflow: hidden; }
+.hero-bg { position:absolute;inset:0;background:radial-gradient(ellipse 90% 70% at 50% 0%,rgba(212,168,67,.06) 0%,transparent 65%);pointer-events:none; }
+.hero-inner { display: grid; grid-template-columns: 1fr 420px; gap: 64px; align-items: center; }
+.hero-left { }
+.hero-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; background: var(--goldb); border: 1px solid rgba(212,168,67,.2); border-radius: 99px; font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 28px; }
+.hero h1 { font-family: var(--serif); font-size: clamp(36px,4.5vw,60px); font-weight: 700; color: var(--text1); line-height: 1.12; margin-bottom: 20px; }
 .hero h1 em { color: var(--gold); font-style: italic; }
-.hero p { color: var(--text3); font-size: 16px; max-width: 460px; margin: 0 auto 40px; line-height: 1.8; }
-.hero-cta { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 72px; }
-.stats-bar { display: flex; gap: 48px; justify-content: center; flex-wrap: wrap; }
-.stat-item { text-align: center; }
-.stat-n { font-family: var(--serif); font-size: 40px; font-style: italic; color: var(--gold); line-height: 1; font-weight: 400; }
-.stat-l { font-family: var(--mono); font-size: 9px; color: var(--text4); margin-top: 4px; letter-spacing: 1.5px; text-transform: uppercase; }
+.hero-sub { font-size: 17px; color: var(--text3); line-height: 1.8; max-width: 500px; margin-bottom: 36px; }
+.hero-cta { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 48px; }
+.hero-trust { display: flex; align-items: center; gap: 16px; font-size: 12px; color: var(--text4); }
+.hero-trust span { display: flex; align-items: center; gap: 5px; }
 
-.section { padding: 64px 24px; }
-.section-inner { max-width: 1200px; margin: 0 auto; }
-.section-header { display: flex; align-items: center; gap: 16px; margin-bottom: 32px; }
-.section-header h2 { font-family: var(--serif); font-style: italic; font-size: 28px; font-weight: 400; color: var(--text1); }
-.section-line { flex: 1; height: 1px; background: var(--bdr); }
-.section-link { font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: 1px; transition: opacity .15s; white-space: nowrap; }
-.section-link:hover { opacity: .7; }
+/* Stats box */
+.hero-stats { background: var(--bg2); border: 1px solid var(--bdr); border-radius: var(--r4); padding: 32px; }
+.hero-stat { padding: 18px 0; border-bottom: 1px solid var(--bdr); }
+.hero-stat:last-child { border-bottom: none; padding-bottom: 0; }
+.hero-stat-n { font-family: var(--serif); font-size: 42px; color: var(--gold); line-height: 1; font-weight: 700; font-style: italic; }
+.hero-stat-l { font-family: var(--mono); font-size: 9px; color: var(--text4); letter-spacing: 1.5px; text-transform: uppercase; margin-top: 4px; }
+.hero-stat-delta { font-size: 11px; color: var(--grn); font-family: var(--mono); }
 
-/* Tender card mini */
-.tc { background: var(--bg2); border: 1px solid var(--bdr); border-radius: var(--r2); padding: 18px; transition: all .2s; position: relative; overflow: hidden; display: block; }
-.tc::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: transparent; transition: background .2s; }
-.tc:hover { border-color: var(--bdr2); transform: translateY(-2px); box-shadow: 0 12px 36px rgba(0,0,0,.5); }
-.tc:hover::before { background: var(--gold); }
-.tc-badge-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
-.tc-title { font-size: 13px; font-weight: 500; color: var(--text1); line-height: 1.45; margin-bottom: 8px; }
-.tc-meta { font-size: 11px; color: var(--text4); }
-.tc-deadline { font-family: var(--mono); font-size: 10px; color: var(--red); }
+/* ── STRIP ──────────────────────────────────── */
+.strip { background: var(--bg2); border-top: 1px solid var(--bdr); border-bottom: 1px solid var(--bdr); padding: 24px 0; }
+.strip-inner { display: flex; gap: 48px; align-items: center; flex-wrap: wrap; }
+.strip-item { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text3); }
+.strip-item strong { color: var(--text1); }
 
-/* Features */
-.features { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
-.feature { background: var(--bg2); border: 1px solid var(--bdr); border-radius: var(--r3); padding: 28px; }
-.feature-num { font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: 2px; margin-bottom: 16px; }
-.feature-icon { font-size: 26px; margin-bottom: 14px; }
-.feature h3 { font-size: 15px; font-weight: 600; color: var(--text1); margin-bottom: 10px; }
-.feature p { font-size: 12px; color: var(--text3); line-height: 1.75; }
+/* ── POURQUOI ────────────────────────────────── */
+.why-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 20px; }
+.why-card { background: var(--bg2); border: 1px solid var(--bdr); border-radius: var(--r3); padding: 28px; transition: all .2s; }
+.why-card:hover { border-color: var(--gold); transform: translateY(-3px); box-shadow: var(--sh); }
+.why-icon { font-size: 32px; margin-bottom: 16px; }
+.why-n { font-family: var(--mono); font-size: 9px; color: var(--gold); letter-spacing: 2px; margin-bottom: 12px; }
+.why-title { font-size: 15px; font-weight: 600; color: var(--text1); margin-bottom: 10px; }
+.why-desc { font-size: 13px; color: var(--text3); line-height: 1.75; }
 
-/* Sectors */
-.sector-tag { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: var(--bg2); border: 1px solid var(--bdr); border-radius: 99px; font-size: 12px; color: var(--text3); transition: all .15s; cursor: pointer; }
-.sector-tag:hover { border-color: var(--gold); color: var(--gold); }
-.sector-count { font-family: var(--mono); font-size: 9px; color: var(--text4); }
+/* ── SECTORS ─────────────────────────────────── */
+.sector-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+.sector-card { background: var(--bg2); border: 1px solid var(--bdr); border-radius: var(--r2); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; transition: all .15s; cursor: pointer; }
+.sector-card:hover { border-color: var(--gold); background: var(--bg3); }
+.sector-name { font-size: 14px; color: var(--text2); font-weight: 500; }
+.sector-count { font-family: var(--mono); font-size: 11px; color: var(--gold); font-weight: 700; background: var(--goldb); padding: 2px 8px; border-radius: 99px; }
 
-/* CTA section */
-.cta-section { background: linear-gradient(135deg, rgba(212,168,67,.06), transparent); border: 1px solid rgba(212,168,67,.15); border-radius: var(--r3); padding: 56px 40px; text-align: center; margin: 64px 0; }
-.cta-section h2 { font-family: var(--serif); font-style: italic; font-size: 36px; font-weight: 400; color: var(--text1); margin-bottom: 14px; }
-.cta-section p { color: var(--text3); font-size: 14px; margin-bottom: 28px; }
+/* ── RECENT ──────────────────────────────────── */
+.tender-card { background: var(--bg2); border: 1px solid var(--bdr); border-radius: var(--r3); padding: 20px; transition: all .2s; display: block; position: relative; overflow: hidden; }
+.tender-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background: transparent; transition: .2s; }
+.tender-card:hover { border-color: var(--bdr2); transform: translateY(-2px); box-shadow: var(--sh); }
+.tender-card:hover::before { background: var(--gold); }
+.tc-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+.tc-title { font-size: 14px; font-weight: 600; color: var(--text1); line-height: 1.45; }
+.tc-deadline { font-family: var(--mono); font-size: 10px; color: var(--red); white-space: nowrap; }
+.tc-meta { font-size: 12px; color: var(--text4); margin-top: 6px; }
 
-@media(max-width:768px){ .features { grid-template-columns: 1fr; } .stats-bar { gap: 28px; } }
+/* ── SERVICES ────────────────────────────────── */
+.services-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 1px; background: var(--bdr); border: 1px solid var(--bdr); border-radius: var(--r3); overflow: hidden; }
+.service-item { background: var(--bg2); padding: 32px 24px; transition: background .2s; }
+.service-item:hover { background: var(--bg3); }
+.service-icon { font-size: 28px; margin-bottom: 16px; }
+.service-title { font-size: 15px; font-weight: 600; color: var(--text1); margin-bottom: 8px; }
+.service-desc { font-size: 12px; color: var(--text3); line-height: 1.7; }
+
+/* ── CTA BAND ─────────────────────────────────── */
+.cta-band { background: linear-gradient(135deg, var(--goldb), transparent); border-top: 1px solid rgba(212,168,67,.15); border-bottom: 1px solid rgba(212,168,67,.15); padding: 56px 0; text-align: center; }
+.cta-band h2 { font-family: var(--serif); font-style: italic; font-size: clamp(28px,3.5vw,44px); color: var(--text1); margin-bottom: 14px; }
+.cta-band p { color: var(--text3); font-size: 16px; margin-bottom: 28px; }
+.cta-inputs { display: flex; gap: 10px; max-width: 440px; margin: 0 auto; }
+
+@media(max-width:900px){
+  .hero-inner { grid-template-columns: 1fr; }
+  .hero-stats { display: none; }
+  .why-grid { grid-template-columns: 1fr 1fr; }
+  .sector-grid { grid-template-columns: 1fr 1fr; }
+  .services-grid { grid-template-columns: 1fr 1fr; }
+  .strip-inner { gap: 20px; }
+}
+@media(max-width:600px){
+  .why-grid, .sector-grid { grid-template-columns: 1fr; }
+}
 </style>
 
 <!-- HERO -->
 <section class="hero">
   <div class="hero-bg"></div>
-
-  <h1>Chaque marché public.<br><em>Dès sa publication.</em></h1>
-  <p>RASSD surveille le portail officiel marocain en continu et vous alerte instantanément dès qu'un marché correspond à votre secteur d'activité.</p>
-  <div class="hero-cta">
-    <a href="/register" class="btn btn-primary btn-lg">Créer mon alerte gratuite →</a>
-    <a href="/tenders" class="btn btn-outline btn-lg">Explorer les marchés</a>
-  </div>
-  <div class="stats-bar">
-    <div class="stat-item"><div class="stat-n">{{ stats.tenders }}</div><div class="stat-l">Marchés actifs</div></div>
-    <div class="stat-item"><div class="stat-n">{{ stats.today }}</div><div class="stat-l">Publiés aujourd'hui</div></div>
-    <div class="stat-item"><div class="stat-n">{{ stats.members }}</div><div class="stat-l">Entreprises inscrites</div></div>
+  <div class="container">
+    <div class="hero-inner">
+      <div class="hero-left">
+        <div class="hero-badge"><span class="dot-live"></span> Scan en temps réel · Mis à jour en continu</div>
+        <h1>Le portail de référence<br>des <em>marchés publics</em><br>au Maroc</h1>
+        <p class="hero-sub">Atlas Pro surveille <strong style="color:var(--text2)">10 sources officielles</strong> en continu et vous alerte dès qu'un marché correspond à votre secteur d'activité.</p>
+        <div class="hero-cta">
+          <a href="/register" class="btn btn-primary btn-xl">Accès d'essai gratuit →</a>
+          <a href="/tenders"  class="btn btn-outline btn-lg">Explorer les marchés</a>
+        </div>
+        <div class="hero-trust">
+          <span>✅ <strong style="color:var(--text2)">Gratuit</strong> 14 jours</span>
+          <span>✅ Sans carte bancaire</span>
+          <span>✅ Email + Telegram</span>
+        </div>
+      </div>
+      <div>
+        <div class="hero-stats">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text4);letter-spacing:2px;margin-bottom:20px">STATISTIQUES EN DIRECT</div>
+          <div class="hero-stat">
+            <div class="hero-stat-n">{{ stats.tenders }}</div>
+            <div class="hero-stat-l">Marchés actifs en base</div>
+            <div class="hero-stat-delta">↑ {{ stats.today }} publiés aujourd'hui</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-n">10</div>
+            <div class="hero-stat-l">Sources surveillées</div>
+            <div class="hero-stat-delta">marchespublics · ONDA · ONEE · IAM · ...</div>
+          </div>
+          <div class="hero-stat">
+            <div class="hero-stat-n">{{ stats.members }}</div>
+            <div class="hero-stat-l">Entreprises inscrites</div>
+            <div class="hero-stat-delta">↑ Croissance continue</div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 
-<!-- RECENT TENDERS -->
-{% if recent %}
-<section class="section" style="border-top:1px solid var(--bdr)">
-  <div class="section-inner">
+<!-- STRIP -->
+<div class="strip">
+  <div class="container">
+    <div class="strip-inner">
+      <div class="strip-item">🏛 <strong>marchespublics.gov.ma</strong> officiel</div>
+      <div class="strip-item">✈ <strong>ONDA</strong> — Aéroports</div>
+      <div class="strip-item">⚡ <strong>ONEE</strong> — Électricité</div>
+      <div class="strip-item">🚆 <strong>ONCF</strong> — Train</div>
+      <div class="strip-item">📺 <strong>SNRT</strong> — Télévision</div>
+      <div class="strip-item">📰 <strong>Le Matin</strong> Annonces</div>
+    </div>
+  </div>
+</div>
+
+<!-- POURQUOI -->
+<section class="section">
+  <div class="container">
     <div class="section-header">
-      <h2>Derniers marchés publiés</h2>
-      <div class="section-line"></div>
-      <a href="/tenders" class="section-link">VOIR TOUT →</a>
+      <div class="section-label">Pourquoi ATLAS PRO</div>
+      <h2 class="section-title">La solution de veille la plus efficace</h2>
+      <p class="section-sub">96% de nos abonnés considèrent ATLAS PRO comme leur source d'information principale sur les marchés publics marocains.</p>
+    </div>
+    <div class="why-grid">
+      <div class="why-card">
+        <div class="why-n">01</div>
+        <div class="why-icon">🔍</div>
+        <div class="why-title">Optimisez vos prospections</div>
+        <div class="why-desc">Scan automatique toutes les heures sur 10 sources. Soyez alerté avant vos concurrents.</div>
+      </div>
+      <div class="why-card">
+        <div class="why-n">02</div>
+        <div class="why-icon">📊</div>
+        <div class="why-title">Gagnez de nouveaux marchés</div>
+        <div class="why-desc">Classification IA dans 16 secteurs. Vous ne recevez que les marchés qui correspondent à votre activité.</div>
+      </div>
+      <div class="why-card">
+        <div class="why-n">03</div>
+        <div class="why-icon">⚡</div>
+        <div class="why-title">Premier à être informé</div>
+        <div class="why-desc">Alerte instantanée par Email HTML complet et Telegram dès la publication. Avance sur la concurrence garantie.</div>
+      </div>
+      <div class="why-card">
+        <div class="why-n">04</div>
+        <div class="why-icon">🗂</div>
+        <div class="why-title">Base de données exhaustive</div>
+        <div class="why-desc">Accès à l'ensemble des appels d'offres publics, semi-publics et privés du Maroc en un seul portail.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTORS -->
+<section class="section" style="padding-top:0">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label">Secteurs</div>
+      <h2 class="section-title">Marchés par secteur d'activité</h2>
+    </div>
+    <div class="sector-grid">
+      {% for s in sectors %}
+      <a href="/tenders?s={{ s.secteur|urlencode }}" class="sector-card">
+        <span class="sector-name">{{ s.secteur }}</span>
+        <span class="sector-count">{{ s.cnt }}</span>
+      </a>
+      {% endfor %}
+      {% for sec in secteurs %}
+      {% if not sectors or sec not in sectors|map(attribute='secteur')|list %}
+      <a href="/tenders?s={{ sec|urlencode }}" class="sector-card">
+        <span class="sector-name">{{ sec }}</span>
+        <span class="sector-count">0</span>
+      </a>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- RECENT -->
+{% if recent %}
+<section class="section" style="padding-top:0">
+  <div class="container">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px">
+      <div>
+        <div class="section-label">Dernières publications</div>
+        <h2 class="section-title">Marchés récemment publiés</h2>
+      </div>
+      <a href="/tenders" class="btn btn-outline">Voir tous les marchés →</a>
     </div>
     <div class="grid-3">
       {% for t in recent %}
-      {% set dl_n, dl_l = (days_left if days_left is defined else dl)(t.date_limite) %}
-      <a href="/tenders/{{ t.id }}" class="tc">
-        <div class="tc-badge-row">
-          <span class="badge badge-gold">{{ t.secteur[:22] }}</span>
+      {% set dl_n, dl_l = days_left(t.date_limite) %}
+      <a href="/tenders/{{ t.id }}" class="tender-card">
+        <div class="tc-top">
+          <span class="badge badge-gold">{{ t.secteur[:24] }}</span>
           {% if t.date_limite %}<span class="tc-deadline">{{ t.date_limite }}</span>{% endif %}
         </div>
-        <div class="tc-title">{{ t.objet[:85] }}</div>
-        <div class="tc-meta">{{ t.acheteur[:55] or '—' }}</div>
-        {% if t.montant %}<div style="font-family:var(--mono);font-size:10px;color:var(--gold);margin-top:8px">{{ t.montant[:35] }}</div>{% endif %}
+        <div class="tc-title">{{ t.objet[:90] }}</div>
+        <div class="tc-meta">🏢 {{ t.acheteur[:55] or '—' }}</div>
+        {% if t.montant %}<div style="font-family:var(--mono);font-size:10px;color:var(--gold);margin-top:8px">{{ t.montant[:30] }}</div>{% endif %}
       </a>
       {% endfor %}
     </div>
@@ -97,33 +231,47 @@
 </section>
 {% endif %}
 
-
-
-<!-- SECTORS -->
-<section class="section" style="border-top:1px solid var(--bdr)">
-  <div class="section-inner">
+<!-- SERVICES -->
+<section class="section" style="background:var(--bg2);border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr)">
+  <div class="container">
     <div class="section-header">
-      <h2>Secteurs surveillés</h2>
-      <div class="section-line"></div>
-      <span style="font-family:var(--mono);font-size:10px;color:var(--text4)">{{ sectors|length }} secteurs</span>
+      <div class="section-label">Nos services</div>
+      <h2 class="section-title">Un accompagnement complet</h2>
     </div>
-    <div style="display:flex;flex-wrap:wrap;gap:8px">
-      {% for s in sectors %}
-      <a href="/tenders?s={{ s.secteur|urlencode }}" class="sector-tag">
-        {{ s.secteur }}
-        <span class="sector-count">{{ s.cnt }}</span>
-      </a>
-      {% endfor %}
+    <div class="services-grid">
+      <div class="service-item">
+        <div class="service-icon">🏛</div>
+        <div class="service-title">Portail des marchés</div>
+        <div class="service-desc">Accès à l'intégralité des appels d'offres publics et privés du Maroc, mis à jour en temps réel.</div>
+      </div>
+      <div class="service-item">
+        <div class="service-icon">🔔</div>
+        <div class="service-title">Alertes personnalisées</div>
+        <div class="service-desc">Notifications immédiates par Email HTML et Telegram dès qu'un marché correspond à votre profil.</div>
+      </div>
+      <div class="service-item">
+        <div class="service-icon">🤖</div>
+        <div class="service-title">Classification IA</div>
+        <div class="service-desc">Chaque marché est automatiquement classifié par secteur, région et type de prestation.</div>
+      </div>
+      <div class="service-item">
+        <div class="service-icon">📡</div>
+        <div class="service-title">API REST</div>
+        <div class="service-desc">Intégrez les données dans vos propres outils via notre API documentée (plan Pro & Business).</div>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- CTA -->
-<div class="page">
-  <div class="cta-section">
+<!-- CTA BAND -->
+<div class="cta-band">
+  <div class="container">
     <h2>Ne ratez plus aucune opportunité</h2>
-    <p>Inscription gratuite · Email &amp; Telegram · Filtrage par secteur · Sans engagement</p>
-    <a href="/register" class="btn btn-primary btn-lg">Commencer maintenant →</a>
+    <p>Inscription gratuite · 14 jours d'essai · Email & Telegram · Sans engagement</p>
+    <a href="/register" class="btn btn-primary btn-xl">Créer mon accès gratuit →</a>
+    <div style="margin-top:16px;font-size:12px;color:var(--text4)">
+      Disponible 6j/7 de 08h00 à 20h00 — contact@atlas.ma
+    </div>
   </div>
 </div>
 {% endblock %}

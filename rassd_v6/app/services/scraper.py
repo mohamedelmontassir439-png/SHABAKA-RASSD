@@ -1,5 +1,5 @@
 """
-RASSD — Real-Time Scraper v1.0
+ATLAS PRO — Real-Time Scraper v1.0
 Détecte les nouvelles صفقات dès leur publication.
 
 Stratégie:
@@ -12,7 +12,7 @@ from datetime import datetime, date
 from typing import Optional
 
 urllib3.disable_warnings()
-logger = logging.getLogger("rassd.rt")
+logger = logging.getLogger("atlas.rt")
 
 BASE   = "https://www.marchespublics.gov.ma/bdc/entreprise/consultation"
 LIST_URL = "https://www.marchespublics.gov.ma/bdc/entreprise/consultation/list"

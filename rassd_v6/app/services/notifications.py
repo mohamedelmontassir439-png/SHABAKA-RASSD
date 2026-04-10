@@ -6,7 +6,7 @@ from app.core.config   import cfg
 from app.core.database import get_db
 from app.core.security import days_left
 
-logger = logging.getLogger("rassd.notif")
+logger = logging.getLogger("atlas.notif")
 
 # ── Telegram ─────────────────────────────────────────────
 
@@ -38,7 +38,7 @@ def tg_send(chat_id: str, text: str, parse_mode: str = "HTML") -> bool:
 
 def tg_admin(msg: str):
     if cfg.ADMIN_CHAT_ID:
-        tg_send(cfg.ADMIN_CHAT_ID, f"🔔 <b>RASSD</b>\n{msg}")
+        tg_send(cfg.ADMIN_CHAT_ID, f"🔔 <b>ATLAS PRO</b>\n{msg}")
 
 def build_tg_message(t: dict) -> str:
     _n, dl_label = days_left(t.get("date_limite", ""))
@@ -60,9 +60,9 @@ def build_tg_message(t: dict) -> str:
     lines += [
         "",
         f"🔗 <a href='{t['url']}'>Voir sur marchespublics.gov.ma</a>",
-        f"📱 <a href='{cfg.SITE_URL}/tenders/{t['id']}'>Voir sur RASSD</a>",
+        f"📱 <a href='{cfg.SITE_URL}/tenders/{t['id']}'>Voir sur ATLAS PRO</a>",
         "",
-        "<i>RASSD · Veille Marchés Publics Maroc</i>",
+        "<i>ATLAS PRO · Veille Marchés Publics Maroc</i>",
     ]
     return "\n".join(lines)
 
@@ -137,7 +137,7 @@ td{{padding:10px 0;border-bottom:1px solid #1a1a26;vertical-align:top;font-size:
 .dl-badge{{display:inline-block;padding:6px 14px;background:rgba(200,168,80,.1);border:1px solid rgba(200,168,80,.3);border-radius:99px;font-size:12px;color:#c8a850;margin-bottom:20px}}
 </style></head>
 <body><div class="wrap">
-<div class="hdr"><div class="logo">RASSD</div><div style="font-size:10px;color:#555;letter-spacing:2px;font-family:monospace;margin-top:3px">MARCHÉS PUBLICS MAROC</div></div>
+<div class="hdr"><div class="logo">ATLAS PRO</div><div style="font-size:10px;color:#555;letter-spacing:2px;font-family:monospace;margin-top:3px">MARCHÉS PUBLICS MAROC</div></div>
 <div class="body">
 <p style="color:#888;font-size:13px;margin-bottom:16px">Bonjour {nom or "Madame/Monsieur"},</p>
 <p style="color:#aaa;font-size:13px;margin-bottom:20px">Un nouveau marché correspondant à votre profil vient d'être publié :</p>
@@ -152,9 +152,9 @@ td{{padding:10px 0;border-bottom:1px solid #1a1a26;vertical-align:top;font-size:
 <tr><td class="lbl">📅 Publication</td><td class="val">{t.get("date_publication","—")}</td></tr>
 </table>
 <a href="{t["url"]}" class="cta">Voir sur marchespublics ↗</a>
-<a href="{site}/tenders/{t["id"]}" class="cta2">Détails RASSD</a>
+<a href="{site}/tenders/{t["id"]}" class="cta2">Détails ATLAS PRO</a>
 </div>
-<div class="ftr"><p style="color:#444;font-size:11px">RASSD · <a href="{site}" style="color:#666">rassd.ma</a> · <a href="{site}/settings" style="color:#666">Gérer mes alertes</a></p></div>
+<div class="ftr"><p style="color:#444;font-size:11px">ATLAS PRO · <a href="{site}" style="color:#666">atlas.ma</a> · <a href="{site}/settings" style="color:#666">Gérer mes alertes</a></p></div>
 </div></body></html>"""
 
 # ── Dispatch principal ────────────────────────────────────
@@ -235,7 +235,7 @@ def test_notifications(email: str = "", telegram_id: str = "") -> dict:
     results = {"telegram": False, "email": False}
     fake_tender = {
         "id":               "bdc_test",
-        "objet":            "TEST — Marché de test RASSD",
+        "objet":            "TEST — Marché de test ATLAS PRO",
         "acheteur":         "Administration Marocaine",
         "secteur":          "IT & Télécoms",
         "region":           "Rabat-Salé-Kénitra",
@@ -248,5 +248,5 @@ def test_notifications(email: str = "", telegram_id: str = "") -> dict:
         results["telegram"] = tg_send(telegram_id, build_tg_message(fake_tender))
     if email:
         html = build_email(fake_tender, "Administrateur")
-        results["email"] = email_send(email, "🧪 Test RASSD — Notifications", html)
+        results["email"] = email_send(email, "🧪 Test ATLAS PRO — Notifications", html)
     return results

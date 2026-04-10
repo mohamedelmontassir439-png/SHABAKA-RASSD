@@ -1,5 +1,5 @@
 """
-RASSD v3.2 — SaaS Veille Marchés Publics Maroc
+ATLAS PRO v3.2 — SaaS Veille Marchés Publics Maroc
 Full audit & fix — Production ready
 """
 import os, re, json, asyncio, logging, hashlib
@@ -30,7 +30,7 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s │ %(name)-18s │ %(levelname)s │ %(message)s"
 )
-logger = logging.getLogger("rassd")
+logger = logging.getLogger("atlas")
 
 # ══════════════════════════════════════════════════════════
 # RATE LIMITER (brute force protection)
@@ -105,7 +105,7 @@ async def do_scrape():
 
         # ── marchespublics.gov.ma ─────────────────────────
         State.log("═" * 48)
-        State.log("  RASSD Scraper v3.2 — Multi-Source")
+        State.log("  ATLAS PRO Scraper v3.2 — Multi-Source")
         State.log(f"  {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
         State.log("═" * 48)
         try:
@@ -183,7 +183,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
-    State.log(f"RASSD v{cfg.APP_VERSION} | Multi-source: {'✅' if MULTI_OK else '❌'}")
+    State.log(f"ATLAS PRO v{cfg.APP_VERSION} | Multi-source: {'✅' if MULTI_OK else '❌'}")
     asyncio.create_task(scheduler())
     yield
 

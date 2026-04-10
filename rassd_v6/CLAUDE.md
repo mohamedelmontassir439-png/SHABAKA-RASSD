@@ -1,16 +1,16 @@
-# RASSD — Veille Marchés Publics Maroc
+# ATLAS PRO — Veille Marchés Publics Maroc
 
 ## Identité du projet
-- **Nom**: RASSD
+- **Nom**: ATLAS PRO
 - **Mission**: Scraper marchespublics.gov.ma en temps réel et alerter les entreprises marocaines
 - **URL**: https://web-production-b4ae4.up.railway.app
-- **Repo**: mohamedelmontassir439-png/SHABAKA-RASSD (branch: main, root: rassd_v6/)
-- **Admin**: rassd2026
+- **Repo**: mohamedelmontassir439-png/SHABAKA-ATLAS PRO (branch: main, root: atlas_v6/)
+- **Admin**: atlas2026
 
 ## Stack technique
 ```
 FastAPI + Python 3.11
-SQLite (data/rassd.db) WAL mode
+SQLite (data/atlas.db) WAL mode
 requests + BeautifulSoup (scraping)
 Brevo + Telegram (notifications)
 Railway.app (hosting)
@@ -18,7 +18,7 @@ Railway.app (hosting)
 
 ## Architecture
 ```
-rassd_v6/
+atlas_v6/
 ├── main.py                      # FastAPI app - 31 routes
 ├── app/
 │   ├── core/
@@ -49,9 +49,9 @@ rassd_v6/
 ## Variables d'environnement Railway
 ```
 SITE_URL=https://web-production-b4ae4.up.railway.app
-ADMIN_PASS=rassd2026
+ADMIN_PASS=atlas2026
 SECRET_KEY=...
-DB_PATH=data/rassd.db
+DB_PATH=data/atlas.db
 TELEGRAM_BOT=7849539613:AAF...
 ADMIN_CHAT_ID=6424992854
 BREVO_API_KEY=...
@@ -151,9 +151,9 @@ dl_n, dl_l = days_left("15/04/2026")
 
 ## Déploiement Railway
 ```powershell
-# Depuis C:\Users\Lenovo\SHABAKA-RASSD
+# Depuis C:\Users\Lenovo\SHABAKA-ATLAS PRO
 Expand-Archive "$env:USERPROFILE\Downloads\[FILE].zip" "." -Force
-git add rassd_v6/
+git add atlas_v6/
 git commit -m "description"
 git push origin main
 ```

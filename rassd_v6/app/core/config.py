@@ -4,15 +4,15 @@ from dataclasses import dataclass, field
 @dataclass
 class Settings:
     # App
-    APP_NAME:    str  = "RASSD"
+    APP_NAME:    str  = "ATLAS PRO"
     APP_VERSION: str  = "3.0.0"
     SITE_URL:    str  = os.getenv("SITE_URL", "https://web-production-b4ae4.up.railway.app")
     SECRET_KEY:  str  = os.getenv("SECRET_KEY", secrets.token_hex(32))
     DEBUG:       bool = os.getenv("DEBUG","false").lower() == "true"
     # Database
-    DB_PATH:     str  = os.getenv("DB_PATH", "data/rassd.db")
+    DB_PATH:     str  = os.getenv("DB_PATH", "data/atlas.db")
     # Auth
-    ADMIN_PASS:  str  = os.getenv("ADMIN_PASS", "rassd2026")
+    ADMIN_PASS:  str  = os.getenv("ADMIN_PASS", "atlas2026")
     JWT_EXPIRE_DAYS: int = 30
     # Scraping
     SCAN_INTERVAL_MIN: int = int(os.getenv("SCAN_INTERVAL_MIN", "60"))
@@ -24,8 +24,8 @@ class Settings:
     BREVO_KEY:     str = os.getenv("BREVO_API_KEY", "")
     GMAIL_USER:    str = os.getenv("GMAIL_USER", "")
     GMAIL_PASS:    str = os.getenv("GMAIL_PASS", "")
-    FROM_EMAIL:    str = os.getenv("FROM_EMAIL", "alerts@rassd.ma")
-    FROM_NAME:     str = "RASSD"
+    FROM_EMAIL:    str = os.getenv("FROM_EMAIL", "alerts@atlas.ma")
+    FROM_NAME:     str = "ATLAS PRO"
     # Plans
     PLANS: dict = field(default_factory=lambda: {
         "free":    {"name":"Gratuit","price":0,  "tenders_day":15,"email":True, "telegram":False,"api":False},
