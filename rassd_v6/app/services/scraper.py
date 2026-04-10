@@ -169,10 +169,14 @@ def parse_page(html, tid):
                       "nature des travaux","nature des fournitures","nature des prestations")
 
         if not objet:
-            for tag in soup.find_all(["h1","h2","h3"])[:10]:
+            skip_words = SKIP_H2 + ["connexion","liste","résultats","invité",
+                                    "retour","login","menu","navigation","footer",
+                                    "copyright","contact","aide","home","accès"]
+            for tag in soup.find_all(["h1","h2","h3"])[:15]:
                 t = tag.get_text(strip=True)
-                if len(t) < 8 or len(t) > 500: continue
-                if any(s in t.lower() for s in SKIP_H2): continue
+                if len(t) < 20 or len(t) > 500: continue
+                if any(s in t.lower() for s in skip_words): continue
+                if len(t.split()) < 3: continue  # needs 3+ words
                 objet = t; break
 
         if not objet:
@@ -186,8 +190,12 @@ def parse_page(html, tid):
                 if len(candidate) > 8:
                     objet = candidate[:200]
 
-        if not objet or objet.lower().startswith("détails de") or len(objet) < 5:
-            return None
+        # Quality filters
+        if not objet: return None
+        if len(objet) < 20: return None  # Too short = noise
+        if len(objet.split()) < 3: return None  # Less than 3 words = not real
+        if objet.lower().startswith(("détails de","détail de","voir","n/a","—","-")): return None
+        if re.match(r'^[\d\s/\-\.]+$', objet): return None  # Only numbers/symbols
 
         objet = re.sub(r'\s+', ' ', objet).strip()
 

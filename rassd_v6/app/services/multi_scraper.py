@@ -90,12 +90,24 @@ def _make_id(source: str, ref: str, objet: str) -> str:
     key = f"{source}_{ref or objet[:40]}"
     return f"{source.lower()[:4]}_{hashlib.md5(key.encode()).hexdigest()[:10]}"
 
+# Mots qui indiquent que ce n'est PAS une vraie offre
+_NOISE_WORDS = ["accueil","connexion","navigation","retour","login","menu",
+               "footer","copyright","contact","aide","home","voir plus",
+               "lire plus","en savoir","télécharger","imprimer","partager",
+               "facebook","twitter","linkedin","instagram","youtube"]
+
 def _tender(source: str, objet: str, acheteur: str = "", date_limite: str = "",
             url: str = "", ref: str = "", montant: str = "") -> Optional[dict]:
-    if not objet or len(objet) < 8: return None
-    objet = re.sub(r'\s+', ' ', objet).strip()[:400]
+    if not objet: return None
+    objet = re.sub(r'\s+', ' ', objet).strip()
+    # Quality filters
+    if len(objet) < 20: return None              # Too short
+    if len(objet.split()) < 3: return None       # Less than 3 words
+    if re.match(r'^[\d\s/\-\.]+$', objet): return None  # Only numbers
+    if any(w in objet.lower() for w in _NOISE_WORDS): return None  # Navigation noise
     if date_limite and _is_expired(date_limite): return None
-    if any(w in objet.lower() for w in ["annulé","sans suite","infructueux"]): return None
+    if any(w in objet.lower() for w in ["annulé","sans suite","infructueux","résultat"]): return None
+    objet = objet[:400]
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     return {
         "id":               _make_id(source, ref, objet),
@@ -182,7 +194,7 @@ def scrape_onee(s: requests.Session, log) -> list:
             if len(cells) < 2: continue
             objet = cells[0].get_text(strip=True)
             dl    = _extract_date(" ".join(c.get_text() for c in cells))
-            if len(objet) > 10:
+            if len(objet) > 20 and dl:  # ONEE: require date for quality
                 t = _tender("ONEE", objet, "Office National de l'Électricité", dl, url)
                 if t: results.append(t)
         log(f"✅ ONEE: {len(results)} marchés")
