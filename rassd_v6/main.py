@@ -216,10 +216,13 @@ def render(req: Request, tpl: str, ctx: dict = None):
     ctx = ctx or {}
     return templates.TemplateResponse(tpl, {
         "request":   req,  "member":   m,
-        "cfg":       cfg,  "secteurs": cfg.SECTEURS,
-        "plans":     cfg.PLANS,
-        "dl":        days_left, "days_left": days_left,
-        "now":       datetime.now(),
+        "cfg":          cfg,
+        "secteurs":     cfg.SECTEURS,
+        "sector_groups": cfg.SECTOR_GROUPS,
+        "plans":        cfg.PLANS,
+        "dl":           days_left,
+        "days_left":    days_left,
+        "now":          datetime.now(),
         **ctx
     })
 
