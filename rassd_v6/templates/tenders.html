@@ -42,9 +42,15 @@
 
   <form method="get" class="filters">
     <input name="q" value="{{ q }}" class="inp" placeholder="Rechercher un marché…" style="flex:1;min-width:200px;max-width:340px">
-    <select name="s" class="sel" style="width:200px" onchange="this.form.submit()">
-      <option value="">Tous les secteurs</option>
-      {% for sec in secteurs %}<option value="{{ sec }}" {% if sec==sf %}selected{% endif %}>{{ sec }}</option>{% endfor %}
+    <select name="s" class="sel" style="width:220px" onchange="this.form.submit()">
+      <option value="">Tous les secteurs ({{ total }})</option>
+      {% for group_name, group_sectors in cfg.SECTOR_GROUPS.items() %}
+      <optgroup label="{{ group_name }}">
+        {% for code, label in group_sectors.items() %}
+        <option value="{{ code }}" {% if code==sf or (code + ' – ' + label)==sf %}selected{% endif %}>{{ code }} – {{ label[:40] }}</option>
+        {% endfor %}
+      </optgroup>
+      {% endfor %}
     </select>
     <button type="submit" class="btn btn-primary btn-sm">Filtrer</button>
     {% if q or sf %}<a href="/tenders" class="btn btn-outline btn-sm">✕ Effacer</a>{% endif %}

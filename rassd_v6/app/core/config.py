@@ -32,11 +32,7 @@ class Settings:
         "pro":     {"name":"Pro",    "price":99, "tenders_day":0, "email":True, "telegram":True, "api":True},
         "business":{"name":"Business","price":299,"tenders_day":0,"email":True, "telegram":True, "api":True},
     })
-    SECTEURS: list = field(default_factory=lambda: [
-        "Travaux BTP","IT & Télécoms","Santé & Médical","Transport & Véhicules",
-        "Services Généraux","Études & Conseil","Formation","Restauration",
-        "Communication","Énergie","Hydraulique","Fournitures Bureau",
-        "Mobilier","Agriculture","Environnement","Autres",
-    ])
+    SECTEURS: dict = field(default_factory=lambda: __import__('app.core.sectors', fromlist=['SECTORS']).SECTORS)
+    SECTOR_GROUPS: dict = field(default_factory=lambda: __import__('app.core.sectors', fromlist=['GROUPS']).GROUPS)
 
 cfg = Settings()

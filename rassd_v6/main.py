@@ -26,6 +26,18 @@ try:
 except ImportError:
     MULTI_OK = False
 
+try:
+    from app.services.playwright_scraper import run_playwright
+    PW_OK = True
+except ImportError:
+    PW_OK = False
+
+try:
+    from app.core.database import supabase_sync_batch, get_supabase
+    SUPA_OK = bool(get_supabase())
+except Exception:
+    SUPA_OK = False
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s │ %(name)-18s │ %(levelname)s │ %(message)s"
@@ -416,8 +428,9 @@ async def register_post(req: Request,
         m = db.execute("SELECT * FROM members WHERE email=?",(email,)).fetchone()
     finally: db.close()
     resp = RedirectResponse("/dashboard?welcome=1",302)
-    resp.set_cookie("_session",make_token(m["email"],m["created_at"]),
-                    max_age=86400*30,httponly=True,samesite="lax")
+    resp.set_cookie("_session", make_token(m["email"], m["created_at"]),
+                    max_age=86400*30, httponly=True, samesite="lax",
+                    secure=False)  # False = works on HTTP + HTTPS
     return resp
 
 @app.get("/login", response_class=HTMLResponse)
@@ -437,9 +450,11 @@ async def login_post(req: Request, email:str=Form(""), pw:str=Form(""), next:str
         return render(req,"login.html",{"err":"Email ou mot de passe incorrect","vals":{"email":email},"next":next})
     db.execute("UPDATE members SET last_login=? WHERE id=?",(datetime.now().isoformat(),m["id"]))
     db.commit(); db.close()
+    logger.info(f"[Login] ✅ {email} connecté")
     resp = RedirectResponse(next or "/dashboard",302)
-    resp.set_cookie("_session",make_token(m["email"],m["created_at"]),
-                    max_age=86400*30,httponly=True,samesite="lax")
+    resp.set_cookie("_session", make_token(m["email"], m["created_at"]),
+                    max_age=86400*30, httponly=True, samesite="lax",
+                    secure=False)
     return resp
 
 @app.get("/logout")
@@ -649,7 +664,7 @@ async def api_sources():
         {"name":"Crédit Agricole",      "type":"private",     "status":"active" if MULTI_OK else "disabled"},
         {"name":"BCP",                  "type":"private",     "status":"active" if MULTI_OK else "disabled"},
     ]
-    return {"ok":True,"multi_scraper":MULTI_OK,"total":len(sources),"sources":sources}
+    return {"ok":True,"multi_scraper":MULTI_OK,"playwright":PW_OK,"supabase":SUPA_OK,"total":len(sources),"sources":sources}
 
 # ══════════════════════════════════════════════════════════
 # UTILS
@@ -659,9 +674,14 @@ async def health():
     db  = get_db()
     act = db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif'").fetchone()[0]
     db.close()
+    supa_ok = False
+    try:
+        from app.core.database import get_supabase
+        supa_ok = bool(get_supabase())
+    except: pass
     return {"status":"ok","version":cfg.APP_VERSION,"brand":cfg.APP_NAME,
             "active":act,"running":State.running,"last_run":State.last_run,
-            "multi_scraper":MULTI_OK}
+            "multi_scraper":MULTI_OK,"playwright":PW_OK,"supabase":supa_ok}
 
 @app.get("/sitemap.xml")
 async def sitemap():

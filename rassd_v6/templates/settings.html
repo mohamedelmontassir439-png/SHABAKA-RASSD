@@ -42,14 +42,21 @@
     <div class="card card-p">
       <h3 style="font-size:13px;font-weight:600;color:var(--text1);margin-bottom:6px">Mes secteurs</h3>
       <p style="font-size:11px;color:var(--text4);margin-bottom:16px">Sélectionnez vos secteurs pour ne recevoir que les marchés qui vous correspondent. Laissez vide pour tout recevoir.</p>
-      <div style="display:flex;flex-wrap:wrap;gap:8px">
-        {% for s in secteurs %}
-        {% set checked = s in ms %}
-        <label style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;background:var(--bg3);border:1px solid {% if checked %}var(--gold){% else %}var(--bdr){% endif %};border-radius:99px;cursor:pointer;font-size:11px;color:{% if checked %}var(--gold){% else %}var(--text3){% endif %};transition:.15s;user-select:none">
-          <input type="checkbox" name="secteurs_sel" value="{{ s }}" {% if checked %}checked{% endif %} style="accent-color:var(--gold)" onchange="const l=this.parentElement;l.style.borderColor=this.checked?'var(--gold)':'var(--bdr)';l.style.color=this.checked?'var(--gold)':'var(--text3)'">{{ s }}
-        </label>
-        {% endfor %}
+      {% for group_name, group_sectors in cfg.SECTOR_GROUPS.items() %}
+      <div style="margin-bottom:14px">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px">{{ group_name }}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          {% for code, label in group_sectors.items() %}
+          {% set full = code + ' – ' + label %}
+          {% set checked = code in ms or full in ms %}
+          <label style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;background:var(--bg3);border:1px solid {% if checked %}var(--gold){% else %}var(--bdr){% endif %};border-radius:99px;cursor:pointer;font-size:10px;color:{% if checked %}var(--gold){% else %}var(--text3){% endif %};transition:.15s;user-select:none">
+            <input type="checkbox" name="secteurs_sel" value="{{ code }}" {% if checked %}checked{% endif %} style="accent-color:var(--gold)" onchange="const l=this.parentElement;l.style.borderColor=this.checked?'var(--gold)':'var(--bdr)';l.style.color=this.checked?'var(--gold)':'var(--text3)'">
+            <span style="font-family:var(--mono);font-size:9px;color:var(--text4)">{{ code }}</span> {{ label[:35] }}
+          </label>
+          {% endfor %}
+        </div>
       </div>
+      {% endfor %}
     </div>
 
     <button type="submit" class="btn btn-primary btn-full" style="padding:13px;font-size:14px">Enregistrer les paramètres →</button>

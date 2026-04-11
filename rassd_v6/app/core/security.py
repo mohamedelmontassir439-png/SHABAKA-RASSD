@@ -13,22 +13,29 @@ def verify_pw(pw: str, hashed: str) -> bool:
     except: return False
 
 def make_token(val: str, salt: str = "") -> str:
-    return hashlib.sha256(f"{val}{salt}{cfg.SECRET_KEY}".encode()).hexdigest()[:40]
+    """Token stable — SECRET_KEY doit être fixé dans Railway Variables"""
+    key = cfg.SECRET_KEY or "atlas_pro_fallback_key_2024"
+    return hashlib.sha256(f"{val}{salt}{key}".encode()).hexdigest()[:40]
 
 def make_random_token() -> str:
     return secrets.token_urlsafe(32)
 
 def get_member(req: Request) -> Optional[dict]:
     token = req.cookies.get("_session", "")
-    if not token: return None
+    if not token or len(token) < 10: return None
     db = get_db()
     try:
+        # Try to find member by matching token
         rows = db.execute(
             "SELECT * FROM members WHERE actif=1"
         ).fetchall()
         for row in rows:
-            if make_token(row["email"], row["created_at"]) == token:
+            expected = make_token(row["email"], row["created_at"])
+            if expected == token:
                 return dict(row)
+    except Exception as e:
+        import logging
+        logging.getLogger("atlas.security").error(f"[get_member] {e}")
     finally:
         db.close()
     return None

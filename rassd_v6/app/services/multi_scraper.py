@@ -67,23 +67,9 @@ def _is_expired(text: str) -> bool:
     return False
 
 def _detect_secteur(text: str) -> str:
-    t = text.lower()
-    if any(k in t for k in ["travaux","construction","réhabilitation","route","béton","génie civil"]): return "Travaux BTP"
-    if any(k in t for k in ["informatique","logiciel","réseau","serveur","cloud","digital","it ","cyber"]): return "IT & Télécoms"
-    if any(k in t for k in ["médical","santé","hôpital","laboratoire","pharmacie","chirurgie"]): return "Santé & Médical"
-    if any(k in t for k in ["véhicule","automobile","camion","transport","bus","flotte"]): return "Transport & Véhicules"
-    if any(k in t for k in ["nettoyage","entretien","maintenance","gardiennage","sécurité","hygiène"]): return "Services Généraux"
-    if any(k in t for k in ["étude","audit","conseil","expertise","ingénierie","architecture"]): return "Études & Conseil"
-    if any(k in t for k in ["formation","enseignement","éducation","stage","séminaire"]): return "Formation"
-    if any(k in t for k in ["restauration","alimentation","repas","traiteur","buffet"]): return "Restauration"
-    if any(k in t for k in ["communication","publicité","impression","média","audiovisuel"]): return "Communication"
-    if any(k in t for k in ["électricité","éclairage","énergie","solaire","générateur"]): return "Énergie"
-    if any(k in t for k in ["hydraulique","eau potable","assainissement","irrigation"]): return "Hydraulique"
-    if any(k in t for k in ["papeterie","cartouche","fournitures de bureau","imprimante"]): return "Fournitures Bureau"
-    if any(k in t for k in ["mobilier","meuble","aménagement","chaise","armoire"]): return "Mobilier"
-    if any(k in t for k in ["agriculture","semence","engrais","élevage","vétérinaire"]): return "Agriculture"
-    if any(k in t for k in ["environnement","déchets","recyclage","pollution","écologie"]): return "Environnement"
-    return "Autres"
+    from app.core.sectors import classify, get_label
+    code = classify(text)
+    return f"{code} – {get_label(code)}"
 
 def _make_id(source: str, ref: str, objet: str) -> str:
     import hashlib

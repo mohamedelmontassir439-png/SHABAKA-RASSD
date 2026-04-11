@@ -1,6 +1,13 @@
-import os, sqlite3
+"""
+ATLAS PRO — Database Layer
+Supports: SQLite (local) + Supabase (cloud PostgreSQL)
+"""
+import os, sqlite3, logging
 from app.core.config import cfg
 
+logger = logging.getLogger("atlas.db")
+
+# ── SQLite (local / Railway) ──────────────────────────────
 def get_db() -> sqlite3.Connection:
     os.makedirs(os.path.dirname(cfg.DB_PATH), exist_ok=True)
     db = sqlite3.connect(cfg.DB_PATH, check_same_thread=False)
@@ -8,8 +15,72 @@ def get_db() -> sqlite3.Connection:
     db.execute("PRAGMA journal_mode=WAL")
     db.execute("PRAGMA foreign_keys=ON")
     db.execute("PRAGMA synchronous=NORMAL")
+    db.execute("PRAGMA cache_size=-32000")  # 32MB cache
     return db
 
+# ── Supabase (cloud) ─────────────────────────────────────
+_supa = None
+def get_supabase():
+    global _supa
+    if _supa: return _supa
+    url = cfg.SUPABASE_URL
+    key = cfg.SUPABASE_KEY
+    if not url or not key: return None
+    try:
+        from supabase import create_client
+        _supa = create_client(url, key)
+        logger.info("✅ Supabase connecté")
+        return _supa
+    except Exception as e:
+        logger.error(f"[Supabase] {e}")
+        return None
+
+def supabase_sync_tender(t: dict) -> bool:
+    """Sync un tender vers Supabase (upsert)"""
+    supa = get_supabase()
+    if not supa: return False
+    try:
+        supa.table("tenders").upsert({
+            "id":               t["id"],
+            "objet":            t["objet"],
+            "acheteur":         t.get("acheteur",""),
+            "secteur":          t.get("secteur",""),
+            "region":           t.get("region",""),
+            "montant":          t.get("montant",""),
+            "date_publication": t.get("date_publication",""),
+            "date_limite":      t.get("date_limite",""),
+            "url":              t.get("url",""),
+            "statut":           t.get("statut","actif"),
+            "scraped_at":       t.get("scraped_at",""),
+        }).execute()
+        return True
+    except Exception as e:
+        logger.error(f"[Supabase sync] {e}")
+        return False
+
+def supabase_sync_batch(tenders: list) -> int:
+    """Sync batch vers Supabase"""
+    supa = get_supabase()
+    if not supa or not tenders: return 0
+    try:
+        rows = [{
+            "id": t["id"], "objet": t["objet"],
+            "acheteur": t.get("acheteur",""),
+            "secteur": t.get("secteur",""),
+            "region": t.get("region",""),
+            "date_limite": t.get("date_limite",""),
+            "url": t.get("url",""),
+            "statut": "actif",
+            "scraped_at": t.get("scraped_at",""),
+        } for t in tenders]
+        supa.table("tenders").upsert(rows).execute()
+        logger.info(f"[Supabase] {len(rows)} marchés synchronisés")
+        return len(rows)
+    except Exception as e:
+        logger.error(f"[Supabase batch] {e}")
+        return 0
+
+# ── Schema SQLite ─────────────────────────────────────────
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS tenders (
     id               TEXT PRIMARY KEY,
@@ -42,52 +113,36 @@ CREATE TABLE IF NOT EXISTS members (
     notif_tg     INTEGER DEFAULT 0,
     notif_digest INTEGER DEFAULT 1,
     actif        INTEGER DEFAULT 1,
-    email_verified INTEGER DEFAULT 0,
-    verify_token TEXT DEFAULT '',
-    reset_token  TEXT DEFAULT '',
-    last_login   TEXT DEFAULT '',
     created_at   TEXT DEFAULT '',
-    trial_ends   TEXT DEFAULT ''
+    trial_ends   TEXT DEFAULT '',
+    last_login   TEXT DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS favorites (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    member_id  INTEGER NOT NULL,
-    tender_id  TEXT NOT NULL,
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    member_id INTEGER NOT NULL,
+    tender_id TEXT NOT NULL,
     created_at TEXT DEFAULT '',
     UNIQUE(member_id, tender_id)
 );
 CREATE TABLE IF NOT EXISTS notif_log (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    member_id  INTEGER,
-    tender_id  TEXT,
-    channel    TEXT,
-    opened     INTEGER DEFAULT 0,
-    sent_at    TEXT DEFAULT ''
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    member_id INTEGER,
+    tender_id TEXT,
+    channel TEXT,
+    sent_at TEXT DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS scrape_log (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    found      INTEGER DEFAULT 0,
-    saved      INTEGER DEFAULT 0,
-    expired    INTEGER DEFAULT 0,
-    errors     INTEGER DEFAULT 0,
-    duration_s REAL DEFAULT 0,
-    max_id     INTEGER DEFAULT 0,
-    run_at     TEXT DEFAULT ''
-);
-CREATE TABLE IF NOT EXISTS audit_log (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    member_id  INTEGER,
-    action     TEXT,
-    meta       TEXT DEFAULT '{}',
-    ip         TEXT DEFAULT '',
-    created_at TEXT DEFAULT ''
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    found INTEGER DEFAULT 0,
+    saved INTEGER DEFAULT 0,
+    errors INTEGER DEFAULT 0,
+    run_at TEXT DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS idx_t_statut   ON tenders(statut);
 CREATE INDEX IF NOT EXISTS idx_t_scraped  ON tenders(scraped_at DESC);
 CREATE INDEX IF NOT EXISTS idx_t_secteur  ON tenders(secteur);
 CREATE INDEX IF NOT EXISTS idx_t_deadline ON tenders(date_limite);
 CREATE INDEX IF NOT EXISTS idx_m_email    ON members(email);
-CREATE INDEX IF NOT EXISTS idx_m_plan     ON members(plan);
 CREATE INDEX IF NOT EXISTS idx_fav_member ON favorites(member_id);
 """
 
@@ -99,3 +154,4 @@ def init_db():
             try: db.execute(s)
             except: pass
     db.commit(); db.close()
+    logger.info("✅ DB initialisée")

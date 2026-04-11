@@ -24,13 +24,19 @@
     <div class="field">
       <label>Vos secteurs d'activité</label>
       <p style="font-size:11px;color:var(--text4);margin-bottom:10px">Laissez vide pour recevoir tous les marchés</p>
-      <div style="display:flex;flex-wrap:wrap;gap:7px">
-        {% for s in secteurs %}
-        <label style="display:inline-flex;align-items:center;gap:6px;padding:7px 13px;background:var(--bg2);border:1px solid var(--bdr);border-radius:99px;cursor:pointer;font-size:11px;color:var(--text3);transition:.15s;user-select:none">
-          <input type="checkbox" name="secteurs_sel" value="{{ s }}" style="accent-color:var(--gold)" onchange="const l=this.parentElement;l.style.borderColor=this.checked?'var(--gold)':'var(--bdr)';l.style.color=this.checked?'var(--gold)':'var(--text3)'">{{ s }}
-        </label>
-        {% endfor %}
+      {% for group_name, group_sectors in cfg.SECTOR_GROUPS.items() %}
+      <div style="margin-bottom:14px">
+        <div style="font-family:var(--mono);font-size:8px;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px">{{ group_name }}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          {% for code, label in group_sectors.items() %}
+          <label style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:var(--bg2);border:1px solid var(--bdr);border-radius:99px;cursor:pointer;font-size:10px;color:var(--text3);transition:.15s;user-select:none">
+            <input type="checkbox" name="secteurs_sel" value="{{ code }}" style="accent-color:var(--gold)" onchange="const l=this.parentElement;l.style.borderColor=this.checked?'var(--gold)':'var(--bdr)';l.style.color=this.checked?'var(--gold)':'var(--text3)'">
+            <span style="font-family:var(--mono);font-size:8px;color:var(--text4)">{{ code }}</span> {{ label[:30] }}
+          </label>
+          {% endfor %}
+        </div>
       </div>
+      {% endfor %}
     </div>
     <button type="submit" class="btn btn-primary btn-full" style="padding:13px;font-size:14px;margin-top:4px">Créer mon compte →</button>
     <p style="text-align:center;font-size:12px;color:var(--text4)">Déjà inscrit ? <a href="/login" style="color:var(--gold)">Se connecter</a></p>
