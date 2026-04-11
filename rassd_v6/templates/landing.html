@@ -190,7 +190,7 @@
         <span class="sector-count">{{ s.cnt }}</span>
       </a>
       {% endfor %}
-      {% for sec in secteurs %}
+      {% for code, label in sector_groups.values() | list | first | items %}
       {% if not sectors or sec not in sectors|map(attribute='secteur')|list %}
       <a href="/tenders?s={{ sec|urlencode }}" class="sector-card">
         <span class="sector-name">{{ sec }}</span>

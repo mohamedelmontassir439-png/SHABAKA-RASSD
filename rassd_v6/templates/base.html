@@ -268,8 +268,9 @@ img { max-width: 100%; }
         <div class="footer-col">
           <h4>Appels d'offres</h4>
           <ul>
-            {% for s in secteurs[:6] %}
-            <li><a href="/tenders?s={{ s|urlencode }}">{{ s }}</a></li>
+            {% set all_labels = sector_groups.values() | list %}
+            {% for code, label in (all_labels[0].items() | list)[:6] %}
+            <li><a href="/tenders?s={{ code|urlencode }}">{{ label[:30] }}</a></li>
             {% endfor %}
           </ul>
         </div>
