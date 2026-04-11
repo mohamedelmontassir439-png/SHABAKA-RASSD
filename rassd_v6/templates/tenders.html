@@ -44,7 +44,7 @@
     <input name="q" value="{{ q }}" class="inp" placeholder="Rechercher un marché…" style="flex:1;min-width:200px;max-width:340px">
     <select name="s" class="sel" style="width:220px" onchange="this.form.submit()">
       <option value="">Tous les secteurs ({{ total }})</option>
-      {% for group_name, group_sectors in cfg.SECTOR_GROUPS.items() %}
+      {% for group_name, group_sectors in sector_groups.items() %}
       <optgroup label="{{ group_name }}">
         {% for code, label in group_sectors.items() %}
         <option value="{{ code }}" {% if code==sf or (code + ' – ' + label)==sf %}selected{% endif %}>{{ code }} – {{ label[:40] }}</option>

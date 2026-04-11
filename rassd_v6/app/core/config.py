@@ -1,3 +1,4 @@
+from app.core.sectors import SECTORS, GROUPS
 import os, secrets
 from dataclasses import dataclass, field
 
@@ -32,7 +33,7 @@ class Settings:
         "pro":     {"name":"Pro",    "price":99, "tenders_day":0, "email":True, "telegram":True, "api":True},
         "business":{"name":"Business","price":299,"tenders_day":0,"email":True, "telegram":True, "api":True},
     })
-    SECTEURS: dict = field(default_factory=lambda: __import__('app.core.sectors', fromlist=['SECTORS']).SECTORS)
-    SECTOR_GROUPS: dict = field(default_factory=lambda: __import__('app.core.sectors', fromlist=['GROUPS']).GROUPS)
+    SECTEURS: dict = field(default_factory=lambda: SECTORS)
+    SECTOR_GROUPS: dict = field(default_factory=lambda: GROUPS)
 
 cfg = Settings()

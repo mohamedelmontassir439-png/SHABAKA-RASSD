@@ -24,7 +24,7 @@
     <div class="field">
       <label>Vos secteurs d'activité</label>
       <p style="font-size:11px;color:var(--text4);margin-bottom:10px">Laissez vide pour recevoir tous les marchés</p>
-      {% for group_name, group_sectors in cfg.SECTOR_GROUPS.items() %}
+      {% for group_name, group_sectors in sector_groups.items() %}
       <div style="margin-bottom:14px">
         <div style="font-family:var(--mono);font-size:8px;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px">{{ group_name }}</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px">
