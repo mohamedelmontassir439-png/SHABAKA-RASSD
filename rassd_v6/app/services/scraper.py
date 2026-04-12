@@ -43,7 +43,8 @@ logger = logging.getLogger("atlas.scraper")
 
 # IMPORTANT: www. obligatoire — sans www. → DNS fail sur Railway
 BASE = "https://www.marchespublics.gov.ma/bdc/entreprise/consultation"
-LIST_URL = "https://www.marchespublics.gov.ma/bdc/entreprise/consultation/list"
+# NOTE: /list suffix returns 404 — the listing page IS the base consultation URL
+LIST_URL = "https://www.marchespublics.gov.ma/bdc/entreprise/consultation"
 
 USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36",
@@ -259,8 +260,9 @@ def parse_page(html: str, tid: str) -> Optional[dict]:
     ]):
         return None
 
-    # Nettoyer l'objet
+    # Nettoyer l'objet: supprimer numéro de lot (#01, #1, etc.) et espaces
     objet = re.sub(r'\s+', ' ', objet).strip()
+    objet = re.sub(r'^#\d+\s*', '', objet).strip()
     objet = re.sub(r'^[\s\-–•:]+', '', objet).strip()
     if len(objet) < 8:
         return None
@@ -345,7 +347,7 @@ def run(known_ids: set, log_fn=print) -> list:
     session = _make_session()
 
     # ── Déterminer la plage de scan ──
-    max_id = 312000  # minimum de sécurité
+    max_id = 325000  # minimum de sécurité (IDs actuels ~326xxx en avril 2026)
 
     # 1. Essayer la détection dynamique depuis le listing
     detected = _find_max_id(session, log_fn)
@@ -362,8 +364,8 @@ def run(known_ids: set, log_fn=print) -> list:
             except ValueError:
                 pass
 
-    if max_id < 311000:
-        max_id = 312500
+    if max_id < 320000:
+        max_id = 325000
 
     start_id = max(max_id - 30, 310000)
     end_id = max_id + 600

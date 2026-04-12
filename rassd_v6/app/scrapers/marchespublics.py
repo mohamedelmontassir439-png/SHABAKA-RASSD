@@ -22,7 +22,8 @@ logger = logging.getLogger("atlas.marchespublics")
 
 # IMPORTANT: www. obligatoire — sans www. → DNS fail sur Railway
 BASE = "https://www.marchespublics.gov.ma/bdc/entreprise/consultation"
-LIST_URL = "https://www.marchespublics.gov.ma/bdc/entreprise/consultation/list"
+# NOTE: /list suffix returns 404 — the listing page IS the base consultation URL
+LIST_URL = "https://www.marchespublics.gov.ma/bdc/entreprise/consultation"
 
 UA_POOL = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36",
@@ -131,6 +132,9 @@ def parse_page(html: str, tid: str) -> dict | None:
                     objet = t; break
     if not objet: return None
 
+    # Supprimer numéro de lot (#01, #1, etc.)
+    objet = re.sub(r'^#\d+\s*', '', objet).strip()
+
     # Rejeter si objet est un label de date
     if any(lbl in objet.lower() for lbl in ["date et heure", "date limite", "heure limite", "remise des"]):
         return None
@@ -199,7 +203,7 @@ def run(known_ids: set, log_fn=print) -> list:
     Retourne liste de tenders dicts.
     """
     # Déterminer la plage de scan
-    max_id = 312000
+    max_id = 325000  # IDs actuels ~326xxx en avril 2026
 
     # Détection dynamique depuis listing
     s = _session()
@@ -224,8 +228,8 @@ def run(known_ids: set, log_fn=print) -> list:
             except ValueError:
                 pass
 
-    if max_id < 311000:
-        max_id = 312500
+    if max_id < 320000:
+        max_id = 325000
 
     start_id = max(max_id - 30, 310000)
     end_id = max_id + 600

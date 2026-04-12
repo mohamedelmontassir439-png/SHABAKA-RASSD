@@ -257,8 +257,10 @@ def scrape_oncf(s: requests.Session, log) -> list:
 def scrape_iam(s: requests.Session, log) -> list:
     url = "https://www.iam.ma/groupe-maroc-telecom/appels-d-offres"
     try:
-        r = s.get(url, timeout=20)
-        if r.status_code != 200: return []
+        r = s.get(url, timeout=10)
+        if r.status_code != 200:
+            log(f"⚠ IAM: HTTP {r.status_code} (site bloque les scrapers)")
+            return []
         soup = BS(r.text, "lxml")
         results = []
         seen = set()
@@ -281,8 +283,13 @@ def scrape_iam(s: requests.Session, log) -> list:
 def scrape_snrt(s: requests.Session, log) -> list:
     url = "https://ao.snrt.ma"
     try:
-        r = s.get(url, timeout=20)
-        if r.status_code != 200: return []
+        r = s.get(url, timeout=10, allow_redirects=True)
+        if r.status_code not in (200, 307):
+            log(f"⚠ SNRT: HTTP {r.status_code}")
+            return []
+        if len(r.text) < 500:
+            log(f"⚠ SNRT: réponse trop courte ({len(r.text)} chars)")
+            return []
         soup = BS(r.text, "lxml")
         results = []
         seen = set()
@@ -436,6 +443,9 @@ def run_all(known_ids: set, log_fn=print) -> list:
         t0 = time.time()
         try:
             items = scraper_fn(s, log_fn)
+            elapsed = time.time() - t0
+            if elapsed > 30:
+                log_fn(f"⚠ {name}: lent ({elapsed:.0f}s)")
             new = [i for i in items if i["id"] not in known_ids]
             results.extend(new)
             stats[name] = len(new)
