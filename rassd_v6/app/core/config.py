@@ -26,6 +26,9 @@ class Settings:
     GMAIL_USER:    str = os.getenv("GMAIL_USER", "")
     GMAIL_PASS:    str = os.getenv("GMAIL_PASS", "")
     FROM_EMAIL:    str = os.getenv("FROM_EMAIL", "alerts@atlas.ma")
+    # Supabase (cloud sync)
+    SUPABASE_URL:  str = os.getenv("SUPABASE_URL", "")
+    SUPABASE_KEY:  str = os.getenv("SUPABASE_KEY", "")
     FROM_NAME:     str = "ATLAS PRO"
     # Plans
     PLANS: dict = field(default_factory=lambda: {

@@ -190,13 +190,16 @@
         <span class="sector-count">{{ s.cnt }}</span>
       </a>
       {% endfor %}
-      {% for code, label in sector_groups['🏗 TRAVAUX'].items() %}
-      {% if not sectors or sec not in sectors|map(attribute='secteur')|list %}
-      <a href="/tenders?s={{ sec|urlencode }}" class="sector-card">
-        <span class="sector-name">{{ sec }}</span>
+      {% for group_name, group_sectors in sector_groups.items() %}
+      {% for code, label in group_sectors.items() %}
+      {% set full_code = code + ' – ' + label %}
+      {% if not sectors or full_code not in sectors|map(attribute='secteur')|list %}
+      <a href="/tenders?s={{ full_code|urlencode }}" class="sector-card">
+        <span class="sector-name">{{ label[:35] }}</span>
         <span class="sector-count">0</span>
       </a>
       {% endif %}
+      {% endfor %}
       {% endfor %}
     </div>
   </div>
