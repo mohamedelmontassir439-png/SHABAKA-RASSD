@@ -392,20 +392,16 @@ def run(known_ids: set, log_fn=print) -> list:
         try:
             r = session.get(url, timeout=20)
 
-            if r.status_code == 404:
+            if r.status_code in (404, 403) or r.status_code != 200 or len(r.text) < 1500:
                 consec_empty += 1
                 if consec_empty > 80 and len(results) == 0:
                     log_fn("80 IDs vides consécutifs sans résultat, arrêt")
                     break
                 # Stop scanning if we already have results and hit 50
-                # consecutive empty IDs — we've passed the active range
+                # consecutive empty/blocked IDs — we've passed the active range
                 if consec_empty > 50 and len(results) > 0:
                     log_fn(f"50 IDs vides consécutifs après {len(results)} résultats, arrêt")
                     break
-                continue
-
-            if r.status_code != 200 or len(r.text) < 1500:
-                consec_empty += 1
                 continue
 
             consec_empty = 0
