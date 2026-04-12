@@ -152,6 +152,6 @@ def init_db():
         s = stmt.strip()
         if s:
             try: db.execute(s)
-            except: pass
+            except Exception: pass
     db.commit(); db.close()
     logger.info("✅ DB initialisée")

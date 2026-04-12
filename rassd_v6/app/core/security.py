@@ -10,7 +10,7 @@ def hash_pw(pw: str) -> str:
 
 def verify_pw(pw: str, hashed: str) -> bool:
     try: return bcrypt.checkpw(pw.encode(), hashed.encode())
-    except: return False
+    except Exception: return False
 
 def make_token(val: str, salt: str = "") -> str:
     """Token stable — SECRET_KEY doit être fixé dans Railway Variables"""
@@ -25,7 +25,16 @@ def get_member(req: Request) -> Optional[dict]:
     if not token or len(token) < 10: return None
     db = get_db()
     try:
-        # Try to find member by matching token
+        # Fast path: use _session_email hint cookie for O(1) lookup
+        hint = req.cookies.get("_session_email", "")
+        if hint:
+            row = db.execute(
+                "SELECT * FROM members WHERE email=? AND actif=1", (hint,)
+            ).fetchone()
+            if row and make_token(row["email"], row["created_at"]) == token:
+                return dict(row)
+
+        # Fallback: scan all members (for sessions before email hint was added)
         rows = db.execute(
             "SELECT * FROM members WHERE actif=1"
         ).fetchall()

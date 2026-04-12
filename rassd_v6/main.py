@@ -19,6 +19,7 @@ from app.core.security import (hash_pw, verify_pw, make_token,
                                 get_member, validate_email,
                                 validate_password, days_left)
 from app.services.notifications import dispatch_notifications, tg_admin, test_notifications
+from urllib.parse import urlparse
 
 try:
     from app.services.multi_scraper import run_all as multi_run
@@ -206,7 +207,8 @@ templates = Jinja2Templates(directory="templates")
 try:
     os.makedirs("static", exist_ok=True)
     app.mount("/static", StaticFiles(directory="static"), name="static")
-except: pass
+except Exception:
+    pass
 
 # ══════════════════════════════════════════════════════════
 # HELPERS
@@ -248,7 +250,7 @@ def expire_tenders() -> tuple:
                 fmt = "%d/%m/%Y" if "/" in m.group(1)[:3] else "%Y-%m-%d"
                 if datetime.strptime(m.group(1), fmt).date() < today:
                     expired.append(row["id"])
-            except: pass
+            except Exception: pass
     if expired:
         ph = ",".join(["?"]*len(expired))
         db.execute(f"UPDATE tenders SET statut='expire' WHERE id IN ({ph})", expired)
@@ -259,6 +261,17 @@ def expire_tenders() -> tuple:
 
 def clean_secteurs(raw: list) -> list:
     return list({s for s in raw if s and s.strip()})
+
+def _safe_next(url: str) -> str:
+    """Prevent open redirect — only allow relative paths."""
+    if not url:
+        return "/dashboard"
+    parsed = urlparse(url)
+    if parsed.scheme or parsed.netloc:
+        return "/dashboard"
+    if not url.startswith("/"):
+        return "/dashboard"
+    return url
 
 def _is_admin(req: Request) -> bool:
     expected = make_token("admin", cfg.ADMIN_PASS)
@@ -313,7 +326,7 @@ async def tender_detail(req: Request, tid: str):
         db.close()
         return HTMLResponse("Marché introuvable", 404)
     try: db.execute("UPDATE tenders SET views=views+1 WHERE id=?", (tid,))
-    except: pass
+    except Exception: pass
     secteur = t["secteur"] or ""
     related = [dict(r) for r in db.execute(
         "SELECT * FROM tenders WHERE secteur=? AND id!=? AND statut='actif' ORDER BY scraped_at DESC LIMIT 4",
@@ -324,9 +337,9 @@ async def tender_detail(req: Request, tid: str):
             is_fav = bool(db.execute(
                 "SELECT id FROM favorites WHERE member_id=? AND tender_id=?",
                 (member["id"],tid)).fetchone())
-        except: pass
+        except Exception: pass
     try: db.commit()
-    except: pass
+    except Exception: pass
     db.close()
     return render(req, "detail.html", {"t":dict(t),"related":related,"is_fav":is_fav})
 
@@ -401,7 +414,7 @@ async def tarifs(req: Request): return render(req,"tarifs.html",{})
 @app.get("/register", response_class=HTMLResponse)
 async def register_get(req: Request):
     if get_member(req): return RedirectResponse("/dashboard",302)
-    return render(req,"register.html",{})
+    return render(req,"register.html",{"next":req.query_params.get("next","")})
 
 @app.post("/register")
 async def register_post(req: Request,
@@ -430,15 +443,21 @@ async def register_post(req: Request,
         db.commit()
         m = db.execute("SELECT * FROM members WHERE email=?",(email,)).fetchone()
     finally: db.close()
-    resp = RedirectResponse("/dashboard?welcome=1",302)
+    dest = _safe_next(req.query_params.get("next", ""))
+    resp = RedirectResponse(f"{dest}?welcome=1" if dest == "/dashboard" else dest, 302)
+    is_https = cfg.SITE_URL.startswith("https")
     resp.set_cookie("_session", make_token(m["email"], m["created_at"]),
                     max_age=86400*30, httponly=True, samesite="lax",
-                    secure=False)  # False = works on HTTP + HTTPS
+                    secure=is_https)
+    resp.set_cookie("_session_email", m["email"],
+                    max_age=86400*30, httponly=True, samesite="lax",
+                    secure=is_https)
     return resp
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_get(req: Request, next:str=""):
-    if get_member(req): return RedirectResponse(next or "/dashboard",302)
+    safe = _safe_next(next)
+    if get_member(req): return RedirectResponse(safe, 302)
     return render(req,"login.html",{"next":next})
 
 @app.post("/login")
@@ -454,15 +473,23 @@ async def login_post(req: Request, email:str=Form(""), pw:str=Form(""), next:str
     db.execute("UPDATE members SET last_login=? WHERE id=?",(datetime.now().isoformat(),m["id"]))
     db.commit(); db.close()
     logger.info(f"[Login] ✅ {email} connecté")
-    resp = RedirectResponse(next or "/dashboard",302)
+    dest = _safe_next(next)
+    resp = RedirectResponse(dest, 302)
+    is_https = cfg.SITE_URL.startswith("https")
     resp.set_cookie("_session", make_token(m["email"], m["created_at"]),
                     max_age=86400*30, httponly=True, samesite="lax",
-                    secure=False)
+                    secure=is_https)
+    resp.set_cookie("_session_email", m["email"],
+                    max_age=86400*30, httponly=True, samesite="lax",
+                    secure=is_https)
     return resp
 
 @app.get("/logout")
 async def logout():
-    r = RedirectResponse("/",302); r.delete_cookie("_session"); return r
+    r = RedirectResponse("/",302)
+    r.delete_cookie("_session")
+    r.delete_cookie("_session_email")
+    return r
 
 @app.get("/settings", response_class=HTMLResponse)
 async def settings_get(req: Request):
@@ -681,7 +708,7 @@ async def health():
     try:
         from app.core.database import get_supabase
         supa_ok = bool(get_supabase())
-    except: pass
+    except Exception: pass
     return {"status":"ok","version":cfg.APP_VERSION,"brand":cfg.APP_NAME,
             "active":act,"running":State.running,"last_run":State.last_run,
             "multi_scraper":MULTI_OK,"playwright":PW_OK,"supabase":supa_ok}
