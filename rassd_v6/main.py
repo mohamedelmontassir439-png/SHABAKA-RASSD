@@ -20,23 +20,9 @@ from app.core.security import (hash_pw, verify_pw, make_token,
                                 validate_password, days_left)
 from app.services.notifications import dispatch_notifications, tg_admin, test_notifications
 
-try:
-    from app.services.multi_scraper import run_all as multi_run
-    MULTI_OK = True
-except ImportError:
-    MULTI_OK = False
-
-try:
-    from app.services.playwright_scraper import run_playwright
-    PW_OK = True
-except ImportError:
-    PW_OK = False
-
-try:
-    from app.core.database import supabase_sync_batch, get_supabase
-    SUPA_OK = bool(get_supabase())
-except Exception:
-    SUPA_OK = False
+MULTI_OK = False
+PW_OK = False
+SUPA_OK = False
 
 logging.basicConfig(
     level=logging.INFO,
@@ -667,7 +653,7 @@ async def api_sources():
         {"name":"Crédit Agricole",      "type":"private",     "status":"active" if MULTI_OK else "disabled"},
         {"name":"BCP",                  "type":"private",     "status":"active" if MULTI_OK else "disabled"},
     ]
-    return {"ok":True,"multi_scraper":MULTI_OK,"playwright":PW_OK,"supabase":SUPA_OK,"total":len(sources),"sources":sources}
+    return {"ok":True,"total":len(sources),"sources":sources}
 
 # ══════════════════════════════════════════════════════════
 # UTILS
@@ -684,7 +670,7 @@ async def health():
     except: pass
     return {"status":"ok","version":cfg.APP_VERSION,"brand":cfg.APP_NAME,
             "active":act,"running":State.running,"last_run":State.last_run,
-            "multi_scraper":MULTI_OK,"playwright":PW_OK,"supabase":supa_ok}
+            "multi_scraper":False}
 
 @app.get("/sitemap.xml")
 async def sitemap():
