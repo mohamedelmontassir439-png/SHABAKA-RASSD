@@ -35,7 +35,7 @@ def parse_date(s: str) -> Optional[date]:
     s = str(s).strip().split()[0].split("T")[0]
     for fmt in _FMTS:
         try: return datetime.strptime(s, fmt).date()
-        except: pass
+        except (ValueError, TypeError): pass
     return None
 
 
