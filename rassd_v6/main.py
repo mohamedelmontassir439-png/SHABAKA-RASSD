@@ -267,6 +267,8 @@ async def home(req: Request):
 @app.get("/tenders", response_class=HTMLResponse)
 async def tenders_page(req: Request, q:str="", s:str="", r:str="",
                         page:int=1, sort:str="recent"):
+    if not get_member(req):
+        return RedirectResponse("/login?next=/tenders", 302)
     db = get_db(); per = 25; page = max(1, page)
     where, params = ["statut='actif'"], []
     if q:
@@ -293,6 +295,8 @@ async def tenders_page(req: Request, q:str="", s:str="", r:str="",
 
 @app.get("/tenders/{tid}", response_class=HTMLResponse)
 async def tender_detail(req: Request, tid: str):
+    if not get_member(req):
+        return RedirectResponse("/login?next=/tenders/" + tid, 302)
     db = get_db()
     t  = db.execute("SELECT * FROM tenders WHERE id=?", (tid,)).fetchone()
     if not t:

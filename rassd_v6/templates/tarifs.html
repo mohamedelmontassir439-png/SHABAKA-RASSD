@@ -1,114 +1,69 @@
 {% extends "base.html" %}
-{% block title %}Tarifs — ATLAS PRO{% endblock %}
+{% block title %}ATLAS PRO — Version Bêta{% endblock %}
 {% block body %}
 <style>
-.pricing-hero{text-align:center;padding:72px 24px 52px}
-.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:960px;margin:0 auto;padding:0 24px 80px}
-.plan{background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r3);padding:32px;position:relative;transition:.2s}
-.plan.featured{border-color:var(--gold);background:linear-gradient(135deg,rgba(212,168,67,.06),var(--bg2))}
-.plan-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--gold);color:#000;padding:4px 16px;border-radius:99px;font-size:10px;font-weight:700;letter-spacing:1px;white-space:nowrap}
-.plan-name{font-family:var(--mono);font-size:10px;color:var(--text4);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px}
-.plan-price{font-family:var(--serif);font-style:italic;font-size:48px;color:var(--text1);line-height:1;margin-bottom:6px}
-.plan-period{font-size:12px;color:var(--text4);margin-bottom:24px}
-.plan-features{list-style:none;display:flex;flex-direction:column;gap:10px;margin-bottom:28px}
-.plan-features li{font-size:13px;color:var(--text3);display:flex;align-items:center;gap:8px}
-.plan-features li::before{content:'✓';color:var(--grn);font-weight:700;flex-shrink:0}
-.plan-features li.no::before{content:'✕';color:var(--text4)}
-.plan-features li.no{color:var(--text4)}
-@media(max-width:768px){.pricing-grid{grid-template-columns:1fr}}
+.beta-page{max-width:720px;margin:80px auto;padding:0 24px;text-align:center}
+.beta-badge{display:inline-flex;align-items:center;gap:8px;padding:7px 20px;background:rgba(212,168,67,.08);border:1px solid rgba(212,168,67,.25);border-radius:99px;font-family:var(--mono);font-size:10px;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:32px}
+.beta-page h1{font-family:var(--serif);font-style:italic;font-size:clamp(32px,5vw,52px);color:var(--text1);line-height:1.2;margin-bottom:20px}
+.beta-page p{font-size:16px;color:var(--text3);line-height:1.85;margin-bottom:0}
+.beta-card{background:var(--bg2);border:1px solid rgba(212,168,67,.2);border-radius:16px;padding:40px;margin:40px 0;text-align:left}
+.beta-card h3{font-family:var(--serif);font-size:22px;color:var(--text1);margin-bottom:16px}
+.beta-card p{font-size:14px;color:var(--text3);line-height:1.8;margin-bottom:24px}
+.feedback-form{display:flex;flex-direction:column;gap:14px}
+.feedback-form textarea{width:100%;background:var(--bg3);border:1.5px solid var(--bdr);border-radius:10px;padding:14px;color:var(--text1);font-family:var(--sans);font-size:14px;min-height:140px;resize:vertical;outline:none}
+.feedback-form textarea:focus{border-color:var(--gold)}
+.features-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:24px;text-align:left}
+.feature-chip{padding:10px 14px;background:var(--bg3);border:1px solid var(--bdr);border-radius:8px;font-size:12px;color:var(--text3);cursor:pointer;transition:.15s;user-select:none}
+.feature-chip:hover{border-color:var(--gold);color:var(--gold)}
+.perks{display:flex;flex-direction:column;gap:12px;margin:32px 0}
+.perk{display:flex;align-items:flex-start;gap:12px;text-align:left}
+.perk-icon{font-size:20px;flex-shrink:0;margin-top:2px}
+.perk-text{font-size:14px;color:var(--text2);line-height:1.65}
+.perk-text strong{color:var(--text1)}
 </style>
 
-<div class="pricing-hero">
-  <div style="font-family:var(--mono);font-size:9px;color:var(--gold);letter-spacing:2px;margin-bottom:12px">TARIFS</div>
-  <h1 style="font-family:var(--serif);font-style:italic;font-size:clamp(36px,5vw,60px);color:var(--text1);margin-bottom:14px">Simple &amp; transparent</h1>
-  <p style="color:var(--text3);font-size:15px;max-width:440px;margin:0 auto">Commencez gratuitement. Passez au plan Pro quand vous êtes prêt.</p>
-</div>
+<div class="beta-page">
+  <div class="beta-badge">🚀 Version bêta — Accès gratuit</div>
+  <h1>Nous construisons ATLAS PRO<br/>avec vous</h1>
+  <p>Nous sommes honorés de vous compter parmi nos premiers testeurs. Cette version bêta est entièrement <strong style="color:var(--text2)">gratuite</strong>. Votre retour façonnera directement la version complète de la plateforme.</p>
 
-<div class="pricing-grid">
-  <!-- FREE -->
-  <div class="plan">
-    <div class="plan-name">Gratuit</div>
-    <div class="plan-price">0</div>
-    <div class="plan-period">MAD / mois · Pour toujours</div>
-    <ul class="plan-features">
-      <li>Accès à 15 marchés/jour</li>
-      <li>Recherche &amp; filtres</li>
-      <li>Favoris illimités</li>
-      <li>Alertes Email basiques</li>
-      <li class="no">Alertes Telegram</li>
-      <li class="no">Alertes illimitées</li>
-      <li class="no">Accès API</li>
-      <li class="no">Export CSV</li>
-    </ul>
-    <a href="/register" class="btn btn-outline btn-full">Commencer gratuitement</a>
-  </div>
-
-  <!-- PRO -->
-  <div class="plan featured">
-    <div class="plan-badge">⭐ LE PLUS POPULAIRE</div>
-    <div class="plan-name">Pro</div>
-    <div class="plan-price" style="color:var(--gold)">99</div>
-    <div class="plan-period">MAD / mois · Accès complet</div>
-    <ul class="plan-features">
-      <li>Marchés illimités</li>
-      <li>Recherche &amp; filtres avancés</li>
-      <li>Favoris illimités</li>
-      <li>Alertes Email HTML complètes</li>
-      <li>Alertes Telegram instantanées</li>
-      <li>Filtrage par 16 secteurs</li>
-      <li>Accès API v1</li>
-      <li class="no">Export CSV</li>
-    </ul>
-    <a href="/register" class="btn btn-primary btn-full">Essai 14 jours gratuit →</a>
-  </div>
-
-  <!-- BUSINESS -->
-  <div class="plan">
-    <div class="plan-name">Business</div>
-    <div class="plan-price">299</div>
-    <div class="plan-period">MAD / mois · Équipes</div>
-    <ul class="plan-features">
-      <li>Tout le plan Pro</li>
-      <li>Export CSV illimité</li>
-      <li>API avec volume élevé</li>
-      <li>Accès multi-utilisateurs</li>
-      <li>Support prioritaire</li>
-      <li>Webhook notifications</li>
-      <li>Rapport hebdomadaire</li>
-      <li>Intégration sur mesure</li>
-    </ul>
-    <a href="mailto:contact@atlas.ma" class="btn btn-outline btn-full">Contacter les ventes</a>
-  </div>
-</div>
-
-<!-- Payment info -->
-<div style="max-width:680px;margin:0 auto;padding:0 24px 80px;text-align:center">
-  <div class="card card-p">
-    <div style="font-size:20px;margin-bottom:12px">💳</div>
-    <h3 style="font-size:15px;font-weight:600;color:var(--text1);margin-bottom:8px">Paiement facile &amp; sécurisé</h3>
-    <p style="font-size:13px;color:var(--text3);line-height:1.7;margin-bottom:16px">Nous acceptons les virements bancaires CIH, Attijariwafa, Banque Populaire, ainsi que les paiements par CIH Money et Cash Plus. Contactez-nous après inscription pour activer votre plan.</p>
-    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
-      <span class="badge badge-gray">🏦 Virement bancaire</span>
-      <span class="badge badge-gray">📱 CIH Money</span>
-      <span class="badge badge-gray">💵 Cash Plus</span>
-      <span class="badge badge-gray">📧 Facture fournie</span>
+  <div class="perks">
+    <div class="perk">
+      <div class="perk-icon">🎁</div>
+      <div class="perk-text"><strong>Accès 100% gratuit pendant toute la bêta</strong><br/>Profitez de toutes les fonctionnalités sans condition ni engagement.</div>
+    </div>
+    <div class="perk">
+      <div class="perk-icon">⭐</div>
+      <div class="perk-text"><strong>Accès prioritaire à la version complète</strong><br/>Les testeurs bêta bénéficieront de conditions préférentielles lors du lancement officiel.</div>
+    </div>
+    <div class="perk">
+      <div class="perk-icon">🔨</div>
+      <div class="perk-text"><strong>Votre avis construit le produit</strong><br/>Chaque retour est lu et pris en compte. Vous avez un impact direct sur les fonctionnalités à venir.</div>
     </div>
   </div>
-</div>
 
-<!-- FAQ -->
-<div style="max-width:680px;margin:0 auto;padding:0 24px 80px">
-  <div style="font-family:var(--mono);font-size:9px;color:var(--gold);letter-spacing:2px;margin-bottom:24px;text-align:center">FAQ</div>
-  {% for q,a in [
-    ("Puis-je annuler à tout moment ?","Oui, aucun engagement. Vous pouvez arrêter votre abonnement quand vous voulez."),
-    ("Quel est la source des marchés ?","Nous scrapons uniquement marchespublics.gov.ma, le portail officiel des marchés publics marocains."),
-    ("Comment fonctionne l'alerte Telegram ?","Configurez votre Chat ID dans les paramètres. Vous recevrez un message immédiatement après chaque nouveau marché dans vos secteurs."),
-    ("Puis-je tester gratuitement ?","Oui, l'essai de 14 jours donne accès à toutes les fonctionnalités Pro sans engagement."),
-  ] %}
-  <div style="margin-bottom:16px;padding:18px 20px;background:var(--bg2);border:1px solid var(--bdr);border-radius:var(--r2)">
-    <div style="font-size:13px;font-weight:600;color:var(--text1);margin-bottom:6px">{{ q }}</div>
-    <div style="font-size:12px;color:var(--text3);line-height:1.7">{{ a }}</div>
+  <div class="beta-card">
+    <h3>📝 Partagez votre expérience</h3>
+    <p>Qu'est-ce qui manque ? Qu'est-ce qui fonctionne bien ? Qu'aimeriez-vous voir dans la version finale ? Votre avis nous est précieux.</p>
+    <form action="mailto:contact@atlaspro.ma" method="get" class="feedback-form">
+      <textarea name="body" placeholder="Écrivez votre retour ici... Dites-nous ce que vous aimez, ce qui pourrait être amélioré, et ce que vous souhaitez voir dans la version complète."></textarea>
+      <a href="mailto:contact@atlaspro.ma?subject=Feedback ATLAS PRO Bêta" class="btn btn-primary">Envoyer mon retour →</a>
+    </form>
   </div>
-  {% endfor %}
+
+  <div class="beta-card">
+    <h3>💡 Que souhaitez-vous voir dans la version complète ?</h3>
+    <p>Cliquez sur les fonctionnalités qui vous intéressent — votre sélection nous aide à prioriser.</p>
+    <div class="features-grid">
+      <div class="feature-chip">📊 Statistiques avancées</div>
+      <div class="feature-chip">📄 Export PDF & Excel</div>
+      <div class="feature-chip">👥 Multi-utilisateurs</div>
+      <div class="feature-chip">🤖 Analyse IA du marché</div>
+      <div class="feature-chip">📱 Application mobile</div>
+      <div class="feature-chip">🗓 Calendrier des appels</div>
+      <div class="feature-chip">🔍 Historique des marchés</div>
+      <div class="feature-chip">📈 Suivi des résultats</div>
+    </div>
+  </div>
 </div>
 {% endblock %}

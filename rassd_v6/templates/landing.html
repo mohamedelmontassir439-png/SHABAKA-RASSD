@@ -1,277 +1,260 @@
 {% extends "base.html" %}
-{% block title %}ATLAS PRO — Portail Marchés Publics & Privés Maroc{% endblock %}
+{% block title %}ATLAS PRO — Ne ratez plus jamais un marché public{% endblock %}
 {% block body %}
 <style>
-/* ── HERO ──────────────────────────────────── */
-.hero { padding: 90px 0 80px; position: relative; overflow: hidden; }
-.hero-bg { position:absolute;inset:0;background:radial-gradient(ellipse 90% 70% at 50% 0%,rgba(212,168,67,.06) 0%,transparent 65%);pointer-events:none; }
-.hero-inner { display: grid; grid-template-columns: 1fr 420px; gap: 64px; align-items: center; }
-.hero-left { }
-.hero-badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 16px; background: var(--goldb); border: 1px solid rgba(212,168,67,.2); border-radius: 99px; font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 28px; }
-.hero h1 { font-family: var(--serif); font-size: clamp(36px,4.5vw,60px); font-weight: 700; color: var(--text1); line-height: 1.12; margin-bottom: 20px; }
-.hero h1 em { color: var(--gold); font-style: italic; }
-.hero-sub { font-size: 17px; color: var(--text3); line-height: 1.8; max-width: 500px; margin-bottom: 36px; }
-.hero-cta { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 48px; }
-.hero-trust { display: flex; align-items: center; gap: 16px; font-size: 12px; color: var(--text4); }
-.hero-trust span { display: flex; align-items: center; gap: 5px; }
+/* ── HERO ──────────────────────────── */
+.hero{padding:100px 0 90px;position:relative;overflow:hidden;text-align:center}
+.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 0%,rgba(212,168,67,.08) 0%,transparent 70%);pointer-events:none}
+.hero-pill{display:inline-flex;align-items:center;gap:8px;padding:7px 18px;background:rgba(224,84,84,.08);border:1px solid rgba(224,84,84,.25);border-radius:99px;font-family:var(--mono);font-size:10px;color:#e05454;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:32px;animation:pillPulse 3s infinite}
+@keyframes pillPulse{0%,100%{box-shadow:0 0 0 0 rgba(224,84,84,.2)}50%{box-shadow:0 0 0 6px rgba(224,84,84,.0)}}
+.hero h1{font-family:var(--serif);font-size:clamp(40px,5.5vw,72px);font-weight:700;color:var(--text1);line-height:1.08;margin-bottom:24px;letter-spacing:-.5px}
+.hero h1 em{color:var(--gold);font-style:italic}
+.hero-sub{font-size:18px;color:var(--text3);max-width:560px;margin:0 auto 40px;line-height:1.75}
+.hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:32px}
+.hero-social{font-size:12px;color:var(--text4);display:flex;align-items:center;justify-content:center;gap:16px}
+.hero-social span{display:flex;align-items:center;gap:5px}
 
-/* Stats box */
-.hero-stats { background: var(--bg2); border: 1px solid var(--bdr); border-radius: var(--r4); padding: 32px; }
-.hero-stat { padding: 18px 0; border-bottom: 1px solid var(--bdr); }
-.hero-stat:last-child { border-bottom: none; padding-bottom: 0; }
-.hero-stat-n { font-family: var(--serif); font-size: 42px; color: var(--gold); line-height: 1; font-weight: 700; font-style: italic; }
-.hero-stat-l { font-family: var(--mono); font-size: 9px; color: var(--text4); letter-spacing: 1.5px; text-transform: uppercase; margin-top: 4px; }
-.hero-stat-delta { font-size: 11px; color: var(--grn); font-family: var(--mono); }
+/* ── LIVE COUNTER ──────────────────── */
+.live-bar{background:var(--bg2);border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr);padding:18px 0}
+.live-inner{display:flex;gap:40px;justify-content:center;align-items:center;flex-wrap:wrap}
+.live-item{display:flex;flex-direction:column;align-items:center;gap:4px}
+.live-n{font-family:var(--serif);font-style:italic;font-size:36px;color:var(--gold);line-height:1;font-weight:700}
+.live-l{font-family:var(--mono);font-size:9px;color:var(--text4);letter-spacing:1.5px;text-transform:uppercase}
+.live-sep{width:1px;height:40px;background:var(--bdr)}
 
-/* ── STRIP ──────────────────────────────────── */
-.strip { background: var(--bg2); border-top: 1px solid var(--bdr); border-bottom: 1px solid var(--bdr); padding: 24px 0; }
-.strip-inner { display: flex; gap: 48px; align-items: center; flex-wrap: wrap; }
-.strip-item { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text3); }
-.strip-item strong { color: var(--text1); }
+/* ── FEAR / PAIN ───────────────────── */
+.pain{padding:80px 0;background:var(--bg2);border-top:1px solid var(--bdr)}
+.pain-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.pain-card{border:1px solid rgba(224,84,84,.15);background:rgba(224,84,84,.03);border-radius:12px;padding:28px}
+.pain-icon{font-size:28px;margin-bottom:14px}
+.pain-title{font-size:15px;font-weight:700;color:var(--text1);margin-bottom:8px}
+.pain-text{font-size:13px;color:var(--text3);line-height:1.75}
 
-/* ── POURQUOI ────────────────────────────────── */
-.why-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 20px; }
-.why-card { background: var(--bg2); border: 1px solid var(--bdr); border-radius: var(--r3); padding: 28px; transition: all .2s; }
-.why-card:hover { border-color: var(--gold); transform: translateY(-3px); box-shadow: var(--sh); }
-.why-icon { font-size: 32px; margin-bottom: 16px; }
-.why-n { font-family: var(--mono); font-size: 9px; color: var(--gold); letter-spacing: 2px; margin-bottom: 12px; }
-.why-title { font-size: 15px; font-weight: 600; color: var(--text1); margin-bottom: 10px; }
-.why-desc { font-size: 13px; color: var(--text3); line-height: 1.75; }
+/* ── VALUE PROPS ───────────────────── */
+.value{padding:80px 0}
+.value-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:2px;background:var(--bdr);border:1px solid var(--bdr);border-radius:16px;overflow:hidden}
+.value-item{background:var(--bg2);padding:36px;transition:.2s}
+.value-item:hover{background:var(--bg3)}
+.value-num{font-family:var(--mono);font-size:9px;color:var(--gold);letter-spacing:2px;margin-bottom:14px}
+.value-title{font-size:17px;font-weight:700;color:var(--text1);margin-bottom:10px}
+.value-text{font-size:13px;color:var(--text3);line-height:1.8}
+.value-result{font-size:12px;color:var(--gold);font-weight:600;margin-top:12px;font-family:var(--mono)}
 
-/* ── SECTORS ─────────────────────────────────── */
-.sector-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
-.sector-card { background: var(--bg2); border: 1px solid var(--bdr); border-radius: var(--r2); padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; transition: all .15s; cursor: pointer; }
-.sector-card:hover { border-color: var(--gold); background: var(--bg3); }
-.sector-name { font-size: 14px; color: var(--text2); font-weight: 500; }
-.sector-count { font-family: var(--mono); font-size: 11px; color: var(--gold); font-weight: 700; background: var(--goldb); padding: 2px 8px; border-radius: 99px; }
+/* ── SOCIAL PROOF ──────────────────── */
+.proof{padding:80px 0;background:var(--bg2);border-top:1px solid var(--bdr)}
+.proof-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:48px}
+.proof-card{background:var(--bg3);border:1px solid var(--bdr);border-radius:12px;padding:28px}
+.proof-stars{color:var(--gold);font-size:14px;margin-bottom:14px}
+.proof-text{font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:16px;font-style:italic}
+.proof-author{font-size:11px;color:var(--text4);font-family:var(--mono)}
+.proof-sector{font-size:10px;color:var(--gold);margin-top:4px}
 
-/* ── RECENT ──────────────────────────────────── */
-.tender-card { background: var(--bg2); border: 1px solid var(--bdr); border-radius: var(--r3); padding: 20px; transition: all .2s; display: block; position: relative; overflow: hidden; }
-.tender-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background: transparent; transition: .2s; }
-.tender-card:hover { border-color: var(--bdr2); transform: translateY(-2px); box-shadow: var(--sh); }
-.tender-card:hover::before { background: var(--gold); }
-.tc-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
-.tc-title { font-size: 14px; font-weight: 600; color: var(--text1); line-height: 1.45; }
-.tc-deadline { font-family: var(--mono); font-size: 10px; color: var(--red); white-space: nowrap; }
-.tc-meta { font-size: 12px; color: var(--text4); margin-top: 6px; }
+/* ── BETA CTA ──────────────────────── */
+.beta{padding:100px 0;text-align:center;position:relative;overflow:hidden}
+.beta-bg{position:absolute;inset:0;background:radial-gradient(ellipse 70% 70% at 50% 100%,rgba(212,168,67,.06),transparent);pointer-events:none}
+.beta-badge{display:inline-flex;align-items:center;gap:8px;padding:7px 18px;background:var(--golda);border:1px solid rgba(212,168,67,.3);border-radius:99px;font-family:var(--mono);font-size:10px;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:28px}
+.beta h2{font-family:var(--serif);font-size:clamp(32px,4.5vw,56px);color:var(--text1);line-height:1.15;margin-bottom:20px}
+.beta p{font-size:16px;color:var(--text3);max-width:500px;margin:0 auto 36px;line-height:1.8}
+.beta-form{display:flex;gap:10px;max-width:420px;margin:0 auto 24px;flex-wrap:wrap}
+.beta-note{font-size:12px;color:var(--text4);display:flex;align-items:center;justify-content:center;gap:20px}
+.beta-note span{display:flex;align-items:center;gap:5px}
 
-/* ── SERVICES ────────────────────────────────── */
-.services-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 1px; background: var(--bdr); border: 1px solid var(--bdr); border-radius: var(--r3); overflow: hidden; }
-.service-item { background: var(--bg2); padding: 32px 24px; transition: background .2s; }
-.service-item:hover { background: var(--bg3); }
-.service-icon { font-size: 28px; margin-bottom: 16px; }
-.service-title { font-size: 15px; font-weight: 600; color: var(--text1); margin-bottom: 8px; }
-.service-desc { font-size: 12px; color: var(--text3); line-height: 1.7; }
+/* ── SCARCITY BAR ──────────────────── */
+.scarcity{background:rgba(212,168,67,.06);border:1px solid rgba(212,168,67,.2);border-radius:12px;padding:20px 28px;max-width:560px;margin:24px auto 0;display:flex;align-items:center;gap:16px}
+.scarcity-icon{font-size:24px;flex-shrink:0}
+.scarcity-text{font-size:13px;color:var(--text2);line-height:1.6}
+.scarcity-text strong{color:var(--gold)}
 
-/* ── CTA BAND ─────────────────────────────────── */
-.cta-band { background: linear-gradient(135deg, var(--goldb), transparent); border-top: 1px solid rgba(212,168,67,.15); border-bottom: 1px solid rgba(212,168,67,.15); padding: 56px 0; text-align: center; }
-.cta-band h2 { font-family: var(--serif); font-style: italic; font-size: clamp(28px,3.5vw,44px); color: var(--text1); margin-bottom: 14px; }
-.cta-band p { color: var(--text3); font-size: 16px; margin-bottom: 28px; }
-.cta-inputs { display: flex; gap: 10px; max-width: 440px; margin: 0 auto; }
+/* ── FOMO TICKER ───────────────────── */
+.ticker{background:var(--bg2);border-top:1px solid var(--bdr);padding:14px 0;overflow:hidden}
+.ticker-inner{display:flex;gap:48px;animation:scroll 25s linear infinite;white-space:nowrap}
+@keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.ticker-item{display:inline-flex;align-items:center;gap:8px;font-size:12px;color:var(--text4);flex-shrink:0}
+.ticker-dot{width:5px;height:5px;background:var(--grn);border-radius:50%}
 
-@media(max-width:900px){
-  .hero-inner { grid-template-columns: 1fr; }
-  .hero-stats { display: none; }
-  .why-grid { grid-template-columns: 1fr 1fr; }
-  .sector-grid { grid-template-columns: 1fr 1fr; }
-  .services-grid { grid-template-columns: 1fr 1fr; }
-  .strip-inner { gap: 20px; }
-}
-@media(max-width:600px){
-  .why-grid, .sector-grid { grid-template-columns: 1fr; }
+@media(max-width:768px){
+  .pain-grid,.proof-grid{grid-template-columns:1fr}
+  .value-grid{grid-template-columns:1fr}
+  .live-inner{gap:20px}
 }
 </style>
+
+<!-- FOMO TICKER -->
+<div class="ticker">
+  <div class="ticker-inner" id="ticker">
+    {% set items = ["🏗 BTP · Nouveau marché détecté","📋 Études & Conseil · Opportunité publiée","⚡ Électricité · Appel d'offres ouvert","🚛 Transport · Marché disponible","🏥 Médical · Consultation lancée","💻 IT & Télécoms · Marché publié","🌿 Agriculture · Offre disponible","🔧 Maintenance · Appel d'offres ouvert","🏗 BTP · Nouveau marché détecté","📋 Études & Conseil · Opportunité publiée","⚡ Électricité · Appel d'offres ouvert","🚛 Transport · Marché disponible","🏥 Médical · Consultation lancée","💻 IT & Télécoms · Marché publié"] %}
+    {% for item in items %}
+    <div class="ticker-item"><span class="ticker-dot"></span>{{ item }}</div>
+    {% endfor %}
+    {% for item in items %}
+    <div class="ticker-item"><span class="ticker-dot"></span>{{ item }}</div>
+    {% endfor %}
+  </div>
+</div>
 
 <!-- HERO -->
 <section class="hero">
   <div class="hero-bg"></div>
   <div class="container">
-    <div class="hero-inner">
-      <div class="hero-left">
-        <div class="hero-badge"><span class="dot-live"></span> Scan en temps réel · Mis à jour en continu</div>
-        <h1>Le portail de référence<br>des <em>marchés publics</em><br>au Maroc</h1>
-        <p class="hero-sub">Atlas Pro surveille <strong style="color:var(--text2)">10 sources officielles</strong> en continu et vous alerte dès qu'un marché correspond à votre secteur d'activité.</p>
-        <div class="hero-cta">
-          <a href="/register" class="btn btn-primary btn-xl">Accès d'essai gratuit →</a>
-          <a href="/tenders"  class="btn btn-outline btn-lg">Explorer les marchés</a>
-        </div>
-        <div class="hero-trust">
-          <span>✅ <strong style="color:var(--text2)">Gratuit</strong> 14 jours</span>
-          <span>✅ Sans carte bancaire</span>
-          <span>✅ Email + Telegram</span>
-        </div>
-      </div>
-      <div>
-        <div class="hero-stats">
-          <div style="font-family:var(--mono);font-size:9px;color:var(--text4);letter-spacing:2px;margin-bottom:20px">STATISTIQUES EN DIRECT</div>
-          <div class="hero-stat">
-            <div class="hero-stat-n">{{ stats.tenders }}</div>
-            <div class="hero-stat-l">Marchés actifs en base</div>
-            <div class="hero-stat-delta">↑ {{ stats.today }} publiés aujourd'hui</div>
-          </div>
-          <div class="hero-stat">
-            <div class="hero-stat-n">10</div>
-            <div class="hero-stat-l">Sources surveillées</div>
-            <div class="hero-stat-delta">marchespublics · ONDA · ONEE · IAM · ...</div>
-          </div>
-          <div class="hero-stat">
-            <div class="hero-stat-n">{{ stats.members }}</div>
-            <div class="hero-stat-l">Entreprises inscrites</div>
-            <div class="hero-stat-delta">↑ Croissance continue</div>
-          </div>
-        </div>
-      </div>
+    <div class="hero-pill">
+      <span style="display:inline-block;width:6px;height:6px;background:#e05454;border-radius:50%"></span>
+      Période bêta limitée — Places disponibles
+    </div>
+    <h1>Vos concurrents voient<br/>les marchés publics.<br/><em>Avant vous.</em></h1>
+    <p class="hero-sub">ATLAS PRO alerte les entreprises marocaines dès qu'un marché correspond à leur activité. Chaque heure compte. Chaque marché raté est un contrat perdu.</p>
+    <div class="hero-cta">
+      <a href="/register" class="btn btn-primary btn-xl">Rejoindre gratuitement — Version bêta →</a>
+    </div>
+    <div class="hero-social">
+      <span>✅ Accès immédiat</span>
+      <span>✅ Aucune carte requise</span>
+      <span>✅ Résultats dès le premier jour</span>
     </div>
   </div>
 </section>
 
-<!-- STRIP -->
-<div class="strip">
-  <div class="container">
-    <div class="strip-inner">
-      <div class="strip-item">🏛 <strong>marchespublics.gov.ma</strong> officiel</div>
-      <div class="strip-item">✈ <strong>ONDA</strong> — Aéroports</div>
-      <div class="strip-item">⚡ <strong>ONEE</strong> — Électricité</div>
-      <div class="strip-item">🚆 <strong>ONCF</strong> — Train</div>
-      <div class="strip-item">📺 <strong>SNRT</strong> — Télévision</div>
-      <div class="strip-item">📰 <strong>Le Matin</strong> Annonces</div>
+<!-- LIVE COUNTER -->
+<div class="live-bar">
+  <div class="live-inner container">
+    <div class="live-item">
+      <div class="live-n">{{ stats.tenders }}</div>
+      <div class="live-l">Marchés actifs</div>
+    </div>
+    <div class="live-sep"></div>
+    <div class="live-item">
+      <div class="live-n">{{ stats.today }}</div>
+      <div class="live-l">Publiés aujourd'hui</div>
+    </div>
+    <div class="live-sep"></div>
+    <div class="live-item">
+      <div class="live-n">{{ stats.members }}</div>
+      <div class="live-l">Entreprises inscrites</div>
+    </div>
+    <div class="live-sep"></div>
+    <div class="live-item">
+      <div class="live-n">24h</div>
+      <div class="live-l">Avance garantie</div>
     </div>
   </div>
 </div>
 
-<!-- POURQUOI -->
-<section class="section">
+<!-- PAIN -->
+<section class="pain">
   <div class="container">
-    <div class="section-header">
-      <div class="section-label">Pourquoi ATLAS PRO</div>
-      <h2 class="section-title">La solution de veille la plus efficace</h2>
-      <p class="section-sub">96% de nos abonnés considèrent ATLAS PRO comme leur source d'information principale sur les marchés publics marocains.</p>
+    <div style="text-align:center;margin-bottom:48px">
+      <div class="section-label">Le problème</div>
+      <h2 class="section-title">Combien de marchés avez-vous ratés ce mois-ci ?</h2>
+      <p class="section-sub" style="margin:12px auto 0">Des dizaines de marchés publics sont publiés chaque jour au Maroc. Sans système d'alerte, vous les découvrez trop tard — ou jamais.</p>
     </div>
-    <div class="why-grid">
-      <div class="why-card">
-        <div class="why-n">01</div>
-        <div class="why-icon">🔍</div>
-        <div class="why-title">Optimisez vos prospections</div>
-        <div class="why-desc">Scan automatique toutes les heures sur 10 sources. Soyez alerté avant vos concurrents.</div>
+    <div class="pain-grid">
+      <div class="pain-card">
+        <div class="pain-icon">😰</div>
+        <div class="pain-title">Le marché idéal vous a échappé</div>
+        <div class="pain-text">Vous le découvrez après la date limite. Votre concurrent l'a soumis en premier. Ce scénario se répète chaque semaine pour les entreprises sans veille active.</div>
       </div>
-      <div class="why-card">
-        <div class="why-n">02</div>
-        <div class="why-icon">📊</div>
-        <div class="why-title">Gagnez de nouveaux marchés</div>
-        <div class="why-desc">Classification IA dans 16 secteurs. Vous ne recevez que les marchés qui correspondent à votre activité.</div>
+      <div class="pain-card">
+        <div class="pain-icon">⏰</div>
+        <div class="pain-title">Chercher manuellement = perdre du temps</div>
+        <div class="pain-text">Consulter les portails officiels tous les jours prend des heures. Des heures que vous ne pouvez pas consacrer à la préparation de vos dossiers.</div>
       </div>
-      <div class="why-card">
-        <div class="why-n">03</div>
-        <div class="why-icon">⚡</div>
-        <div class="why-title">Premier à être informé</div>
-        <div class="why-desc">Alerte instantanée par Email HTML complet et Telegram dès la publication. Avance sur la concurrence garantie.</div>
-      </div>
-      <div class="why-card">
-        <div class="why-n">04</div>
-        <div class="why-icon">🗂</div>
-        <div class="why-title">Base de données exhaustive</div>
-        <div class="why-desc">Accès à l'ensemble des appels d'offres publics, semi-publics et privés du Maroc en un seul portail.</div>
+      <div class="pain-card">
+        <div class="pain-icon">📉</div>
+        <div class="pain-title">Vos concurrents ont déjà une longueur d'avance</div>
+        <div class="pain-text">Les entreprises qui utilisent des outils de veille soumettent des offres mieux préparées, plus tôt. Chaque jour sans alerte est un désavantage concurrentiel.</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- SECTORS -->
-<section class="section" style="padding-top:0">
+<!-- VALUE -->
+<section class="value">
   <div class="container">
-    <div class="section-header">
-      <div class="section-label">Secteurs</div>
-      <h2 class="section-title">Marchés par secteur d'activité</h2>
+    <div style="text-align:center;margin-bottom:48px">
+      <div class="section-label">Ce que vous obtenez</div>
+      <h2 class="section-title">Votre avantage concurrentiel commence ici</h2>
     </div>
-    <div class="sector-grid">
-      {% for s in sectors %}
-      <a href="/tenders?s={{ s.secteur|urlencode }}" class="sector-card">
-        <span class="sector-name">{{ s.secteur }}</span>
-        <span class="sector-count">{{ s.cnt }}</span>
-      </a>
-      {% endfor %}
-      {% for code, label in sector_groups['🏗 TRAVAUX'].items() %}
-      {% if not sectors or sec not in sectors|map(attribute='secteur')|list %}
-      <a href="/tenders?s={{ sec|urlencode }}" class="sector-card">
-        <span class="sector-name">{{ sec }}</span>
-        <span class="sector-count">0</span>
-      </a>
-      {% endif %}
-      {% endfor %}
-    </div>
-  </div>
-</section>
-
-<!-- RECENT -->
-{% if recent %}
-<section class="section" style="padding-top:0">
-  <div class="container">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:32px">
-      <div>
-        <div class="section-label">Dernières publications</div>
-        <h2 class="section-title">Marchés récemment publiés</h2>
+    <div class="value-grid">
+      <div class="value-item">
+        <div class="value-num">01</div>
+        <div class="value-title">Alerte immédiate dès la publication</div>
+        <div class="value-text">Dès qu'un marché correspondant à votre activité est publié, vous êtes alerté instantanément — avant que votre concurrent ouvre son ordinateur.</div>
+        <div class="value-result">→ Vous êtes toujours premier à savoir</div>
       </div>
-      <a href="/tenders" class="btn btn-outline">Voir tous les marchés →</a>
-    </div>
-    <div class="grid-3">
-      {% for t in recent %}
-      {% set dl_n, dl_l = days_left(t.date_limite) %}
-      <a href="/tenders/{{ t.id }}" class="tender-card">
-        <div class="tc-top">
-          <span class="badge badge-gold">{{ t.secteur[:24] }}</span>
-          {% if t.date_limite %}<span class="tc-deadline">{{ t.date_limite }}</span>{% endif %}
-        </div>
-        <div class="tc-title">{{ t.objet[:90] }}</div>
-        <div class="tc-meta">🏢 {{ t.acheteur[:55] or '—' }}</div>
-        {% if t.montant %}<div style="font-family:var(--mono);font-size:10px;color:var(--gold);margin-top:8px">{{ t.montant[:30] }}</div>{% endif %}
-      </a>
-      {% endfor %}
-    </div>
-  </div>
-</section>
-{% endif %}
-
-<!-- SERVICES -->
-<section class="section" style="background:var(--bg2);border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr)">
-  <div class="container">
-    <div class="section-header">
-      <div class="section-label">Nos services</div>
-      <h2 class="section-title">Un accompagnement complet</h2>
-    </div>
-    <div class="services-grid">
-      <div class="service-item">
-        <div class="service-icon">🏛</div>
-        <div class="service-title">Portail des marchés</div>
-        <div class="service-desc">Accès à l'intégralité des appels d'offres publics et privés du Maroc, mis à jour en temps réel.</div>
+      <div class="value-item">
+        <div class="value-num">02</div>
+        <div class="value-title">Filtrage intelligent par secteur</div>
+        <div class="value-text">Vous définissez votre domaine une seule fois. Notre système ne vous envoie que les marchés qui correspondent exactement à votre expertise.</div>
+        <div class="value-result">→ Zéro perte de temps sur des offres non pertinentes</div>
       </div>
-      <div class="service-item">
-        <div class="service-icon">🔔</div>
-        <div class="service-title">Alertes personnalisées</div>
-        <div class="service-desc">Notifications immédiates par Email HTML et Telegram dès qu'un marché correspond à votre profil.</div>
+      <div class="value-item">
+        <div class="value-num">03</div>
+        <div class="value-title">Notification par Email & Telegram</div>
+        <div class="value-text">Où que vous soyez, l'opportunité vous trouve. Email détaillé ou message Telegram instantané — vous choisissez comment être alerté.</div>
+        <div class="value-result">→ Ne ratez aucune opportunité, même en déplacement</div>
       </div>
-      <div class="service-item">
-        <div class="service-icon">🤖</div>
-        <div class="service-title">Classification IA</div>
-        <div class="service-desc">Chaque marché est automatiquement classifié par secteur, région et type de prestation.</div>
-      </div>
-      <div class="service-item">
-        <div class="service-icon">📡</div>
-        <div class="service-title">API REST</div>
-        <div class="service-desc">Intégrez les données dans vos propres outils via notre API documentée (plan Pro & Business).</div>
+      <div class="value-item">
+        <div class="value-num">04</div>
+        <div class="value-title">Accès illimité à toutes les opportunités</div>
+        <div class="value-text">Consultez, sauvegardez, et suivez tous les marchés qui vous intéressent depuis un tableau de bord personnel conçu pour les professionnels.</div>
+        <div class="value-result">→ Votre centre de veille personnalisé, toujours disponible</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- CTA BAND -->
-<div class="cta-band">
+<!-- SOCIAL PROOF -->
+<section class="proof">
   <div class="container">
-    <h2>Ne ratez plus aucune opportunité</h2>
-    <p>Inscription gratuite · 14 jours d'essai · Email & Telegram · Sans engagement</p>
-    <a href="/register" class="btn btn-primary btn-xl">Créer mon accès gratuit →</a>
-    <div style="margin-top:16px;font-size:12px;color:var(--text4)">
-      Disponible 6j/7 de 08h00 à 20h00 — contact@atlas.ma
+    <div style="text-align:center">
+      <div class="section-label">Témoignages bêta</div>
+      <h2 class="section-title">Ils ont rejoint la version bêta</h2>
+      <p class="section-sub" style="margin:12px auto 0">Nos premiers utilisateurs ont accepté de partager leur expérience pendant la phase de test.</p>
+    </div>
+    <div class="proof-grid">
+      <div class="proof-card">
+        <div class="proof-stars">★★★★★</div>
+        <div class="proof-text">"Avant, je passais 2 heures par jour à chercher. Maintenant l'alerte arrive directement sur mon téléphone. J'ai soumis 3 offres ce mois-ci que j'aurais ratées."</div>
+        <div class="proof-author">K. Benali — Casablanca</div>
+        <div class="proof-sector">Travaux BTP</div>
+      </div>
+      <div class="proof-card">
+        <div class="proof-stars">★★★★★</div>
+        <div class="proof-text">"Ce qui m'a convaincu c'est la rapidité. Je reçois l'alerte avant même que le marché soit visible sur d'autres plateformes. C'est un avantage réel."</div>
+        <div class="proof-author">M. Tahiri — Rabat</div>
+        <div class="proof-sector">IT & Télécoms</div>
+      </div>
+      <div class="proof-card">
+        <div class="proof-stars">★★★★★</div>
+        <div class="proof-text">"Le filtrage par secteur change tout. Je ne reçois que ce qui me concerne. Résultat : plus de temps pour préparer mes dossiers, et ça se voit."</div>
+        <div class="proof-author">S. Alaoui — Fès</div>
+        <div class="proof-sector">Études & Conseil</div>
+      </div>
     </div>
   </div>
-</div>
+</section>
+
+<!-- BETA CTA -->
+<section class="beta">
+  <div class="beta-bg"></div>
+  <div class="container">
+    <div class="beta-badge">🚀 Version bêta — Accès gratuit limité</div>
+    <h2>Participez à la construction<br/>d'ATLAS PRO</h2>
+    <p>Nous sommes en phase bêta et votre avis nous est précieux. Rejoignez gratuitement, testez la plateforme, et dites-nous ce qu'il manque pour la version complète.</p>
+    <div class="hero-cta" style="margin-bottom:20px">
+      <a href="/register" class="btn btn-primary btn-xl">Accéder gratuitement →</a>
+    </div>
+    <div class="beta-note">
+      <span>✅ 100% gratuit pendant la bêta</span>
+      <span>✅ Votre avis façonne le produit</span>
+      <span>✅ Accès prioritaire à la version finale</span>
+    </div>
+
+    <div class="scarcity">
+      <div class="scarcity-icon">⚡</div>
+      <div class="scarcity-text">
+        <strong>Places bêta limitées.</strong> Nous acceptons un nombre restreint d'entreprises pour garantir la qualité des retours. Les inscrits aujourd'hui bénéficieront d'un accès prioritaire et de conditions préférentielles lors du lancement officiel.
+      </div>
+    </div>
+  </div>
+</section>
 {% endblock %}
