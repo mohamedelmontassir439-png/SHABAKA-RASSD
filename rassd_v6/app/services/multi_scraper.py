@@ -9,6 +9,7 @@ import time
 import random
 import hashlib
 import logging
+import threading
 from datetime import datetime, date
 from typing import Optional
 
@@ -211,7 +212,7 @@ def scrape_lematin(s: requests.Session, log) -> list:
 def scrape_onee(s: requests.Session, log) -> list:
     url = "https://www.one.org.ma/FR/pages/aoselect.asp?esp=2&id1=7&id2=64&id3=54&t2=1&t3=1"
     try:
-        r = s.get(url, timeout=20)
+        r = s.get(url, timeout=12)
         if r.status_code != 200: return []
         soup = BS(r.text, "lxml")
         results = []
@@ -234,7 +235,7 @@ def scrape_onee(s: requests.Session, log) -> list:
 def scrape_oncf(s: requests.Session, log) -> list:
     url = "https://www.oncf.ma/fr/Entreprise/Fournisseurs/Appels-d-offres"
     try:
-        r = s.get(url, timeout=20)
+        r = s.get(url, timeout=12)
         if r.status_code != 200: return []
         soup = BS(r.text, "lxml")
         results = []
@@ -442,9 +443,31 @@ def run_all(known_ids: set, log_fn=print) -> list:
     for name, scraper_fn in SCRAPERS:
         t0 = time.time()
         try:
-            items = scraper_fn(s, log_fn)
+            # Timeout guard: run each scraper in a thread with 25s max
+            items_box = []
+            err_box = []
+
+            def _run_scraper():
+                try:
+                    items_box.extend(scraper_fn(s, log_fn))
+                except Exception as exc:
+                    err_box.append(exc)
+
+            thread = threading.Thread(target=_run_scraper, daemon=True)
+            thread.start()
+            thread.join(timeout=25)
+
+            if thread.is_alive():
+                log_fn(f"⚠ {name}: timeout (>25s), ignoré")
+                stats[name] = 0
+                continue
+
+            if err_box:
+                raise err_box[0]
+
+            items = items_box
             elapsed = time.time() - t0
-            if elapsed > 30:
+            if elapsed > 15:
                 log_fn(f"⚠ {name}: lent ({elapsed:.0f}s)")
             new = [i for i in items if i["id"] not in known_ids]
             results.extend(new)
