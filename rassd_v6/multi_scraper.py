@@ -122,7 +122,7 @@ def _parse_date(s: str) -> Optional[date]:
     for fmt in DATE_FMTS:
         try:
             return datetime.strptime(s, fmt).date()
-        except:
+        except (ValueError, TypeError):
             pass
     return None
 
@@ -165,7 +165,7 @@ def is_expired(date_str: str) -> bool:
         if m:
             try:
                 return datetime.strptime(m.group(1), fmt).date() < today
-            except:
+            except (ValueError, TypeError):
                 pass
     return False
 
@@ -389,7 +389,7 @@ def run_scraper(
                 n = int(kid[4:])
                 if n > max_id:
                     max_id = n
-            except:
+            except ValueError:
                 pass
 
     # Si DB vide ou peu remplie → commencer à 312000+

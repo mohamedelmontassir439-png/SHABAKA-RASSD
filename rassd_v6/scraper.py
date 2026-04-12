@@ -45,8 +45,10 @@ DATE_FMT = ["%d/%m/%Y","%Y-%m-%d","%d-%m-%Y","%d.%m.%Y"]
 def _parse_date(s):
     s = str(s).strip().split()[0]
     for fmt in DATE_FMT:
-        try: return datetime.strptime(s, fmt).date()
-        except: pass
+        try:
+            return datetime.strptime(s, fmt).date()
+        except (ValueError, TypeError):
+            pass
     return None
 
 
@@ -187,7 +189,8 @@ def run(known_ids: set, log_fn=print) -> list:
             try:
                 n = int(kid[4:])
                 if n > max_id: max_id = n
-            except: pass
+            except ValueError:
+                pass
     if max_id < 311000: max_id = 312500
 
     start_id = max(max_id - 20, 310000)

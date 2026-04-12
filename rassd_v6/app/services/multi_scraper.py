@@ -3,21 +3,47 @@ ATLAS PRO Multi-Source Scraper v1.0
 ================================
 Sources: marchespublics + ONDA + Le Matin + ONEE + ONCF + IAM + SNRT + BCP + Crédit Agricole
 """
-import re, ssl, time, random, logging
+import re
+import ssl
+import time
+import random
+import hashlib
+import logging
 from datetime import datetime, date
 from typing import Optional
-import requests, urllib3
+
+import requests
+import urllib3
 from bs4 import BeautifulSoup as BS
 from requests.adapters import HTTPAdapter
+
+from app.core.sectors import classify, get_label
 
 urllib3.disable_warnings()
 logger = logging.getLogger("atlas.multi")
 
 UA_POOL = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/122.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/124.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36",
 ]
+
+# Régions marocaines
+REGIONS = {
+    "Tanger-Tétouan-Al Hoceïma": ["tanger", "tétouan", "tetouan", "al hoceima"],
+    "Oriental": ["oujda", "nador", "berkane"],
+    "Fès-Meknès": ["fès", "fes", "meknès", "meknes"],
+    "Rabat-Salé-Kénitra": ["rabat", "salé", "sale", "kénitra", "kenitra"],
+    "Béni Mellal-Khénifra": ["béni mellal", "beni mellal", "khouribga"],
+    "Casablanca-Settat": ["casablanca", "settat", "mohammedia"],
+    "Marrakech-Safi": ["marrakech", "safi", "essaouira"],
+    "Drâa-Tafilalet": ["errachidia", "ouarzazate", "zagora"],
+    "Souss-Massa": ["agadir", "tiznit", "taroudant"],
+    "Guelmim-Oued Noun": ["guelmim", "tan-tan"],
+    "Laâyoune-Sakia El Hamra": ["laayoune", "laâyoune"],
+    "Dakhla-Oued Ed-Dahab": ["dakhla"],
+}
 
 DATE_RE  = re.compile(r'(\d{2}[/\-]\d{2}[/\-]20\d{2}|\d{4}-\d{2}-\d{2})')
 DATE_FMT = ["%d/%m/%Y", "%d-%m-%Y", "%Y-%m-%d"]
@@ -32,9 +58,14 @@ class TLSAdapter(HTTPAdapter):
         return super().init_poolmanager(*a, **kw)
 
 def _session() -> requests.Session:
+    retry = urllib3.Retry(
+        total=3, backoff_factor=1.5,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET"],
+    )
     s = requests.Session()
-    s.mount("https://", TLSAdapter())
-    s.mount("http://",  TLSAdapter())
+    s.mount("https://", TLSAdapter(max_retries=retry))
+    s.mount("http://",  TLSAdapter(max_retries=retry))
     s.verify = False
     s.headers.update({
         "User-Agent":      random.choice(UA_POOL),
@@ -48,8 +79,10 @@ def _session() -> requests.Session:
 def _parse_date(s: str) -> Optional[date]:
     s = str(s).strip().split()[0]
     for fmt in DATE_FMT:
-        try: return datetime.strptime(s, fmt).date()
-        except: pass
+        try:
+            return datetime.strptime(s, fmt).date()
+        except (ValueError, TypeError):
+            pass
     return None
 
 def _extract_date(text: str) -> str:
@@ -67,12 +100,19 @@ def _is_expired(text: str) -> bool:
     return False
 
 def _detect_secteur(text: str) -> str:
-    from app.core.sectors import classify, get_label
     code = classify(text)
-    return f"{code} – {get_label(code)}"
+    return f"{code} \u2013 {get_label(code)}"
+
+
+def _detect_region(text: str) -> str:
+    """Détecte la région marocaine depuis le texte."""
+    t = text.lower()
+    for region, keywords in REGIONS.items():
+        if any(kw in t for kw in keywords):
+            return region
+    return ""
 
 def _make_id(source: str, ref: str, objet: str) -> str:
-    import hashlib
     key = f"{source}_{ref or objet[:40]}"
     return f"{source.lower()[:4]}_{hashlib.md5(key.encode()).hexdigest()[:10]}"
 
@@ -100,7 +140,7 @@ def _tender(source: str, objet: str, acheteur: str = "", date_limite: str = "",
         "objet":            objet,
         "acheteur":         (acheteur or source)[:200],
         "secteur":          _detect_secteur(objet),
-        "region":           "",
+        "region":           _detect_region(f"{acheteur} {objet}"),
         "montant":          montant[:80],
         "date_publication": date.today().strftime("%d/%m/%Y"),
         "date_limite":      date_limite,
@@ -381,28 +421,38 @@ SCRAPERS = [
 ]
 
 def run_all(known_ids: set, log_fn=print) -> list:
-    """Lance tous les scrapers et retourne les nouveaux marchés"""
-    s       = _session()
+    """Lance tous les scrapers et retourne les nouveaux marchés."""
+    s = _session()
     results = []
-    errors  = []
+    errors = []
+    stats = {}
 
     log_fn("═" * 48)
-    log_fn("  ATLAS PRO Multi-Source Scraper v1.0")
+    log_fn("  ATLAS PRO Multi-Source Scraper v2.0")
     log_fn(f"  {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
     log_fn("═" * 48)
 
     for name, scraper_fn in SCRAPERS:
+        t0 = time.time()
         try:
             items = scraper_fn(s, log_fn)
-            new   = [i for i in items if i["id"] not in known_ids]
+            new = [i for i in items if i["id"] not in known_ids]
             results.extend(new)
+            stats[name] = len(new)
             time.sleep(0.5 + random.random())
         except Exception as e:
             errors.append(name)
+            stats[name] = 0
             log_fn(f"❌ {name}: {e}")
+            logger.error(f"[multi_scraper] {name}: {e}", exc_info=True)
 
-    log_fn(f"═" * 48)
-    log_fn(f"  ✅ {len(results)} nouveaux marchés | {len(errors)} erreurs")
-    log_fn(f"  Sources: {', '.join(errors) if errors else 'Toutes OK'}")
-    log_fn(f"═" * 48)
+    log_fn("═" * 48)
+    log_fn(f"  {len(results)} nouveaux marchés | {len(errors)} erreurs")
+    if stats:
+        active = [f"{k}({v})" for k, v in stats.items() if v > 0]
+        if active:
+            log_fn(f"  Actifs: {', '.join(active)}")
+    if errors:
+        log_fn(f"  ❌ {', '.join(errors)}")
+    log_fn("═" * 48)
     return results

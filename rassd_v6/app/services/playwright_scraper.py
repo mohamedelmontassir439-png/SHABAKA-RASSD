@@ -6,9 +6,13 @@ Pour les sites nécessitant JavaScript:
   - Crédit Agricole
   - IAM Maroc Telecom
 """
-import re, hashlib, logging
+import re
+import hashlib
+import logging
 from datetime import datetime, date
 from typing import Optional
+
+from app.core.sectors import classify, get_label
 
 logger = logging.getLogger("atlas.playwright")
 
@@ -21,8 +25,10 @@ _NOISE = ["accueil","connexion","navigation","retour","login","menu",
 
 def _parse_date(s: str) -> Optional[date]:
     for fmt in DATE_FMT:
-        try: return datetime.strptime(s.strip(), fmt).date()
-        except: pass
+        try:
+            return datetime.strptime(s.strip(), fmt).date()
+        except (ValueError, TypeError):
+            pass
     return None
 
 def _is_expired(text: str) -> bool:
@@ -40,17 +46,9 @@ def _extract_date(text: str) -> str:
     return ""
 
 def _detect_secteur(text: str) -> str:
-    t = text.lower()
-    if any(k in t for k in ["travaux","construction","route","béton","génie civil"]): return "Travaux BTP"
-    if any(k in t for k in ["informatique","logiciel","réseau","serveur","digital","it "]): return "IT & Télécoms"
-    if any(k in t for k in ["médical","santé","hôpital","laboratoire","pharmacie"]): return "Santé & Médical"
-    if any(k in t for k in ["véhicule","automobile","camion","transport","bus"]): return "Transport & Véhicules"
-    if any(k in t for k in ["nettoyage","entretien","maintenance","gardiennage","sécurité"]): return "Services Généraux"
-    if any(k in t for k in ["étude","audit","conseil","expertise","architecture"]): return "Études & Conseil"
-    if any(k in t for k in ["formation","enseignement","stage","séminaire"]): return "Formation"
-    if any(k in t for k in ["électricité","énergie","solaire","générateur"]): return "Énergie"
-    if any(k in t for k in ["hydraulique","eau potable","assainissement"]): return "Hydraulique"
-    return "Autres"
+    """Classifie le secteur via app.core.sectors."""
+    code = classify(str(text))
+    return f"{code} \u2013 {get_label(code)}"
 
 def _make_id(source: str, ref: str, objet: str) -> str:
     key = f"{source}_{ref or objet[:40]}"
