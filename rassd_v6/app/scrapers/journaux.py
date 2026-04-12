@@ -4,12 +4,40 @@ Sources: leconomiste, lematin, flasheconomie
 
 Utiliser depuis IP Maroc ou via playwright_scraper.py
 """
-import re, time, hashlib, requests
+import re
+import ssl
+import time
+import hashlib
+import logging
+
+import requests
+import urllib3
 from bs4 import BeautifulSoup as BS
 from urllib.parse import urljoin
-from app.core.dates import is_expired, format_deadline, extract_deadline
+from requests.adapters import HTTPAdapter
 
-UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/122.0"
+from app.core.dates import is_expired, format_deadline, extract_deadline
+from app.core.sectors import classify, get_label
+
+urllib3.disable_warnings()
+logger = logging.getLogger("atlas.journaux")
+
+UA_POOL = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Chrome/124.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:125.0) Gecko/20100101 Firefox/125.0",
+]
+
+
+class TLSAdapter(HTTPAdapter):
+    """Adapter SSL permissif pour sites marocains."""
+    def init_poolmanager(self, *args, **kwargs):
+        ctx = ssl.create_default_context()
+        ctx.set_ciphers("DEFAULT@SECLEVEL=1")
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        kwargs["ssl_context"] = ctx
+        return super().init_poolmanager(*args, **kwargs)
 
 AO_REQUIRED = [
     "appel d'offres", "appel d offres", "appel d'offre",
@@ -26,8 +54,19 @@ AO_EXCLUDED = [
 
 
 def _sess():
+    import random
+    retry = urllib3.Retry(
+        total=3, backoff_factor=1.0,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET"],
+    )
     s = requests.Session()
-    s.headers.update({"User-Agent": UA, "Accept-Language": "fr-FR,fr;q=0.9"})
+    s.mount("https://", TLSAdapter(max_retries=retry))
+    s.mount("http://", TLSAdapter(max_retries=retry))
+    s.headers.update({
+        "User-Agent": random.choice(UA_POOL),
+        "Accept-Language": "fr-FR,fr;q=0.9",
+    })
     s.verify = False
     return s
 
@@ -36,7 +75,8 @@ def _get(s, url, timeout=20):
     try:
         r = s.get(url, timeout=timeout, allow_redirects=True)
         return r if r.status_code == 200 else None
-    except: return None
+    except (requests.RequestException, OSError):
+        return None
 
 
 def _is_ao(title, ctx=""):
@@ -50,16 +90,25 @@ def _mkid(src, title, url=""):
 
 
 def _build(src, url, title, dl_text=""):
+    from datetime import datetime
+    code = classify(title)
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     return {
-        "id":          _mkid(src, title, url),
-        "objet":       title[:300].strip(),
-        "source":      src,
-        "source_url":  url,
-        "acheteur":    "",
-        "region":      "Maroc",
-        "date_limite": format_deadline(dl_text),
-        "statut":      "actif",
-        "description": "",
+        "id":               _mkid(src, title, url),
+        "objet":            title[:300].strip(),
+        "source":           src,
+        "source_url":       url,
+        "url":              url,
+        "acheteur":         "",
+        "secteur":          f"{code} \u2013 {get_label(code)}",
+        "region":           "Maroc",
+        "date_limite":      format_deadline(dl_text),
+        "date_publication": datetime.now().strftime("%d/%m/%Y"),
+        "montant":          "",
+        "statut":           "actif",
+        "description":      f"Source: {src}",
+        "scraped_at":       now,
+        "updated_at":       now,
     }
 
 

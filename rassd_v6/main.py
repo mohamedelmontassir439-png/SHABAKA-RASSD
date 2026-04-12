@@ -250,7 +250,8 @@ def expire_tenders() -> tuple:
                 fmt = "%d/%m/%Y" if "/" in m.group(1)[:3] else "%Y-%m-%d"
                 if datetime.strptime(m.group(1), fmt).date() < today:
                     expired.append(row["id"])
-            except Exception: pass
+            except (ValueError, TypeError):
+                pass
     if expired:
         ph = ",".join(["?"]*len(expired))
         db.execute(f"UPDATE tenders SET statut='expire' WHERE id IN ({ph})", expired)
