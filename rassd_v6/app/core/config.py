@@ -30,9 +30,6 @@ class Settings:
     SUPABASE_URL:  str = os.getenv("SUPABASE_URL", "")
     SUPABASE_KEY:  str = os.getenv("SUPABASE_KEY", "")
     FROM_NAME:     str = "ATLAS PRO"
-    # Supabase (optional cloud sync)
-    SUPABASE_URL:  str = os.getenv("SUPABASE_URL", "")
-    SUPABASE_KEY:  str = os.getenv("SUPABASE_KEY", "")
     # Plans
     PLANS: dict = field(default_factory=lambda: {
         "free":    {"name":"Gratuit","price":0,  "tenders_day":15,"email":True, "telegram":False,"api":False},
