@@ -115,7 +115,8 @@ CREATE TABLE IF NOT EXISTS members (
     actif        INTEGER DEFAULT 1,
     created_at   TEXT DEFAULT '',
     trial_ends   TEXT DEFAULT '',
-    last_login   TEXT DEFAULT ''
+    last_login   TEXT DEFAULT '',
+    session_token TEXT DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS favorites (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -146,6 +147,17 @@ CREATE INDEX IF NOT EXISTS idx_m_email    ON members(email);
 CREATE INDEX IF NOT EXISTS idx_fav_member ON favorites(member_id);
 """
 
+def migrate_db():
+    """Ajoute les colonnes manquantes si nécessaire"""
+    db = get_db()
+    try:
+        db.execute("ALTER TABLE members ADD COLUMN session_token TEXT DEFAULT ''")
+        db.commit()
+    except Exception:
+        pass  # Column already exists
+    finally:
+        db.close()
+
 def init_db():
     db = get_db()
     for stmt in SCHEMA.split(";"):
@@ -155,3 +167,5 @@ def init_db():
             except: pass
     db.commit(); db.close()
     logger.info("✅ DB initialisée")
+    try: migrate_db()
+    except: pass

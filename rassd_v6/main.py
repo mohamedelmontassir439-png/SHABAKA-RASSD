@@ -15,7 +15,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config   import cfg
 from app.core.database import get_db, init_db
-from app.core.security import (hash_pw, verify_pw, make_token,
+from app.core.security import (hash_pw, verify_pw, make_token, make_session_token,
                                 get_member, validate_email,
                                 validate_password, days_left)
 from app.services.notifications import dispatch_notifications, tg_admin, test_notifications
@@ -439,11 +439,14 @@ async def login_post(req: Request, email:str=Form(""), pw:str=Form(""), next:str
         return render(req,"login.html",{"err":"Email ou mot de passe incorrect","vals":{"email":email},"next":next})
     db.execute("UPDATE members SET last_login=? WHERE id=?",(datetime.now().isoformat(),m["id"]))
     db.commit(); db.close()
+    # Generate stable session token stored in DB
+    session_tok = make_session_token()
+    db.execute("UPDATE members SET session_token=? WHERE id=?", (session_tok, m["id"]))
+    db.commit(); db.close()
     logger.info(f"[Login] ✅ {email} connecté")
     resp = RedirectResponse(next or "/dashboard",302)
-    resp.set_cookie("_session", make_token(m["email"], m["created_at"]),
-                    max_age=86400*30, httponly=True, samesite="lax",
-                    secure=False)
+    resp.set_cookie("_session", session_tok,
+                    max_age=86400*30, httponly=True, samesite="lax")
     return resp
 
 @app.get("/logout")

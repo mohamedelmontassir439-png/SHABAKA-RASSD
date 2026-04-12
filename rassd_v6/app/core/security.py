@@ -20,18 +20,30 @@ def make_token(val: str, salt: str = "") -> str:
 def make_random_token() -> str:
     return secrets.token_urlsafe(32)
 
+def make_session_token() -> str:
+    """Token aléatoire stocké en DB — indépendant du SECRET_KEY"""
+    return secrets.token_urlsafe(40)
+
 def get_member(req: Request) -> Optional[dict]:
     token = req.cookies.get("_session", "")
     if not token or len(token) < 10: return None
     db = get_db()
     try:
-        # Try to find member by matching token
-        rows = db.execute(
-            "SELECT * FROM members WHERE actif=1"
-        ).fetchall()
+        # Method 1: Direct DB token lookup (fast, no SECRET_KEY dependency)
+        row = db.execute(
+            "SELECT * FROM members WHERE actif=1 AND session_token=?",
+            (token,)
+        ).fetchone()
+        if row:
+            return dict(row)
+        # Method 2: Fallback - computed token (backward compat)
+        rows = db.execute("SELECT * FROM members WHERE actif=1").fetchall()
         for row in rows:
-            expected = make_token(row["email"], row["created_at"])
-            if expected == token:
+            if make_token(row["email"], row["created_at"]) == token:
+                # Migrate: store token in DB
+                db.execute("UPDATE members SET session_token=? WHERE id=?",
+                          (token, row["id"]))
+                db.commit()
                 return dict(row)
     except Exception as e:
         import logging
