@@ -23,17 +23,17 @@ def make_random_token() -> str:
 def get_member(req: Request) -> Optional[dict]:
     token = req.cookies.get("_session", "")
     if not token or len(token) < 10: return None
+    # Try fast O(1) lookup via _session_email hint cookie
+    email_hint = req.cookies.get("_session_email", "")
     db = get_db()
     try:
         # Fast path: use _session_email hint cookie for O(1) lookup
-        hint = req.cookies.get("_session_email", "")
-        if hint:
+        if email_hint:
             row = db.execute(
-                "SELECT * FROM members WHERE email=? AND actif=1", (hint,)
+                "SELECT * FROM members WHERE email=? AND actif=1", (email_hint,)
             ).fetchone()
             if row and make_token(row["email"], row["created_at"]) == token:
                 return dict(row)
-
         # Fallback: scan all members (for sessions before email hint was added)
         rows = db.execute(
             "SELECT * FROM members WHERE actif=1"
