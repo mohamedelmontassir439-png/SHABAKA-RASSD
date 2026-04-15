@@ -195,17 +195,31 @@ KEYWORDS: dict = {
 
 def classify(text: str) -> str:
     """
-    Classe un marché selon le texte de l'objet.
-    Retourne le code (ex: 'T101') ou 'S904' (Prestations diverses) par défaut.
+    Classe un marché selon le texte.
+    Algorithme de scoring pondéré:
+    - Mots exacts dans l'objet = 3 pts
+    - Mots partiels = 1 pt
+    Retourne le code officiel MB SA.
     """
     t = text.lower()
     best_code  = "S904"
     best_score = 0
+
     for code, keywords in KEYWORDS.items():
-        score = sum(1 for kw in keywords if kw in t)
+        score = 0
+        for kw in keywords:
+            kw_lower = kw.lower()
+            if f" {kw_lower} " in f" {t} ":
+                score += 3   # exact word match
+            elif kw_lower in t:
+                score += 1   # partial match
+        # Bonus: code in text (ex: "T101" mentioned)
+        if code.lower() in t:
+            score += 10
         if score > best_score:
             best_score = score
             best_code  = code
+
     return best_code
 
 

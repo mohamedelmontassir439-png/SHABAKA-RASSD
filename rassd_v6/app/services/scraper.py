@@ -190,6 +190,14 @@ def parse_page(html, tid):
             return None
 
         objet = re.sub(r'\s+', ' ', objet).strip()
+        # Remove leading markers like #1, #01, N°1, No.1, Ref:, etc.
+        objet = re.sub(r'^[#N°n]\s*°?\s*\d+\s*[:\-–—]?\s*', '', objet).strip()
+        objet = re.sub(r'^(Ref|Réf|N°|No\.?|Num\.?)\s*[:\-]?\s*[\w\-/]+\s*[:\-–]?\s*', '', objet, flags=re.I).strip()
+        objet = re.sub(r'^\d+\s*[:\-–—]\s*', '', objet).strip()  # "123: objet" → "objet"
+        # Remove parentheses-only content at start
+        objet = re.sub(r'^\([^)]+\)\s*', '', objet).strip()
+        # Capitalize first letter
+        if objet and len(objet) > 2: objet = objet[0].upper() + objet[1:]
 
         # ── DATE LIMITE ──
         date_lim = ""
