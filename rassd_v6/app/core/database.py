@@ -116,7 +116,12 @@ CREATE TABLE IF NOT EXISTS members (
     created_at   TEXT DEFAULT '',
     trial_ends   TEXT DEFAULT '',
     last_login   TEXT DEFAULT '',
-    session_token TEXT DEFAULT ''
+    session_token  TEXT DEFAULT '',
+    whatsapp       TEXT DEFAULT '',
+    notif_wa       INTEGER DEFAULT 0,
+    reset_token    TEXT DEFAULT '',
+    reset_expires  TEXT DEFAULT '',
+    onboarded      INTEGER DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS favorites (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -139,6 +144,17 @@ CREATE TABLE IF NOT EXISTS scrape_log (
     errors INTEGER DEFAULT 0,
     run_at TEXT DEFAULT ''
 );
+
+CREATE TABLE IF NOT EXISTS feedback (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    member_id  INTEGER,
+    email      TEXT DEFAULT '',
+    message    TEXT DEFAULT '',
+    features   TEXT DEFAULT '[]',
+    rating     INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT ''
+);
+
 CREATE INDEX IF NOT EXISTS idx_t_statut   ON tenders(statut);
 CREATE INDEX IF NOT EXISTS idx_t_scraped  ON tenders(scraped_at DESC);
 CREATE INDEX IF NOT EXISTS idx_t_secteur  ON tenders(secteur);
@@ -150,13 +166,18 @@ CREATE INDEX IF NOT EXISTS idx_fav_member ON favorites(member_id);
 def migrate_db():
     """Ajoute les colonnes manquantes si nécessaire"""
     db = get_db()
-    try:
-        db.execute("ALTER TABLE members ADD COLUMN session_token TEXT DEFAULT ''")
-        db.commit()
-    except Exception:
-        pass  # Column already exists
-    finally:
-        db.close()
+    cols = [
+        "ALTER TABLE members ADD COLUMN session_token TEXT DEFAULT ''",
+        "ALTER TABLE members ADD COLUMN whatsapp TEXT DEFAULT ''",
+        "ALTER TABLE members ADD COLUMN notif_wa INTEGER DEFAULT 0",
+        "ALTER TABLE members ADD COLUMN reset_token TEXT DEFAULT ''",
+        "ALTER TABLE members ADD COLUMN reset_expires TEXT DEFAULT ''",
+        "ALTER TABLE members ADD COLUMN onboarded INTEGER DEFAULT 0",
+    ]
+    for col in cols:
+        try: db.execute(col); db.commit()
+        except: pass
+    db.close()
 
 def init_db():
     db = get_db()

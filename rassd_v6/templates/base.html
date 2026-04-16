@@ -236,6 +236,7 @@ img { max-width: 100%; }
     {% if member %}
     <a href="/dashboard" class="nav-link {% if request.url.path == '/dashboard' %}active{% endif %}">Mon espace</a>
     <a href="/favorites" class="nav-link {% if request.url.path == '/favorites' %}active{% endif %}">Favoris</a>
+    <a href="/feedback" class="nav-link {% if request.url.path == '/feedback' %}active{% endif %}">📝 Feedback</a>
     <a href="/settings"  class="nav-link {% if request.url.path == '/settings' %}active{% endif %}">Alertes</a>
     {% endif %}
   </div>

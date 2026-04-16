@@ -2,7 +2,7 @@
 ATLAS PRO v3.2 — SaaS Veille Marchés Publics Maroc
 Full audit & fix — Production ready
 """
-import os, re, json, asyncio, logging, hashlib
+import os, re, json, secrets, asyncio, logging, hashlib
 from datetime import datetime, date, timedelta
 from contextlib import asynccontextmanager
 from collections import defaultdict
@@ -188,6 +188,15 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan, title=cfg.APP_NAME,
               version=cfg.APP_VERSION, docs_url=None, redoc_url=None)
 app.add_middleware(SecurityMiddleware)
+
+@app.exception_handler(404)
+async def not_found(req: Request, exc):
+    return render(req, "404.html", {})
+
+@app.exception_handler(500)
+async def server_error(req: Request, exc):
+    logger.error(f"[500] {req.url}: {exc}")
+    return HTMLResponse("<h1>Erreur serveur</h1><a href='/'>Retour</a>", 500)
 templates = Jinja2Templates(directory="templates")
 try:
     os.makedirs("static", exist_ok=True)
@@ -447,8 +456,10 @@ async def login_post(req: Request, email:str=Form(""), pw:str=Form(""), next:str
     session_tok = make_session_token()
     db.execute("UPDATE members SET session_token=? WHERE id=?", (session_tok, m["id"]))
     db.commit(); db.close()
+    onboarded = m["onboarded"] if "onboarded" in m.keys() else 1
     logger.info(f"[Login] ✅ {email} connecté")
-    resp = RedirectResponse(next or "/dashboard",302)
+    dest = next or ("/dashboard?welcome=1" if not onboarded else "/dashboard")
+    resp = RedirectResponse(dest, 302)
     resp.set_cookie("_session", session_tok,
                     max_age=86400*30, httponly=True, samesite="lax")
     return resp
@@ -474,12 +485,14 @@ async def settings_post(req: Request,
     n_email  = 1 if form.get("notif_email")  else 0
     n_tg     = 1 if form.get("notif_tg")     else 0
     n_digest = 1 if form.get("notif_digest") else 0
+    n_wa     = 1 if form.get("notif_wa")     else 0
+    whatsapp = form.get("whatsapp","").strip()
     sects    = clean_secteurs(secteurs_sel)
     db = get_db()
     try:
         db.execute(
-            "UPDATE members SET nom=?,phone=?,company=?,telegram=?,notif_email=?,notif_tg=?,notif_digest=?,secteurs=? WHERE id=?",
-            (nom,phone,company,telegram.strip(),n_email,n_tg,n_digest,json.dumps(sects),member["id"]))
+            "UPDATE members SET nom=?,phone=?,company=?,telegram=?,whatsapp=?,notif_email=?,notif_tg=?,notif_wa=?,notif_digest=?,secteurs=? WHERE id=?",
+            (nom,phone,company,telegram.strip(),whatsapp,n_email,n_tg,n_wa,n_digest,json.dumps(sects),member["id"]))
         db.commit()
     finally: db.close()
     return RedirectResponse("/settings?ok=1",302)
@@ -661,6 +674,108 @@ async def api_sources():
         {"name":"BCP",                  "type":"private",     "status":"active" if MULTI_OK else "disabled"},
     ]
     return {"ok":True,"total":len(sources),"sources":sources}
+
+# ══════════════════════════════════════════════════════════
+# PASSWORD RESET
+# ══════════════════════════════════════════════════════════
+@app.get("/forgot", response_class=HTMLResponse)
+async def forgot_get(req: Request):
+    return render(req, "forgot.html", {})
+
+@app.post("/forgot")
+async def forgot_post(req: Request, email: str = Form("")):
+    db = get_db()
+    m  = db.execute("SELECT * FROM members WHERE email=? AND actif=1", (email,)).fetchone()
+    if m:
+        token      = secrets.token_urlsafe(32)
+        expires    = (datetime.now() + timedelta(hours=2)).isoformat()
+        db.execute("UPDATE members SET reset_token=?, reset_expires=? WHERE id=?",
+                   (token, expires, m["id"]))
+        db.commit()
+        reset_url = f"{cfg.SITE_URL}/reset?token={token}"
+        # Send reset email
+        try:
+            from app.services.notifications import send_email
+            send_email(email, "Réinitialisation de votre mot de passe — ATLAS PRO",
+                f"""<h2>Réinitialisation de mot de passe</h2>
+                <p>Cliquez sur le lien ci-dessous pour réinitialiser votre mot de passe:</p>
+                <a href="{reset_url}" style="display:inline-block;padding:12px 24px;background:#d4a843;color:#000;border-radius:8px;text-decoration:none;font-weight:600">
+                  Réinitialiser mon mot de passe →
+                </a>
+                <p style="color:#666;font-size:12px;margin-top:16px">Ce lien expire dans 2 heures.</p>""")
+        except Exception as e:
+            logger.error(f"[reset email] {e}")
+        db.close()
+    return render(req, "forgot.html", {"sent": True})
+
+@app.get("/reset", response_class=HTMLResponse)
+async def reset_get(req: Request, token: str = ""):
+    db  = get_db()
+    m   = db.execute("SELECT * FROM members WHERE reset_token=?", (token,)).fetchone()
+    db.close()
+    if not m or not m["reset_token"]:
+        return render(req, "reset.html", {"err": "Lien invalide ou expiré"})
+    if datetime.fromisoformat(m["reset_expires"] or "2000-01-01") < datetime.now():
+        return render(req, "reset.html", {"err": "Ce lien a expiré. Faites une nouvelle demande."})
+    return render(req, "reset.html", {"token": token})
+
+@app.post("/reset")
+async def reset_post(req: Request, token: str = Form(""),
+                     pw: str = Form(""), pw2: str = Form("")):
+    if pw != pw2:
+        return render(req, "reset.html", {"token": token, "err": "Les mots de passe ne correspondent pas"})
+    if len(pw) < 8:
+        return render(req, "reset.html", {"token": token, "err": "Minimum 8 caractères"})
+    db = get_db()
+    m  = db.execute("SELECT * FROM members WHERE reset_token=?", (token,)).fetchone()
+    if not m:
+        return render(req, "reset.html", {"err": "Lien invalide"})
+    db.execute("UPDATE members SET pw_hash=?, reset_token='', reset_expires='' WHERE id=?",
+               (hash_pw(pw), m["id"]))
+    db.commit(); db.close()
+    return RedirectResponse("/login?reset=1", 302)
+
+# ══════════════════════════════════════════════════════════
+# FEEDBACK
+# ══════════════════════════════════════════════════════════
+@app.get("/feedback", response_class=HTMLResponse)
+async def feedback_get(req: Request):
+    return render(req, "feedback.html", {})
+
+@app.post("/feedback")
+async def feedback_post(req: Request,
+    message:  str  = Form(""),
+    rating:   int  = Form(0),
+    features: list = Form(default=[])):
+    member = get_member(req)
+    db = get_db()
+    db.execute(
+        "INSERT INTO feedback(member_id,email,message,features,rating,created_at) VALUES(?,?,?,?,?,?)",
+        (member["id"] if member else None,
+         member["email"] if member else "",
+         message, json.dumps(features), rating,
+         datetime.now().isoformat()))
+    db.commit(); db.close()
+    # Notify admin
+    try:
+        from app.services.notifications import tg_admin
+        stars = "⭐" * rating
+        tg_admin(f"📝 Nouveau feedback {stars}\n\n{message[:300]}\n\nFonctionnalités: {', '.join(features)}")
+    except: pass
+    return RedirectResponse("/feedback?ok=1", 302)
+
+# ══════════════════════════════════════════════════════════
+# WHATSAPP STATUS (admin)
+# ══════════════════════════════════════════════════════════
+@app.get("/admin/wa_status")
+async def wa_status(req: Request):
+    if not _is_admin(req): return JSONResponse({"ok": False}, 401)
+    try:
+        from app.services.whatsapp import wa_connected
+        return JSONResponse({"ok": True, "connected": wa_connected()})
+    except:
+        return JSONResponse({"ok": True, "connected": False})
+
 
 # ══════════════════════════════════════════════════════════
 # UTILS

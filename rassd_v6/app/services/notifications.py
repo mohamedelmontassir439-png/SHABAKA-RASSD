@@ -8,6 +8,14 @@ from app.core.security import days_left
 
 logger = logging.getLogger("atlas.notif")
 
+try:
+    from app.services.whatsapp import send_wa, format_tender_wa
+    WA_OK = True
+except Exception:
+    WA_OK = False
+    def send_wa(*a, **kw): return False
+    def format_tender_wa(t): return ""
+
 # ── Telegram ─────────────────────────────────────────────
 
 def tg_send(chat_id: str, text: str, parse_mode: str = "HTML") -> bool:
