@@ -175,7 +175,7 @@ def migrate_db():
         "ALTER TABLE members ADD COLUMN reset_expires TEXT DEFAULT ''",
         "ALTER TABLE members ADD COLUMN onboarded INTEGER DEFAULT 0",
         "ALTER TABLE members ADD COLUMN stx10_codes TEXT DEFAULT '[]'",
-        "ALTER TABLE tenders ADD COLUMN ai_summary TEXT DEFAULT ''",,
+        "ALTER TABLE tenders ADD COLUMN ai_summary TEXT DEFAULT ''",
         "ALTER TABLE tenders ADD COLUMN stx10_code TEXT DEFAULT ''",
         "ALTER TABLE tenders ADD COLUMN stx10_label TEXT DEFAULT ''",
     ]
