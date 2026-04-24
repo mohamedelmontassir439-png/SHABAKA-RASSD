@@ -310,5 +310,15 @@ img { max-width: 100%; }
   if(p.get('welcome')) show('🎉 Bienvenue sur ATLAS PRO !', 5000);
 })();
 </script>
+
+<!-- WhatsApp Float Button -->
+<a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ cfg.PAYMENT_MSG|urlencode }}"
+   target="_blank"
+   style="position:fixed;bottom:24px;left:24px;z-index:9999;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#25d366,#128c7e);display:flex;align-items:center;justify-content:center;font-size:26px;text-decoration:none;box-shadow:0 4px 20px rgba(37,211,102,.5);animation:waPulse 3s ease-in-out infinite"
+   title="Nous contacter sur WhatsApp">💬</a>
+<style>
+@keyframes waPulse{0%,100%{box-shadow:0 4px 20px rgba(37,211,102,.5)}50%{box-shadow:0 4px 36px rgba(37,211,102,.8)}}
+</style>
+
 </body>
 </html>

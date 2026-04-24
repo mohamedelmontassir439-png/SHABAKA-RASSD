@@ -20,9 +20,27 @@ from app.core.security import (hash_pw, verify_pw, make_token, make_session_toke
                                 validate_password, days_left)
 from app.services.notifications import dispatch_notifications, tg_admin, test_notifications
 
-MULTI_OK = False
-PW_OK = False
+try:
+    from app.services.multi_scraper import run as multi_run
+    MULTI_OK = True
+except Exception as _me:
+    MULTI_OK = False
+    def multi_run(*a, **kw): return []
+
+PW_OK   = False
 SUPA_OK = False
+
+# ── API Rate Limiter ─────────────────────────────────────
+_api_calls: dict = defaultdict(list)
+
+def check_api_limit(ip: str, max_calls: int = 60, window: int = 60) -> bool:
+    """60 appels/minute par IP pour l'API"""
+    now = datetime.now().timestamp()
+    _api_calls[ip] = [t for t in _api_calls[ip] if now - t < window]
+    if len(_api_calls[ip]) >= max_calls:
+        return False
+    _api_calls[ip].append(now)
+    return True
 
 logging.basicConfig(
     level=logging.INFO,
@@ -180,10 +198,33 @@ class SecurityMiddleware(BaseHTTPMiddleware):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Init DB
     init_db()
-    State.log(f"ATLAS PRO v{cfg.APP_VERSION} | Multi-source: {'✅' if MULTI_OK else '❌'}")
+
+    # Startup checks
+    State.log("=" * 50)
+    State.log(f"  ATLAS PRO v{cfg.APP_VERSION}")
+    State.log(f"  Site: {cfg.SITE_URL}")
+    State.log(f"  Multi-source: {'✅' if MULTI_OK else '❌'}")
+    State.log(f"  Secret Key: {'✅ configuré' if cfg.SECRET_KEY else '❌ MANQUANT!'}")
+    State.log(f"  Telegram: {'✅' if cfg.TELEGRAM_BOT else '❌ non configuré'}")
+    State.log(f"  Email: {'✅ Brevo' if cfg.BREVO_KEY else ('✅ Gmail' if cfg.GMAIL_USER else '❌ non configuré')}")
+    try:
+        from app.services.whatsapp import wa_connected
+        State.log(f"  WhatsApp: {'✅ connecté' if wa_connected() else '⚠️ non connecté'}")
+    except:
+        State.log("  WhatsApp: ⚠️ service indisponible")
+    State.log("=" * 50)
+
+    # Notify admin on startup
+    try:
+        tg_admin(f"🚀 ATLAS PRO v{cfg.APP_VERSION} démarré\nSite: {cfg.SITE_URL}")
+    except: pass
+
     asyncio.create_task(scheduler())
     yield
+
+    State.log("ATLAS PRO arrêté")
 
 app = FastAPI(lifespan=lifespan, title=cfg.APP_NAME,
               version=cfg.APP_VERSION, docs_url=None, redoc_url=None)
@@ -625,6 +666,9 @@ async def admin_reset(req: Request):
 @app.get("/api/v1/tenders")
 async def api_tenders(req:Request, secteur:str="", region:str="", q:str="",
                        limit:int=20, offset:int=0, page:int=0):
+    ip = get_ip(req)
+    if not check_api_limit(ip):
+        return JSONResponse({"ok": False, "msg": "Rate limit — max 60 req/min"}, 429)
     if page > 0: offset = (page-1)*limit
     db = get_db()
     where, params = ["statut='actif'"], []
@@ -674,6 +718,153 @@ async def api_sources():
         {"name":"BCP",                  "type":"private",     "status":"active" if MULTI_OK else "disabled"},
     ]
     return {"ok":True,"total":len(sources),"sources":sources}
+
+
+
+# ══════════════════════════════════════════════════════════
+# STX10 — Classification & Test Notifications
+# ══════════════════════════════════════════════════════════
+@app.get("/admin/stx10/classify")
+async def stx10_classify(req: Request, text: str = ""):
+    """Tester la classification STX10 d'un texte"""
+    if not _is_admin(req):
+        return JSONResponse({"ok": False}, 401)
+    if not text:
+        return JSONResponse({"ok": False, "msg": "Paramètre text requis"})
+    try:
+        from app.core.stx10 import classify_stx10
+        results = classify_stx10(text, top_n=5)
+        return {"ok": True, "text": text[:100], "results": results}
+    except Exception as e:
+        return JSONResponse({"ok": False, "msg": str(e)})
+
+@app.get("/admin/stx10/test_notif")
+async def stx10_test_notif(req: Request, tender_id: str = ""):
+    """Tester la notification STX10 pour un marché spécifique"""
+    if not _is_admin(req):
+        return JSONResponse({"ok": False}, 401)
+
+    db = get_db()
+    try:
+        from app.core.stx10 import classify_stx10, match_member_codes
+
+        # Get tender
+        if tender_id:
+            tender = db.execute("SELECT * FROM tenders WHERE id=?", (tender_id,)).fetchone()
+        else:
+            tender = db.execute(
+                "SELECT * FROM tenders WHERE statut='actif' ORDER BY scraped_at DESC LIMIT 1"
+            ).fetchone()
+
+        if not tender:
+            return JSONResponse({"ok": False, "msg": "Aucun marché trouvé"})
+
+        t = dict(tender)
+        text = f"{t['objet']} {t.get('description','')[:500]}"
+
+        # Classify
+        stx10_results = classify_stx10(text, top_n=5)
+
+        # Find matching members
+        members = db.execute(
+            "SELECT id, nom, email, telegram, stx10_codes, plan FROM members WHERE actif=1"
+        ).fetchall()
+
+        notified = []
+        for m in members:
+            member_codes = json.loads(m["stx10_codes"] or "[]")
+            if not member_codes:
+                continue
+            matches = match_member_codes(text, member_codes)
+            if matches:
+                notified.append({
+                    "email": m["email"],
+                    "nom": m["nom"],
+                    "plan": m["plan"],
+                    "member_codes": member_codes,
+                    "matched_codes": matches,
+                })
+
+        # Send real Telegram notification to admin for testing
+        if stx10_results:
+            codes_str = " | ".join([f"[{r['code']}] {r['label'][:30]}" for r in stx10_results[:3]])
+            tg_admin(
+                f"🧪 <b>Test STX10 — Classification</b>\n\n"
+                f"📋 {t['objet'][:100]}\n\n"
+                f"🏷 <b>Codes détectés:</b>\n{codes_str}\n\n"
+                f"👥 Membres correspondants: {len(notified)}\n"
+                f"📊 Marché ID: {t['id']}"
+            )
+
+        return {
+            "ok": True,
+            "tender": {"id": t["id"], "objet": t["objet"][:100]},
+            "stx10": stx10_results,
+            "members_matched": len(notified),
+            "members": notified[:10],
+            "notification_sent": "admin telegram",
+        }
+    except Exception as e:
+        logger.error(f"[STX10 test] {e}")
+        return JSONResponse({"ok": False, "msg": str(e)})
+    finally:
+        db.close()
+
+@app.post("/settings/stx10")
+async def save_stx10_codes(req: Request):
+    """Sauvegarder les codes STX10 d'un membre"""
+    member = get_member(req)
+    if not member:
+        return RedirectResponse("/login", 302)
+    form = await req.form()
+    codes = form.getlist("stx10_codes")
+    codes = list(set(c for c in codes if c.strip()))
+    db = get_db()
+    try:
+        db.execute(
+            "UPDATE members SET stx10_codes=? WHERE id=?",
+            (json.dumps(codes), member["id"])
+        )
+        db.commit()
+        logger.info(f"[STX10] {member['email']} codes: {codes}")
+        return RedirectResponse("/settings?stx10=1", 302)
+    finally:
+        db.close()
+
+# ══════════════════════════════════════════════════════════
+# EXPORT CSV
+# ══════════════════════════════════════════════════════════
+@app.get("/export/csv")
+async def export_csv(req: Request, secteur: str = "", region: str = ""):
+    member = get_member(req)
+    if not member:
+        return RedirectResponse("/login?next=/export/csv", 302)
+    if member.get("plan","free") == "free":
+        return JSONResponse({"ok": False, "msg": "Export CSV réservé aux plans Pro et Business"}, 403)
+
+    db = get_db()
+    where, params = ["statut='actif'"], []
+    if secteur: where.append("secteur=?"); params.append(secteur)
+    if region:  where.append("region=?");  params.append(region)
+    wh   = " AND ".join(where)
+    rows = db.execute(
+        f"SELECT objet,acheteur,secteur,region,montant,date_publication,date_limite,url FROM tenders WHERE {wh} ORDER BY scraped_at DESC LIMIT 2000",
+        params).fetchall()
+    db.close()
+
+    import csv, io
+    output = io.StringIO()
+    w = csv.writer(output)
+    w.writerow(["Objet","Acheteur","Secteur","Region","Montant","Date Publication","Date Limite","URL"])
+    for row in rows:
+        w.writerow(list(row))
+
+    filename = f"atlas_pro_{datetime.now().strftime('%Y%m%d')}.csv"
+    return Response(
+        content=output.getvalue().encode("utf-8-sig"),  # BOM pour Excel
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 # ══════════════════════════════════════════════════════════
 # PASSWORD RESET

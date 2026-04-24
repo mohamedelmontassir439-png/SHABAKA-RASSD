@@ -121,7 +121,8 @@ CREATE TABLE IF NOT EXISTS members (
     notif_wa       INTEGER DEFAULT 0,
     reset_token    TEXT DEFAULT '',
     reset_expires  TEXT DEFAULT '',
-    onboarded      INTEGER DEFAULT 0
+    onboarded      INTEGER DEFAULT 0,
+    stx10_codes    TEXT DEFAULT '[]'
 );
 CREATE TABLE IF NOT EXISTS favorites (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -173,6 +174,9 @@ def migrate_db():
         "ALTER TABLE members ADD COLUMN reset_token TEXT DEFAULT ''",
         "ALTER TABLE members ADD COLUMN reset_expires TEXT DEFAULT ''",
         "ALTER TABLE members ADD COLUMN onboarded INTEGER DEFAULT 0",
+        "ALTER TABLE members ADD COLUMN stx10_codes TEXT DEFAULT '[]'",
+        "ALTER TABLE tenders ADD COLUMN stx10_code TEXT DEFAULT ''",
+        "ALTER TABLE tenders ADD COLUMN stx10_label TEXT DEFAULT ''",
     ]
     for col in cols:
         try: db.execute(col); db.commit()

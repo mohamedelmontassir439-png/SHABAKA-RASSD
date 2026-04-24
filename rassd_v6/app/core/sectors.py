@@ -234,3 +234,13 @@ def get_group(code: str) -> str:
     if code.startswith('P'): return "ÉQUIPEMENTS"
     if code.startswith('S'): return "SERVICES"
     return "AUTRES"
+
+# ── STX10 Integration ─────────────────────────────────────
+# Import depuis le nouveau module
+try:
+    from app.core.stx10 import classify_stx10, classify_primary, match_member_codes, STX10_CODES
+except ImportError:
+    STX10_CODES = {}
+    def classify_stx10(text, top_n=3): return []
+    def classify_primary(text): return {"code": "S904", "label": "Autres", "score": 0}
+    def match_member_codes(text, codes): return []

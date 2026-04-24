@@ -9,6 +9,14 @@ from app.core.security import days_left
 logger = logging.getLogger("atlas.notif")
 
 try:
+    from app.core.stx10 import classify_stx10, match_member_codes
+    STX10_OK = True
+except ImportError:
+    STX10_OK = False
+    def match_member_codes(text, codes): return []
+
+
+try:
     from app.services.whatsapp import send_wa, format_tender_wa
     WA_OK = True
 except Exception:

@@ -1,69 +1,202 @@
 {% extends "base.html" %}
-{% block title %}ATLAS PRO — Version Bêta{% endblock %}
+{% block title %}ATLAS PRO — Tarifs & Abonnements{% endblock %}
 {% block body %}
 <style>
-.beta-page{max-width:720px;margin:80px auto;padding:0 24px;text-align:center}
-.beta-badge{display:inline-flex;align-items:center;gap:8px;padding:7px 20px;background:rgba(212,168,67,.08);border:1px solid rgba(212,168,67,.25);border-radius:99px;font-family:var(--mono);font-size:10px;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:32px}
-.beta-page h1{font-family:var(--serif);font-style:italic;font-size:clamp(32px,5vw,52px);color:var(--text1);line-height:1.2;margin-bottom:20px}
-.beta-page p{font-size:16px;color:var(--text3);line-height:1.85;margin-bottom:0}
-.beta-card{background:var(--bg2);border:1px solid rgba(212,168,67,.2);border-radius:16px;padding:40px;margin:40px 0;text-align:left}
-.beta-card h3{font-family:var(--serif);font-size:22px;color:var(--text1);margin-bottom:16px}
-.beta-card p{font-size:14px;color:var(--text3);line-height:1.8;margin-bottom:24px}
-.feedback-form{display:flex;flex-direction:column;gap:14px}
-.feedback-form textarea{width:100%;background:var(--bg3);border:1.5px solid var(--bdr);border-radius:10px;padding:14px;color:var(--text1);font-family:var(--sans);font-size:14px;min-height:140px;resize:vertical;outline:none}
-.feedback-form textarea:focus{border-color:var(--gold)}
-.features-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:24px;text-align:left}
-.feature-chip{padding:10px 14px;background:var(--bg3);border:1px solid var(--bdr);border-radius:8px;font-size:12px;color:var(--text3);cursor:pointer;transition:.15s;user-select:none}
-.feature-chip:hover{border-color:var(--gold);color:var(--gold)}
-.perks{display:flex;flex-direction:column;gap:12px;margin:32px 0}
-.perk{display:flex;align-items:flex-start;gap:12px;text-align:left}
-.perk-icon{font-size:20px;flex-shrink:0;margin-top:2px}
-.perk-text{font-size:14px;color:var(--text2);line-height:1.65}
-.perk-text strong{color:var(--text1)}
+.tarifs-page{max-width:1000px;margin:0 auto;padding:80px 20px}
+.tarifs-hero{text-align:center;margin-bottom:60px}
+.tarifs-hero h1{font-family:var(--serif);font-size:clamp(32px,5vw,52px);color:var(--text1);margin-bottom:16px}
+.tarifs-hero p{font-size:16px;color:var(--text3);max-width:560px;margin:0 auto}
+.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;margin-bottom:60px}
+.plan{background:var(--bg2);border:1.5px solid var(--bdr);border-radius:20px;padding:36px 32px;position:relative;transition:.2s}
+.plan.featured{border-color:var(--gold);background:linear-gradient(135deg,var(--bg2),var(--bg3))}
+.plan-badge{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,var(--gold),#a07830);color:#000;font-size:11px;font-weight:700;padding:4px 18px;border-radius:20px;letter-spacing:1px;white-space:nowrap}
+.plan-name{font-family:var(--mono);font-size:11px;color:var(--text4);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
+.plan-price{font-family:var(--serif);font-size:52px;font-weight:700;color:var(--text1);line-height:1;margin-bottom:4px}
+.plan-price .cur{font-size:20px;vertical-align:super;color:var(--gold)}
+.plan-period{font-size:13px;color:var(--text4);margin-bottom:8px}
+.plan-ar{font-size:13px;color:var(--text3);margin-bottom:24px;font-style:italic}
+.plan-features{list-style:none;margin-bottom:32px}
+.plan-features li{padding:9px 0;border-bottom:1px solid var(--bdr);font-size:14px;color:var(--text2);display:flex;align-items:center;gap:10px}
+.plan-features li:last-child{border-bottom:none}
+.feat-ok{color:#22c55e;font-size:15px}
+.feat-no{color:var(--text4);font-size:15px}
+.btn-wa-plan{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px;border-radius:12px;background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;font-weight:700;font-size:15px;text-decoration:none;transition:.2s;border:none;cursor:pointer}
+.btn-wa-plan:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(37,211,102,.35)}
+.btn-outline-plan{display:block;text-align:center;padding:14px;border-radius:12px;border:1.5px solid var(--bdr);color:var(--text3);font-weight:600;font-size:14px;text-decoration:none;transition:.2s}
+.btn-outline-plan:hover{border-color:var(--gold);color:var(--gold)}
+
+/* Payment info */
+.payment-box{background:var(--bg2);border:1.5px solid rgba(37,211,102,.3);border-radius:16px;padding:40px;text-align:center;margin-bottom:40px}
+.payment-box h2{font-family:var(--serif);font-size:26px;color:var(--text1);margin-bottom:12px}
+.payment-box p{font-size:14px;color:var(--text3);line-height:1.8;margin-bottom:8px}
+.payment-ar{font-size:15px;color:var(--text2);margin-bottom:28px;direction:rtl;font-family:var(--sans)}
+.wa-big{display:inline-flex;align-items:center;gap:12px;padding:16px 36px;border-radius:12px;background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;font-weight:700;font-size:17px;text-decoration:none;transition:.3s;box-shadow:0 0 24px rgba(37,211,102,.25)}
+.wa-big:hover{transform:scale(1.05);box-shadow:0 0 40px rgba(37,211,102,.4)}
+.wa-note{font-size:12px;color:var(--text4);margin-top:14px}
+
+/* FAQ */
+.faq{max-width:640px;margin:0 auto}
+.faq h2{font-family:var(--serif);font-size:28px;text-align:center;margin-bottom:32px;color:var(--text1)}
+.faq-item{border-bottom:1px solid var(--bdr);padding:18px 0}
+.faq-q{font-weight:600;color:var(--text1);cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.faq-a{font-size:14px;color:var(--text3);line-height:1.8;margin-top:12px;display:none}
+.faq-item.open .faq-a{display:block}
+.faq-item.open .faq-arrow{transform:rotate(180deg)}
+.faq-arrow{transition:.2s;color:var(--gold)}
 </style>
 
-<div class="beta-page">
-  <div class="beta-badge">🚀 Version bêta — Accès gratuit</div>
-  <h1>Nous construisons ATLAS PRO<br/>avec vous</h1>
-  <p>Nous sommes honorés de vous compter parmi nos premiers testeurs. Cette version bêta est entièrement <strong style="color:var(--text2)">gratuite</strong>. Votre retour façonnera directement la version complète de la plateforme.</p>
+<div class="tarifs-page">
 
-  <div class="perks">
-    <div class="perk">
-      <div class="perk-icon">🎁</div>
-      <div class="perk-text"><strong>Accès 100% gratuit pendant toute la bêta</strong><br/>Profitez de toutes les fonctionnalités sans condition ni engagement.</div>
-    </div>
-    <div class="perk">
-      <div class="perk-icon">⭐</div>
-      <div class="perk-text"><strong>Accès prioritaire à la version complète</strong><br/>Les testeurs bêta bénéficieront de conditions préférentielles lors du lancement officiel.</div>
-    </div>
-    <div class="perk">
-      <div class="perk-icon">🔨</div>
-      <div class="perk-text"><strong>Votre avis construit le produit</strong><br/>Chaque retour est lu et pris en compte. Vous avez un impact direct sur les fonctionnalités à venir.</div>
-    </div>
+  <!-- Hero -->
+  <div class="tarifs-hero">
+    <h1>Investissement rentable<br/>dès le 1<sup>er</sup> marché</h1>
+    <p>Commencez gratuitement. Passez Pro quand vous êtes prêt. Payez par virement — simple et sécurisé.</p>
   </div>
 
-  <div class="beta-card">
-    <h3>📝 Partagez votre expérience</h3>
-    <p>Qu'est-ce qui manque ? Qu'est-ce qui fonctionne bien ? Qu'aimeriez-vous voir dans la version finale ? Votre avis nous est précieux.</p>
-    <form action="mailto:contact@atlaspro.ma" method="get" class="feedback-form">
-      <textarea name="body" placeholder="Écrivez votre retour ici... Dites-nous ce que vous aimez, ce qui pourrait être amélioré, et ce que vous souhaitez voir dans la version complète."></textarea>
-      <a href="mailto:contact@atlaspro.ma?subject=Feedback ATLAS PRO Bêta" class="btn btn-primary">Envoyer mon retour →</a>
-    </form>
+  <!-- Plans -->
+  <div class="plans">
+
+    <!-- FREE -->
+    <div class="plan">
+      <div class="plan-name">Gratuit</div>
+      <div class="plan-price">0<span class="cur"></span></div>
+      <div class="plan-period">MAD / mois — للأبد</div>
+      <div class="plan-ar">للتجربة والاكتشاف</div>
+      <ul class="plan-features">
+        <li><span class="feat-ok">✓</span> 15 marchés / jour</li>
+        <li><span class="feat-ok">✓</span> Recherche & filtres</li>
+        <li><span class="feat-ok">✓</span> Favoris</li>
+        <li><span class="feat-no">✗</span> Alertes Telegram</li>
+        <li><span class="feat-no">✗</span> Alertes WhatsApp</li>
+        <li><span class="feat-no">✗</span> API REST</li>
+        <li><span class="feat-no">✗</span> Marchés illimités</li>
+      </ul>
+      <a href="/register" class="btn-outline-plan">Commencer gratuitement →</a>
+    </div>
+
+    <!-- PRO -->
+    <div class="plan featured">
+      <div class="plan-badge">⭐ LE PLUS POPULAIRE</div>
+      <div class="plan-name">Pro</div>
+      <div class="plan-price"><span class="cur">MAD</span>149</div>
+      <div class="plan-period">/ mois — شهرياً</div>
+      <div class="plan-ar">للمقاولين والشركات الجادة</div>
+      <ul class="plan-features">
+        <li><span class="feat-ok">✓</span> <strong>Marchés illimités</strong></li>
+        <li><span class="feat-ok">✓</span> <strong>Alertes Telegram</strong> instantanées</li>
+        <li><span class="feat-ok">✓</span> Alertes Email</li>
+        <li><span class="feat-ok">✓</span> API REST complète</li>
+        <li><span class="feat-ok">✓</span> Filtres avancés</li>
+        <li><span class="feat-ok">✓</span> Favoris illimités</li>
+        <li><span class="feat-ok">✓</span> Support WhatsApp</li>
+      </ul>
+      <a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ 'Je veux m abonner au plan Pro 149 MAD - ATLAS PRO'|urlencode }}"
+         class="btn-wa-plan" target="_blank">
+        💬 S'abonner via WhatsApp
+      </a>
+    </div>
+
+    <!-- BUSINESS -->
+    <div class="plan">
+      <div class="plan-name">Business</div>
+      <div class="plan-price"><span class="cur">MAD</span>399</div>
+      <div class="plan-period">/ mois — للشركات</div>
+      <div class="plan-ar">للمكاتب والشركات الكبيرة</div>
+      <ul class="plan-features">
+        <li><span class="feat-ok">✓</span> <strong>Tout le plan Pro</strong></li>
+        <li><span class="feat-ok">✓</span> <strong>3 utilisateurs</strong></li>
+        <li><span class="feat-ok">✓</span> Rapports hebdomadaires</li>
+        <li><span class="feat-ok">✓</span> Alertes WhatsApp</li>
+        <li><span class="feat-ok">✓</span> Support prioritaire</li>
+        <li><span class="feat-ok">✓</span> Statistiques avancées</li>
+        <li><span class="feat-ok">✓</span> Export CSV illimité</li>
+      </ul>
+      <a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ 'Je veux le plan Business 399 MAD - ATLAS PRO'|urlencode }}"
+         class="btn-wa-plan" target="_blank">
+        💬 Nous contacter
+      </a>
+    </div>
+
   </div>
 
-  <div class="beta-card">
-    <h3>💡 Que souhaitez-vous voir dans la version complète ?</h3>
-    <p>Cliquez sur les fonctionnalités qui vous intéressent — votre sélection nous aide à prioriser.</p>
-    <div class="features-grid">
-      <div class="feature-chip">📊 Statistiques avancées</div>
-      <div class="feature-chip">📄 Export PDF & Excel</div>
-      <div class="feature-chip">👥 Multi-utilisateurs</div>
-      <div class="feature-chip">🤖 Analyse IA du marché</div>
-      <div class="feature-chip">📱 Application mobile</div>
-      <div class="feature-chip">🗓 Calendrier des appels</div>
-      <div class="feature-chip">🔍 Historique des marchés</div>
-      <div class="feature-chip">📈 Suivi des résultats</div>
-    </div>
+  <!-- Payment Info -->
+  <div class="payment-box">
+    <h2>💳 Paiement par Virement Bancaire</h2>
+    <p>Contactez-nous sur WhatsApp — nous convenons du virement et activons votre compte sous 1 heure.</p>
+    <p class="payment-ar">تواصل معنا عبر واتساب — نتفق على التحويل البنكي ونفعّل حسابك خلال ساعة واحدة ✅</p>
+    <a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ cfg.PAYMENT_MSG|urlencode }}"
+       class="wa-big" target="_blank">
+      💬 Contacter sur WhatsApp
+    </a>
+    <p class="wa-note">
+      ⏱ Activation sous 1 heure après virement<br>
+      🔒 Virement bancaire sécurisé — CIH / Attijari / BMCE / CPA
+    </p>
   </div>
+
+  <!-- FAQ -->
+  <div class="faq">
+    <h2>Questions fréquentes</h2>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        Comment fonctionne le paiement ?
+        <span class="faq-arrow">▾</span>
+      </div>
+      <div class="faq-a">
+        Contactez-nous sur WhatsApp, nous vous donnons les coordonnées bancaires. Après virement confirmé, votre compte est activé en moins d'1 heure.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        Puis-je annuler à tout moment ?
+        <span class="faq-arrow">▾</span>
+      </div>
+      <div class="faq-a">
+        Oui. L'abonnement est mensuel sans engagement. Contactez-nous avant la date de renouvellement pour ne pas être débité.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        Quelles banques marocaines acceptez-vous ?
+        <span class="faq-arrow">▾</span>
+      </div>
+      <div class="faq-a">
+        CIH Bank, Attijariwafa Bank, BMCE Bank, Banque Populaire, CPA, Crédit Agricole, et toutes les banques marocaines.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        Les données sont-elles en temps réel ?
+        <span class="faq-arrow">▾</span>
+      </div>
+      <div class="faq-a">
+        Le scraper tourne toutes les heures depuis marchespublics.gov.ma. Les nouveaux marchés sont détectés et les alertes envoyées dans les 60 minutes suivant la publication.
+      </div>
+    </div>
+
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)">
+        كيف أحصل على تنبيهات واتساب؟ / Alertes WhatsApp ?
+        <span class="faq-arrow">▾</span>
+      </div>
+      <div class="faq-a">
+        Disponible dans le plan Business. Configurez votre numéro WhatsApp dans les paramètres de votre compte après abonnement.
+        <br><br>
+        متاح في خطة Business. أضف رقم واتساب في إعدادات حسابك بعد الاشتراك.
+      </div>
+    </div>
+
+  </div>
+
 </div>
+
+<script>
+function toggleFaq(el) {
+  el.parentElement.classList.toggle('open');
+}
+</script>
 {% endblock %}

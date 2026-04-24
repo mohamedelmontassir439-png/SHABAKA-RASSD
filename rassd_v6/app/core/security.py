@@ -14,7 +14,12 @@ def verify_pw(pw: str, hashed: str) -> bool:
 
 def make_token(val: str, salt: str = "") -> str:
     """Token stable — SECRET_KEY doit être fixé dans Railway Variables"""
-    key = cfg.SECRET_KEY or "atlas_pro_fallback_key_2024"
+    key = cfg.SECRET_KEY
+    if not key or len(key) < 20:
+        import logging
+        logging.getLogger("atlas.security").critical(
+            "⚠️ SECRET_KEY non défini ou trop court! Définissez-le dans Railway Variables.")
+        key = "atlas_pro_emergency_" + hashlib.sha256(b"atlas2026").hexdigest()[:20]
     return hashlib.sha256(f"{val}{salt}{key}".encode()).hexdigest()[:40]
 
 def make_random_token() -> str:
