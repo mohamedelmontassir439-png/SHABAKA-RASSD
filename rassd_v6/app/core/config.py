@@ -41,6 +41,10 @@ class Settings:
     WA_SECRET:      str = os.getenv("WA_SECRET", "atlas_wa_secret_2024")
     WA_ADMIN_PHONE: str = os.getenv("WA_ADMIN_PHONE", "0621728813")
 
+    # AI
+    GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
+    AI_MODEL:     str = "llama-3.1-8b-instant"
+
     # Paiement WhatsApp
     PAYMENT_PHONE:  str = os.getenv("PAYMENT_PHONE", "212621728813")
     PAYMENT_MSG:    str = os.getenv("PAYMENT_MSG",

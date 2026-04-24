@@ -14,7 +14,50 @@
 <div class="page" style="max-width:1100px">
   <a href="/tenders" style="display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--text4);margin-bottom:24px;letter-spacing:1px;transition:.15s" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--text4)'">← RETOUR AUX MARCHÉS</a>
 
-  <div class="detail-grid">
+  
+<!-- IA Summary Widget -->
+<div id="aiSummaryBox" style="background:var(--bg2);border:1px solid rgba(212,168,67,.25);border-radius:14px;padding:20px;margin-bottom:24px">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+    <span style="font-size:20px">🤖</span>
+    <span style="font-family:var(--mono);font-size:11px;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase">Analyse IA</span>
+    <button onclick="loadAiSummary()" id="aiBtn"
+      style="margin-left:auto;padding:6px 14px;border-radius:8px;border:1px solid var(--gold);background:transparent;color:var(--gold);font-size:12px;cursor:pointer;transition:.2s"
+      onmouseover="this.style.background='rgba(212,168,67,.1)'" onmouseout="this.style.background='transparent'">
+      ✨ Analyser
+    </button>
+  </div>
+  <div id="aiSummaryText" style="font-size:14px;color:var(--text3);line-height:1.7">
+    Cliquez "Analyser" pour obtenir un résumé intelligent de ce marché par IA.
+  </div>
+</div>
+
+<script>
+async function loadAiSummary() {
+  const btn = document.getElementById('aiBtn');
+  const box = document.getElementById('aiSummaryText');
+  btn.disabled = true;
+  btn.textContent = '⏳ Analyse...';
+  box.textContent = 'Analyse en cours...';
+  try {
+    const r = await fetch('/api/ai/summarize/{{ t.id }}');
+    const data = await r.json();
+    if (data.ok && data.summary) {
+      box.innerHTML = data.summary.replace(/\n/g,'<br>');
+      btn.textContent = '✅ Analysé';
+    } else {
+      box.textContent = data.msg || 'Résumé non disponible';
+      btn.textContent = '✨ Analyser';
+      btn.disabled = false;
+    }
+  } catch(e) {
+    box.textContent = 'Erreur de connexion';
+    btn.textContent = '✨ Analyser';
+    btn.disabled = false;
+  }
+}
+</script>
+
+<div class="detail-grid">
     <!-- LEFT -->
     <div>
       <div class="card card-p" style="margin-bottom:16px">

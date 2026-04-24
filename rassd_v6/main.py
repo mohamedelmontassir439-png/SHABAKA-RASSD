@@ -30,6 +30,23 @@ except Exception as _me:
 PW_OK   = False
 SUPA_OK = False
 
+
+# ── AI Service ───────────────────────────────────────────
+try:
+    from app.services.ai_service import (
+        ai_classify_stx10, ai_summarize, ai_chat,
+        ai_analyze_trends, ai_notification_message, ai_available
+    )
+    AI_OK = True
+except Exception as _aie:
+    AI_OK = False
+    def ai_classify_stx10(*a, **kw): return {}
+    def ai_summarize(*a, **kw): return ""
+    def ai_chat(q, ctx=None): return "IA non disponible"
+    def ai_analyze_trends(*a): return ""
+    def ai_notification_message(*a, **kw): return ""
+    def ai_available(): return False
+
 # ── API Rate Limiter ─────────────────────────────────────
 _api_calls: dict = defaultdict(list)
 
@@ -720,6 +737,99 @@ async def api_sources():
     return {"ok":True,"total":len(sources),"sources":sources}
 
 
+
+
+# ══════════════════════════════════════════════════════════
+# AI — Endpoints Intelligence Artificielle
+# ══════════════════════════════════════════════════════════
+
+@app.get("/api/ai/chat")
+async def api_ai_chat(req: Request, q: str = ""):
+    """Chatbot interne — répond aux questions sur les marchés"""
+    member = get_member(req)
+    if not member:
+        return JSONResponse({"ok": False, "msg": "Connexion requise"}, 401)
+    if not q.strip():
+        return JSONResponse({"ok": False, "msg": "Question vide"})
+    if not AI_OK:
+        return JSONResponse({"ok": False, "msg": "IA non configurée"})
+
+    db = get_db()
+    try:
+        stats = get_stats()
+        ms = json.loads(member.get("secteurs","[]") or "[]")
+        ctx = {
+            "tenders_count": stats["tenders"],
+            "member_plan": member.get("plan","free"),
+            "member_sectors": ms,
+            "member_name": member.get("nom",""),
+        }
+        answer = ai_chat(q, ctx)
+        return {"ok": True, "answer": answer, "question": q}
+    finally:
+        db.close()
+
+@app.get("/api/ai/summarize/{tid}")
+async def api_ai_summarize(req: Request, tid: str):
+    """Résumé IA d'un marché"""
+    member = get_member(req)
+    if not member:
+        return JSONResponse({"ok": False, "msg": "Connexion requise"}, 401)
+    db = get_db()
+    try:
+        t = db.execute("SELECT * FROM tenders WHERE id=?", (tid,)).fetchone()
+        if not t:
+            return JSONResponse({"ok": False, "msg": "Marché introuvable"}, 404)
+        tender = dict(t)
+        summary = ai_summarize(tender)
+        if summary:
+            # Cache le résumé en base
+            try:
+                db.execute("UPDATE tenders SET ai_summary=? WHERE id=?", (summary, tid))
+                db.commit()
+            except: pass
+        return {"ok": True, "summary": summary or "Résumé non disponible", "tid": tid}
+    finally:
+        db.close()
+
+@app.get("/api/ai/classify")
+async def api_ai_classify(req: Request, text: str = ""):
+    """Classifier un texte selon STX10 avec l'IA"""
+    member = get_member(req)
+    if not member:
+        return JSONResponse({"ok": False, "msg": "Connexion requise"}, 401)
+    if not text.strip():
+        return JSONResponse({"ok": False, "msg": "Texte vide"})
+    result = ai_classify_stx10(text)
+    return {"ok": True, "classification": result, "text": text[:100]}
+
+@app.get("/ai/chat", response_class=HTMLResponse)
+async def ai_chat_page(req: Request):
+    """Page chatbot IA"""
+    member = get_member(req)
+    if not member:
+        return RedirectResponse("/login?next=/ai/chat", 302)
+    return render(req, "ai_chat.html", {"ai_ok": AI_OK})
+
+@app.get("/api/ai/trends")
+async def api_ai_trends(req: Request):
+    """Analyse tendances marchés"""
+    member = get_member(req)
+    if not member:
+        return JSONResponse({"ok": False}, 401)
+    if member.get("plan","free") == "free":
+        return JSONResponse({"ok": False, "msg": "Réservé aux plans Pro+"}, 403)
+    db = get_db()
+    try:
+        top_sectors = [dict(r) for r in db.execute(
+            "SELECT secteur, COUNT(*) cnt FROM tenders WHERE statut='actif' GROUP BY secteur ORDER BY cnt DESC LIMIT 5"
+        ).fetchall()]
+        stats = get_stats()
+        stats["top_sectors"] = [s["secteur"] for s in top_sectors]
+        analysis = ai_analyze_trends(stats)
+        return {"ok": True, "analysis": analysis, "stats": stats}
+    finally:
+        db.close()
 
 # ══════════════════════════════════════════════════════════
 # STX10 — Classification & Test Notifications

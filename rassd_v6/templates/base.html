@@ -231,6 +231,7 @@ img { max-width: 100%; }
   </a>
   <div class="nav-links">
     <a href="/" class="nav-link {% if request.url.path == '/' %}active{% endif %}">Accueil</a>
+    <a {% if member %}<a href="/ai/chat" style="color:var(--gold);font-size:13px">🤖 Assistant IA</a>{% endif %}
     <a href="/tenders" class="nav-link {% if request.url.path.startswith('/tenders') %}active{% endif %}">Appels d'offres</a>
     <a href="/tarifs" class="nav-link {% if request.url.path == '/tarifs' %}active{% endif %}">Nos offres</a>
     {% if member %}

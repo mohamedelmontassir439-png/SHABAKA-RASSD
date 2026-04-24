@@ -58,6 +58,15 @@ def tg_admin(msg: str):
 
 def build_tg_message(t: dict) -> str:
     _n, dl_label = days_left(t.get("date_limite", ""))
+    # Try AI personalized message
+    try:
+        from app.services.ai_service import ai_notification_message, ai_available
+        if ai_available() and member.get("plan","free") != "free":
+            ai_msg = ai_notification_message(t, member, [])
+            if ai_msg:
+                return ai_msg
+    except: pass
+
     lines = [
         "🏛 <b>Nouveau Marché Public</b>",
         "━" * 28,
