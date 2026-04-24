@@ -739,6 +739,11 @@ async def api_sources():
 
 
 
+
+@app.get('/dashboard_new', response_class=HTMLResponse)
+async def dashboard_new(req: Request):
+    return render(req, 'dashboard_new.html', {})
+
 # ══════════════════════════════════════════════════════════
 # AI — Endpoints Intelligence Artificielle
 # ══════════════════════════════════════════════════════════
