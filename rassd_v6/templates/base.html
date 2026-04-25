@@ -1,325 +1,342 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="{{ member.lang if member else 'fr' }}" dir="{{ 'rtl' if (member and member.lang=='ar') else 'ltr' }}">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="ATLAS PRO — Veille marchés publics Maroc en temps réel. Appels d'offres publics et privés, alertes Email & Telegram.">
-<title>{% block title %}ATLAS PRO — Marchés Publics Maroc{% endblock %}</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23060609'/%3E%3Ctext x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' font-family='Georgia%2C serif' font-style='italic' font-size='18' font-weight='700' fill='%23d4a843'%3EA%3C/text%3E%3C/svg%3E">
-<meta name="theme-color" content="#d4a843">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0">
+<title>{% block title %}SOURCE — Marchés Publics Maroc{% endblock %}</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Source+Sans+3:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cabinet+Grotesk:wght@400;500;700;800;900&family=DM+Sans:wght@300;400;500;600&family=Geist+Mono:wght@300;400;500&family=Noto+Kufi+Arabic:wght@300;400;500;700;800&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg:    #07070c;
-  --bg2:   #0c0c14;
-  --bg3:   #11111c;
-  --bg4:   #161622;
-  --bdr:   #1c1c2e;
-  --bdr2:  #252538;
-  --gold:  #d4a843;
-  --gold2: #e8bf5a;
-  --gold3: #c49535;
-  --golda: rgba(212,168,67,.1);
-  --goldb: rgba(212,168,67,.05);
-  --text1: #f0ede8;
-  --text2: #c8c4bc;
-  --text3: #8a8680;
-  --text4: #4a4740;
-  --grn:   #2ec27e;
-  --red:   #e05454;
-  --blue:  #4a8fe8;
-  --serif: 'Playfair Display', Georgia, serif;
-  --sans:  'Source Sans 3', system-ui, sans-serif;
-  --mono:  'JetBrains Mono', monospace;
-  --r:     4px; --r2: 8px; --r3: 12px; --r4: 20px;
-  --sh:    0 4px 24px rgba(0,0,0,.5);
-  --sh2:   0 8px 48px rgba(0,0,0,.6);
+/* ══════════════════════════════════════
+   SOURCE v2 — Design System
+   Cabinet Grotesk + DM Sans + Geist Mono
+══════════════════════════════════════ */
+:root{
+  --void:#020408;
+  --ink:#060c14;
+  --surface:#0d1625;
+  --surface2:#111e30;
+  --glass:rgba(13,22,37,.9);
+  --bdr:rgba(255,255,255,.07);
+  --bdr2:rgba(255,255,255,.13);
+  --blue:#2563eb;
+  --blue2:#3b82f6;
+  --blue3:rgba(37,99,235,.12);
+  --gold:#c8a96e;
+  --gold2:#f0d898;
+  --cyan:#06b6d4;
+  --green:#10b981;
+  --amber:#f59e0b;
+  --red:#ef4444;
+  --txt1:#f0f4ff;
+  --txt2:#8892a4;
+  --txt3:#4a5568;
+  --txt4:#2d3748;
+  --ff:'Cabinet Grotesk',sans-serif;
+  --ff-body:'DM Sans',sans-serif;
+  --ff-mono:'Geist Mono',monospace;
+  --ff-arab:'Noto Kufi Arabic',sans-serif;
+  --sidebar:242px;
+  --r:10px;--r2:16px;--r3:22px;
 }
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
-body { background: var(--bg); color: var(--text2); font-family: var(--sans); font-size: 15px; line-height: 1.65; min-height: 100vh; -webkit-font-smoothing: antialiased; }
-a { color: inherit; text-decoration: none; }
-img { max-width: 100%; }
-
-/* ── TOPBAR ─────────────────────────────────────── */
-.topbar {
-  background: var(--bg2);
-  border-bottom: 1px solid var(--bdr);
-  padding: 0 32px;
-  height: 38px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 12px;
-  color: var(--text4);
+[lang="ar"] *{font-family:var(--ff-arab)!important}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--void);color:var(--txt1);
+  font-family:var(--ff-body);font-size:14px;line-height:1.6;
+  overflow-x:hidden;min-height:100vh;
 }
-.topbar-left { display: flex; gap: 20px; align-items: center; }
-.topbar-right { display: flex; gap: 16px; align-items: center; }
-.topbar a { color: var(--text3); transition: color .15s; display: flex; align-items: center; gap: 5px; }
-.topbar a:hover { color: var(--gold); }
-.topbar-sep { color: var(--bdr2); }
-.dot-live { display: inline-block; width: 6px; height: 6px; background: var(--grn); border-radius: 50%; animation: pulse 2s infinite; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
-
-/* ── NAV ─────────────────────────────────────────── */
-.nav {
-  position: sticky; top: 0; z-index: 200;
-  background: rgba(7,7,12,.95);
-  backdrop-filter: blur(24px);
-  border-bottom: 1px solid var(--bdr);
-  height: 66px;
-  display: flex; align-items: center;
-  padding: 0 32px; gap: 0;
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  opacity:.03;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
-.nav-logo-wrap { display: flex; align-items: baseline; gap: 10px; margin-right: 40px; }
-.nav-logo { font-family: var(--serif); font-style: italic; font-size: 28px; color: var(--gold); letter-spacing: .5px; line-height: 1; }
-.nav-tagline { font-family: var(--mono); font-size: 8px; color: var(--text4); letter-spacing: 2px; text-transform: uppercase; }
-.nav-links { display: flex; gap: 2px; flex: 1; }
-.nav-link {
-  padding: 8px 16px;
-  border-radius: var(--r2);
-  font-size: 14px; font-weight: 500;
-  color: var(--text3);
-  transition: all .15s;
-  border: 1px solid transparent;
-  white-space: nowrap;
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+
+/* ── APP SHELL ── */
+.app{display:grid;grid-template-columns:var(--sidebar) 1fr;min-height:100vh;position:relative;z-index:1}
+@media(max-width:900px){.app{grid-template-columns:1fr}}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  background:var(--glass);border-right:1px solid var(--bdr);
+  backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);
+  display:flex;flex-direction:column;position:sticky;top:0;height:100vh;
+  overflow-y:auto;z-index:200;
 }
-.nav-link:hover { color: var(--text1); background: var(--bg2); }
-.nav-link.active { color: var(--gold); border-color: var(--bdr); background: var(--bg2); }
-.nav-right { display: flex; align-items: center; gap: 8px; }
-.nav-user-info { font-family: var(--mono); font-size: 11px; color: var(--text4); }
-
-/* ── BUTTONS ─────────────────────────────────────── */
-.btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-  padding: 10px 20px; border-radius: var(--r2);
-  font-family: var(--sans); font-size: 14px; font-weight: 600;
-  cursor: pointer; border: none; transition: all .2s;
-  white-space: nowrap; letter-spacing: .1px;
+[dir="rtl"] .sidebar{border-right:none;border-left:1px solid var(--bdr)}
+@media(max-width:900px){
+  .sidebar{position:fixed;top:0;left:0;bottom:0;width:var(--sidebar);transform:translateX(-100%);transition:transform .25s ease;z-index:999}
+  .sidebar.open{transform:translateX(0)}
+  [dir="rtl"] .sidebar{left:auto;right:0;transform:translateX(100%)}
+  [dir="rtl"] .sidebar.open{transform:translateX(0)}
 }
-.btn-primary { background: var(--gold); color: #000; }
-.btn-primary:hover { background: var(--gold2); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(212,168,67,.35); }
-.btn-outline { background: transparent; border: 1.5px solid var(--bdr2); color: var(--text2); }
-.btn-outline:hover { border-color: var(--gold); color: var(--gold); }
-.btn-ghost { background: transparent; color: var(--text3); }
-.btn-ghost:hover { color: var(--text1); }
-.btn-danger { background: rgba(224,84,84,.08); border: 1px solid rgba(224,84,84,.2); color: var(--red); }
-.btn-sm { padding: 7px 14px; font-size: 13px; }
-.btn-lg { padding: 14px 32px; font-size: 15px; }
-.btn-xl { padding: 16px 40px; font-size: 16px; }
-.btn-full { width: 100%; }
-.btn-icon { padding: 9px 10px; }
-
-/* ── FORMS ───────────────────────────────────────── */
-.field { display: flex; flex-direction: column; gap: 6px; }
-.field label { font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: .8px; text-transform: uppercase; }
-.inp, .sel, .textarea {
-  width: 100%;
-  background: var(--bg2); border: 1.5px solid var(--bdr);
-  border-radius: var(--r2); padding: 10px 14px;
-  color: var(--text1); font-family: var(--sans); font-size: 14px;
-  outline: none; transition: border-color .2s, box-shadow .2s; appearance: none;
+.sidebar-logo{padding:22px 20px 18px;border-bottom:1px solid var(--bdr)}
+.logo-wrap{display:flex;align-items:center;gap:10px}
+.logo-icon{
+  width:38px;height:38px;border-radius:11px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--blue),#1d4ed8);
+  display:flex;align-items:center;justify-content:center;
+  font-size:17px;box-shadow:0 0 20px rgba(37,99,235,.35);
 }
-.inp:focus, .sel:focus, .textarea:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(212,168,67,.06); }
-.inp::placeholder, .textarea::placeholder { color: var(--text4); }
-.textarea { resize: vertical; min-height: 100px; }
+.logo-name{font-family:var(--ff);font-weight:900;font-size:21px;letter-spacing:-.3px;color:var(--txt1)}
+.logo-sub{font-family:var(--ff-mono);font-size:8px;color:var(--txt3);letter-spacing:2px;text-transform:uppercase;margin-top:2px}
 
-/* ── LAYOUT ──────────────────────────────────────── */
-.container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
-.page { max-width: 1200px; margin: 0 auto; padding: 40px 24px; }
-.page-narrow { max-width: 480px; margin: 0 auto; padding: 60px 24px; }
-
-/* ── GRID ────────────────────────────────────────── */
-.grid-2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 20px; }
-.grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
-.grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
-
-/* ── CARDS ───────────────────────────────────────── */
-.card { background: var(--bg2); border: 1px solid var(--bdr); border-radius: var(--r3); }
-.card-p { padding: 24px; }
-.card-hover { transition: all .2s; }
-.card-hover:hover { border-color: var(--bdr2); transform: translateY(-2px); box-shadow: var(--sh); }
-
-/* ── BADGES ──────────────────────────────────────── */
-.badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 99px; font-size: 10px; font-weight: 700; letter-spacing: .3px; white-space: nowrap; }
-.badge-gold { background: var(--golda); color: var(--gold); border: 1px solid rgba(212,168,67,.2); }
-.badge-grn  { background: rgba(46,194,126,.07); color: var(--grn); }
-.badge-red  { background: rgba(224,84,84,.07); color: var(--red); }
-.badge-blue { background: rgba(74,143,232,.07); color: var(--blue); }
-.badge-gray { background: var(--bg3); color: var(--text3); border: 1px solid var(--bdr); }
-
-/* ── ALERTS ──────────────────────────────────────── */
-.alert { padding: 12px 16px; border-radius: var(--r2); font-size: 14px; }
-.alert-err  { background: rgba(224,84,84,.06); border: 1px solid rgba(224,84,84,.18); color: var(--red); }
-.alert-ok   { background: rgba(46,194,126,.05); border: 1px solid rgba(46,194,126,.18); color: var(--grn); }
-.alert-info { background: var(--goldb); border: 1px solid rgba(212,168,67,.18); color: var(--gold); }
-
-/* ── DIVIDER ─────────────────────────────────────── */
-.divider { height: 1px; background: var(--bdr); }
-
-/* ── SECTION ─────────────────────────────────────── */
-.section { padding: 72px 0; }
-.section-header { margin-bottom: 48px; }
-.section-label { font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: 2.5px; text-transform: uppercase; margin-bottom: 12px; }
-.section-title { font-family: var(--serif); font-size: clamp(28px,3.5vw,42px); color: var(--text1); font-weight: 600; line-height: 1.2; }
-.section-sub { color: var(--text3); font-size: 16px; margin-top: 12px; max-width: 520px; line-height: 1.7; }
-
-/* ── FOOTER ──────────────────────────────────────── */
-.footer { background: var(--bg2); border-top: 1px solid var(--bdr); }
-.footer-top { padding: 56px 0 40px; }
-.footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 40px; }
-.footer-brand { }
-.footer-logo { font-family: var(--serif); font-style: italic; font-size: 32px; color: var(--gold); }
-.footer-desc { font-size: 13px; color: var(--text4); line-height: 1.8; margin-top: 10px; max-width: 260px; }
-.footer-contact { margin-top: 20px; display: flex; flex-direction: column; gap: 6px; }
-.footer-contact a { font-size: 12px; color: var(--text3); display: flex; align-items: center; gap: 7px; transition: color .15s; }
-.footer-contact a:hover { color: var(--gold); }
-.footer-col h4 { font-family: var(--mono); font-size: 9px; color: var(--gold); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 16px; }
-.footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
-.footer-col a { font-size: 13px; color: var(--text4); transition: color .15s; }
-.footer-col a:hover { color: var(--text2); }
-.footer-bottom { padding: 16px 0; border-top: 1px solid var(--bdr); display: flex; justify-content: space-between; align-items: center; }
-.footer-copy { font-size: 12px; color: var(--text4); font-family: var(--mono); }
-.footer-social { display: flex; gap: 12px; }
-.footer-social a { font-size: 12px; color: var(--text4); transition: color .15s; }
-.footer-social a:hover { color: var(--gold); }
-
-/* ── TOAST ───────────────────────────────────────── */
-.toast { position: fixed; bottom: 28px; right: 28px; padding: 12px 22px; background: var(--bg3); border: 1px solid var(--gold); border-radius: var(--r3); color: var(--gold); font-size: 13px; font-family: var(--mono); z-index: 9000; display: none; box-shadow: var(--sh2); animation: toastIn .25s ease; }
-@keyframes toastIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
-
-/* ── SCROLLBAR ───────────────────────────────────── */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-thumb { background: var(--bdr2); border-radius: 4px; }
-
-/* ── RESPONSIVE ──────────────────────────────────── */
-@media(max-width:900px) {
-  .topbar { display: none; }
-  .nav { padding: 0 16px; }
-  .nav-links { display: none; }
-  .footer-grid { grid-template-columns: 1fr 1fr; }
-  .grid-3, .grid-4 { grid-template-columns: 1fr; }
-  .grid-2 { grid-template-columns: 1fr; }
-  .page { padding: 24px 16px; }
+.sidebar-nav{flex:1;padding:18px 0}
+.nav-section-lbl{font-family:var(--ff-mono);font-size:8px;color:var(--txt3);letter-spacing:2.5px;text-transform:uppercase;padding:0 20px;margin-bottom:5px;margin-top:14px}
+.nav-item{
+  display:flex;align-items:center;gap:11px;padding:9px 20px;
+  color:var(--txt2);font-size:13px;font-weight:500;
+  transition:all .15s;position:relative;cursor:pointer;
+  border:none;background:transparent;width:100%;text-align:left;
 }
+[dir="rtl"] .nav-item{text-align:right}
+.nav-item::before{
+  content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+  width:3px;height:0;background:var(--blue2);border-radius:0 4px 4px 0;
+  transition:height .2s;
+}
+[dir="rtl"] .nav-item::before{left:auto;right:0;border-radius:4px 0 0 4px}
+.nav-item:hover{color:var(--txt1);background:rgba(255,255,255,.03)}
+.nav-item.active{color:var(--blue2);background:rgba(37,99,235,.07)}
+.nav-item.active::before{height:65%}
+.nav-icon{font-size:15px;width:18px;text-align:center;flex-shrink:0;opacity:.8}
+.nav-badge{margin-left:auto;background:var(--blue);color:#fff;font-family:var(--ff-mono);font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px}
+[dir="rtl"] .nav-badge{margin-left:0;margin-right:auto}
+
+.sidebar-footer{padding:14px 20px;border-top:1px solid var(--bdr)}
+.user-card{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:rgba(255,255,255,.03);border:1px solid var(--bdr);
+  border-radius:12px;cursor:pointer;transition:.2s;text-decoration:none;
+}
+.user-card:hover{background:rgba(255,255,255,.06)}
+.user-av{
+  width:32px;height:32px;border-radius:9px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--blue),var(--cyan));
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--ff);font-weight:800;font-size:13px;color:#fff;
+}
+.user-name{font-size:12px;font-weight:700;color:var(--txt1);line-height:1.3}
+.user-plan{font-family:var(--ff-mono);font-size:9px;color:var(--blue2);letter-spacing:1px}
+.user-arrow{margin-left:auto;color:var(--txt3);font-size:12px}
+[dir="rtl"] .user-arrow{margin-left:0;margin-right:auto}
+
+/* ── MAIN ── */
+.main{display:flex;flex-direction:column;overflow:hidden;min-height:100vh}
+
+/* ── TOPBAR ── */
+.topbar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 28px;height:58px;min-height:58px;gap:14px;
+  background:rgba(6,12,20,.75);border-bottom:1px solid var(--bdr);
+  backdrop-filter:blur(20px);position:sticky;top:0;z-index:100;
+}
+@media(max-width:900px){.topbar{padding:0 16px}}
+.topbar-left{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.menu-btn{display:none;background:none;border:none;color:var(--txt2);font-size:20px;padding:4px;flex-shrink:0}
+@media(max-width:900px){.menu-btn{display:block}}
+.topbar-title{font-family:var(--ff);font-weight:800;font-size:17px;color:var(--txt1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.search-form{
+  display:flex;align-items:center;gap:8px;flex:1;max-width:320px;
+  background:rgba(255,255,255,.04);border:1px solid var(--bdr);
+  border-radius:10px;padding:6px 14px;transition:border-color .2s;
+}
+.search-form:focus-within{border-color:var(--bdr2)}
+.search-form input{background:none;border:none;outline:none;color:var(--txt1);font-family:var(--ff-body);font-size:13px;width:100%;min-width:0}
+.search-form input::placeholder{color:var(--txt3)}
+@media(max-width:700px){.search-form{display:none}}
+
+.topbar-right{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.live-pill{
+  display:flex;align-items:center;gap:6px;padding:5px 12px;
+  background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);
+  border-radius:99px;font-family:var(--ff-mono);font-size:9px;
+  color:var(--green);letter-spacing:1.5px;text-transform:uppercase;white-space:nowrap;
+}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 2s infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.ai-btn{
+  display:flex;align-items:center;gap:6px;padding:6px 14px;
+  border-radius:10px;background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.2);
+  color:var(--blue2);font-size:12px;font-weight:700;transition:.2s;white-space:nowrap;
+}
+.ai-btn:hover{background:rgba(37,99,235,.18);border-color:var(--blue2)}
+@media(max-width:600px){.ai-btn span.ai-lbl{display:none}}
+.lang-sw{display:flex;gap:2px;background:var(--surface);border:1px solid var(--bdr);border-radius:8px;padding:2px}
+.lbtn{padding:4px 10px;border-radius:6px;font-size:10px;font-weight:700;border:none;background:transparent;color:var(--txt3);cursor:pointer;transition:.2s}
+.lbtn.on{background:var(--blue);color:#fff}
+
+/* ── CONTENT ── */
+.page-body{flex:1;padding:24px 28px;display:flex;flex-direction:column;gap:20px;overflow-y:auto}
+@media(max-width:900px){.page-body{padding:16px}}
+
+/* ── CARDS ── */
+.card{background:var(--surface);border:1px solid var(--bdr);border-radius:var(--r3);overflow:hidden}
+.card-hd{display:flex;align-items:center;justify-content:space-between;padding:15px 20px;border-bottom:1px solid var(--bdr)}
+.card-title{font-family:var(--ff);font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px}
+.badge-rt{background:rgba(37,99,235,.1);color:var(--blue2);font-family:var(--ff-mono);font-size:8px;font-weight:700;padding:2px 8px;border-radius:99px;border:1px solid rgba(37,99,235,.2);letter-spacing:1px;text-transform:uppercase}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:var(--r);font-size:12px;font-weight:700;border:1px solid transparent;transition:all .2s;cursor:pointer;white-space:nowrap;font-family:var(--ff-body)}
+.btn-primary{background:var(--blue);color:#fff;border-color:var(--blue);box-shadow:0 4px 14px rgba(37,99,235,.3)}
+.btn-primary:hover{background:var(--blue2);box-shadow:0 6px 20px rgba(37,99,235,.4)}
+.btn-ghost{background:transparent;color:var(--txt2);border-color:var(--bdr2)}
+.btn-ghost:hover{color:var(--txt1);background:rgba(255,255,255,.04)}
+.btn-sm{padding:5px 11px;font-size:11px}
+.btn-wa{background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;border-color:transparent;box-shadow:0 4px 14px rgba(37,211,102,.25)}
+.btn-wa:hover{box-shadow:0 6px 22px rgba(37,211,102,.4);transform:translateY(-1px)}
+
+/* ── STX10 BADGES ── */
+.stx10-badge{padding:3px 9px;border-radius:7px;font-family:var(--ff-mono);font-size:10px;font-weight:700;white-space:nowrap}
+.stx10-T{background:rgba(37,99,235,.1);color:#60a5fa;border:1px solid rgba(37,99,235,.2)}
+.stx10-P{background:rgba(6,182,212,.08);color:#22d3ee;border:1px solid rgba(6,182,212,.18)}
+.stx10-S{background:rgba(16,185,129,.08);color:#34d399;border:1px solid rgba(16,185,129,.18)}
+
+/* ── DEADLINE BADGES ── */
+.dl-badge{padding:3px 9px;border-radius:7px;font-size:10px;font-weight:700;white-space:nowrap}
+.dl-urgent{background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.2)}
+.dl-soon{background:rgba(245,158,11,.1);color:#fbbf24;border:1px solid rgba(245,158,11,.2)}
+.dl-ok{background:rgba(16,185,129,.08);color:#34d399;border:1px solid rgba(16,185,129,.18)}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fadeUp .45s ease both}
+.fu1{animation-delay:.05s}.fu2{animation-delay:.1s}.fu3{animation-delay:.15s}.fu4{animation-delay:.2s}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:4px}
+
+/* ── OVERLAY mobile ── */
+.sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:998;backdrop-filter:blur(4px)}
+@media(max-width:900px){.sb-overlay.show{display:block}}
+
+/* ── WA FLOAT ── */
+.wa-float{
+  position:fixed;bottom:22px;right:22px;z-index:500;
+  width:50px;height:50px;border-radius:50%;
+  background:linear-gradient(135deg,#25d366,#128c7e);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;box-shadow:0 4px 18px rgba(37,211,102,.4);
+  animation:wap 4s ease-in-out infinite;
+}
+[dir="rtl"] .wa-float{right:auto;left:22px}
+@keyframes wap{0%,100%{box-shadow:0 4px 18px rgba(37,211,102,.4)}50%{box-shadow:0 4px 32px rgba(37,211,102,.65)}}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(10px);background:#1e293b;border:1px solid var(--bdr2);border-radius:99px;padding:10px 22px;font-size:12px;font-weight:700;white-space:nowrap;opacity:0;transition:all .3s;z-index:9999;pointer-events:none}
 </style>
-{% block head %}{% endblock %}
+{% block extra_head %}{% endblock %}
 </head>
 <body>
 
-<!-- TOPBAR -->
-<div class="topbar">
-  <div class="topbar-left">
-    <span><span class="dot-live"></span> Alertes marchés publics — Maroc</span>
-    <span class="topbar-sep">|</span>
-    <a href="mailto:contact@atlaspro.ma">✉ contact@atlaspro.ma</a>
-  </div>
-  <div class="topbar-right">
-    {% if not member %}
-    <a href="/register">Accès d'essai gratuit →</a>
-    {% endif %}
-    <a href="/admin" style="color:var(--text4)">⚙</a>
-  </div>
-</div>
+<div class="sb-overlay" id="sbo" onclick="closeSb()"></div>
 
-<!-- NAV -->
-<nav class="nav">
-  <a href="/" class="nav-logo-wrap">
-    <span class="nav-logo">Atlas<span style="color:var(--text3);font-style:normal;font-size:18px;margin-left:2px">Pro</span></span>
-    <span class="nav-tagline">Marchés Publics</span>
-  </a>
-  <div class="nav-links">
-    <a href="/" class="nav-link {% if request.url.path == '/' %}active{% endif %}">Accueil</a>
-    <a {% if member %}<a href="/ai/chat" style="color:var(--gold);font-size:13px">🤖 Assistant IA</a>{% endif %}
-    <a href="/tenders" class="nav-link {% if request.url.path.startswith('/tenders') %}active{% endif %}">Appels d'offres</a>
-    <a href="/tarifs" class="nav-link {% if request.url.path == '/tarifs' %}active{% endif %}">Nos offres</a>
-    {% if member %}
-    <a href="/dashboard" class="nav-link {% if request.url.path == '/dashboard' %}active{% endif %}">Mon espace</a>
-    <a href="/favorites" class="nav-link {% if request.url.path == '/favorites' %}active{% endif %}">Favoris</a>
-    <a href="/feedback" class="nav-link {% if request.url.path == '/feedback' %}active{% endif %}">📝 Feedback</a>
-    <a href="/settings"  class="nav-link {% if request.url.path == '/settings' %}active{% endif %}">Alertes</a>
-    {% endif %}
-  </div>
-  <div class="nav-right">
-    {% if member %}
-      <span class="nav-user-info">{{ member.nom or member.email[:22] }}</span>
-      <a href="/logout" class="btn btn-ghost btn-sm">Déconnexion</a>
-    {% else %}
-      <a href="/login" class="btn btn-outline btn-sm">Connexion</a>
-      <a href="/register" class="btn btn-primary btn-sm">Essai gratuit →</a>
-    {% endif %}
-  </div>
-</nav>
+{% if member %}
+<div class="app">
 
-{% block body %}{% endblock %}
-
-<!-- FOOTER -->
-<footer class="footer">
-  <div class="footer-top">
-    <div class="container">
-      <div class="footer-grid">
-        <div class="footer-brand">
-          <div class="footer-logo">Atlas<span style="color:var(--text4);font-style:normal;font-size:24px">Pro</span></div>
-          <div class="footer-desc">Depuis 2024, ATLAS PRO diffuse les appels d'offres publics et privés du Maroc. Votre portail de veille en temps réel.</div>
-          <div class="footer-contact">
-            <a href="mailto:contact@atlaspro.ma">✉ contact@atlaspro.ma</a>
-            <a href="/register">📲 Rejoindre la bêta</a>
-          </div>
+  <!-- ═══ SIDEBAR ═══ -->
+  <aside class="sidebar" id="sb">
+    <div class="sidebar-logo">
+      <div class="logo-wrap">
+        <div class="logo-icon">⚡</div>
+        <div>
+          <div class="logo-name">SOURCE</div>
+          <div class="logo-sub">Marchés Publics · المناقصات</div>
         </div>
-        <div class="footer-col">
-          <h4>Appels d'offres</h4>
-          <ul>
-            {% set all_labels = sector_groups.values() | list %}
-            {% for code, label in (all_labels[0].items() | list)[:6] %}
-            <li><a href="/tenders?s={{ code|urlencode }}">{{ label[:30] }}</a></li>
-            {% endfor %}
-          </ul>
-        </div>
-        <div class="footer-col">
-          <h4>Nos services</h4>
-          <ul>
-            <li><a href="/tenders">Portail des marchés</a></li>
-            <li><a href="/tarifs">Abonnements</a></li>
-            <li><a href="/register">Accès gratuit</a></li>
-            <li><a href="/settings">Alertes Email & Telegram</a></li>
-            <li><a href="/api/v1/stats">API REST</a></li>
-          </ul>
-        </div>
-        </div>
-    </div>
-  </div>
-  <div class="container">
-    <div class="footer-bottom">
-      <div class="footer-copy">© {{ now.year }} ATLAS PRO · Tous droits réservés · <a href="/sitemap.xml" style="color:var(--text4)">Sitemap</a></div>
-      <div class="footer-social">
-        <a href="#">LinkedIn</a>
-        <a href="#">Twitter</a>
-        <a href="#">Facebook</a>
       </div>
     </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section-lbl">Navigation</div>
+      <a class="nav-item {% if active=='dashboard' %}active{% endif %}" href="/dashboard">
+        <span class="nav-icon">⬡</span>
+        <span>{{ 'Tableau de bord' if member.lang!='ar' else 'لوحة القيادة' }}</span>
+      </a>
+      <a class="nav-item {% if active=='tenders' %}active{% endif %}" href="/tenders">
+        <span class="nav-icon">🏛</span>
+        <span>{{ 'Marchés' if member.lang!='ar' else 'المناقصات' }}</span>
+      </a>
+      <a class="nav-item" href="/tenders?fav=1">
+        <span class="nav-icon">⭐</span>
+        <span>{{ 'Favoris' if member.lang!='ar' else 'المفضلة' }}</span>
+      </a>
+      <a class="nav-item {% if active=='ai' %}active{% endif %}" href="/ai/chat">
+        <span class="nav-icon">✨</span>
+        <span>{{ 'Assistant IA' if member.lang!='ar' else 'المساعد الذكي' }}</span>
+      </a>
+
+      <div class="nav-section-lbl">{{ 'Paramètres' if member.lang!='ar' else 'الإعدادات' }}</div>
+      <a class="nav-item {% if active=='settings' %}active{% endif %}" href="/settings">
+        <span class="nav-icon">🔔</span>
+        <span>{{ 'Alertes STX10' if member.lang!='ar' else 'تنبيهات STX10' }}</span>
+      </a>
+      <a class="nav-item" href="/tarifs">
+        <span class="nav-icon">💎</span>
+        <span>{{ 'Mon abonnement' if member.lang!='ar' else 'اشتراكي' }}</span>
+      </a>
+      <a class="nav-item" href="/logout">
+        <span class="nav-icon">→</span>
+        <span>{{ 'Déconnexion' if member.lang!='ar' else 'خروج' }}</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <a class="user-card" href="/settings">
+        <div class="user-av">{{ member.nom[0]|upper if member.nom else '?' }}</div>
+        <div>
+          <div class="user-name">{{ member.nom[:18] }}</div>
+          <div class="user-plan">◆ {{ member.plan|upper }}</div>
+        </div>
+        <span class="user-arrow">›</span>
+      </a>
+    </div>
+  </aside>
+
+  <!-- ═══ MAIN ═══ -->
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="menu-btn" onclick="toggleSb()">☰</button>
+        <div class="topbar-title">{% block page_title %}SOURCE{% endblock %}</div>
+      </div>
+      <form class="search-form" action="/tenders" method="GET">
+        <span style="color:var(--txt3)">🔍</span>
+        <input type="text" name="q" placeholder="{{ 'Rechercher un marché...' if member.lang!='ar' else 'ابحث عن مناقصة...' }}">
+      </form>
+      <div class="topbar-right">
+        <div class="live-pill"><span class="live-dot"></span><span>{{ 'EN DIRECT' if member.lang!='ar' else 'مباشر' }}</span></div>
+        <a class="ai-btn" href="/ai/chat"><span>✨</span><span class="ai-lbl">{{ 'Assistant IA' if member.lang!='ar' else 'الذكاء' }}</span></a>
+        <div class="lang-sw">
+          <button class="lbtn {{ 'on' if member.lang!='ar' else '' }}" onclick="setLang('fr')">FR</button>
+          <button class="lbtn {{ 'on' if member.lang=='ar' else '' }}" onclick="setLang('ar')">ع</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="page-body">{% block content %}{% endblock %}</div>
   </div>
-</footer>
+</div>
+{% else %}
+  {% block fullpage %}{% endblock %}
+{% endif %}
 
-<div class="toast" id="toast"></div>
+<a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ cfg.PAYMENT_MSG|urlencode }}" target="_blank" class="wa-float" title="WhatsApp">💬</a>
+<div id="toast"></div>
+
 <script>
-(function(){
-  const p = new URLSearchParams(location.search);
-  const t = document.getElementById('toast');
-  const show = (msg, dur=3500) => { t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none',dur); history.replaceState({},'',' '+location.pathname); };
-  if(p.get('ok'))      show('✓ Enregistré avec succès');
-  if(p.get('welcome')) show('🎉 Bienvenue sur ATLAS PRO !', 5000);
-})();
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.style.opacity='1';t.style.transform='translateX(-50%) translateY(0)';setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(-50%) translateY(10px)'},2800)}
+function toggleSb(){document.getElementById('sb').classList.toggle('open');document.getElementById('sbo').classList.toggle('show')}
+function closeSb(){document.getElementById('sb').classList.remove('open');document.getElementById('sbo').classList.remove('show')}
+function setLang(l){
+  fetch('/settings',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+  body:`lang=${l}`}).then(()=>location.reload()).catch(()=>location.reload());
+}
 </script>
-
-<!-- WhatsApp Float Button -->
-<a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ cfg.PAYMENT_MSG|urlencode }}"
-   target="_blank"
-   style="position:fixed;bottom:24px;left:24px;z-index:9999;width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#25d366,#128c7e);display:flex;align-items:center;justify-content:center;font-size:26px;text-decoration:none;box-shadow:0 4px 20px rgba(37,211,102,.5);animation:waPulse 3s ease-in-out infinite"
-   title="Nous contacter sur WhatsApp">💬</a>
-<style>
-@keyframes waPulse{0%,100%{box-shadow:0 4px 20px rgba(37,211,102,.5)}50%{box-shadow:0 4px 36px rgba(37,211,102,.8)}}
-</style>
-
+{% block scripts %}{% endblock %}
 </body>
 </html>

@@ -1,202 +1,92 @@
 {% extends "base.html" %}
-{% block title %}ATLAS PRO — Tarifs & Abonnements{% endblock %}
-{% block body %}
+{% block title %}SOURCE — Tarifs{% endblock %}
+{% block page_title %}{{ 'Abonnements' if (member and member.lang!='ar') else 'الاشتراكات' }}{% endblock %}
+{% block extra_head %}
 <style>
-.tarifs-page{max-width:1000px;margin:0 auto;padding:80px 20px}
-.tarifs-hero{text-align:center;margin-bottom:60px}
-.tarifs-hero h1{font-family:var(--serif);font-size:clamp(32px,5vw,52px);color:var(--text1);margin-bottom:16px}
-.tarifs-hero p{font-size:16px;color:var(--text3);max-width:560px;margin:0 auto}
-.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;margin-bottom:60px}
-.plan{background:var(--bg2);border:1.5px solid var(--bdr);border-radius:20px;padding:36px 32px;position:relative;transition:.2s}
-.plan.featured{border-color:var(--gold);background:linear-gradient(135deg,var(--bg2),var(--bg3))}
-.plan-badge{position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,var(--gold),#a07830);color:#000;font-size:11px;font-weight:700;padding:4px 18px;border-radius:20px;letter-spacing:1px;white-space:nowrap}
-.plan-name{font-family:var(--mono);font-size:11px;color:var(--text4);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
-.plan-price{font-family:var(--serif);font-size:52px;font-weight:700;color:var(--text1);line-height:1;margin-bottom:4px}
-.plan-price .cur{font-size:20px;vertical-align:super;color:var(--gold)}
-.plan-period{font-size:13px;color:var(--text4);margin-bottom:8px}
-.plan-ar{font-size:13px;color:var(--text3);margin-bottom:24px;font-style:italic}
-.plan-features{list-style:none;margin-bottom:32px}
-.plan-features li{padding:9px 0;border-bottom:1px solid var(--bdr);font-size:14px;color:var(--text2);display:flex;align-items:center;gap:10px}
-.plan-features li:last-child{border-bottom:none}
-.feat-ok{color:#22c55e;font-size:15px}
-.feat-no{color:var(--text4);font-size:15px}
-.btn-wa-plan{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:14px;border-radius:12px;background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;font-weight:700;font-size:15px;text-decoration:none;transition:.2s;border:none;cursor:pointer}
-.btn-wa-plan:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(37,211,102,.35)}
-.btn-outline-plan{display:block;text-align:center;padding:14px;border-radius:12px;border:1.5px solid var(--bdr);color:var(--text3);font-weight:600;font-size:14px;text-decoration:none;transition:.2s}
-.btn-outline-plan:hover{border-color:var(--gold);color:var(--gold)}
-
-/* Payment info */
-.payment-box{background:var(--bg2);border:1.5px solid rgba(37,211,102,.3);border-radius:16px;padding:40px;text-align:center;margin-bottom:40px}
-.payment-box h2{font-family:var(--serif);font-size:26px;color:var(--text1);margin-bottom:12px}
-.payment-box p{font-size:14px;color:var(--text3);line-height:1.8;margin-bottom:8px}
-.payment-ar{font-size:15px;color:var(--text2);margin-bottom:28px;direction:rtl;font-family:var(--sans)}
-.wa-big{display:inline-flex;align-items:center;gap:12px;padding:16px 36px;border-radius:12px;background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;font-weight:700;font-size:17px;text-decoration:none;transition:.3s;box-shadow:0 0 24px rgba(37,211,102,.25)}
-.wa-big:hover{transform:scale(1.05);box-shadow:0 0 40px rgba(37,211,102,.4)}
-.wa-note{font-size:12px;color:var(--text4);margin-top:14px}
-
-/* FAQ */
-.faq{max-width:640px;margin:0 auto}
-.faq h2{font-family:var(--serif);font-size:28px;text-align:center;margin-bottom:32px;color:var(--text1)}
-.faq-item{border-bottom:1px solid var(--bdr);padding:18px 0}
-.faq-q{font-weight:600;color:var(--text1);cursor:pointer;display:flex;justify-content:space-between;align-items:center}
-.faq-a{font-size:14px;color:var(--text3);line-height:1.8;margin-top:12px;display:none}
-.faq-item.open .faq-a{display:block}
-.faq-item.open .faq-arrow{transform:rotate(180deg)}
-.faq-arrow{transition:.2s;color:var(--gold)}
+.plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:900px){.plans-grid{grid-template-columns:1fr}}
+.plan-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r-lg);padding:28px 24px;position:relative;transition:.2s}
+.plan-card.featured{border-color:var(--blue);background:linear-gradient(135deg,rgba(37,99,235,.1),var(--surface))}
+.plan-tag{position:absolute;top:16px;right:16px;background:var(--blue);color:#fff;font-size:10px;font-weight:800;padding:3px 10px;border-radius:99px}
+[dir="rtl"] .plan-tag{right:auto;left:16px}
+.plan-name{font-family:var(--ff-mono);font-size:10px;font-weight:700;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px}
+.plan-price{font-family:var(--ff-head);font-size:48px;font-weight:900;line-height:1;margin-bottom:4px}
+.plan-cur{font-size:18px;font-weight:600;color:var(--text2)}
+.plan-period{font-size:12px;color:var(--text3);margin-bottom:22px}
+.plan-feats{list-style:none;margin-bottom:24px}
+.plan-feats li{padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--text2);display:flex;gap:10px}
+.plan-feats li:last-child{border:none}
+.f-ok{color:var(--green)}.f-no{color:var(--text3)}
+.btn-plan{width:100%;padding:14px;border-radius:var(--r-sm);border:1.5px solid var(--border2);background:transparent;color:var(--text2);font-weight:700;font-size:14px;cursor:pointer;transition:.2s}
+.btn-plan:hover,.plan-card.featured .btn-plan{background:var(--blue);border-color:var(--blue);color:#fff}
+.pay-info{background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.2);border-radius:var(--r-lg);padding:24px;text-align:center;margin-top:4px}
 </style>
-
-<div class="tarifs-page">
-
-  <!-- Hero -->
-  <div class="tarifs-hero">
-    <h1>Investissement rentable<br/>dès le 1<sup>er</sup> marché</h1>
-    <p>Commencez gratuitement. Passez Pro quand vous êtes prêt. Payez par virement — simple et sécurisé.</p>
-  </div>
-
-  <!-- Plans -->
-  <div class="plans">
-
-    <!-- FREE -->
-    <div class="plan">
-      <div class="plan-name">Gratuit</div>
-      <div class="plan-price">0<span class="cur"></span></div>
-      <div class="plan-period">MAD / mois — للأبد</div>
-      <div class="plan-ar">للتجربة والاكتشاف</div>
-      <ul class="plan-features">
-        <li><span class="feat-ok">✓</span> 15 marchés / jour</li>
-        <li><span class="feat-ok">✓</span> Recherche & filtres</li>
-        <li><span class="feat-ok">✓</span> Favoris</li>
-        <li><span class="feat-no">✗</span> Alertes Telegram</li>
-        <li><span class="feat-no">✗</span> Alertes WhatsApp</li>
-        <li><span class="feat-no">✗</span> API REST</li>
-        <li><span class="feat-no">✗</span> Marchés illimités</li>
-      </ul>
-      <a href="/register" class="btn-outline-plan">Commencer gratuitement →</a>
-    </div>
-
-    <!-- PRO -->
-    <div class="plan featured">
-      <div class="plan-badge">⭐ LE PLUS POPULAIRE</div>
-      <div class="plan-name">Pro</div>
-      <div class="plan-price"><span class="cur">MAD</span>149</div>
-      <div class="plan-period">/ mois — شهرياً</div>
-      <div class="plan-ar">للمقاولين والشركات الجادة</div>
-      <ul class="plan-features">
-        <li><span class="feat-ok">✓</span> <strong>Marchés illimités</strong></li>
-        <li><span class="feat-ok">✓</span> <strong>Alertes Telegram</strong> instantanées</li>
-        <li><span class="feat-ok">✓</span> Alertes Email</li>
-        <li><span class="feat-ok">✓</span> API REST complète</li>
-        <li><span class="feat-ok">✓</span> Filtres avancés</li>
-        <li><span class="feat-ok">✓</span> Favoris illimités</li>
-        <li><span class="feat-ok">✓</span> Support WhatsApp</li>
-      </ul>
-      <a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ 'Je veux m abonner au plan Pro 149 MAD - ATLAS PRO'|urlencode }}"
-         class="btn-wa-plan" target="_blank">
-        💬 S'abonner via WhatsApp
-      </a>
-    </div>
-
-    <!-- BUSINESS -->
-    <div class="plan">
-      <div class="plan-name">Business</div>
-      <div class="plan-price"><span class="cur">MAD</span>399</div>
-      <div class="plan-period">/ mois — للشركات</div>
-      <div class="plan-ar">للمكاتب والشركات الكبيرة</div>
-      <ul class="plan-features">
-        <li><span class="feat-ok">✓</span> <strong>Tout le plan Pro</strong></li>
-        <li><span class="feat-ok">✓</span> <strong>3 utilisateurs</strong></li>
-        <li><span class="feat-ok">✓</span> Rapports hebdomadaires</li>
-        <li><span class="feat-ok">✓</span> Alertes WhatsApp</li>
-        <li><span class="feat-ok">✓</span> Support prioritaire</li>
-        <li><span class="feat-ok">✓</span> Statistiques avancées</li>
-        <li><span class="feat-ok">✓</span> Export CSV illimité</li>
-      </ul>
-      <a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ 'Je veux le plan Business 399 MAD - ATLAS PRO'|urlencode }}"
-         class="btn-wa-plan" target="_blank">
-        💬 Nous contacter
-      </a>
-    </div>
-
-  </div>
-
-  <!-- Payment Info -->
-  <div class="payment-box">
-    <h2>💳 Paiement par Virement Bancaire</h2>
-    <p>Contactez-nous sur WhatsApp — nous convenons du virement et activons votre compte sous 1 heure.</p>
-    <p class="payment-ar">تواصل معنا عبر واتساب — نتفق على التحويل البنكي ونفعّل حسابك خلال ساعة واحدة ✅</p>
-    <a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ cfg.PAYMENT_MSG|urlencode }}"
-       class="wa-big" target="_blank">
-      💬 Contacter sur WhatsApp
-    </a>
-    <p class="wa-note">
-      ⏱ Activation sous 1 heure après virement<br>
-      🔒 Virement bancaire sécurisé — CIH / Attijari / BMCE / CPA
-    </p>
-  </div>
-
-  <!-- FAQ -->
-  <div class="faq">
-    <h2>Questions fréquentes</h2>
-
-    <div class="faq-item">
-      <div class="faq-q" onclick="toggleFaq(this)">
-        Comment fonctionne le paiement ?
-        <span class="faq-arrow">▾</span>
-      </div>
-      <div class="faq-a">
-        Contactez-nous sur WhatsApp, nous vous donnons les coordonnées bancaires. Après virement confirmé, votre compte est activé en moins d'1 heure.
-      </div>
-    </div>
-
-    <div class="faq-item">
-      <div class="faq-q" onclick="toggleFaq(this)">
-        Puis-je annuler à tout moment ?
-        <span class="faq-arrow">▾</span>
-      </div>
-      <div class="faq-a">
-        Oui. L'abonnement est mensuel sans engagement. Contactez-nous avant la date de renouvellement pour ne pas être débité.
-      </div>
-    </div>
-
-    <div class="faq-item">
-      <div class="faq-q" onclick="toggleFaq(this)">
-        Quelles banques marocaines acceptez-vous ?
-        <span class="faq-arrow">▾</span>
-      </div>
-      <div class="faq-a">
-        CIH Bank, Attijariwafa Bank, BMCE Bank, Banque Populaire, CPA, Crédit Agricole, et toutes les banques marocaines.
-      </div>
-    </div>
-
-    <div class="faq-item">
-      <div class="faq-q" onclick="toggleFaq(this)">
-        Les données sont-elles en temps réel ?
-        <span class="faq-arrow">▾</span>
-      </div>
-      <div class="faq-a">
-        Le scraper tourne toutes les heures depuis marchespublics.gov.ma. Les nouveaux marchés sont détectés et les alertes envoyées dans les 60 minutes suivant la publication.
-      </div>
-    </div>
-
-    <div class="faq-item">
-      <div class="faq-q" onclick="toggleFaq(this)">
-        كيف أحصل على تنبيهات واتساب؟ / Alertes WhatsApp ?
-        <span class="faq-arrow">▾</span>
-      </div>
-      <div class="faq-a">
-        Disponible dans le plan Business. Configurez votre numéro WhatsApp dans les paramètres de votre compte après abonnement.
-        <br><br>
-        متاح في خطة Business. أضف رقم واتساب في إعدادات حسابك بعد الاشتراك.
-      </div>
-    </div>
-
-  </div>
-
+{% endblock %}
+{% block content %}
+{% set is_ar = member and member.lang=='ar' %}
+<div style="text-align:center;margin-bottom:36px">
+  <h1 style="font-family:var(--ff-head);font-size:clamp(24px,4vw,36px);font-weight:900;margin-bottom:10px">
+    {{ 'Un marché remporté rembourse votre abonnement.' if not is_ar else 'صفقة واحدة تُعوّض تكلفة اشتراكك.' }}
+  </h1>
+  <p style="font-size:14px;color:var(--text2)">
+    {{ 'Paiement par virement bancaire · Activation en moins de 2h' if not is_ar else 'الدفع بتحويل بنكي · تفعيل في أقل من ساعتين' }}
+  </p>
 </div>
-
-<script>
-function toggleFaq(el) {
-  el.parentElement.classList.toggle('open');
-}
-</script>
+<div class="plans-grid">
+  <div class="plan-card">
+    <div class="plan-name">{{ 'Gratuit' if not is_ar else 'مجاني' }}</div>
+    <div class="plan-price">0</div>
+    <div class="plan-period">{{ '/ mois · pour découvrir' if not is_ar else '/ شهر · للاكتشاف' }}</div>
+    <ul class="plan-feats">
+      <li><span class="f-ok">✓</span> {{ '10 marchés / jour' if not is_ar else '10 مناقصات / يوم' }}</li>
+      <li><span class="f-ok">✓</span> {{ 'Filtres STX10 de base' if not is_ar else 'فلاتر STX10 أساسية' }}</li>
+      <li><span class="f-no">–</span> {{ 'Alertes WhatsApp/Telegram' if not is_ar else 'تنبيهات واتساب/تيليغرام' }}</li>
+      <li><span class="f-no">–</span> {{ 'Marchés illimités' if not is_ar else 'مناقصات غير محدودة' }}</li>
+      <li><span class="f-no">–</span> {{ 'Export CSV' if not is_ar else 'تصدير CSV' }}</li>
+    </ul>
+    <a href="/register"><button class="btn-plan">{{ 'Commencer gratuitement →' if not is_ar else 'ابدأ مجاناً ←' }}</button></a>
+  </div>
+  <div class="plan-card featured">
+    <div class="plan-tag">{{ 'Recommandé' if not is_ar else 'موصى به' }}</div>
+    <div class="plan-name">{{ 'Essentiel' if not is_ar else 'أساسي' }}</div>
+    <div class="plan-price"><span class="plan-cur">MAD </span>149</div>
+    <div class="plan-period">{{ '/ mois · sans engagement' if not is_ar else '/ شهر · بدون التزام' }}</div>
+    <ul class="plan-feats">
+      <li><span class="f-ok">✓</span> <strong>{{ 'Marchés illimités' if not is_ar else 'مناقصات غير محدودة' }}</strong></li>
+      <li><span class="f-ok">✓</span> <strong>{{ 'Alertes Telegram instantanées' if not is_ar else 'تنبيهات تيليغرام فورية' }}</strong></li>
+      <li><span class="f-ok">✓</span> {{ 'Alertes Email' if not is_ar else 'تنبيهات بريد' }}</li>
+      <li><span class="f-ok">✓</span> {{ 'Classification STX10 IA' if not is_ar else 'تصنيف STX10 ذكي' }}</li>
+      <li><span class="f-ok">✓</span> {{ 'Support prioritaire' if not is_ar else 'دعم أولوي' }}</li>
+    </ul>
+    <form method="POST" action="/tarifs/request">
+      <input type="hidden" name="plan" value="essentiel">
+      <button type="submit" class="btn-plan">{{ 'Demander activation →' if not is_ar else 'طلب التفعيل ←' }}</button>
+    </form>
+  </div>
+  <div class="plan-card">
+    <div class="plan-name">Pro</div>
+    <div class="plan-price"><span class="plan-cur">MAD </span>399</div>
+    <div class="plan-period">{{ '/ mois · équipes' if not is_ar else '/ شهر · للشركات' }}</div>
+    <ul class="plan-feats">
+      <li><span class="f-ok">✓</span> <strong>{{ 'Tout Essentiel +' if not is_ar else 'كل الأساسي +' }}</strong></li>
+      <li><span class="f-ok">✓</span> {{ 'API REST complète' if not is_ar else 'API REST كاملة' }}</li>
+      <li><span class="f-ok">✓</span> {{ 'Export CSV illimité' if not is_ar else 'تصدير CSV غير محدود' }}</li>
+      <li><span class="f-ok">✓</span> {{ 'Assistant IA avancé' if not is_ar else 'مساعد ذكي متقدم' }}</li>
+      <li><span class="f-ok">✓</span> {{ 'Alertes WhatsApp' if not is_ar else 'تنبيهات واتساب' }}</li>
+    </ul>
+    <form method="POST" action="/tarifs/request">
+      <input type="hidden" name="plan" value="pro">
+      <button type="submit" class="btn-plan">{{ 'Demander activation →' if not is_ar else 'طلب التفعيل ←' }}</button>
+    </form>
+  </div>
+</div>
+<div class="pay-info">
+  <p style="font-size:15px;color:var(--text2)">
+    <span>💳</span>
+    {{ 'Paiement par virement bancaire — CIH, Attijariwafa, BMCE, Banque Populaire...' if not is_ar else 'الدفع بتحويل بنكي — CIH، Attijariwafa، BMCE، البنك الشعبي...' }}<br>
+    <strong style="color:var(--green)">
+      {{ 'Activation sous 2h après confirmation du virement.' if not is_ar else 'التفعيل خلال ساعتين من تأكيد التحويل.' }}
+    </strong>
+  </p>
+</div>
 {% endblock %}

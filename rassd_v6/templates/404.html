@@ -1,13 +1,6 @@
-{% extends "base.html" %}
-{% block title %}Page introuvable — ATLAS PRO{% endblock %}
-{% block body %}
-<div style="max-width:560px;margin:100px auto;padding:0 24px;text-align:center">
-  <div style="font-family:var(--serif);font-style:italic;font-size:120px;color:var(--gold);line-height:1;margin-bottom:16px">404</div>
-  <h1 style="font-family:var(--serif);font-size:28px;color:var(--text1);margin-bottom:12px">Page introuvable</h1>
-  <p style="color:var(--text3);font-size:15px;margin-bottom:36px;line-height:1.7">Cette page n'existe pas ou a été déplacée. Retournez à l'accueil pour continuer.</p>
-  <div style="display:flex;gap:12px;justify-content:center">
-    <a href="/" class="btn btn-primary">Retour à l'accueil</a>
-    <a href="/tenders" class="btn btn-outline">Voir les marchés</a>
-  </div>
-</div>
+{% extends "base.html" %}{% block fullpage %}
+<!DOCTYPE html><html><head><meta charset="UTF-8"><title>SOURCE — 404</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@900&family=DM+Sans:wght@400&display=swap" rel="stylesheet">
+<style>:root{--void:#020408;--text1:#f1f5f9;--text2:#94a3b8;--blue:#2563eb}*{box-sizing:border-box;margin:0;padding:0}body{background:var(--void);color:var(--text1);font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:20px}.n{font-family:'Syne',sans-serif;font-size:120px;font-weight:900;line-height:1;color:rgba(37,99,235,.3)}.t{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;margin-bottom:10px}.s{font-size:14px;color:var(--text2);margin-bottom:28px}.a{padding:12px 24px;border-radius:10px;background:#2563eb;color:#fff;font-weight:700;text-decoration:none;display:inline-block}</style></head>
+<body><div><div class="n">404</div><div class="t">Page introuvable</div><div class="s">Cette page n'existe pas ou a été déplacée.</div><a href="/" class="a">← Retour à l'accueil</a></div></body></html>
 {% endblock %}

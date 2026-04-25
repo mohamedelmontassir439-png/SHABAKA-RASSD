@@ -1,367 +1,197 @@
-"""
-ATLAS PRO — STX10 Classifier v1.0
-=====================================
-مطابقة دقيقة للصفقات حسب تصنيف STX10 الرسمي المغربي
-"""
+"""SOURCE — Classificateur STX10 Sémantique v2"""
+import json, logging, requests
+from app.core.config import cfg
+logger = logging.getLogger("source.stx10")
 
-# ══════════════════════════════════════════════════════════
-# التصنيف الكامل STX10
-# ══════════════════════════════════════════════════════════
-STX10_CODES = {
-    # ── TRAVAUX ────────────────────────────────────────────
-    "T101": {
-        "label": "Travaux de constructions, bâtiments et ouvrages d'art",
-        "keywords": ["construction","bâtiment","ouvrage d'art","btp","génie civil","immeuble","réhabilitation","rénovation","extension bâtiment","infrastructure","édifice","logement","résidence","bureau","siège","école","lycée","université","hôpital","salle","stade","piscine","gymnase","mosquée","musée","bibliothèque","parking","hangar","entrepôt"],
-    },
-    "T102": {
-        "label": "Travaux de Terrassements",
-        "keywords": ["terrassement","terrassements","déblai","remblai","excavation","fouille","nivellement","talus","drainage","décapage","compactage","stabilisation sol"],
-    },
-    "T103": {
-        "label": "Travaux de Menuiserie – Métallerie – Charpente – Ferronnerie",
-        "keywords": ["menuiserie","métallerie","charpente","ferronnerie","portes","fenêtres","menuiserie aluminium","menuiserie bois","serrurerie","garde-corps","grilles","portail","hangar métallique","charpente métallique","structure métallique"],
-    },
-    "T104": {
-        "label": "Travaux de Plomberie – Chauffage – Climatisation",
-        "keywords": ["plomberie","chauffage","climatisation","hvac","vmc","ventilation","sanitaires","robinetterie","tuyauterie","chaudière","réfrigération","air conditionné","split","pac","pompe chaleur"],
-    },
-    "T105": {
-        "label": "Travaux de Peinture – Vitrerie",
-        "keywords": ["peinture","vitrerie","revêtement mural","enduit","lasure","vernissage","vitrage","baie vitrée","verre","miroiterie","ravalement","façade peinture"],
-    },
-    "T106": {
-        "label": "Travaux d'Étanchéité – Isolation",
-        "keywords": ["étanchéité","isolation","imperméabilisation","toiture étanche","bitume","membrane","polyuréthane","isolant thermique","isolation acoustique","laine de roche","polystyrène"],
-    },
-    "T107": {
-        "label": "Travaux de Revêtement",
-        "keywords": ["revêtement","carrelage","dallage","parquet","moquette","pavage","revêtement sol","faïence","zellige","marbre","granit","béton ciré"],
-    },
-    "T108": {
-        "label": "Travaux de Plâtrerie – Faux plafonds",
-        "keywords": ["plâtrerie","faux plafond","cloison","doublage","staff","stuc","enduit plâtre","plaque de plâtre","ba13","cloisonnement"],
-    },
-    "T109": {
-        "label": "Monte-charge – Ascenseurs",
-        "keywords": ["ascenseur","monte-charge","élévateur","escalier mécanique","tapis roulant","plateforme élévatrice"],
-    },
-    "T110": {
-        "label": "Travaux de génie civil & aménagements divers liés au génie civil",
-        "keywords": ["génie civil","vrd","voirie réseaux divers","assainissement pluvial","réseau divers","aménagement urbain","trottoir","bordure","caniveau","clôture","mur de soutènement","ouvrage hydraulique"],
-    },
-    "T111": {
-        "label": "Aménagement des espaces verts et jardins",
-        "keywords": ["espaces verts","jardin","aménagement paysager","plantation","gazon","arrosage automatique","parc","pelouse","horticulture","reboisement"],
-    },
-    "T112": {
-        "label": "Aménagements Divers associés aux bâtiments",
-        "keywords": ["aménagement intérieur","agencement","mobilier fixe","faux plancher","podium","scène","signalétique bâtiment"],
-    },
-    "T201": {
-        "label": "Travaux d'assainissement – Conduite",
-        "keywords": ["assainissement","conduite","canalisation","égout","réseau eau","adduction eau","eau potable réseau","station épuration","lagunage","collecteur","coupole","réseau pluvial"],
-    },
-    "T202": {
-        "label": "Fondations spéciales – Injections – Sondages et forages",
-        "keywords": ["fondation spéciale","micropieu","pieu","injection","sondage","forage","reconnaissance sol","carottage","géotechnique","consolidation"],
-    },
-    "T203": {
-        "label": "Travaux hydromécaniques – Traitement d'eau – Automatisme",
-        "keywords": ["hydromécanique","vanne","pompage","station pompage","traitement eau","potabilisation","filtration","chloration","automatisme hydraulique"],
-    },
-    "T204": {
-        "label": "Travaux maritimes et fluviaux",
-        "keywords": ["maritime","fluvial","port","quai","digue","jetée","barrage","retenue","oued","dragage","berge"],
-    },
-    "T301": {
-        "label": "Travaux routiers et de voies ferrées",
-        "keywords": ["route","voirie","chaussée","autoroute","voie ferrée","rail","bitume","enrobé","asphalte","déviation","rond-point","échangeur","piste","chemin"],
-    },
-    "T302": {
-        "label": "Travaux de signalisation et équipements de la route",
-        "keywords": ["signalisation routière","panneau","marquage","glissière","barrière","éclairage public route","radar","équipement route","feux tricolores"],
-    },
-    "T401": {
-        "label": "Travaux d'électricité & d'éclairage public",
-        "keywords": ["électricité","éclairage public","câblage","installation électrique","tableau électrique","transformateur","poste hta","basse tension","haute tension","réseau électrique","lampadaire","photovoltaïque réseau"],
-    },
-    "T402": {
-        "label": "Travaux de sécurité, télésurveillance, sonorisation et protection",
-        "keywords": ["vidéosurveillance","télésurveillance","câblage sécurité","alarme incendie","système alarme","contrôle accès","sonorisation","interphone","cctv","détection intrusion","ssi"],
-    },
-    "T403": {
-        "label": "Travaux de télécommunications et d'électroniques",
-        "keywords": ["télécommunication","câblage réseau","fibre optique","réseau informatique","courant faible","câblage structuré","data center cablage","antenne","wifi infrastructure"],
-    },
-    "T404": {
-        "label": "Travaux d'isolation frigorifique et chambre froide",
-        "keywords": ["chambre froide","isolation frigorifique","entrepôt frigorifique","congélateur industriel","froid"],
-    },
-    "T501": {
-        "label": "Travaux topographiques, couverture aérienne, photogrammétrie",
-        "keywords": ["topographie","levé topographique","photogrammétrie","drone cartographie","plan cadastral","couverture aérienne","lidar","bathymétrie"],
-    },
-    "T601": {
-        "label": "Travaux agricoles",
-        "keywords": ["travaux agricoles","labour","irrigation","drainage agricole","serre","amenagement agricole","périmètre irrigué"],
-    },
-
-    # ── ÉQUIPEMENTS ────────────────────────────────────────
-    "P802": {
-        "label": "Équipements et accessoires électroniques et de télécommunication",
-        "keywords": ["équipement électronique","téléphonie","central téléphonique","autocommutateur","routeur","switch","équipement réseau","radio","émetteur","récepteur"],
-    },
-    "P804": {
-        "label": "Équipement de Sono, Vidéo & de Photographie",
-        "keywords": ["sonorisation","vidéoprojecteur","caméra","matériel photo","écran","audiovisuel","ampli","enceinte","microphone","système de conférence"],
-    },
-    "P805": {
-        "label": "Mobilier de Bureau",
-        "keywords": ["mobilier bureau","bureau","chaise","armoire","meuble","mobilier scolaire","table","mobilier administratif","rayonnage","bibliothèque meuble"],
-    },
-    "P806": {
-        "label": "Équipements et matériels hydrauliques",
-        "keywords": ["pompe","groupe motopompe","compresseur","vanne","accessoires hydrauliques","équipement hydraulique","surpresseur"],
-    },
-    "P808": {
-        "label": "Matériel et équipements topographiques",
-        "keywords": ["gps","théodolite","niveau optique","station totale","distancemètre","matériel topographique"],
-    },
-    "P810": {
-        "label": "Équipement machinismes agricoles",
-        "keywords": ["tracteur","moissonneuse","matériel agricole","outil agricole","pulvérisateur","motoculteur","système irrigation goutte"],
-    },
-    "P812": {
-        "label": "Équipements et accessoires électriques",
-        "keywords": ["équipement électrique","tableau électrique","disjoncteur","câble","onduleur","groupe électrogène","ups","transformateur","batterie","armoire électrique"],
-    },
-    "P813": {
-        "label": "Équipements médicaux, de laboratoire",
-        "keywords": ["équipement médical","matériel médical","scanner","radiologie","échographe","bloc opératoire","stérilisateur","oxymètre","tensiomètre","fauteuil dentaire","laboratoire médical","consommable médical"],
-    },
-    "P814": {
-        "label": "Équipement de climatisation",
-        "keywords": ["climatiseur","split","vrf","groupe froid","clim","unité intérieure","unité extérieure","pompe à chaleur"],
-    },
-    "P815": {
-        "label": "Matériel de manutention et engins mobiles",
-        "keywords": ["chariot élévateur","engin tp","pelleteuse","bulldozer","grue","nacelle","manutention","transpalette","reach truck","pelle","niveleuse"],
-    },
-    "P816": {
-        "label": "Matériel roulant et véhicules",
-        "keywords": ["véhicule","voiture","camion","bus","minibus","camionnette","ambulance","véhicule utilitaire","fourgon","moto","bicyclette","location véhicule"],
-    },
-    "P817": {
-        "label": "Matériel et outillage didactique et pédagogique",
-        "keywords": ["matériel pédagogique","tableau blanc","tableau interactif","matériel scolaire","équipement éducatif","kit pédagogique","simulateur formation"],
-    },
-    "P818": {
-        "label": "Équipements et accessoires informatiques",
-        "keywords": ["informatique","ordinateur","laptop","pc","serveur","imprimante","scanner","tablette","périphérique","disque dur","mémoire","matériel informatique","hardware"],
-    },
-    "P818": {
-        "label": "Équipements et accessoires informatiques",
-        "keywords": ["ordinateur","pc","laptop","serveur","imprimante","scanner","tablette","matériel informatique","hardware","stockage","baie serveur","nas","rack"],
-    },
-    "P819": {
-        "label": "Équipements sportifs et de campement",
-        "keywords": ["équipement sportif","terrain sport","tente","camping","vestiaire","gradins","filet","poteau","cage foot","panier basket"],
-    },
-    "P820": {"label": "Équipement technique divers", "keywords": ["équipement technique","outillage technique","matériel spécialisé"]},
-    "P821": {
-        "label": "Équipement de sécurité, protection et surveillance",
-        "keywords": ["équipement sécurité","epi","casque","gilet","harnais","détecteur","extincteur","borne incendie","alarme","badge","portique sécurité"],
-    },
-    "P822": {"label": "Matériel et outillage de précision", "keywords": ["instrument mesure","oscilloscope","multimètre","calibreur","pied à coulisse","outillage précision"]},
-    "P823": {"label": "Petit matériel et outillage", "keywords": ["outillage","outil","perceuse","meuleuse","scie","marteau","clé","petits matériels"]},
-    "P824": {"label": "Installation de cuisine et buanderies", "keywords": ["cuisine industrielle","équipement cuisine","four","réfrigérateur","lave-linge","buanderie","restaurant scolaire","cantine"]},
-    "P825": {
-        "label": "Fournitures et matériels de Bureau",
-        "keywords": ["fournitures bureau","papeterie","cartouche","toner","ramette","stylo","classeur","fourniture administrative","consommable bureau"],
-    },
-    "P830": {"label": "Pièces de rechanges et produits industriels", "keywords": ["pièces rechange","spare parts","maintenance industrielle","consommables industriels"]},
-    "P831": {"label": "Combustibles et lubrifiants", "keywords": ["carburant","gasoil","essence","fuel","huile","lubrifiant","combustible","pétrole"]},
-    "P832": {"label": "Produits chimiques et para chimiques", "keywords": ["produit chimique","réactif","acide","chlore","coagulant","produit traitement","détergent industriel","désinfectant"]},
-    "P833": {"label": "Produits pharmaceutiques et consommables de laboratoire", "keywords": ["médicament","produit pharmaceutique","consommable laboratoire","réactif laboratoire","milieu culture","seringue","gants médicaux"]},
-    "P834": {"label": "Produits d'industrie alimentaire, agricoles et pêches", "keywords": ["produit alimentaire","denrée","vivres","alimentation","farine","huile alimentaire","sucre","produit agricole","semence"]},
-    "P836": {
-        "label": "Imprimerie – Papeterie – Reprographie",
-        "keywords": ["imprimerie","impression","reprographie","publication","livre","brochure","flyer","affiche","édition","sérigraphie","papeterie impression"],
-    },
-    "P837": {"label": "Confection / Textile / Cuir / Habillement", "keywords": ["tenue","uniforme","vêtement","textile","tissu","habillement","costume","blouse","chaussure","maroquinerie"]},
-    "P838": {"label": "Minerais, Métaux, Plastiques, Bois", "keywords": ["acier","fer","aluminium","cuivre","métal","plastique","bois","matière première","profilé","tôle"]},
-    "P839": {
-        "label": "Matériaux de construction et préfabriqués",
-        "keywords": ["matériaux construction","ciment","béton","sable","gravier","brique","parpaing","tuile","préfabriqué","élément préfabriqué","acier construction","enduit","mortier"],
-    },
-    "P840": {"label": "Ameublement et literie", "keywords": ["meuble","lit","matelas","armoire","chambre","ameublement","literie","canapé"]},
-    "P841": {"label": "Produits d'hygiène et de nettoiement", "keywords": ["produit hygiène","nettoyage","désinfectant","savon","javel","balai","aspirateur","produit ménager"]},
-    "P843": {"label": "Matériels et équipements de laboratoire et d'analyse", "keywords": ["équipement laboratoire","analyseur","spectromètre","centrifugeuse","microscope","ph mètre","matériel analyse"]},
-    "P850": {
-        "label": "Énergies renouvelables – Solaire",
-        "keywords": ["photovoltaïque","panneau solaire","solaire","énergie solaire","pv","chauffe-eau solaire","centrale solaire","onduleur solaire"],
-    },
-    "P852": {"label": "Énergies renouvelables – Fournitures & Services", "keywords": ["pompe solaire","chauffe-eau","panneau thermique","énergie verte","renouvelable fourniture"]},
-    "P853": {"label": "Énergies renouvelables – Autres", "keywords": ["éolien","biomasse","step","hydraulique barrage","dessalement","autre renouvelable"]},
-
-    # ── SERVICES ────────────────────────────────────────────
-    "S901": {
-        "label": "Études et développement TIC",
-        "keywords": ["développement logiciel","application web","site web","système information","si","erp","crm","intranet","extranet","application mobile","développement informatique","solution informatique","logiciel","progiciel","plateforme numérique","digitalisation","transformation digitale"],
-    },
-    "S902": {
-        "label": "Études générales / Conseil",
-        "keywords": ["étude","conseil","consulting","audit","expertise","diagnostic","assistance technique","accompagnement","stratégie","plan directeur","schéma directeur","master plan","faisabilité"],
-    },
-    "S903": {
-        "label": "Études relatives aux bâtiments et travaux publics",
-        "keywords": ["maîtrise d'oeuvre","mission moe","avant-projet","apd","dce","études btp","béton armé calcul","structure calcul","bureau de contrôle","coordination sécurité"],
-    },
-    "S904": {
-        "label": "Prestations diverses",
-        "keywords": ["prestation service","mission","service divers","assistance","prestations"],
-    },
-    "S906": {
-        "label": "Maintenance, Réparation et Entretien",
-        "keywords": ["maintenance","entretien","réparation","dépannage","maintenance préventive","maintenance corrective","contrat maintenance","gmao","mco"],
-    },
-    "S907": {
-        "label": "Nettoyage et hygiène",
-        "keywords": ["nettoyage","propreté","hygiène","désinfection","désinsectisation","dératisation","entretien ménager","nettoyage locaux"],
-    },
-    "S908": {
-        "label": "Gardiennage et sécurité",
-        "keywords": ["gardiennage","sécurité gardiennage","surveillance","agent sécurité","protection","rondes","intérim sécurité"],
-    },
-    "S909": {"label": "Concours d'idées d'architecture", "keywords": ["concours architecture","concours idées","concours urbanisme"]},
-    "S910": {
-        "label": "Publicité, communication et information",
-        "keywords": ["publicité","communication","campagne pub","média","affichage","spot","communication institutionnelle","relations presse","community management","web marketing"],
-    },
-    "S911": {
-        "label": "Restauration, réception et hébergement",
-        "keywords": ["restauration","traiteur","réception","buffet","hébergement","hôtel","séminaire","événement","cocktail","repas"],
-    },
-    "S912": {"label": "Services d'assurance", "keywords": ["assurance","mutuelles","police assurance","responsabilité civile","assurance véhicule","assurance maladie"]},
-    "S913": {
-        "label": "Prestations de formation",
-        "keywords": ["formation","stage","séminaire","atelier","workshop","certification","e-learning","ingénierie pédagogique","formateur"],
-    },
-    "S914": {"label": "Locations et Concessions", "keywords": ["location","concession","mise à disposition","bail","loyer"]},
-    "S915": {"label": "Location matériels roulants et transport", "keywords": ["location véhicule","transport de personnes","navette","taxi","location voiture","transport scolaire"]},
-    "S916": {"label": "Études agricoles", "keywords": ["étude agricole","agronomie","irrigation étude","sol agricole"]},
-    "S917": {"label": "Événementiel", "keywords": ["événementiel","organisation événement","conférence","colloque","salon","exposition","forum","journée","cérémonie"]},
-    "S918": {"label": "Traitement des déchets", "keywords": ["déchet","collecte déchets","traitement déchets","recyclage","déchetterie","ordures ménagères","rebuts"]},
-    "S919": {"label": "Archivage physique et électronique", "keywords": ["archivage","gestion archives","ged","dématérialisation","numérisation documents","records management"]},
-    "S920": {"label": "Expertise et évaluation immobilière", "keywords": ["expertise immobilière","évaluation foncière","estimation immobilier","topographe foncier"]},
-    "S921": {"label": "Analyses de laboratoire industrielles", "keywords": ["analyse industrielle","contrôle qualité laboratoire","essai mécanique","analyse eau","contrôle matériaux"]},
-    "S922": {"label": "Analyses de laboratoire médicales", "keywords": ["analyse médicale","biologie médicale","bilan sanguin","laboratoire médical"]},
-    "S923": {"label": "Analyses laboratoire BTP et VRD", "keywords": ["essai béton","analyse sol","contrôle btp","laboratoire géotechnique","essai compactage","carottage béton"]},
-    "S930": {"label": "Hébergement spécialisé", "keywords": ["data center","hébergement serveur","cloud hosting","infogérance","saas"]},
-    "S931": {
-        "label": "Achat et installation logiciels, solutions et licences informatiques",
-        "keywords": ["licence logiciel","microsoft","oracle","sap","windows","office","antivirus","logiciel comptabilité","erp achat","crm achat","solution informatique achat"],
-    },
+STX10 = {
+    "T101":"Travaux de construction et réhabilitation de bâtiments",
+    "T102":"Terrassements et travaux de sol",
+    "T103":"Menuiserie, métallerie et charpente",
+    "T104":"Plomberie, chauffage et climatisation",
+    "T105":"Peinture et vitrerie",
+    "T106":"Étanchéité et isolation",
+    "T107":"Revêtements (carrelage, parquet, dallage)",
+    "T108":"Plâtrerie et faux plafonds",
+    "T109":"Ascenseurs et monte-charges",
+    "T110":"Génie civil, VRD et aménagements urbains",
+    "T111":"Espaces verts et jardins",
+    "T201":"Assainissement et réseaux de conduite",
+    "T202":"Fondations spéciales et forages",
+    "T203":"Travaux hydromécaniques et traitement d'eau",
+    "T301":"Travaux routiers et voies ferrées",
+    "T302":"Signalisation routière",
+    "T401":"Électricité et éclairage public",
+    "T402":"Sécurité, vidéosurveillance et sonorisation",
+    "T403":"Télécommunications et réseaux informatiques",
+    "T501":"Travaux topographiques et photogrammétrie",
+    "T601":"Travaux agricoles et irrigation",
+    "P805":"Mobilier de bureau",
+    "P812":"Équipements électriques",
+    "P813":"Équipements médicaux et de laboratoire",
+    "P814":"Équipements de climatisation",
+    "P815":"Engins et matériel de manutention",
+    "P816":"Véhicules et matériel roulant",
+    "P817":"Matériel didactique et pédagogique",
+    "P818":"Équipements et accessoires informatiques",
+    "P825":"Fournitures de bureau et papeterie",
+    "P831":"Combustibles et lubrifiants",
+    "P833":"Produits pharmaceutiques",
+    "P836":"Imprimerie et reprographie",
+    "P837":"Textile, vêtements et uniformes",
+    "P839":"Matériaux de construction",
+    "P841":"Produits d'hygiène et de nettoyage",
+    "P843":"Matériel de laboratoire et d'analyse",
+    "P850":"Énergie solaire et photovoltaïque",
+    "S901":"Développement logiciel et systèmes d'information",
+    "S902":"Études générales, conseil et expertise",
+    "S903":"Maîtrise d'œuvre BTP",
+    "S906":"Maintenance, réparation et entretien",
+    "S907":"Nettoyage et hygiène",
+    "S908":"Gardiennage et sécurité",
+    "S910":"Publicité et communication",
+    "S911":"Restauration, traiteur et hébergement",
+    "S912":"Services d'assurance",
+    "S913":"Formation et ingénierie pédagogique",
+    "S914":"Location et concession",
+    "S915":"Transport et location de véhicules",
+    "S917":"Organisation d'événements",
+    "S918":"Traitement et collecte des déchets",
+    "S919":"Archivage et gestion documentaire",
+    "S931":"Licences logiciels et solutions informatiques",
 }
 
-# ══════════════════════════════════════════════════════════
-# MOTEUR DE CLASSIFICATION STX10
-# ══════════════════════════════════════════════════════════
-def classify_stx10(text: str, top_n: int = 3) -> list:
-    """
-    Classifie un texte selon STX10.
-    Retourne liste de (code, label, score) triée par score.
-    """
-    if not text:
-        return []
+# Règles sémantiques — sens de l'activité, pas mots-clés bruts
+RULES = [
+    (["construction","réhabilitation","rénovation","bâtiment","édifice","école","hôpital","immeuble","mosquée","salle","résidence","siège","bureau bâtiment","logement","villa"], "T101"),
+    (["terrassement","déblai","remblai","fouille","excavation","nivellement","compactage"], "T102"),
+    (["menuiserie","charpente","ferronnerie","portail","fenêtre","porte aluminium","métallerie","serrurerie","garde-corps"], "T103"),
+    (["plomberie","chauffage","climatisation","hvac","sanitaire","chaudière","tuyauterie","vmc"], "T104"),
+    (["peinture","vitrerie","enduit","ravalement","façade peinture"], "T105"),
+    (["étanchéité","isolation","bitume","membrane","toiture étanche"], "T106"),
+    (["carrelage","dallage","revêtement sol","parquet","faïence","marbre","zellige"], "T107"),
+    (["plâtrerie","faux plafond","cloison","plaque de plâtre","doublage"], "T108"),
+    (["ascenseur","monte-charge","élévateur"], "T109"),
+    (["génie civil","vrd","voirie","caniveau","bordure","trottoir","clôture","aménagement urbain"], "T110"),
+    (["espace vert","jardin","plantation","gazon","arrosage automatique","paysager"], "T111"),
+    (["assainissement","canalisation","égout","adduction eau","réseau eau potable","station épuration"], "T201"),
+    (["fondation spéciale","micropieu","pieu","injection sol","sondage","forage","géotechnique"], "T202"),
+    (["station pompage","traitement eau","potabilisation","filtration eau"], "T203"),
+    (["route","chaussée","autoroute","bitume","enrobé","asphalte","piste"], "T301"),
+    (["signalisation routière","panneau route","marquage","glissière","feux tricolores"], "T302"),
+    (["électricité","éclairage public","câblage électrique","installation électrique","tableau électrique","transformateur","réseau électrique","lampadaire"], "T401"),
+    (["vidéosurveillance","cctv","alarme","contrôle accès","ssi","sécurité incendie","sonorisation"], "T402"),
+    (["télécommunication","fibre optique","réseau informatique","câblage réseau","wifi infrastructure","data center"], "T403"),
+    (["topographie","levé topographique","photogrammétrie","gps topographique","plan cadastral","lidar","bathymétrie"], "T501"),
+    (["travaux agricoles","irrigation","serre","périmètre irrigué"], "T601"),
+    (["mobilier bureau","chaise bureau","armoire bureau","bureau meuble","rayonnage"], "P805"),
+    (["tableau électrique","disjoncteur","câble électrique","onduleur","groupe électrogène","ups"], "P812"),
+    (["équipement médical","scanner","radiologie","échographe","bloc opératoire","matériel médical"], "P813"),
+    (["climatiseur","split","vrf","groupe froid","unité climatisation"], "P814"),
+    (["chariot élévateur","engin tp","pelleteuse","grue","nacelle","manutention"], "P815"),
+    (["véhicule","voiture","camion","bus","ambulance","minibus","fourgon","flotte automobile"], "P816"),
+    (["matériel pédagogique","tableau interactif","équipement éducatif","kit scolaire"], "P817"),
+    (["ordinateur","pc","laptop","serveur","imprimante","scanner informatique","tablette","matériel informatique","hardware","routeur","switch réseau","nas"], "P818"),
+    (["fournitures bureau","papeterie","cartouche","toner","ramette"], "P825"),
+    (["carburant","gasoil","essence","fuel","lubrifiant"], "P831"),
+    (["médicament","produit pharmaceutique","consommable laboratoire","réactif médical"], "P833"),
+    (["imprimerie","impression","reprographie","publication","édition","brochure"], "P836"),
+    (["tenue","uniforme","vêtement de travail","textile","habillement"], "P837"),
+    (["ciment","béton","sable","gravier","brique","parpaing","matériaux construction"], "P839"),
+    (["produit nettoyage","désinfectant","javel","entretien ménager","hygiène produit"], "P841"),
+    (["équipement laboratoire","analyseur","centrifugeuse","microscope"], "P843"),
+    (["photovoltaïque","panneau solaire","énergie solaire","pv","centrale solaire","onduleur solaire","installation solaire"], "P850"),
+    (["développement logiciel","application web","site web","système information","erp","crm","intranet","plateforme numérique","digitalisation","transformation digitale","application mobile"], "S901"),
+    (["étude","conseil","consulting","audit","expertise","diagnostic","assistance technique","faisabilité","schéma directeur"], "S902"),
+    (["maîtrise d'oeuvre","moe","avant-projet","apd","dce","bureau contrôle btp"], "S903"),
+    (["maintenance","entretien","réparation","dépannage","contrat maintenance","préventive corrective"], "S906"),
+    (["nettoyage locaux","propreté","désinsectisation","dératisation","entretien ménager"], "S907"),
+    (["gardiennage","sécurité gardiennage","surveillance","agent sécurité","rondes"], "S908"),
+    (["publicité","communication","campagne","média","affichage","community management"], "S910"),
+    (["restauration","traiteur","réception","buffet","repas","cantine"], "S911"),
+    (["assurance","mutuelles","police assurance","responsabilité civile"], "S912"),
+    (["formation","stage","séminaire","atelier","workshop","certification","e-learning"], "S913"),
+    (["location matériel","concession","mise à disposition","bail"], "S914"),
+    (["transport personnes","navette","taxi","location voiture service","transport scolaire"], "S915"),
+    (["événementiel","organisation événement","conférence","colloque","salon","forum"], "S917"),
+    (["déchet","collecte déchets","recyclage","ordures"], "S918"),
+    (["archivage","gestion archives","ged","dématérialisation","numérisation documents"], "S919"),
+    (["licence logiciel","microsoft","oracle","sap","windows server","antivirus"], "S931"),
+]
 
-    text_lower = text.lower()
+def _ai(text):
+    if not cfg.GROQ_API_KEY or not text: return {}
+    try:
+        codes = "\n".join(f"  {c}: {l}" for c,l in STX10.items())
+        prompt = f"""Expert marchés publics marocains. Code STX10 pour ce marché.
+Codes disponibles:
+{codes}
+
+Marché: {text[:500]}
+
+RÈGLE IMPORTANTE: comprends l'OBJECTIF, pas les mots.
+Ex: "Construction salle de classe" → T101 (bâtiment), PAS éducation.
+Ex: "Acquisition ordinateurs" → P818, PAS services.
+Ex: "Développement application" → S901, PAS bureau.
+
+JSON uniquement: {{"code":"T101","label":"description","confidence":0.9}}"""
+        r = requests.post("https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization":f"Bearer {cfg.GROQ_API_KEY}"},
+            json={"model":cfg.AI_MODEL,"max_tokens":100,"temperature":0.1,
+                  "messages":[{"role":"user","content":prompt}],
+                  "response_format":{"type":"json_object"}},
+            timeout=8)
+        if r.status_code==200:
+            d = json.loads(r.json()["choices"][0]["message"]["content"])
+            if d.get("code") and d["code"] in STX10: return d
+    except Exception as e: logger.debug(f"[AI] {e}")
+    return {}
+
+def _hybrid(text):
+    if not text: return {"code":"S902","label":STX10["S902"],"confidence":0.3}
+    t = text.lower()
     scores = {}
+    for kws, code in RULES:
+        s = 0
+        for kw in kws:
+            if kw in t:
+                w = len(kw.split())*2 + len(kw)*0.1
+                if kw in t[:150]: w *= 2.0
+                s += w
+        if s > 0: scores[code] = scores.get(code,0)+s
+    if not scores: return {"code":"S902","label":STX10["S902"],"confidence":0.3}
+    best = max(scores, key=scores.get)
+    mx = scores[best]
+    return {"code":best,"label":STX10.get(best,""),"confidence":round(min(0.92,mx/(mx+12)),2)}
 
-    for code, info in STX10_CODES.items():
-        score = 0
-        for kw in info["keywords"]:
-            kw_lower = kw.lower()
-            if kw_lower in text_lower:
-                # Score pondéré par longueur du mot-clé
-                score += len(kw_lower.split()) * 2
-                # Bonus si dans les 200 premiers caractères
-                if text_lower[:200].find(kw_lower) >= 0:
-                    score += 3
+def classify(text):
+    if not text: return {"code":"S902","label":STX10["S902"],"confidence":0.3}
+    ai = _ai(text)
+    if ai and ai.get("confidence",0)>=0.65:
+        ai.setdefault("label", STX10.get(ai["code"],""))
+        return ai
+    return _hybrid(text)
 
-        if score > 0:
-            scores[code] = score
+def top3(text):
+    if not text: return []
+    t = text.lower()
+    scores = {}
+    for kws,code in RULES:
+        s=0
+        for kw in kws:
+            if kw in t:
+                w=len(kw.split())*2+len(kw)*0.1
+                if kw in t[:150]: w*=2.0
+                s+=w
+        if s>0: scores[code]=scores.get(code,0)+s
+    return [{"code":c,"label":STX10.get(c,""),"score":s}
+            for c,s in sorted(scores.items(),key=lambda x:x[1],reverse=True)[:3]]
 
-    # Trier par score
-    sorted_codes = sorted(scores.items(), key=lambda x: x[1], reverse=True)
-    result = []
-    for code, score in sorted_codes[:top_n]:
-        result.append({
-            "code": code,
-            "label": STX10_CODES[code]["label"],
-            "score": score,
-            "category": code[0]  # T, P, ou S
-        })
-
-    return result
-
-
-def classify_primary(text: str) -> dict:
-    """Retourne le code STX10 principal uniquement"""
-    results = classify_stx10(text, 1)
-    if results:
-        return results[0]
-    return {"code": "S904", "label": "Prestations diverses", "score": 0, "category": "S"}
-
-
-def match_member_codes(tender_text: str, member_codes: list) -> list:
-    """
-    Vérifie si un marché correspond aux codes STX10 d'un membre.
-    Retourne les codes qui correspondent.
-    """
-    if not member_codes:
-        return []
-
-    tender_results = classify_stx10(tender_text, top_n=5)
-    tender_codes = [r["code"] for r in tender_results]
-
-    matches = []
-    for code in member_codes:
-        if code in tender_codes:
-            matches.append(code)
-        # Match par famille (ex: membre T101 → match T102, T103...)
-        elif member_codes and code[0] == "T" and any(t.startswith("T") for t in tender_codes):
-            # Si la famille principale correspond
-            family = code[:2]
-            for tc in tender_codes:
-                if tc.startswith(family):
-                    matches.append(code)
-                    break
-
+def match_member(text, codes):
+    if not codes or not text: return []
+    t3 = [r["code"] for r in top3(text)]
+    matches = [c for c in codes if c in t3]
+    if not matches:
+        for mc in codes:
+            for tc in t3:
+                if tc.startswith(mc[:2]): matches.append(mc); break
     return list(set(matches))
-
-
-# Test rapide
-if __name__ == "__main__":
-    test_texts = [
-        "Construction d'un bâtiment administratif R+3 à Rabat avec terrassement",
-        "Acquisition d'ordinateurs portables et imprimantes pour 50 postes",
-        "Prestation de maintenance et entretien des climatiseurs",
-        "Développement d'un système d'information RH",
-        "Fourniture et pose de panneaux solaires photovoltaïques",
-        "Travaux d'assainissement et réseau d'eau potable",
-        "Formation en gestion de projets pour 30 cadres",
-        "Service de gardiennage et surveillance 24h/24",
-        "Étude et réalisation d'un réseau de fibre optique",
-        "Acquisition de matériels médicaux pour le CHU",
-    ]
-
-    print("=" * 60)
-    print("  TEST CLASSIFICATION STX10")
-    print("=" * 60)
-    for text in test_texts:
-        results = classify_stx10(text, 3)
-        print(f"\n📋 {text[:60]}")
-        for r in results:
-            print(f"   → [{r['code']}] {r['label'][:50]} (score: {r['score']})")
-    print("\n" + "=" * 60)
