@@ -1,5 +1,5 @@
 /**
- * ATLAS PRO — WhatsApp Service via Baileys
+ * SOURCE — WhatsApp Service via Baileys
  * Expose HTTP API for Python FastAPI to send WhatsApp messages
  *
  * Endpoints:
@@ -54,7 +54,7 @@ async function startSock() {
     logger,
     auth: state,
     printQRInTerminal: true,
-    browser: ['ATLAS PRO', 'Chrome', '120.0'],
+    browser: ['SOURCE', 'Chrome', '120.0'],
   })
 
   sock.ev.on('creds.update', saveCreds)
@@ -84,7 +84,7 @@ async function startSock() {
 
 // ── Routes ─────────────────────────────────────────
 app.get('/health', (req, res) => {
-  res.json({ ok: true, connected: isConnected, hasQR: !!qrCode, service: 'ATLAS PRO WhatsApp' })
+  res.json({ ok: true, connected: isConnected, hasQR: !!qrCode, service: 'SOURCE WhatsApp' })
 })
 
 app.get('/status', auth, (req, res) => {
@@ -93,14 +93,14 @@ app.get('/status', auth, (req, res) => {
 
 app.get('/qr', async (req, res) => {
   if (isConnected) {
-    return res.send('<html><body style="font-family:sans-serif;text-align:center;padding:40px;background:#07070c;color:#d4a843"><h2>✅ WhatsApp connecté!</h2><p style="color:#8a8680">ATLAS PRO est connecté à WhatsApp.</p></body></html>')
+    return res.send('<html><body style="font-family:sans-serif;text-align:center;padding:40px;background:#07070c;color:#d4a843"><h2>✅ WhatsApp connecté!</h2><p style="color:#8a8680">SOURCE est connecté à WhatsApp.</p></body></html>')
   }
   if (!qrCode) {
     return res.send('<html><body style="font-family:sans-serif;text-align:center;padding:40px;background:#07070c;color:#d4a843"><h2>⏳ Génération du QR...</h2><p style="color:#8a8680">Rafraîchissez dans quelques secondes.</p><script>setTimeout(()=>location.reload(),3000)</script></body></html>')
   }
   try {
     const qrImg = await QRCode.toDataURL(qrCode)
-    res.send(`<html><head><title>ATLAS PRO — Scan WhatsApp</title></head>
+    res.send(`<html><head><title>SOURCE — Scan WhatsApp</title></head>
 <body style="font-family:sans-serif;text-align:center;padding:40px;background:#07070c;color:#f0ede8">
   <h2 style="color:#d4a843">📱 Scannez ce QR avec WhatsApp</h2>
   <p style="color:#8a8680">WhatsApp → Menu → Appareils connectés → Connecter un appareil</p>
@@ -130,6 +130,6 @@ app.post('/send', auth, async (req, res) => {
 
 // ── Start ───────────────────────────────────────────
 app.listen(PORT, () => {
-  console.log(`[WA] ATLAS PRO WhatsApp Service on port ${PORT}`)
+  console.log(`[WA] SOURCE WhatsApp Service on port ${PORT}`)
   startSock()
 })

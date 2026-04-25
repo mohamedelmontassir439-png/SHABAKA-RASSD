@@ -1,7 +1,7 @@
 {
   "name": "atlas-wa",
   "version": "1.0.0",
-  "description": "WhatsApp notification service for ATLAS PRO",
+  "description": "WhatsApp notification service for SOURCE",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

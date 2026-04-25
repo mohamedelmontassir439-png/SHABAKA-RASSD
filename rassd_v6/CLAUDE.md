@@ -1,10 +1,10 @@
-# ATLAS PRO — Veille Marchés Publics Maroc
+# SOURCE — Veille Marchés Publics Maroc
 
 ## Identité du projet
-- **Nom**: ATLAS PRO
+- **Nom**: SOURCE
 - **Mission**: Scraper marchespublics.gov.ma en temps réel et alerter les entreprises marocaines
 - **URL**: https://web-production-b4ae4.up.railway.app
-- **Repo**: mohamedelmontassir439-png/SHABAKA-ATLAS PRO (branch: main, root: atlas_v6/)
+- **Repo**: mohamedelmontassir439-png/SHABAKA-SOURCE (branch: main, root: atlas_v6/)
 - **Admin**: atlas2026
 
 ## Stack technique
@@ -151,7 +151,7 @@ dl_n, dl_l = days_left("15/04/2026")
 
 ## Déploiement Railway
 ```powershell
-# Depuis C:\Users\Lenovo\SHABAKA-ATLAS PRO
+# Depuis C:\Users\Lenovo\SHABAKA-SOURCE
 Expand-Archive "$env:USERPROFILE\Downloads\[FILE].zip" "." -Force
 git add atlas_v6/
 git commit -m "description"
