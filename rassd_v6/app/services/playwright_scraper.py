@@ -1,5 +1,5 @@
 """
-ATLAS PRO — Playwright Scraper
+SOURCE — Playwright Scraper
 Pour les sites nécessitant JavaScript:
   - ONCF (iframe + JS table)
   - BCP Banque Populaire

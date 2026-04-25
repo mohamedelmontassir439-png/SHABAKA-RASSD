@@ -1,223 +1,125 @@
 {% extends "base.html" %}
-{% block title %}SOURCE — {{ t.objet[:60] }}{% endblock %}
-{% block page_title %}{{ 'Détail du marché' if member.lang!='ar' else 'تفاصيل المناقصة' }}{% endblock %}
-{% block extra_head %}
+{% block title %}{{ (t.objet or '')[:60] }} — SOURCE{% endblock %}
+{% block body %}
 <style>
-.detail-grid{display:grid;grid-template-columns:1fr 320px;gap:20px}
-@media(max-width:900px){.detail-grid{grid-template-columns:1fr}}
-.detail-main{display:flex;flex-direction:column;gap:16px}
-.detail-aside{display:flex;flex-direction:column;gap:14px}
-.detail-hero{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:28px}
-.detail-title{font-family:var(--ff-head);font-size:clamp(16px,3vw,22px);font-weight:800;line-height:1.35;margin-bottom:20px;color:var(--text1)}
-.detail-badges{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
-.meta-table{display:flex;flex-direction:column;gap:0;border:1px solid var(--border);border-radius:12px;overflow:hidden}
-.meta-row{display:grid;grid-template-columns:140px 1fr;border-bottom:1px solid var(--border)}
-.meta-row:last-child{border-bottom:none}
-.meta-key{padding:12px 16px;font-size:11px;font-weight:700;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;background:rgba(255,255,255,.02)}
-.meta-val{padding:12px 16px;font-size:13px;color:var(--text2)}
-.meta-val.highlight{color:var(--blue2);font-weight:700}
-.meta-val.urgent{color:#f87171;font-weight:700}
-.meta-val.gold{color:#f59e0b;font-weight:700}
-/* AI summary */
-.ai-box{background:linear-gradient(135deg,rgba(200,169,110,.07),rgba(200,169,110,.02));border:1px solid rgba(200,169,110,.15);border-radius:var(--r-lg);padding:20px}
-.ai-box-hd{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.ai-orb-sm{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--blue),#8a6d3b);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
-.ai-summary-text{font-size:13px;color:var(--text2);line-height:1.7;font-style:italic}
-/* Actions */
-.action-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;display:flex;flex-direction:column;gap:10px}
-.action-title{font-size:13px;font-weight:700;margin-bottom:4px}
-/* Similar */
-.similar-card{display:flex;flex-direction:column;gap:8px}
-.similar-item{padding:12px 16px;background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:.15s}
-.similar-item:hover{border-color:var(--border2)}
-.similar-title{font-size:12px;font-weight:600;margin-bottom:4px;line-height:1.3}
-.similar-meta{display:flex;gap:8px;font-size:10px;color:var(--text3)}
+.detail-grid { display:grid; grid-template-columns:1fr 320px; gap:20px; }
+.info-grid { display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--bdr); border:1px solid var(--bdr); border-radius:var(--r2); overflow:hidden; margin-bottom:20px; }
+.info-cell { background:var(--bg2); padding:14px 18px; }
+.info-label { font-family:var(--mono); font-size:9px; color:var(--text4); letter-spacing:1px; text-transform:uppercase; margin-bottom:6px; }
+.info-value { font-size:13px; font-weight:500; color:var(--text1); }
+.sticky-box { position:sticky; top:80px; }
+.action-card { background:var(--bg2); border:1px solid var(--bdr); border-radius:var(--r2); padding:20px; margin-bottom:14px; }
+@media(max-width:900px){ .detail-grid{grid-template-columns:1fr} .sticky-box{position:relative;top:0} }
 </style>
-{% endblock %}
+<div class="page" style="max-width:1100px">
+  <a href="/tenders" style="display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);font-size:10px;color:var(--text4);margin-bottom:24px;letter-spacing:1px;transition:.15s" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--text4)'">← RETOUR AUX MARCHÉS</a>
 
-{% block content %}
-{% set is_ar = member.lang == 'ar' %}
-
-<!-- Breadcrumb -->
-<div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3);margin-bottom:4px">
-  <a href="/tenders" style="color:var(--blue2)">{{ 'Marchés' if not is_ar else 'المناقصات' }}</a>
-  <span>›</span>
-  <span>{{ t.stx10_code }}</span>
-</div>
-
-<div class="detail-grid">
-
-  <!-- MAIN -->
-  <div class="detail-main">
-    <div class="detail-hero card">
-      <div style="padding:24px 24px 0">
-        <div class="detail-badges">
-          {% if t.stx10_code %}
-          <span class="stx10-badge stx10-{{ t.stx10_code[0] }}">{{ t.stx10_code }}</span>
-          <span style="font-size:12px;color:var(--text3)">{{ t.stx10_label[:60] }}</span>
-          {% endif %}
+  <div class="detail-grid">
+    <!-- LEFT -->
+    <div>
+      <div class="card card-p" style="margin-bottom:16px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
+          <span class="badge badge-gold">{{ t.secteur }}</span>
+          {% if t.region %}<span class="badge badge-gray">📍 {{ t.region }}</span>{% endif %}
+          <span class="badge badge-gray" style="font-family:var(--mono)">MARCHESPUBLICS.GOV.MA</span>
         </div>
-        <h1 class="detail-title">{{ t.objet }}</h1>
+        <h1 style="font-family:var(--serif);font-style:italic;font-size:clamp(18px,3vw,26px);font-weight:400;color:var(--text1);line-height:1.45;margin-bottom:24px">{{ t.objet }}</h1>
 
-        {% if dl_label %}
-        <div style="padding:12px 16px;border-radius:10px;margin-bottom:20px;display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;
-          {% if dl <= 3 %}background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.2)
-          {% elif dl <= 7 %}background:rgba(245,158,11,.1);color:#fbbf24;border:1px solid rgba(245,158,11,.2)
-          {% else %}background:rgba(16,185,129,.08);color:#34d399;border:1px solid rgba(16,185,129,.18){% endif %}">
-          ⏰ {{ dl_label }} — {{ t.date_limite }}
-        </div>
-        {% endif %}
-      </div>
-
-      <!-- Meta table -->
-      <div style="padding:0 24px 24px">
-        <div class="meta-table">
-          {% if t.acheteur %}
-          <div class="meta-row">
-            <div class="meta-key">{{ 'Acheteur' if not is_ar else 'الجهة المشترية' }}</div>
-            <div class="meta-val">{{ t.acheteur }}</div>
-          </div>
-          {% endif %}
-          {% if t.region %}
-          <div class="meta-row">
-            <div class="meta-key">{{ 'Région' if not is_ar else 'الجهة' }}</div>
-            <div class="meta-val">{{ t.region }}</div>
-          </div>
-          {% endif %}
-          {% if t.montant %}
-          <div class="meta-row">
-            <div class="meta-key">{{ 'Montant' if not is_ar else 'الميزانية' }}</div>
-            <div class="meta-val highlight">{{ t.montant }}</div>
-          </div>
-          {% endif %}
-          {% if t.date_publication %}
-          <div class="meta-row">
-            <div class="meta-key">{{ 'Publication' if not is_ar else 'تاريخ النشر' }}</div>
-            <div class="meta-val">{{ t.date_publication }}</div>
-          </div>
-          {% endif %}
-          {% if t.date_limite %}
-          <div class="meta-row">
-            <div class="meta-key">{{ 'Date limite' if not is_ar else 'الموعد النهائي' }}</div>
-            <div class="meta-val {{ 'urgent' if dl <= 3 else ('gold' if dl <= 7 else '') }}">
-              {{ t.date_limite }}{% if dl_label %} — {{ dl_label }}{% endif %}
-            </div>
-          </div>
-          {% endif %}
-          <div class="meta-row">
-            <div class="meta-key">STX10</div>
-            <div class="meta-val highlight">{{ t.stx10_code }} — {{ t.stx10_label[:80] }}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- AI Summary -->
-    <div class="ai-box">
-      <div class="ai-box-hd">
-        <div class="ai-orb-sm">🧠</div>
-        <div>
-          <div style="font-size:13px;font-weight:700;color:var(--blue2)">
-            {{ 'Analyse IA' if not is_ar else 'تحليل ذكي' }}
-          </div>
-          <div style="font-family:var(--ff-mono);font-size:9px;color:var(--text3);letter-spacing:1px">GROQ · {{ cfg.AI_MODEL }}</div>
-        </div>
-        <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="loadSummary()">
-          ✨ {{ 'Analyser' if not is_ar else 'تحليل' }}
-        </button>
-      </div>
-      <div class="ai-summary-text" id="summaryText">
-        {% if t.ai_summary %}
-          {{ t.ai_summary }}
+        {% if days_left is defined %}
+          {% set dl_n, dl_l = days_left(t.date_limite) %}
+        {% elif dl is defined %}
+          {% set dl_n, dl_l = dl(t.date_limite) %}
         {% else %}
-          {{ 'Cliquez "Analyser" pour obtenir une synthèse IA de ce marché.' if not is_ar else 'انقر "تحليل" للحصول على ملخص ذكي لهذه المناقصة.' }}
+          {% set dl_n = 999 %}{% set dl_l = "" %}
+        {% endif %}
+        {% if dl_l %}
+        <div style="padding:12px 18px;border-radius:var(--r);margin-bottom:20px;font-size:13px;font-weight:600;background:{% if dl_n < 0 %}rgba(224,84,84,.06){% elif dl_n <= 3 %}rgba(224,84,84,.06){% elif dl_n <= 7 %}rgba(212,168,67,.06){% else %}rgba(56,212,126,.05){% endif %};border:1px solid {% if dl_n < 0 or dl_n <= 3 %}rgba(224,84,84,.2){% elif dl_n <= 7 %}rgba(212,168,67,.2){% else %}rgba(56,212,126,.15){% endif %};color:{% if dl_n < 0 or dl_n <= 3 %}var(--red){% elif dl_n <= 7 %}var(--gold){% else %}var(--grn){% endif %}">
+          ⏱ {{ dl_l }} {% if dl_n >= 0 and t.date_limite %}— Date limite: {{ t.date_limite }}{% endif %}
+        </div>
+        {% endif %}
+
+        <div class="info-grid">
+          {% for ico,lbl,val,col in [
+            ('🏢','Acheteur',    t.acheteur or '—',        'var(--text2)'),
+            ('🏷','Secteur',     t.secteur,                'var(--gold)'),
+            ('📅','Publication', t.date_publication or '—','var(--text3)'),
+            ('⏰','Date limite', t.date_limite or '—',     'var(--red)'),
+            ('💰','Montant',     t.montant or '—',         'var(--grn)'),
+            ('👁','Vues',        (t.views or 0)|string,    'var(--text3)'),
+          ] %}
+          <div class="info-cell">
+            <div class="info-label">{{ ico }} {{ lbl }}</div>
+            <div class="info-value" style="color:{{ col }}">{{ val }}</div>
+          </div>
+          {% endfor %}
+        </div>
+
+        {% if t.description and (t.description or '')|length > 80 %}
+        <div style="margin-top:4px">
+          <div style="font-family:var(--mono);font-size:9px;color:var(--text4);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px">Description complète</div>
+          <div id="desc" style="font-size:13px;color:var(--text3);line-height:1.85;white-space:pre-wrap;max-height:220px;overflow:hidden;transition:.3s">{{ t.description[:3000] }}</div>
+          <button onclick="const d=document.getElementById('desc');d.style.maxHeight=d.style.maxHeight==='none'?'220px':'none';this.textContent=d.style.maxHeight==='none'?'Réduire ▲':'Lire la suite ▼'" style="background:none;border:none;color:var(--gold);font-size:11px;cursor:pointer;margin-top:8px;font-family:var(--mono)">Lire la suite ▼</button>
+        </div>
         {% endif %}
       </div>
-    </div>
-  </div>
 
-  <!-- ASIDE -->
-  <div class="detail-aside">
-
-    <!-- Actions -->
-    <div class="action-card">
-      <div class="action-title">{{ 'Actions' if not is_ar else 'الإجراءات' }}</div>
-      <a href="{{ t.url }}" target="_blank" class="btn btn-primary">
-        🔗 {{ 'Voir sur marchespublics.gov.ma' if not is_ar else 'عرض على بوابة الصفقات' }}
-      </a>
-      <button class="btn btn-ghost" onclick="toggleFav('{{ t.id }}',this)" id="favBtn">
-        {{ '⭐ Retirer des favoris' if is_fav else '☆ Ajouter aux favoris' }}
-      </button>
-      {% if wa %}
-      <a href="{{ wa }}" target="_blank" class="btn btn-wa">
-        💬 {{ 'Partager sur WhatsApp' if not is_ar else 'مشاركة على واتساب' }}
-      </a>
+      <!-- Related -->
+      {% if related %}
+      <div>
+        <div style="font-family:var(--mono);font-size:9px;color:var(--text4);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px">MARCHÉS SIMILAIRES</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          {% for r2 in related %}
+          <a href="/tenders/{{ r2.id }}" class="card card-p" style="display:block;transition:.2s" onmouseover="this.style.borderColor='var(--bdr2)'" onmouseout="this.style.borderColor='var(--bdr)'">
+            <div style="font-size:12px;font-weight:500;color:var(--text1);margin-bottom:4px">{{ r2.objet[:90] }}</div>
+            <div style="font-size:10px;color:var(--text4)">⏰ {{ r2.date_limite or '—' }}</div>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
       {% endif %}
     </div>
 
-    <!-- STX10 info -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">🏷 STX10</div>
-        <span class="stx10-badge stx10-{{ t.stx10_code[0] if t.stx10_code else 'S' }}">{{ t.stx10_code }}</span>
+    <!-- RIGHT / STICKY -->
+    <div class="sticky-box">
+      <div class="action-card">
+        <a href="{{ t.url }}" target="_blank" class="btn btn-primary btn-full" style="margin-bottom:10px">Voir sur marchespublics ↗</a>
+        <a href="{{ t.url }}" target="_blank" class="btn btn-outline btn-full btn-sm" style="margin-bottom:10px">{{ t.url[:50] }}…</a>
+        {% if member %}
+        <button onclick="toggleFav(this,'{{ t.id }}')" id="favbtn" class="btn btn-outline btn-full btn-sm {% if is_fav %}active{% endif %}">
+          {% if is_fav %}⭐ Retirer des favoris{% else %}☆ Ajouter aux favoris{% endif %}
+        </button>
+        {% else %}
+        <a href="/register" class="btn btn-outline btn-full btn-sm">🔔 M'alerter pour ce secteur</a>
+        {% endif %}
       </div>
-      <div style="padding:16px 20px;font-size:13px;color:var(--text2);line-height:1.6">
-        {{ t.stx10_label }}
-      </div>
-    </div>
 
-    <!-- Similar -->
-    {% if similar %}
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">{{ '↗ Marchés similaires' if not is_ar else '↗ مناقصات مشابهة' }}</div>
-      </div>
-      <div style="padding:12px">
-        {% for s in similar %}
-        {% set sn, slbl = days_left(s.date_limite) %}
-        <div class="similar-item" onclick="location.href='/tenders/{{ s.id }}'">
-          <div class="similar-title">{{ s.objet[:80] }}</div>
-          <div class="similar-meta">
-            <span class="stx10-badge stx10-{{ s.stx10_code[0] if s.stx10_code else 'S' }}" style="font-size:9px">{{ s.stx10_code }}</span>
-            {% if slbl %}<span style="color:{% if sn<=3 %}#f87171{% elif sn<=7 %}#fbbf24{% else %}var(--text3){% endif %}">{{ slbl }}</span>{% endif %}
-          </div>
+      <div class="action-card">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--text4);letter-spacing:1.5px;margin-bottom:14px">INFORMATIONS</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:var(--text4)">ID Marché</span><span style="font-family:var(--mono);font-size:10px;color:var(--text2)">{{ t.id }}</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:var(--text4)">Scrapé le</span><span style="font-family:var(--mono);font-size:10px;color:var(--text2)">{{ t.scraped_at[:10] }}</span></div>
+          <div style="display:flex;justify-content:space-between"><span style="font-size:11px;color:var(--text4)">Statut</span><span class="badge badge-grn" style="font-size:9px">{{ t.statut }}</span></div>
         </div>
-        {% endfor %}
+      </div>
+
+      <div class="action-card" style="background:var(--golda);border-color:rgba(212,168,67,.2)">
+        <div style="font-size:12px;font-weight:600;color:var(--gold);margin-bottom:6px">📲 Alerte automatique</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:12px;line-height:1.6">Recevez les prochains marchés {{ t.secteur }} par Email &amp; Telegram.</div>
+        <a href="{% if member %}/settings{% else %}/register{% endif %}" class="btn btn-primary btn-full btn-sm">
+          {% if member %}Gérer mes alertes{% else %}Créer mon alerte{% endif %}
+        </a>
       </div>
     </div>
-    {% endif %}
   </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
 <script>
-const IS_AR = '{{ member.lang }}' === 'ar';
-const TID = '{{ t.id }}';
-
-async function loadSummary() {
-  const el = document.getElementById('summaryText');
-  el.textContent = IS_AR ? '⏳ جاري التحليل...' : '⏳ Analyse en cours...';
-  try {
-    const r = await fetch(`/api/ai/summarize/${TID}`);
-    const d = await r.json();
-    el.textContent = d.ok ? d.summary : (d.msg || (IS_AR ? 'غير متاح' : 'Non disponible'));
-  } catch {
-    el.textContent = IS_AR ? 'خطأ' : 'Erreur de connexion';
+async function toggleFav(btn, tid) {
+  const r = await fetch(`/tenders/${tid}/favorite`, {method:'POST'});
+  const d = await r.json();
+  if(d.ok) {
+    btn.textContent = d.fav ? '⭐ Retirer des favoris' : '☆ Ajouter aux favoris';
+    btn.classList.toggle('active', d.fav);
   }
-}
-
-async function toggleFav(id, btn) {
-  try {
-    const r = await fetch(`/favorites/${id}`, {method:'POST'});
-    const d = await r.json();
-    if (d.ok) {
-      btn.textContent = d.action === 'added'
-        ? (IS_AR ? '⭐ إزالة من المفضلة' : '⭐ Retirer des favoris')
-        : (IS_AR ? '☆ إضافة للمفضلة' : '☆ Ajouter aux favoris');
-      showToast(d.action === 'added' ? '✅' : '✓');
-    }
-  } catch {}
 }
 </script>
 {% endblock %}
