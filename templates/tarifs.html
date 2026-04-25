@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}SOURCE — Tarifs{% endblock %}
+{% block page_title %}{{ 'Abonnements' if (member and member.lang!='ar') else 'الاشتراكات' }}{% endblock %}
+{% block extra_head %}
+<style>
+.plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:900px){.plans-grid{grid-template-columns:1fr}}
+.plan-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r-lg);padding:28px 24px;position:relative;transition:.2s}
+.plan-card.featured{border-color:var(--blue);background:linear-gradient(135deg,rgba(37,99,235,.1),var(--surface))}
+.plan-tag{position:absolute;top:16px;right:16px;background:var(--blue);color:#fff;font-size:10px;font-weight:800;padding:3px 10px;border-radius:99px}
+[dir="rtl"] .plan-tag{right:auto;left:16px}
+.plan-name{font-family:var(--ff-mono);font-size:10px;font-weight:700;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px}
+.plan-price{font-family:var(--ff-head);font-size:48px;font-weight:900;line-height:1;margin-bottom:4px}
+.plan-cur{font-size:18px;font-weight:600;color:var(--text2)}
+.plan-period{font-size:12px;color:var(--text3);margin-bottom:22px}
+.plan-feats{list-style:none;margin-bottom:24px}
+.plan-feats li{padding:9px 0;border-bottom:1px solid var(--border);font-size:13px;color:var(--text2);display:flex;gap:10px}
+.plan-feats li:last-child{border:none}
+.f-ok{color:var(--green)}.f-no{color:var(--text3)}
+.btn-plan{width:100%;padding:14px;border-radius:var(--r-sm);border:1.5px solid var(--border2);background:transparent;color:var(--text2);font-weight:700;font-size:14px;cursor:pointer;transition:.2s}
+.btn-plan:hover,.plan-card.featured .btn-plan{background:var(--blue);border-color:var(--blue);color:#fff}
+.pay-info{background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.2);border-radius:var(--r-lg);padding:24px;text-align:center;margin-top:4px}
+</style>
+{% endblock %}
+{% block content %}
+{% set is_ar = member and member.lang=='ar' %}
+<div style="text-align:center;margin-bottom:36px">
+  <h1 style="font-family:var(--ff-head);font-size:clamp(24px,4vw,36px);font-weight:900;margin-bottom:10px">
+    {{ 'Un marché remporté rembourse votre abonnement.' if not is_ar else 'صفقة واحدة تُعوّض تكلفة اشتراكك.' }}
+  </h1>
+  <p style="font-size:14px;color:var(--text2)">
+    {{ 'Paiement par virement bancaire · Activation en moins de 2h' if not is_ar else 'الدفع بتحويل بنكي · تفعيل في أقل من ساعتين' }}
+  </p>
+</div>
+<div class="plans-grid">
+  <div class="plan-card">
+    <div class="plan-name">{{ 'Gratuit' if not is_ar else 'مجاني' }}</div>
+    <div class="plan-price">0</div>
+    <div class="plan-period">{{ '/ mois · pour découvrir' if not is_ar else '/ شهر · للاكتشاف' }}</div>
+    <ul class="plan-feats">
+      <li><span class="f-ok">✓</span> {{ '10 marchés / jour' if not is_ar else '10 مناقصات / يوم' }}</li>
+      <li><span class="f-ok">✓</span> {{ 'Filtres STX10 de base' if not is_ar else 'فلاتر STX10 أساسية' }}</li>
+      <li><span class="f-no">–</span> {{ 'Alertes WhatsApp/Telegram' if not is_ar else 'تنبيهات واتساب/تيليغرام' }}</li>
+      <li><span class="f-no">–</span> {{ 'Marchés illimités' if not is_ar else 'مناقصات غير محدودة' }}</li>
+      <li><span class="f-no">–</span> {{ 'Export CSV' if not is_ar else 'تصدير CSV' }}</li>
+    </ul>
+    <a href="/register"><button class="btn-plan">{{ 'Commencer gratuitement →' if not is_ar else 'ابدأ مجاناً ←' }}</button></a>
+  </div>
+  <div class="plan-card featured">
+    <div class="plan-tag">{{ 'Recommandé' if not is_ar else 'موصى به' }}</div>
+    <div class="plan-name">{{ 'Essentiel' if not is_ar else 'أساسي' }}</div>
+    <div class="plan-price"><span class="plan-cur">MAD </span>149</div>
+    <div class="plan-period">{{ '/ mois · sans engagement' if not is_ar else '/ شهر · بدون التزام' }}</div>
+    <ul class="plan-feats">
+      <li><span class="f-ok">✓</span> <strong>{{ 'Marchés illimités' if not is_ar else 'مناقصات غير محدودة' }}</strong></li>
+      <li><span class="f-ok">✓</span> <strong>{{ 'Alertes Telegram instantanées' if not is_ar else 'تنبيهات تيليغرام فورية' }}</strong></li>
+      <li><span class="f-ok">✓</span> {{ 'Alertes Email' if not is_ar else 'تنبيهات بريد' }}</li>
+      <li><span class="f-ok">✓</span> {{ 'Classification STX10 IA' if not is_ar else 'تصنيف STX10 ذكي' }}</li>
+      <li><span class="f-ok">✓</span> {{ 'Support prioritaire' if not is_ar else 'دعم أولوي' }}</li>
+    </ul>
+    <form method="POST" action="/tarifs/request">
+      <input type="hidden" name="plan" value="essentiel">
+      <button type="submit" class="btn-plan">{{ 'Demander activation →' if not is_ar else 'طلب التفعيل ←' }}</button>
+    </form>
+  </div>
+  <div class="plan-card">
+    <div class="plan-name">Pro</div>
+    <div class="plan-price"><span class="plan-cur">MAD </span>399</div>
+    <div class="plan-period">{{ '/ mois · équipes' if not is_ar else '/ شهر · للشركات' }}</div>
+    <ul class="plan-feats">
+      <li><span class="f-ok">✓</span> <strong>{{ 'Tout Essentiel +' if not is_ar else 'كل الأساسي +' }}</strong></li>
+      <li><span class="f-ok">✓</span> {{ 'API REST complète' if not is_ar else 'API REST كاملة' }}</li>
+      <li><span class="f-ok">✓</span> {{ 'Export CSV illimité' if not is_ar else 'تصدير CSV غير محدود' }}</li>
+      <li><span class="f-ok">✓</span> {{ 'Assistant IA avancé' if not is_ar else 'مساعد ذكي متقدم' }}</li>
+      <li><span class="f-ok">✓</span> {{ 'Alertes WhatsApp' if not is_ar else 'تنبيهات واتساب' }}</li>
+    </ul>
+    <form method="POST" action="/tarifs/request">
+      <input type="hidden" name="plan" value="pro">
+      <button type="submit" class="btn-plan">{{ 'Demander activation →' if not is_ar else 'طلب التفعيل ←' }}</button>
+    </form>
+  </div>
+</div>
+<div class="pay-info">
+  <p style="font-size:15px;color:var(--text2)">
+    <span>💳</span>
+    {{ 'Paiement par virement bancaire — CIH, Attijariwafa, BMCE, Banque Populaire...' if not is_ar else 'الدفع بتحويل بنكي — CIH، Attijariwafa، BMCE، البنك الشعبي...' }}<br>
+    <strong style="color:var(--green)">
+      {{ 'Activation sous 2h après confirmation du virement.' if not is_ar else 'التفعيل خلال ساعتين من تأكيد التحويل.' }}
+    </strong>
+  </p>
+</div>
+{% endblock %}

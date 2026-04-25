@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Votre avis — ATLAS PRO{% endblock %}
+{% block body %}
+<style>
+.feature-chip{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--bg3);border:1px solid var(--bdr);border-radius:8px;cursor:pointer;font-size:12px;color:var(--text3);transition:.15s;user-select:none;margin:4px}
+.feature-chip:hover,.feature-chip.active{border-color:var(--gold);color:var(--gold);background:var(--goldb)}
+.star{font-size:28px;cursor:pointer;transition:.2s;opacity:.3}
+.star.active,.star:hover{opacity:1}
+</style>
+<div style="max-width:680px;margin:60px auto;padding:0 24px">
+  <div style="text-align:center;margin-bottom:40px">
+    <div style="font-family:var(--mono);font-size:9px;color:var(--gold);letter-spacing:2px;margin-bottom:12px">VOTRE AVIS COMPTE</div>
+    <h1 style="font-family:var(--serif);font-style:italic;font-size:36px;color:var(--text1);margin-bottom:12px">Aidez-nous à construire<br/>la version finale</h1>
+    <p style="color:var(--text3);font-size:15px;line-height:1.7">Vos retours façonnent directement les prochaines fonctionnalités d'ATLAS PRO.</p>
+  </div>
+  {% if request.query_params.get('ok') %}
+  <div class="alert alert-ok" style="text-align:center;padding:32px">
+    <div style="font-size:36px;margin-bottom:12px">🙏</div>
+    <div style="font-size:16px;color:var(--grn);font-weight:600;margin-bottom:8px">Merci pour votre retour !</div>
+    <div style="font-size:13px;color:var(--text3)">Votre avis a été transmis à notre équipe. Nous le lirons avec attention.</div>
+    <div style="margin-top:20px"><a href="/dashboard" class="btn btn-primary">Retour au tableau de bord</a></div>
+  </div>
+  {% else %}
+  <form method="post" style="display:flex;flex-direction:column;gap:24px">
+    <!-- Rating -->
+    <div class="card card-p">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px">Votre satisfaction globale</div>
+      <div id="stars" style="display:flex;gap:4px">
+        {% for i in [1,2,3,4,5] %}
+        <span class="star" onclick="setRating({{ i }})" id="star-{{ i }}">★</span>
+        {% endfor %}
+      </div>
+      <input type="hidden" name="rating" id="rating-input" value="0">
+    </div>
+    <!-- Message -->
+    <div class="card card-p">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px">Votre retour</div>
+      <textarea name="message" class="textarea" placeholder="Qu'est-ce qui manque ? Qu'est-ce qui vous a plu ? Que souhaitez-vous voir dans la version complète ?" required style="min-height:160px"></textarea>
+    </div>
+    <!-- Features wishlist -->
+    <div class="card card-p">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:14px">Fonctionnalités souhaitées pour la version finale</div>
+      <div id="chips">
+        {% for f in [
+          "Export PDF & Excel","Application mobile","Analyse IA du marché",
+          "Alertes WhatsApp","Multi-utilisateurs","Historique complet",
+          "Rapport hebdomadaire","Suivi des résultats","Calendrier des appels d'offres",
+          "API pour mes outils","Alertes SMS","Veille concurrentielle"
+        ] %}
+        <label class="feature-chip" id="chip-{{ loop.index }}">
+          <input type="checkbox" name="features" value="{{ f }}" style="display:none" onchange="toggleChip(this.parentElement)">
+          {{ f }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary btn-xl">Envoyer mon retour →</button>
+    <a href="/dashboard" style="text-align:center;font-size:12px;color:var(--text4);text-decoration:none">Passer pour l'instant</a>
+  </form>
+  {% endif %}
+</div>
+<script>
+function setRating(n){
+  document.getElementById('rating-input').value=n;
+  for(let i=1;i<=5;i++){
+    const s=document.getElementById('star-'+i);
+    s.classList.toggle('active',i<=n);
+  }
+}
+function toggleChip(el){
+  el.classList.toggle('active',el.querySelector('input').checked);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Nouveau mot de passe — ATLAS PRO{% endblock %}
+{% block body %}
+<div style="max-width:420px;margin:80px auto;padding:0 24px">
+  <div style="text-align:center;margin-bottom:36px">
+    <div style="font-family:var(--mono);font-size:9px;color:var(--gold);letter-spacing:2px;margin-bottom:12px">NOUVEAU MOT DE PASSE</div>
+    <h1 style="font-family:var(--serif);font-style:italic;font-size:28px;color:var(--text1)">Réinitialiser</h1>
+  </div>
+  {% if err %}
+  <div class="alert alert-err" style="text-align:center;padding:24px;margin-bottom:20px">{{ err }}</div>
+  <div style="text-align:center"><a href="/forgot" class="btn btn-outline">Nouvelle demande</a></div>
+  {% else %}
+  <div class="card card-p">
+    {% if err %}<div class="alert alert-err" style="margin-bottom:16px">{{ err }}</div>{% endif %}
+    <form method="post" style="display:flex;flex-direction:column;gap:14px">
+      <input type="hidden" name="token" value="{{ token }}">
+      <div class="field">
+        <label>Nouveau mot de passe</label>
+        <input name="pw" type="password" required minlength="8" class="inp" placeholder="Min. 8 caractères" autofocus>
+      </div>
+      <div class="field">
+        <label>Confirmer</label>
+        <input name="pw2" type="password" required class="inp" placeholder="Répéter le mot de passe">
+      </div>
+      <button type="submit" class="btn btn-primary btn-full">Enregistrer →</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% set active_page = "tenders" %}
+{% block title %}SOURCE — {{ 'Marchés Publics' if member.lang!='ar' else 'المناقصات العمومية' }}{% endblock %}
+{% block page_title %}{{ 'Marchés Publics' if member.lang!='ar' else 'المناقصات العمومية' }}{% endblock %}
+{% block extra_head %}
+<style>
+.filters-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 20px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.filter-group{display:flex;flex-direction:column;gap:5px;min-width:140px;flex:1}
+.filter-label{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase}
+select,input.search-inp{background:rgba(255,255,255,.04);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;color:var(--text1);font-family:inherit;font-size:13px;outline:none;transition:.2s;width:100%}
+select:focus,input.search-inp:focus{border-color:rgba(37,99,235,.4)}
+select option{background:#0d1520}
+.tenders-grid{display:flex;flex-direction:column;gap:10px}
+.t-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);
+  padding:18px 20px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden;
+}
+.t-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--border);transition:.2s}
+.t-card:hover{border-color:var(--border2);transform:translateY(-1px)}
+.t-card:hover::before{background:var(--blue)}
+.t-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
+.t-badges{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.t-title{font-size:14px;font-weight:700;color:var(--text1);line-height:1.4;margin-bottom:10px}
+.t-meta{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.t-meta-item{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:5px}
+.t-acheteur{color:var(--text2);font-weight:500}
+.t-actions{display:flex;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)}
+.btn-detail{flex:1;padding:9px;border-radius:8px;background:var(--blue);color:#fff;font-size:12px;font-weight:700;border:none;cursor:pointer;text-align:center}
+.btn-fav{width:36px;height:36px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.2s}
+.btn-fav:hover{border-color:var(--amber,#f59e0b);color:var(--amber,#f59e0b)}
+.pagination{display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 0}
+.page-btn{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:13px;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center}
+.page-btn.active{background:var(--blue);border-color:var(--blue);color:#fff}
+.page-btn:hover:not(.active){border-color:var(--border2);color:var(--text1)}
+.results-info{font-size:12px;color:var(--text3);font-family:var(--ff-mono)}
+.empty-state{text-align:center;padding:60px 20px;color:var(--text3)}
+.empty-state .big{font-size:48px;margin-bottom:16px}
+.empty-state h3{font-family:var(--ff-head);font-size:18px;color:var(--text2);margin-bottom:8px}
+</style>
+{% endblock %}
+
+{% block content %}
+{% set is_ar = member.lang == 'ar' %}
+
+<!-- Filters -->
+<form method="GET" action="/tenders" class="filters-bar">
+  <div class="filter-group" style="flex:2;min-width:200px">
+    <span class="filter-label">{{ 'Recherche' if not is_ar else 'بحث' }}</span>
+    <input class="search-inp" type="text" name="q" value="{{ q }}"
+      placeholder="{{ 'Construction, informatique...' if not is_ar else 'بناء، معلوميات...' }}">
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">STX10</span>
+    <select name="stx10">
+      <option value="">{{ 'Tous' if not is_ar else 'الكل' }}</option>
+      {% for code in stx10_db|sort %}
+      <option value="{{ code }}" {% if stx10==code %}selected{% endif %}>[{{ code }}] {{ STX10.get(code,'') }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="filter-group">
+    <span class="filter-label">{{ 'Région' if not is_ar else 'الجهة' }}</span>
+    <select name="region">
+      <option value="">{{ 'Toutes' if not is_ar else 'الكل' }}</option>
+      {% for r in regions %}
+      <option value="{{ r }}" {% if region==r %}selected{% endif %}>{{ r }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <button type="submit" class="btn btn-primary btn-sm" style="margin-top:18px">
+    🔍 {{ 'Filtrer' if not is_ar else 'فلترة' }}
+  </button>
+  {% if q or stx10 or region %}
+  <a href="/tenders" class="btn btn-ghost btn-sm" style="margin-top:18px">
+    ✕ {{ 'Réinitialiser' if not is_ar else 'مسح' }}
+  </a>
+  {% endif %}
+</form>
+
+<!-- Results info -->
+<div style="display:flex;align-items:center;justify-content:space-between">
+  <div class="results-info">
+    {{ total }} {{ 'marché(s) trouvé(s)' if not is_ar else 'نتيجة' }}
+    {% if q %} · "{{ q }}"{% endif %}
+  </div>
+  {% if member.plan != 'free' %}
+  <a href="/export/csv" class="btn btn-ghost btn-sm">📥 CSV</a>
+  {% endif %}
+</div>
+
+<!-- Tenders -->
+{% if tenders %}
+<div class="tenders-grid">
+  {% for t in tenders %}
+  {% set dl_n, dl_label = days_left(t.date_limite) %}
+  {% set dl_cls = 'dl-urgent' if dl_n <= 3 else ('dl-soon' if dl_n <= 7 else 'dl-ok') %}
+  {% set stx_cls = 'stx10-' + t.stx10_code[0] if t.stx10_code else '' %}
+  <div class="t-card">
+    <div class="t-top">
+      <div class="t-badges">
+        {% if t.stx10_code %}<span class="stx10-badge {{ stx_cls }}">{{ t.stx10_code }}</span>{% endif %}
+        {% if dl_label %}<span class="dl-badge {{ dl_cls }}">{{ dl_label }}</span>{% endif %}
+      </div>
+    </div>
+    <div class="t-title">{{ t.objet[:150] }}</div>
+    <div class="t-meta">
+      {% if t.acheteur %}<span class="t-meta-item"><span>🏢</span><span class="t-acheteur">{{ t.acheteur[:70] }}</span></span>{% endif %}
+      {% if t.region %}<span class="t-meta-item">📍 {{ t.region[:40] }}</span>{% endif %}
+      {% if t.montant %}<span class="t-meta-item">💰 {{ t.montant }}</span>{% endif %}
+      {% if t.date_publication %}<span class="t-meta-item">📅 {{ t.date_publication }}</span>{% endif %}
+    </div>
+    <div class="t-actions">
+      <button class="btn-detail" onclick="location.href='/tenders/{{ t.id }}'">
+        {{ 'Voir le détail →' if not is_ar else 'عرض التفاصيل ←' }}
+      </button>
+      <button class="btn-fav" onclick="toggleFav('{{ t.id }}',this)" title="{{ 'Ajouter aux favoris' if not is_ar else 'إضافة للمفضلة' }}">⭐</button>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if pages > 1 %}
+<div class="pagination">
+  {% if page > 1 %}<a href="?q={{ q }}&stx10={{ stx10 }}&region={{ region }}&page={{ page-1 }}"><button class="page-btn">‹</button></a>{% endif %}
+  {% for p in range(1, pages+1) %}
+    {% if p <= 3 or p >= pages-1 or (p >= page-1 and p <= page+1) %}
+    <a href="?q={{ q }}&stx10={{ stx10 }}&region={{ region }}&page={{ p }}">
+      <button class="page-btn {{ 'active' if p==page else '' }}">{{ p }}</button>
+    </a>
+    {% elif p == 4 and page > 5 %}<span style="color:var(--text3);padding:0 4px">…</span>{% endif %}
+  {% endfor %}
+  {% if page < pages %}<a href="?q={{ q }}&stx10={{ stx10 }}&region={{ region }}&page={{ page+1 }}"><button class="page-btn">›</button></a>{% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty-state">
+  <div class="big">🏛</div>
+  <h3>{{ 'Aucun marché trouvé' if not is_ar else 'لا توجد مناقصات' }}</h3>
+  <p>{{ 'Essayez d\'autres filtres ou revenez plus tard.' if not is_ar else 'جرب فلاتر أخرى أو عد لاحقاً.' }}</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function toggleFav(id, btn) {
+  try {
+    const r = await fetch(`/favorites/${id}`, {method:'POST'});
+    const d = await r.json();
+    if (d.ok) {
+      btn.textContent = d.action === 'added' ? '⭐' : '☆';
+      showToast(d.action==='added'?'✅ Ajouté aux favoris':'Retiré des favoris');
+    }
+  } catch {}
+}
+</script>
+{% endblock %}

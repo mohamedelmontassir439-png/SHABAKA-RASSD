@@ -1,15 +1,15 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head><meta charset="UTF-8"><title>دخول الأدمن</title>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet">
-<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Cairo',sans-serif;background:#1a0a00;display:flex;align-items:center;justify-content:center;min-height:100vh}
-.box{background:white;border-radius:16px;padding:40px;width:360px;text-align:center}
-h1{font-size:22px;font-weight:900;margin-bottom:8px;color:#1a0a00}p{color:#888;font-size:14px;margin-bottom:28px}
-input{width:100%;padding:12px 16px;border:1.5px solid #e8d5b7;border-radius:8px;font-family:'Cairo',sans-serif;font-size:15px;text-align:center;margin-bottom:16px;outline:none}
-input:focus{border-color:#8B4513}
-button{width:100%;padding:13px;background:#8B4513;color:white;border:none;border-radius:8px;font-family:'Cairo',sans-serif;font-size:16px;font-weight:700;cursor:pointer}
-button:hover{background:#A0522D}</style></head>
-<body><div class="box"><div style="font-size:40px;margin-bottom:16px">🔐</div>
-<h1>لوحة الإدارة</h1><p>أدخل كلمة المرور للدخول</p>
-<form method="get"><input type="password" name="pwd" placeholder="كلمة المرور" autofocus><button type="submit">دخول</button></form></div>
-</body></html>
+{% extends "base.html" %}{% block fullpage %}
+<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SOURCE — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@800;900&family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>:root{--blue:#2563eb;--void:#020408;--surface:#0d1520;--border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.14);--text1:#f1f5f9;--text2:#94a3b8;--text3:#475569}*{box-sizing:border-box;margin:0;padding:0}body{background:var(--void);color:var(--text1);font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}.wrap{width:100%;max-width:360px}.logo{font-family:'Syne',sans-serif;font-weight:900;font-size:22px;text-align:center;margin-bottom:32px}.card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:28px 24px}h2{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;margin-bottom:20px}.field{margin-bottom:16px}label{font-size:11px;font-weight:700;color:var(--text3);display:block;margin-bottom:5px}input{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border2);border-radius:9px;padding:11px 13px;color:var(--text1);font-family:inherit;font-size:14px;outline:none;transition:.2s}input:focus{border-color:rgba(37,99,235,.5)}.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:10px 14px;font-size:12px;color:#fca5a5;margin-bottom:14px}.btn{width:100%;padding:13px;border-radius:9px;background:#2563eb;color:#fff;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;border:none;cursor:pointer}</style></head>
+<body><div class="wrap">
+<div class="logo">⚡ SOURCE ADMIN</div>
+<div class="card">
+  <h2>Administration</h2>
+  {% if error %}<div class="err">{{ error }}</div>{% endif %}
+  <form method="POST" action="/admin/login">
+    <div class="field"><label>Mot de passe admin</label><input type="password" name="password" autofocus required></div>
+    <button type="submit" class="btn">Accéder →</button>
+  </form>
+</div></div></body></html>
+{% endblock %}

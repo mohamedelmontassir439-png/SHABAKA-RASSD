@@ -1,269 +1,305 @@
+{% extends "base.html" %}
+{% block fullpage %}
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>الأدمن — شبكة رصد</title>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SOURCE — Admin Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Sans:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-:root{--dark:#1a0a00;--brown:#8B4513;--light:#f9f5f0;--border:#e8d5b7;--gold:#C8860A}
-body{font-family:'Cairo',sans-serif;background:var(--light);color:var(--dark)}
-nav{background:var(--dark);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:60px}
-.logo{font-size:18px;font-weight:900;color:white}.logo span{color:var(--gold)}
-.container{max-width:1100px;margin:28px auto;padding:0 20px}
-.page-title{font-size:22px;font-weight:900;margin-bottom:20px}
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:28px}
-.stat{background:white;border-radius:12px;padding:20px;border:1px solid var(--border);text-align:center}
-.stat.alert{border-color:#dc2626;background:#fef2f2}
-.stat .num{font-size:28px;font-weight:900;color:var(--brown)}
-.stat.alert .num{color:#dc2626}
-.stat .lbl{font-size:12px;color:#888;margin-top:4px}
-.actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:28px}
-.btn{padding:10px 20px;border-radius:8px;font-family:'Cairo',sans-serif;font-size:14px;font-weight:700;cursor:pointer;border:none;text-decoration:none;display:inline-block}
-.btn-brown{background:var(--brown);color:white}.btn-brown:hover{background:#A0522D}
-.btn-dark{background:var(--dark);color:white}.btn-dark:hover{background:#3d1a00}
-.btn-red{background:#dc2626;color:white}.btn-red:hover{background:#b91c1c}
-.btn-outline{background:white;color:var(--dark);border:1.5px solid var(--border)}.btn-outline:hover{border-color:var(--brown)}
-.section{background:white;border-radius:12px;border:1px solid var(--border);margin-bottom:20px;overflow:hidden}
-.section-header{padding:16px 20px;background:linear-gradient(135deg,var(--dark),#3d1a00);color:white;font-size:15px;font-weight:700}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th{padding:12px 16px;background:#fdf9f5;text-align:right;font-size:12px;color:#888;border-bottom:1px solid var(--border);font-weight:600}
-td{padding:12px 16px;border-bottom:1px solid #fdf9f5}
-tr:hover td{background:#fdf9f5}
-.tag{padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700}
-.tag-premium{background:#fdf6ee;color:var(--brown)}
-.tag-free{background:#f5f5f5;color:#888}
-.tag-active{background:#f0fdf4;color:#16a34a}
-.tag-inactive{background:#fef2f2;color:#dc2626}
-.activate-btn{background:var(--brown);color:white;border:none;padding:5px 14px;border-radius:6px;
-  font-family:'Cairo',sans-serif;font-size:12px;font-weight:700;cursor:pointer}
-.activate-btn:hover{background:#A0522D}
-.regions-grid{padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
-.region-bar{background:#fdf9f5;border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--border)}
-.region-name{font-size:12px;font-weight:700}
-.region-count{background:var(--light);color:var(--brown);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
+:root{--blue:#2563eb;--blue2:#3b82f6;--void:#020408;--surface:#0d1520;--border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.13);--text1:#f1f5f9;--text2:#94a3b8;--text3:#475569;--green:#10b981;--amber:#f59e0b;--red:#ef4444;--ff-head:'Syne',sans-serif;--ff-body:'DM Sans',sans-serif;--ff-mono:'Geist Mono',monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--void);color:var(--text1);font-family:var(--ff-body);min-height:100vh}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;opacity:.025;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+a{color:inherit;text-decoration:none}
+/* Layout */
+.admin-wrap{max-width:1280px;margin:0 auto;padding:24px}
+/* Top */
+.admin-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px}
+.admin-logo{font-family:var(--ff-head);font-weight:900;font-size:20px;display:flex;align-items:center;gap:10px}
+.logo-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--blue),#1d4ed8);display:flex;align-items:center;justify-content:center;font-size:16px}
+.admin-actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;border:1px solid transparent;cursor:pointer;transition:.2s;font-family:var(--ff-body)}
+.btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn-primary:hover{background:var(--blue2)}
+.btn-ghost{background:transparent;color:var(--text2);border-color:var(--border2)}
+.btn-ghost:hover{color:var(--text1);border-color:var(--border2)}
+.btn-danger{background:rgba(239,68,68,.1);color:#f87171;border-color:rgba(239,68,68,.2)}
+.btn-sm{padding:5px 10px;font-size:11px}
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+@media(max-width:900px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 16px}
+.stat-lbl{font-family:var(--ff-mono);font-size:9px;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px}
+.stat-val{font-family:var(--ff-head);font-size:34px;font-weight:900;line-height:1}
+/* Grid */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:900px){.grid-2{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:16px}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border)}
+.card-title{font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px}
+/* Table */
+.t-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{padding:10px 14px;text-align:left;font-family:var(--ff-mono);font-size:9px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;border-bottom:1px solid var(--border);font-weight:400}
+td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+/* Badges */
+.badge{padding:3px 9px;border-radius:99px;font-size:10px;font-weight:700;font-family:var(--ff-mono)}
+.badge-free{background:rgba(71,85,105,.2);color:var(--text3)}
+.badge-essentiel{background:rgba(37,99,235,.15);color:var(--blue2)}
+.badge-pro{background:rgba(16,185,129,.1);color:var(--green)}
+.badge-active{background:rgba(16,185,129,.1);color:var(--green)}
+.badge-inactive{background:rgba(239,68,68,.1);color:#f87171}
+.badge-pending{background:rgba(245,158,11,.1);color:var(--amber)}
+/* Select */
+select.plan-sel{background:rgba(255,255,255,.04);border:1px solid var(--border2);border-radius:6px;color:var(--text1);font-size:11px;padding:4px 8px;cursor:pointer;outline:none}
+select.plan-sel option{background:#0d1520}
+/* Scrape log */
+.log-row{display:flex;align-items:center;gap:12px;padding:8px 18px;border-bottom:1px solid var(--border);font-size:12px}
+.log-row:last-child{border-bottom:none}
+.log-ts{font-family:var(--ff-mono);color:var(--text3);font-size:10px;min-width:120px}
+.log-found{font-weight:700;color:var(--green)}
+/* STX10 bar */
+.stx-row{display:flex;align-items:center;gap:10px;padding:8px 18px;border-bottom:1px solid var(--border)}
+.stx-row:last-child{border-bottom:none}
+.stx-bar{height:3px;background:rgba(255,255,255,.05);border-radius:3px;flex:1;overflow:hidden}
+.stx-fill{height:3px;background:linear-gradient(90deg,var(--blue),var(--blue2));border-radius:3px;transition:width .5s}
+/* Scan indicator */
+.scan-indicator{display:flex;align-items:center;gap:8px;padding:8px 14px;border-radius:99px;font-size:11px;font-weight:700;font-family:var(--ff-mono)}
+.scan-on{background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.2)}
+.scan-off{background:rgba(255,255,255,.04);color:var(--text3);border:1px solid var(--border)}
+.dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.dot-pulse{animation:blink 1.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+/* Toast */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(10px);background:#1e293b;border:1px solid var(--border2);border-radius:99px;padding:10px 22px;font-size:13px;font-weight:700;opacity:0;transition:.3s;z-index:1000;pointer-events:none;white-space:nowrap}
 </style>
 </head>
 <body>
-<nav>
-  <div class="logo">📡 شبكة <span>رصد</span> — لوحة الإدارة</div>
-  <a href="/" style="color:rgba(255,255,255,.7);font-size:14px">← الموقع</a>
-</nav>
+<div class="admin-wrap" style="position:relative;z-index:1">
 
-<div class="container">
-  <div class="page-title">⚙️ لوحة الإدارة</div>
+  <!-- TOP -->
+  <div class="admin-top">
+    <div class="admin-logo">
+      <div class="logo-icon">⚡</div>
+      SOURCE ADMIN
+    </div>
+    <div class="admin-actions">
+      <div class="scan-indicator {{ 'scan-on' if scraping else 'scan-off' }}">
+        <span class="dot {{ 'dot-pulse' if scraping else '' }}"></span>
+        {{ 'Scan en cours...' if scraping else ('Dernier scan: ' + (last_scan or '—')) }}
+      </div>
+      <button class="btn btn-primary" onclick="triggerScan()">⟳ Lancer un scan</button>
+      <button class="btn btn-ghost" onclick="testNotif()">🔔 Test notif</button>
+      <a href="/" class="btn btn-ghost">← Site</a>
+    </div>
+  </div>
 
+  <!-- STATS -->
   <div class="stats-grid">
-    <div class="stat"><div class="num">{{ stats.tenders }}</div><div class="lbl">صفقة نشطة</div></div>
-    <div class="stat"><div class="num" style="color:#dc2626">{{ stats.cancelled }}</div><div class="lbl">صفقة ملغاة</div></div>
-    <div class="stat"><div class="num">{{ stats.contractors }}</div><div class="lbl">مقاول مسجل</div></div>
-    <div class="stat"><div class="num" style="color:#16a34a">{{ stats.premium }}</div><div class="lbl">مشترك Premium</div></div>
-    <div class="stat"><div class="num">{{ stats.notifs }}</div><div class="lbl">إشعار أُرسل</div></div>
-    <div class="stat {% if stats.payments > 0 %}alert{% endif %}">
-      <div class="num">{{ stats.payments }}</div><div class="lbl">دفع معلّق</div>
+    <div class="stat">
+      <div class="stat-lbl">MARCHÉS ACTIFS</div>
+      <div class="stat-val" style="color:var(--blue2)">{{ stats.tenders }}</div>
+    </div>
+    <div class="stat">
+      <div class="stat-lbl">MEMBRES</div>
+      <div class="stat-val" style="color:var(--green)">{{ stats.members }}</div>
+    </div>
+    <div class="stat">
+      <div class="stat-lbl">NOUVEAUX AUJOURD'HUI</div>
+      <div class="stat-val" style="color:var(--amber)">{{ stats.today }}</div>
+    </div>
+    <div class="stat">
+      <div class="stat-lbl">DERNIERS PAIEMENTS</div>
+      <div class="stat-val" style="color:var(--red)">{{ payments|length }}</div>
     </div>
   </div>
 
-  <div class="actions">
-    <button class="btn btn-brown" id="scrapeBtn" onclick="startScrape()">🔄 تشغيل السكرابر</button>
-    <button class="btn btn-dark" id="cancelBtn" onclick="cancelCheck()">🚫 فحص الملغاة</button>
-    <a href="/tenders" class="btn btn-outline">📋 عرض الصفقات</a>
-    <a href="/admin?pwd={{ pwd }}" class="btn btn-outline">🔃 تحديث</a>
-  </div>
-
-  <!-- Scrape Animation Box -->
-  <div id="scrapeBox" style="display:none;background:white;border-radius:14px;border:1px solid #e8d5b7;padding:28px;margin-bottom:24px">
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px">
-      <div id="scrapeIcon" style="font-size:36px">🔄</div>
-      <div style="flex:1">
-        <div style="font-size:16px;font-weight:900;color:#1a0a00" id="scrapeTitle">جاري رصد الصفقات...</div>
-        <div style="font-size:13px;color:#888;margin-top:3px" id="scrapeSubtitle">يتم الاتصال بالبوابة الرسمية للصفقات</div>
+  <div class="grid-2">
+    <!-- STX10 Distribution -->
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-title">📊 Distribution STX10</div>
       </div>
-      <div id="scrapeCount" style="background:#fdf6ee;border:1px solid #e8d5b7;border-radius:10px;padding:8px 16px;text-align:center;min-width:80px">
-        <div style="font-size:22px;font-weight:900;color:#8B4513" id="countNum">0</div>
-        <div style="font-size:10px;color:#888">صفقة رُصدت</div>
+      {% set max_cnt = top_stx10[0].cnt if top_stx10 else 1 %}
+      {% for s in top_stx10 %}
+      <div class="stx-row">
+        <span style="font-family:var(--ff-mono);font-size:10px;font-weight:700;color:var(--blue2);min-width:44px">{{ s.stx10_code }}</span>
+        <div class="stx-bar"><div class="stx-fill" style="width:{{ (s.cnt/max_cnt*100)|int }}%"></div></div>
+        <span style="font-family:var(--ff-mono);font-size:10px;color:var(--text3);min-width:24px;text-align:right">{{ s.cnt }}</span>
       </div>
-    </div>
-    <div style="background:#f5efe6;border-radius:99px;height:12px;overflow:hidden;margin-bottom:16px">
-      <div id="progressBar" style="height:100%;background:linear-gradient(90deg,#1a0a00,#8B4513,#C8860A);border-radius:99px;width:5%;transition:width 0.8s ease"></div>
-    </div>
-    <div id="scrapeLog" style="background:#1a0a00;border-radius:10px;padding:14px 16px;font-family:'Courier New',monospace;font-size:12px;color:#C8860A;min-height:120px;max-height:200px;overflow-y:auto;direction:ltr;line-height:1.8"></div>
-  </div>
-
-  {% if payments %}
-  <div class="section">
-    <div class="section-header">💳 طلبات الدفع المعلقة ({{ payments|length }})</div>
-    <table>
-      <tr><th>الهاتف</th><th>الإيميل</th><th>الطريقة</th><th>التاريخ</th><th>تفعيل</th></tr>
-      {% for p in payments %}
-      <tr>
-        <td><strong>{{ p.phone }}</strong></td>
-        <td>{{ p.email or '—' }}</td>
-        <td>{{ p.method }}</td>
-        <td style="font-size:11px;color:#888">{{ p.created_at[:10] }}</td>
-        <td><button class="activate-btn" onclick="activate('{{ p.phone }}')">✅ تفعيل Premium</button></td>
-      </tr>
       {% endfor %}
-    </table>
+    </div>
+
+    <!-- Scrape Log -->
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-title">📋 Log des scans</div>
+      </div>
+      {% for log in logs %}
+      <div class="log-row">
+        <span class="log-ts">{{ log.ts[:16] if log.ts else '—' }}</span>
+        <span class="log-found">+{{ log.found }}</span>
+        <span style="color:var(--text3)">marchés</span>
+        <span style="color:var(--text3);margin-left:auto">{{ log.duration }}s</span>
+      </div>
+      {% else %}
+      <div style="padding:20px;text-align:center;color:var(--text3);font-size:13px">Aucun scan encore</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Payments -->
+  {% if payments %}
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-title">💳 Demandes de paiement</div>
+      <span style="font-family:var(--ff-mono);font-size:10px;color:var(--amber)">{{ payments|selectattr('status','eq','pending')|list|length }} en attente</span>
+    </div>
+    <div class="t-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>Membre</th><th>Plan</th><th>Montant</th><th>Date</th><th>Statut</th><th>Actions</th></tr></thead>
+        <tbody>
+          {% for p in payments %}
+          <tr>
+            <td style="font-family:var(--ff-mono);color:var(--text3)">#{{ p.id }}</td>
+            <td>#{{ p.member_id }}</td>
+            <td><span class="badge badge-{{ p.plan }}">{{ p.plan|upper }}</span></td>
+            <td style="color:var(--green);font-weight:700">{{ p.amount }} MAD</td>
+            <td style="font-family:var(--ff-mono);font-size:10px">{{ p.created_at[:10] if p.created_at else '—' }}</td>
+            <td><span class="badge badge-{{ p.status }}">{{ p.status }}</span></td>
+            <td>
+              <a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}" target="_blank" class="btn btn-ghost btn-sm">💬 WA</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
   {% endif %}
 
-  <div class="section">
-    <div class="section-header">👥 المقاولون ({{ contractors|length }})</div>
-    <table>
-      <tr><th>الاسم</th><th>الهاتف</th><th>الإيميل</th><th>الخطة</th><th>الإشعارات</th><th>التاريخ</th><th>تفعيل</th></tr>
-      {% for c in contractors %}
-      <tr>
-        <td><strong>{{ c.nom }}</strong>{% if c.entreprise %}<br><span style="font-size:11px;color:#888">{{ c.entreprise }}</span>{% endif %}</td>
-        <td><a href="/dashboard/{{ c.token }}" style="color:var(--brown);font-weight:600">{{ c.phone }}</a></td>
-        <td style="font-size:12px">{{ c.email or '—' }}</td>
-        <td><span class="tag {% if c.plan=='premium' %}tag-premium{% else %}tag-free{% endif %}">{{ c.plan }}</span></td>
-        <td style="text-align:center">{{ c.notif_count or 0 }}</td>
-        <td style="font-size:11px;color:#888">{{ (c.created_at or '')[:10] }}</td>
-        <td>
-          {% if c.plan != 'premium' %}
-          <button class="activate-btn" onclick="activate('{{ c.phone }}')">تفعيل</button>
+  <!-- Members -->
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-title">👥 Membres ({{ members|length }})</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost btn-sm" onclick="testNotif()">🧪 Test notif admin</button>
+      </div>
+    </div>
+    <div class="t-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th><th>Nom</th><th>Email</th><th>Plan</th>
+            <th>STX10</th><th>Notifs</th><th>Statut</th><th>Inscrit le</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in members %}
+          {% set codes = m.stx10_codes | from_json if m.stx10_codes else [] %}
+          <tr>
+            <td style="font-family:var(--ff-mono);color:var(--text3)">#{{ m.id }}</td>
+            <td style="font-weight:600;color:var(--text1)">{{ m.nom[:20] }}</td>
+            <td style="font-size:11px">{{ m.email[:30] }}</td>
+            <td>
+              <form method="POST" action="/admin/member/{{ m.id }}/plan" style="display:inline">
+                <select class="plan-sel" name="plan" onchange="this.form.submit()">
+                  <option value="free" {% if m.plan=='free' %}selected{% endif %}>FREE</option>
+                  <option value="essentiel" {% if m.plan=='essentiel' %}selected{% endif %}>ESSENTIEL</option>
+                  <option value="pro" {% if m.plan=='pro' %}selected{% endif %}>PRO</option>
+                </select>
+              </form>
+            </td>
+            <td>
+              {% if m.stx10_codes and m.stx10_codes != '[]' %}
+              {% set codes_list = m.stx10_codes[1:-1].split(',') %}
+              <span style="font-family:var(--ff-mono);font-size:9px;color:var(--blue2)">
+                {{ codes_list|length }} codes
+              </span>
+              {% else %}
+              <span style="color:var(--text3);font-size:11px">—</span>
+              {% endif %}
+            </td>
+            <td style="font-size:11px">
+              {% if m.notif_tg %}<span style="color:var(--green)">TG</span> {% endif %}
+              {% if m.notif_email %}<span style="color:var(--blue2)">📧</span> {% endif %}
+              {% if m.notif_wa %}<span style="color:#25d366">WA</span> {% endif %}
+            </td>
+            <td>
+              <span class="badge {{ 'badge-active' if m.actif else 'badge-inactive' }}">
+                {{ 'Actif' if m.actif else 'Inactif' }}
+              </span>
+            </td>
+            <td style="font-family:var(--ff-mono);font-size:10px;color:var(--text3)">
+              {{ m.created_at[:10] if m.created_at else '—' }}
+            </td>
+            <td>
+              <div style="display:flex;gap:5px">
+                <form method="POST" action="/admin/member/{{ m.id }}/toggle">
+                  <button type="submit" class="btn {{ 'btn-danger' if m.actif else 'btn-ghost' }} btn-sm">
+                    {{ '🚫' if m.actif else '✅' }}
+                  </button>
+                </form>
+                {% if m.telegram %}
+                <button class="btn btn-ghost btn-sm" onclick="testNotifMember('{{ m.telegram }}','{{ m.email }}')">🔔</button>
+                {% endif %}
+                {% if m.whatsapp %}
+                <a href="https://wa.me/{{ m.whatsapp }}" target="_blank" class="btn btn-ghost btn-sm">💬</a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
           {% else %}
-          <span style="color:#16a34a;font-size:12px">✅ مفعّل</span>
-          {% endif %}
-        </td>
-      </tr>
-      {% endfor %}
-    </table>
-  </div>
-
-  <div class="section">
-    <div class="section-header">🗺️ الصفقات حسب الجهة</div>
-    <div class="regions-grid">
-      {% for r in top_regions %}
-      <a href="/tenders?region={{ r.region }}" style="text-decoration:none">
-        <div class="region-bar">
-          <div class="region-name">{{ REGIONS.get(r.region, {}).get('ar', r.region) or r.region }}</div>
-          <div class="region-count">{{ r.cnt }}</div>
-        </div>
-      </a>
-      {% endfor %}
+          <tr><td colspan="9" style="text-align:center;padding:24px;color:var(--text3)">Aucun membre inscrit</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
+
 </div>
 
-<style>
-@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
-@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
-.spinning { animation: spin 1s linear infinite; display:inline-block }
-.blinking { animation: blink 1.2s ease-in-out infinite }
-</style>
+<!-- Toast -->
+<div id="toast"></div>
+
 <script>
-function activate(phone) {
-  if (!confirm('تفعيل Premium لـ ' + phone + '؟')) return;
-  fetch('/admin/activate?phone=' + phone + '&pwd={{ pwd }}')
-    .then(r => r.json())
-    .then(() => { alert('✅ تم التفعيل!'); location.reload(); });
+function showToast(msg) {
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.style.opacity='1';t.style.transform='translateX(-50%) translateY(0)';
+  setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(-50%) translateY(10px)'},3000);
 }
-
-function addLog(msg, color) {
-  const log = document.getElementById('scrapeLog');
-  const line = document.createElement('div');
-  line.style.color = color || '#C8860A';
-  line.innerHTML = '› ' + msg;
-  log.appendChild(line);
-  log.scrollTop = log.scrollHeight;
+async function triggerScan() {
+  showToast('⟳ Scan lancé...');
+  try {
+    const r = await fetch('/admin/scan');
+    const d = await r.json();
+    showToast(d.ok ? '✅ Scan démarré!' : '⚠ ' + (d.msg||'Erreur'));
+    if (d.ok) setTimeout(()=>location.reload(), 3000);
+  } catch { showToast('❌ Erreur réseau'); }
 }
-
-function setProgress(pct, title, subtitle) {
-  document.getElementById('progressBar').style.width = pct + '%';
-  if (title) document.getElementById('scrapeTitle').textContent = title;
-  if (subtitle) document.getElementById('scrapeSubtitle').textContent = subtitle;
+async function testNotif() {
+  const tg = prompt('Telegram Chat ID (laisser vide pour ignorer):');
+  const email = prompt('Email test (laisser vide pour ignorer):');
+  if (!tg && !email) return;
+  try {
+    const r = await fetch(`/admin/test_notif?telegram_id=${tg||''}&email=${email||''}`);
+    const d = await r.json();
+    showToast(d.ok ? '✅ Notification test envoyée!' : '❌ Erreur');
+  } catch { showToast('❌ Erreur'); }
 }
-
-function startScrape() {
-  const btn = document.getElementById('scrapeBtn');
-  const box = document.getElementById('scrapeBox');
-  const icon = document.getElementById('scrapeIcon');
-  btn.disabled = true;
-  btn.textContent = '⏳ جاري...';
-  btn.style.opacity = '0.6';
-  box.style.display = 'block';
-  box.scrollIntoView({behavior:'smooth', block:'start'});
-  
-  document.getElementById('scrapeLog').innerHTML = '';
-  document.getElementById('countNum').textContent = '0';
-  icon.innerHTML = '<span class="spinning">🔄</span>';
-
-  const steps = [
-    [5,  '🔌 الاتصال بالبوابة الرسمية...', 'marchespublics.gov.ma'],
-    [15, '📥 تحميل قائمة الصفقات...', 'الصفحة 1 من 4'],
-    [30, '🔍 تحليل وتصنيف الصفقات...', 'يتم استخراج البيانات'],
-    [50, '📄 قراءة تفاصيل الصفقات...', 'جاري المعالجة...'],
-    [65, '🗂️ حفظ في قاعدة البيانات...', 'يتم التخزين'],
-    [80, '🚫 فحص الصفقات الملغاة...', 'تصفية تلقائية'],
-    [90, '📧 إرسال الإشعارات...', 'للمشتركين Premium'],
-  ];
-
-  const logs = [
-    ['[01] GET marchespublics.gov.ma → 200 OK', '#4ade80'],
-    ['[02] Fetching page 1/4... Found 12 tenders', '#C8860A'],
-    ['[03] Fetching page 2/4... Found 8 tenders', '#C8860A'],
-    ['[04] Parsing tender #312847 → Construction', '#C8860A'],
-    ['[05] Parsing tender #312848 → Informatique', '#C8860A'],
-    ['[06] Parsing tender #312849 → ANNULÉ ❌ skipped', '#ef4444'],
-    ['[07] Parsing tender #312850 → Eau & Assainissement', '#C8860A'],
-    ['[08] Saved 6 new tenders to database ✓', '#4ade80'],
-    ['[09] Checked 142 tenders for cancellation', '#C8860A'],
-    ['[10] Sending notifications to premium users...', '#C8860A'],
-  ];
-
-  let step = 0;
-  let count = 0;
-
-  const interval = setInterval(() => {
-    if (step < steps.length) {
-      setProgress(steps[step][0], steps[step][1], steps[step][2]);
-    }
-    if (step < logs.length) {
-      addLog(logs[step][0], logs[step][1]);
-      if (logs[step][0].includes('Saved') || logs[step][0].includes('Found')) {
-        count += Math.floor(Math.random()*6)+3;
-        document.getElementById('countNum').textContent = count;
-      }
-    }
-    step++;
-    if (step >= Math.max(steps.length, logs.length)) clearInterval(interval);
-  }, 700);
-
-  // Real API call
-  fetch('/admin/scrape?pwd={{ pwd }}')
-    .then(r => r.json())
-    .then(data => {
-      setTimeout(() => {
-        setProgress(100, '✅ اكتمل الرصد بنجاح!', 'تم حفظ الصفقات وإرسال الإشعارات');
-        icon.innerHTML = '✅';
-        addLog('[DONE] Scraping completed successfully!', '#4ade80');
-        addLog('[INFO] Reload page to see updated stats', '#888');
-        btn.textContent = '✅ اكتمل';
-        btn.style.background = '#16a34a';
-      }, 7000);
-    })
-    .catch(() => {
-      addLog('[ERROR] Connection failed', '#ef4444');
-      btn.disabled = false;
-      btn.textContent = '🔄 إعادة المحاولة';
-      btn.style.opacity = '1';
-    });
+async function testNotifMember(tg, email) {
+  try {
+    const r = await fetch(`/admin/test_notif?telegram_id=${tg}&email=${email}`);
+    const d = await r.json();
+    showToast(d.ok ? `✅ Test envoyé à ${email}` : '❌ Erreur');
+  } catch { showToast('❌ Erreur'); }
 }
-
-function cancelCheck() {
-  const btn = document.getElementById('cancelBtn');
-  btn.disabled = true;
-  btn.textContent = '⏳ جاري الفحص...';
-  fetch('/admin/cancel_check?pwd={{ pwd }}')
-    .then(r => r.json())
-    .then(d => {
-      btn.textContent = '✅ فُحص — ' + d.updated + ' ملغاة';
-      btn.style.background = '#16a34a';
-    });
-}
+// Auto-refresh every 60s
+setTimeout(()=>location.reload(), 60000);
 </script>
 </body>
 </html>
+{% endblock %}
