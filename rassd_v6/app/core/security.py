@@ -1,7 +1,8 @@
-import bcrypt, hashlib, secrets, re
+import bcrypt, hashlib, secrets, re, smtplib
 from datetime import datetime, date, timedelta
 from typing import Optional
-from fastapi import Request, HTTPException
+from email.mime.text import MIMEText
+from fastapi import Request
 from app.core.config import cfg
 from app.core.database import get_db
 
@@ -12,94 +13,114 @@ def verify_pw(pw: str, hashed: str) -> bool:
     try: return bcrypt.checkpw(pw.encode(), hashed.encode())
     except: return False
 
-def make_token(val: str, salt: str = "") -> str:
-    """Token stable — SECRET_KEY doit être fixé dans Railway Variables"""
-    key = cfg.SECRET_KEY or "source_fallback_key_2024"
+def make_token(length: int = 40) -> str:
+    return secrets.token_urlsafe(length)
+
+def make_sig(val: str, salt: str = "") -> str:
+    key = cfg.SECRET_KEY or "source_fallback_2026"
     return hashlib.sha256(f"{val}{salt}{key}".encode()).hexdigest()[:40]
 
-def make_random_token() -> str:
-    return secrets.token_urlsafe(32)
-
-def make_session_token() -> str:
-    """Token aléatoire stocké en DB — indépendant du SECRET_KEY"""
-    return secrets.token_urlsafe(40)
-
 def get_member(req: Request) -> Optional[dict]:
-    token = req.cookies.get("_session", "")
+    token = req.cookies.get("_session","")
     if not token or len(token) < 10: return None
     db = get_db()
     try:
-        # Method 1: Direct DB token lookup (fast, no SECRET_KEY dependency)
         row = db.execute(
-            "SELECT * FROM members WHERE actif=1 AND session_token=?",
-            (token,)
+            "SELECT * FROM members WHERE actif=1 AND session_token=?", (token,)
         ).fetchone()
-        if row:
-            return dict(row)
-        # Method 2: Fallback - computed token (backward compat)
-        rows = db.execute("SELECT * FROM members WHERE actif=1").fetchall()
-        for row in rows:
-            if make_token(row["email"], row["created_at"]) == token:
-                # Migrate: store token in DB
-                db.execute("UPDATE members SET session_token=? WHERE id=?",
-                          (token, row["id"]))
-                db.commit()
-                return dict(row)
-    except Exception as e:
-        import logging
-        logging.getLogger("atlas.security").error(f"[get_member] {e}")
-    finally:
-        db.close()
-    return None
+        return dict(row) if row else None
+    except: return None
+    finally: db.close()
 
-def require_member(req: Request) -> dict:
-    m = get_member(req)
-    if not m:
-        from fastapi.responses import RedirectResponse
-        raise HTTPException(status_code=307, headers={"Location": "/login"})
-    return m
+def is_admin(req: Request) -> bool:
+    return req.cookies.get("_admin","") == make_sig("admin", cfg.ADMIN_PASS)
 
-def require_admin(req: Request):
-    cookie = req.cookies.get("_admin", "")
-    if cookie != make_token("admin", cfg.ADMIN_PASS):
-        from fastapi.responses import RedirectResponse
-        raise HTTPException(status_code=307, headers={"Location": "/admin/login"})
+def validate_email(e: str) -> bool:
+    return bool(re.match(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$', e))
 
-def validate_email(email: str) -> bool:
-    return bool(re.match(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$', email))
-
-def validate_password(pw: str) -> tuple[bool, str]:
+def validate_password(pw: str) -> tuple:
     if len(pw) < 8: return False, "Au moins 8 caractères"
     return True, ""
 
-def is_plan_allowed(member: dict, feature: str) -> bool:
-    plan = member.get("plan", "free")
-    plans = cfg.PLANS
-    p = plans.get(plan, plans["free"])
-    if feature == "telegram": return p.get("telegram", False)
-    if feature == "api":      return p.get("api", False)
-    if feature == "tenders":
-        limit = p.get("tenders_day", 15)
-        return limit == 0  # 0 = unlimited
+def days_left(dl: str) -> tuple:
+    if not dl or str(dl).strip() in ("","N/A","—","-"): return 999, ""
+    m = re.search(r'(\d{2}/\d{2}/\d{4}|\d{4}-\d{2}-\d{2})', str(dl))
+    if not m: return 999, ""
+    try:
+        fmt = "%d/%m/%Y" if "/" in m.group(1)[:3] else "%Y-%m-%d"
+        d = datetime.strptime(m.group(1), fmt).date()
+        delta = (d - date.today()).days
+        if delta < 0:  return delta, "Expiré"
+        if delta == 0: return 0,     "Aujourd'hui!"
+        if delta == 1: return 1,     "Demain"
+        if delta <= 3: return delta, f"{delta}j 🔥"
+        if delta <= 7: return delta, f"{delta}j ⏳"
+        return delta, f"{delta} jours"
+    except: return 999, ""
+
+def is_plan_ok(member: dict, feature: str) -> bool:
+    p = cfg.PLANS.get(member.get("plan","free"), cfg.PLANS["free"])
+    if feature == "unlimited": return p.get("limit",10) == 0
+    if feature == "telegram":  return p.get("telegram", False)
+    if feature == "api":       return p.get("api", False)
     return False
 
-def days_left(dl: str):
-    """Retourne (nb_jours: int, label: str)"""
-    if not dl or str(dl).strip() in ("", "N/A", "—", "-"):
-        return 999, ""
-    import re as _re
-    m = _re.search(r'(\d{2}/\d{2}/\d{4}|\d{4}-\d{2}-\d{2})', str(dl))
-    if not m:
-        return 999, ""
+def send_reset_email(email: str, token: str) -> bool:
+    link = f"{cfg.SITE_URL}/reset?token={token}"
+    body = f"""Bonjour,
+
+Cliquez sur ce lien pour réinitialiser votre mot de passe SOURCE:
+{link}
+
+Ce lien expire dans 2 heures.
+Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.
+
+SOURCE — Marchés Publics Maroc"""
     try:
-        fmt   = "%d/%m/%Y" if "/" in m.group(1)[:3] else "%Y-%m-%d"
-        d     = datetime.strptime(m.group(1), fmt).date()
-        delta = (d - date.today()).days
-        if delta < 0:   return delta, "Expiré"
-        if delta == 0:  return 0,     "Aujourd'hui !"
-        if delta == 1:  return 1,     "Demain"
-        if delta <= 3:  return delta, f"{delta}j 🔥"
-        if delta <= 7:  return delta, f"{delta}j ⏳"
-        return delta, f"{delta} jours"
-    except Exception:
-        return 999, ""
+        if cfg.GMAIL_USER and cfg.GMAIL_PASS:
+            msg = MIMEText(body, "plain", "utf-8")
+            msg["Subject"] = "Réinitialisation mot de passe SOURCE"
+            msg["From"]    = cfg.GMAIL_USER
+            msg["To"]      = email
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as s:
+                s.login(cfg.GMAIL_USER, cfg.GMAIL_PASS)
+                s.send_message(msg)
+            return True
+        if cfg.BREVO_KEY:
+            import requests as rq
+            rq.post("https://api.brevo.com/v3/smtp/email",
+                headers={"api-key":cfg.BREVO_KEY,"Content-Type":"application/json"},
+                json={"sender":{"name":"SOURCE","email":cfg.FROM_EMAIL},
+                      "to":[{"email":email}],
+                      "subject":"Réinitialisation mot de passe SOURCE",
+                      "textContent":body}, timeout=15)
+            return True
+    except: pass
+    return False
+
+def compute_relevance_score(tender: dict, member_codes: list, member_regions: list) -> int:
+    """Score de pertinence 1-5 étoiles basé sur le profil du membre"""
+    score = 1
+    if not member_codes and not member_regions:
+        return 3  # score neutre si pas de profil
+
+    # +2 si code STX10 correspond exactement
+    if tender.get("stx10_code","") in member_codes:
+        score += 2
+    # +1 si même famille de code (T1xx)
+    elif member_codes:
+        tc = tender.get("stx10_code","")
+        if any(tc[:2] == mc[:2] for mc in member_codes):
+            score += 1
+
+    # +1 si région correspond
+    if member_regions and tender.get("region",""):
+        if any(r.lower() in tender.get("region","").lower() for r in member_regions):
+            score += 1
+
+    # +1 si délai raisonnable (> 7 jours)
+    n, _ = days_left(tender.get("date_limite",""))
+    if 7 < n < 60:
+        score += 1
+
+    return min(5, max(1, score))

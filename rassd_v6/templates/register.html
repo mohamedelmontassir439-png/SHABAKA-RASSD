@@ -1,45 +1,98 @@
 {% extends "base.html" %}
-{% block title %}Inscription — SOURCE{% endblock %}
-{% block body %}
-<div class="page-narrow">
-  <div style="text-align:center;margin-bottom:36px">
-    <div style="font-family:var(--mono);font-size:9px;color:var(--gold);letter-spacing:2px;margin-bottom:12px">CRÉER UN COMPTE</div>
-    <h1 style="font-family:var(--serif);font-style:italic;font-size:30px;color:var(--text1)">Commencer gratuitement</h1>
-    <p style="color:var(--text3);font-size:13px;margin-top:8px">14 jours d'essai · Aucune carte requise</p>
+{% block fullpage %}
+<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SOURCE — Inscription</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Sans:wght@400;500;600&family=Noto+Kufi+Arabic:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--blue:#c8a96e;--blue2:#d4b483;--void:#070501;--surface:#120d08;--border:rgba(255,255,255,.08);--border2:rgba(255,255,255,.14);--text1:#f1f5f9;--text2:#94a3b8;--text3:#475569;--red:#ef4444;--green:#10b981}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--void);color:var(--text1);font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+[lang="ar"]*{font-family:'Noto Kufi Arabic',sans-serif!important}
+.wrap{width:100%;max-width:420px}
+.logo{font-family:'Syne',sans-serif;font-weight:900;font-size:24px;text-align:center;margin-bottom:32px;display:flex;align-items:center;justify-content:center;gap:10px}
+.logo-icon{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,var(--blue),#8a6d3b);display:flex;align-items:center;justify-content:center;font-size:18px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:32px 28px}
+h2{font-family:'Syne',sans-serif;font-weight:800;font-size:22px;margin-bottom:6px}
+.subtitle{font-size:13px;color:var(--text2);margin-bottom:28px}
+.field{margin-bottom:18px}
+label{font-size:12px;font-weight:600;color:var(--text2);display:block;margin-bottom:6px;letter-spacing:.5px}
+input,select{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border2);border-radius:10px;padding:12px 14px;color:var(--text1);font-family:inherit;font-size:14px;outline:none;transition:border-color .2s}
+input:focus,select:focus{border-color:rgba(200,169,110,.5)}
+input::placeholder{color:var(--text3)}
+.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);border-radius:10px;padding:12px 16px;font-size:13px;color:#fca5a5;margin-bottom:18px}
+.btn{width:100%;padding:14px;border-radius:10px;background:var(--blue);color:#0a0700;font-family:'Syne',sans-serif;font-weight:800;font-size:15px;border:none;cursor:pointer;transition:.2s;box-shadow:0 6px 20px rgba(200,169,110,.35)}
+.btn:hover{background:var(--blue2)}
+.login-link{text-align:center;margin-top:18px;font-size:13px;color:var(--text2)}
+.login-link a{color:var(--blue2);font-weight:600}
+.lang-sw{display:flex;justify-content:center;gap:4px;margin-bottom:24px}
+.lb{padding:5px 14px;border-radius:8px;font-size:12px;font-weight:700;border:1px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;transition:.2s}
+.lb.active{background:var(--blue);border-color:var(--blue);color:#fff}
+</style></head>
+<body id="body">
+<div class="wrap">
+  <div class="logo"><div class="logo-icon">⚡</div>SOURCE</div>
+  <div class="lang-sw">
+    <button class="lb active" onclick="setLang('fr','ltr')">Français</button>
+    <button class="lb" onclick="setLang('ar','rtl')">العربية</button>
   </div>
-  {% if err %}<div class="alert alert-err" style="margin-bottom:20px">{{ err }}</div>{% endif %}
-  <form method="post" style="display:flex;flex-direction:column;gap:16px">
-    <div class="grid-2">
-      <div class="field"><label>Nom complet</label><input name="nom" class="inp" placeholder="Mohamed Alaoui" value="{{ (vals or {}).get('nom','') }}"></div>
-      <div class="field"><label>Email *</label><input name="email" type="email" class="inp" placeholder="email@entreprise.ma" required value="{{ (vals or {}).get('email','') }}"></div>
-    </div>
-    <div class="grid-2">
-      <div class="field"><label>Téléphone</label><input name="phone" class="inp" placeholder="+212 6xx xxxxxx" value="{{ (vals or {}).get('phone','') }}"></div>
-      <div class="field"><label>Entreprise</label><input name="company" class="inp" placeholder="Nom de votre société" value="{{ (vals or {}).get('company','') }}"></div>
-    </div>
-    <div class="grid-2">
-      <div class="field"><label>Mot de passe *</label><input name="pw" type="password" class="inp" required minlength="8" placeholder="Min. 8 caractères"></div>
-      <div class="field"><label>Confirmer *</label><input name="pw2" type="password" class="inp" required placeholder="Répéter le mot de passe"></div>
-    </div>
-    <div class="field">
-      <label>Vos secteurs d'activité</label>
-      <p style="font-size:11px;color:var(--text4);margin-bottom:10px">Laissez vide pour recevoir tous les marchés</p>
-      {% for group_name, group_sectors in sector_groups.items() %}
-      <div style="margin-bottom:14px">
-        <div style="font-family:var(--mono);font-size:8px;color:var(--gold);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px">{{ group_name }}</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px">
-          {% for code, label in group_sectors.items() %}
-          <label style="display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:var(--bg2);border:1px solid var(--bdr);border-radius:99px;cursor:pointer;font-size:10px;color:var(--text3);transition:.15s;user-select:none">
-            <input type="checkbox" name="secteurs_sel" value="{{ code }}" style="accent-color:var(--gold)" onchange="const l=this.parentElement;l.style.borderColor=this.checked?'var(--gold)':'var(--bdr)';l.style.color=this.checked?'var(--gold)':'var(--text3)'">
-            <span style="font-family:var(--mono);font-size:8px;color:var(--text4)">{{ code }}</span> {{ label[:30] }}
-          </label>
-          {% endfor %}
-        </div>
+  <div class="card">
+    <h2 id="t1">Créer un compte</h2>
+    <p class="subtitle" id="t2">Accédez à toutes les opportunités marchés publics</p>
+    {% if error %}<div class="err">⚠ {{ error }}</div>{% endif %}
+    <form method="POST" action="/register">
+      <input type="hidden" name="lang" id="langInput" value="fr">
+      <div class="field">
+        <label id="l1">Nom complet</label>
+        <input type="text" name="nom" id="nomInput" placeholder="Mohammed Alami" required>
       </div>
-      {% endfor %}
+      <div class="field">
+        <label id="l2">Adresse email</label>
+        <input type="email" name="email" placeholder="email@entreprise.ma" required>
+      </div>
+      <div class="field">
+        <label id="l3">Mot de passe</label>
+        <input type="password" name="password" placeholder="••••••••" required minlength="8">
+      </div>
+      <div class="field">
+        <label id="l4">Confirmer le mot de passe</label>
+        <input type="password" name="confirm" placeholder="••••••••" required>
+      </div>
+      <button type="submit" class="btn" id="submitBtn">Créer mon compte →</button>
+    </form>
+    <div class="login-link">
+      <span id="loginTxt">Déjà un compte?</span> <a href="/login">Connexion</a>
     </div>
-    <button type="submit" class="btn btn-primary btn-full" style="padding:13px;font-size:14px;margin-top:4px">Créer mon compte →</button>
-    <p style="text-align:center;font-size:12px;color:var(--text4)">Déjà inscrit ? <a href="/login" style="color:var(--gold)">Se connecter</a></p>
-  </form>
+  </div>
 </div>
+<script>
+function setLang(l,d){
+  document.getElementById('body').lang=l;
+  document.getElementById('body').dir=d;
+  document.getElementById('langInput').value=l;
+  document.querySelectorAll('.lb').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`.lb[onclick*="'${l}'"]`).classList.add('active');
+  if(l==='ar'){
+    document.getElementById('t1').textContent='إنشاء حساب';
+    document.getElementById('t2').textContent='اطّلع على جميع فرص المناقصات العمومية';
+    document.getElementById('l1').textContent='الاسم الكامل';
+    document.getElementById('l2').textContent='البريد الإلكتروني';
+    document.getElementById('l3').textContent='كلمة المرور';
+    document.getElementById('l4').textContent='تأكيد كلمة المرور';
+    document.getElementById('submitBtn').textContent='إنشاء حسابي ←';
+    document.getElementById('loginTxt').textContent='لديك حساب؟';
+    document.getElementById('nomInput').placeholder='محمد العلمي';
+  }else{
+    document.getElementById('t1').textContent='Créer un compte';
+    document.getElementById('t2').textContent='Accédez à toutes les opportunités marchés publics';
+    document.getElementById('l1').textContent='Nom complet';
+    document.getElementById('l2').textContent='Adresse email';
+    document.getElementById('l3').textContent='Mot de passe';
+    document.getElementById('l4').textContent='Confirmer le mot de passe';
+    document.getElementById('submitBtn').textContent='Créer mon compte →';
+    document.getElementById('loginTxt').textContent='Déjà un compte?';
+    document.getElementById('nomInput').placeholder='Mohammed Alami';
+  }
+}
+</script>
+</body></html>
 {% endblock %}

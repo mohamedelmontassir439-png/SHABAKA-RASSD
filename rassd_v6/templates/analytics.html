@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% set active_page = "analytics" %}
+{% block title %}SOURCE — Analytics{% endblock %}
+{% block page_title %}{{ 'Analytique & Tendances' if member.lang!='ar' else 'التحليلات والاتجاهات' }}{% endblock %}
+{% block extra_head %}
+<style>
+.analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:800px){.analytics-grid{grid-template-columns:1fr}}
+.a-row{display:flex;align-items:center;gap:12px;padding:10px 18px;border-bottom:1px solid var(--border)}
+.a-row:last-child{border-bottom:none}
+.a-label{font-size:12px;font-weight:600;color:var(--text2);font-family:var(--ff-mono);min-width:60px}
+.a-bar-bg{flex:1;height:6px;background:rgba(255,255,255,.05);border-radius:4px;overflow:hidden}
+.a-bar-fill{height:6px;border-radius:4px;background:linear-gradient(90deg,var(--blue),var(--gold))}
+.a-cnt{font-family:var(--ff-mono);font-size:12px;font-weight:700;color:var(--text2);min-width:28px;text-align:right}
+.month-dot{width:8px;height:8px;border-radius:50%;background:var(--blue);flex-shrink:0}
+</style>
+{% endblock %}
+{% block content %}
+{% set is_ar = member.lang == 'ar' %}
+<!-- Global Stats -->
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;text-align:center">
+    <div style="font-size:36px;font-weight:900;color:var(--blue2);font-family:var(--ff-head)">{{ stats.tenders }}</div>
+    <div style="font-size:10px;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-top:4px">{{ 'Marchés actifs' if not is_ar else 'المناقصات النشطة' }}</div>
+  </div>
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;text-align:center">
+    <div style="font-size:36px;font-weight:900;color:var(--amber);font-family:var(--ff-head)">{{ stats.today }}</div>
+    <div style="font-size:10px;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-top:4px">{{ 'Publiés aujourd\'hui' if not is_ar else 'نُشر اليوم' }}</div>
+  </div>
+  <div style="background:var(--surface);border:1px solid rgba(239,68,68,.3);border-radius:14px;padding:20px;text-align:center">
+    <div style="font-size:36px;font-weight:900;color:#ef4444;font-family:var(--ff-head)">{{ urgent }}</div>
+    <div style="font-size:10px;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-top:4px">{{ 'Urgents ≤ 3j' if not is_ar else 'عاجلة ≤ 3 أيام' }}</div>
+  </div>
+</div>
+
+<div class="analytics-grid">
+  <!-- Top STX10 -->
+  <div class="card">
+    <div class="card-header"><div class="card-title">🏷 {{ 'Distribution par Code STX10' if not is_ar else 'التوزيع حسب رمز STX10' }}</div></div>
+    {% set max1 = by_stx[0].cnt if by_stx else 1 %}
+    {% for s in by_stx %}
+    <div class="a-row">
+      <span class="a-label">{{ s.stx10_code }}</span>
+      <div class="a-bar-bg"><div class="a-bar-fill" style="width:{{ (s.cnt/max1*100)|int }}%"></div></div>
+      <span class="a-cnt">{{ s.cnt }}</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- By Region -->
+  <div class="card">
+    <div class="card-header"><div class="card-title">📍 {{ 'Distribution par Région' if not is_ar else 'التوزيع حسب الجهة' }}</div></div>
+    {% set max2 = by_region[0].cnt if by_region else 1 %}
+    {% for r in by_region %}
+    <div class="a-row">
+      <span class="a-label" style="min-width:100px;font-size:11px">{{ r.region[:20] }}</span>
+      <div class="a-bar-bg"><div class="a-bar-fill" style="width:{{ (r.cnt/max2*100)|int }}%;background:linear-gradient(90deg,var(--green),#34d399)"></div></div>
+      <span class="a-cnt">{{ r.cnt }}</span>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Monthly evolution -->
+  <div class="card" style="grid-column:1/-1">
+    <div class="card-header"><div class="card-title">📈 {{ 'Évolution Mensuelle' if not is_ar else 'التطور الشهري' }}</div></div>
+    {% set max3 = by_month[0].cnt if by_month else 1 %}
+    <div style="padding:18px;display:flex;align-items:flex-end;gap:10px;height:150px">
+      {% for m in by_month|reverse %}
+      {% set pct = (m.cnt/max3*100)|int %}
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+        <div style="font-size:10px;color:var(--text3);font-family:var(--ff-mono)">{{ m.cnt }}</div>
+        <div style="width:100%;background:linear-gradient(0,var(--blue),var(--gold));border-radius:4px 4px 0 0;height:{{ [pct,5]|max }}%;transition:.5s;cursor:default" title="{{ m.mois }}: {{ m.cnt }}"></div>
+        <div style="font-size:9px;color:var(--text3);font-family:var(--ff-mono)">{{ m.mois[5:7] }}/{{ m.mois[2:4] }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}
