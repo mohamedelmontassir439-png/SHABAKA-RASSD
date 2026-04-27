@@ -1,108 +1,94 @@
 {% extends "base.html" %}
-{% set active_page = "ai" %}
-{% block title %}SOURCE — Assistant IA{% endblock %}
-{% block page_title %}{{ 'Assistant IA' if member.lang!='ar' else 'المساعد الذكي' }}{% endblock %}
-{% block extra_head %}
-<style>
-.chat-wrap{max-width:680px;margin:0 auto;display:flex;flex-direction:column;height:calc(100vh - 160px)}
-.chat-msgs{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding:4px 0 20px}
-.chat-msgs::-webkit-scrollbar{width:3px}
-.msg{display:flex;gap:10px;animation:fadeUp .3s ease}
-.msg.user{justify-content:flex-end}
-.msg.ai{justify-content:flex-start}
-.msg-av{width:30px;height:30px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;background:linear-gradient(135deg,var(--blue),#8a6d3b)}
-.msg-bubble{max-width:82%;padding:12px 16px;border-radius:14px;font-size:14px;line-height:1.6}
-.msg.user .msg-bubble{background:linear-gradient(135deg,rgba(200,169,110,.2),rgba(200,169,110,.1));border:1px solid rgba(200,169,110,.2);border-bottom-right-radius:4px;color:var(--text1)}
-.msg.ai .msg-bubble{background:var(--surface);border:1px solid var(--border);border-bottom-left-radius:4px;color:var(--text2)}
-.typing-dots{display:flex;gap:5px;padding:14px 16px}
-.typing-dots span{width:7px;height:7px;border-radius:50%;background:var(--blue2);animation:typing 1.2s infinite}
-.typing-dots span:nth-child(2){animation-delay:.2s}.typing-dots span:nth-child(3){animation-delay:.4s}
-@keyframes typing{0%,60%,100%{opacity:.3;transform:scale(.8)}30%{opacity:1;transform:scale(1.2)}}
-.chat-input-row{display:flex;gap:10px;padding:16px 0 4px;border-top:1px solid var(--border)}
-.chat-input{flex:1;background:rgba(255,255,255,.04);border:1px solid var(--border2);border-radius:12px;padding:12px 16px;color:var(--text1);font-family:inherit;font-size:14px;outline:none;transition:.2s;resize:none}
-.chat-input:focus{border-color:rgba(200,169,110,.4)}
-.chat-input::placeholder{color:var(--text3)}
-.send-btn{width:44px;height:44px;border-radius:12px;background:var(--blue);border:none;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.2s;align-self:flex-end}
-.send-btn:hover{background:var(--blue2);box-shadow:0 4px 14px rgba(200,169,110,.4)}
-.suggestions{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px}
-.sug-chip{padding:7px 13px;background:var(--surface);border:1px solid var(--border);border-radius:20px;font-size:12px;color:var(--text3);cursor:pointer;transition:.2s;flex-shrink:0}
-.sug-chip:hover{border-color:var(--blue2);color:var(--blue2)}
-.not-ok{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:14px 16px;font-size:13px;color:var(--amber,#f59e0b);margin-bottom:16px}
-</style>
-{% endblock %}
+{% block title %}Assistant IA — SOURCE{% endblock %}
 {% block content %}
-{% set is_ar = member.lang == 'ar' %}
-<div class="chat-wrap">
-  {% if not ai_ok %}
-  <div class="not-ok">⚠️ {{ 'L\'assistant IA n\'est pas configuré. Ajoutez GROQ_API_KEY dans les variables Railway.' if not is_ar else 'المساعد الذكي غير مُهيَّأ. أضف GROQ_API_KEY في متغيرات Railway.' }}</div>
-  {% endif %}
-  <div class="suggestions" id="suggestions">
-    {% if not is_ar %}
-    <div class="sug-chip" onclick="send(this.textContent)">Quels secteurs ont le plus de marchés ?</div>
-    <div class="sug-chip" onclick="send(this.textContent)">Comment préparer un dossier de candidature ?</div>
-    <div class="sug-chip" onclick="send(this.textContent)">Quelle est la différence AO ouvert / restreint ?</div>
-    <div class="sug-chip" onclick="send(this.textContent)">Quelles garanties sont requises ?</div>
-    {% else %}
-    <div class="sug-chip" onclick="send(this.textContent)">ما القطاعات الأكثر نشاطاً؟</div>
-    <div class="sug-chip" onclick="send(this.textContent)">كيف أحضّر ملف المناقصة؟</div>
-    <div class="sug-chip" onclick="send(this.textContent)">ما الفرق بين الطلب المفتوح والمحدود؟</div>
-    {% endif %}
-  </div>
-  <div class="chat-msgs" id="msgs">
-    <div class="msg ai">
-      <div class="msg-av">🧠</div>
-      <div class="msg-bubble">
-        {% if not is_ar %}Bonjour ! Je suis l'assistant SOURCE. Je vous aide à naviguer dans les marchés publics marocains. Posez votre question !
-        {% else %}مرحباً! أنا مساعد SOURCE. أساعدك في التنقل بين المناقصات العمومية المغربية. اطرح سؤالك!{% endif %}
-      </div>
+<div style="max-width: 800px; margin: 2rem auto;">
+    <div class="card">
+        <h2 class="card-title">🤖 Assistant SOURCE IA</h2>
+
+        {% if not ai_ok %}
+        <div class="alert alert-error">L'IA n'est pas configurée. Contactez l'administrateur.</div>
+        {% endif %}
+
+        <div id="chat-messages" style="height: 400px; overflow-y: auto; background: #0f172a; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; border: 1px solid #334155;">
+            <div style="margin-bottom: 1rem;">
+                <div class="badge badge-blue" style="margin-bottom: 0.25rem;">SOURCE IA</div>
+                <div style="font-size: 0.875rem;">Bonjour ! Je suis votre assistant expert en marchés publics marocains. Comment puis-je vous aider aujourd'hui ?</div>
+            </div>
+        </div>
+
+        <form id="chat-form" style="display: flex; gap: 0.5rem;">
+            <input type="text" id="chat-input" class="form-input" placeholder="Posez votre question..." style="flex: 1;" {% if not ai_ok %}disabled{% endif %}>
+            <button type="submit" class="btn btn-primary" {% if not ai_ok %}disabled{% endif %}>Envoyer</button>
+        </form>
     </div>
-  </div>
-  <div class="chat-input-row">
-    <textarea class="chat-input" id="inp" rows="1"
-      placeholder="{{ 'Posez votre question sur les marchés publics...' if not is_ar else 'اطرح سؤالك عن المناقصات العمومية...' }}"
-      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"
-      oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"></textarea>
-    <button class="send-btn" onclick="sendMsg()">➤</button>
-  </div>
 </div>
-{% endblock %}
-{% block scripts %}
+
 <script>
-const IS_AR = '{{ member.lang }}' === 'ar';
-let loading = false;
-function addMsg(role, text) {
-  const c = document.getElementById('msgs');
-  const div = document.createElement('div');
-  div.className = `msg ${role}`;
-  div.innerHTML = role==='ai'
-    ? `<div class="msg-av">🧠</div><div class="msg-bubble">${text.replace(/\n/g,'<br>')}</div>`
-    : `<div class="msg-bubble">${text}</div>`;
-  c.appendChild(div); c.scrollTop=c.scrollHeight;
-  document.getElementById('suggestions').style.display='none';
+document.getElementById('chat-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = document.getElementById('chat-input');
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    const container = document.getElementById('chat-messages');
+
+    // Add user message
+    container.innerHTML += `
+        <div style="margin-bottom: 1rem; text-align: right;">
+            <div class="badge badge-green" style="margin-bottom: 0.25rem;">Vous</div>
+            <div style="font-size: 0.875rem;">${escapeHtml(msg)}</div>
+        </div>
+    `;
+    input.value = '';
+    container.scrollTop = container.scrollHeight;
+
+    // Show loading
+    const loadingId = 'loading-' + Date.now();
+    container.innerHTML += `
+        <div id="${loadingId}" style="margin-bottom: 1rem;">
+            <div class="badge badge-blue">SOURCE IA</div>
+            <div style="font-size: 0.875rem; color: #64748b;">Réflexion en cours...</div>
+        </div>
+    `;
+    container.scrollTop = container.scrollHeight;
+
+    try {
+        const r = await fetch(`/api/ai/chat?q=${encodeURIComponent(msg)}`);
+        const j = await r.json();
+
+        document.getElementById(loadingId).remove();
+
+        if (j.ok) {
+            container.innerHTML += `
+                <div style="margin-bottom: 1rem;">
+                    <div class="badge badge-blue" style="margin-bottom: 0.25rem;">SOURCE IA</div>
+                    <div style="font-size: 0.875rem; white-space: pre-line;">${escapeHtml(j.answer)}</div>
+                </div>
+            `;
+        } else {
+            container.innerHTML += `
+                <div style="margin-bottom: 1rem;">
+                    <div class="badge badge-red">Erreur</div>
+                    <div style="font-size: 0.875rem;">${escapeHtml(j.msg || 'Erreur')}</div>
+                </div>
+            `;
+        }
+    } catch (e) {
+        document.getElementById(loadingId).remove();
+        container.innerHTML += `
+            <div style="margin-bottom: 1rem;">
+                <div class="badge badge-red">Erreur</div>
+                <div style="font-size: 0.875rem;">Impossible de contacter l'IA.</div>
+            </div>
+        `;
+    }
+    container.scrollTop = container.scrollHeight;
+});
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
-function addTyping() {
-  const c=document.getElementById('msgs');
-  const d=document.createElement('div'); d.className='msg ai'; d.id='typing';
-  d.innerHTML='<div class="msg-av">🧠</div><div class="msg-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>';
-  c.appendChild(d); c.scrollTop=c.scrollHeight;
-}
-async function sendMsg() {
-  if (loading) return;
-  const inp=document.getElementById('inp');
-  const q=inp.value.trim(); if(!q)return;
-  loading=true; inp.value=''; inp.style.height='auto';
-  addMsg('user',q); addTyping();
-  try {
-    const r=await fetch(`/api/ai/chat?q=${encodeURIComponent(q)}`);
-    const d=await r.json();
-    document.getElementById('typing')?.remove();
-    addMsg('ai', d.ok ? d.answer : (d.msg||'Erreur'));
-  } catch {
-    document.getElementById('typing')?.remove();
-    addMsg('ai', IS_AR?'خطأ في الاتصال':'Erreur de connexion');
-  }
-  loading=false;
-}
-function send(text) { document.getElementById('inp').value=text; sendMsg(); }
 </script>
 {% endblock %}

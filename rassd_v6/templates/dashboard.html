@@ -1,366 +1,87 @@
 {% extends "base.html" %}
-{% set active_page = "dashboard" %}
-{% block title %}SOURCE — {{ 'Tableau de bord' if member.lang!='ar' else 'لوحة القيادة' }}{% endblock %}
-{% block page_title %}{{ 'Bonjour, ' + member.nom.split()[0] + ' 👋' if member.lang!='ar' else 'مرحباً، ' + member.nom.split()[0] + ' 👋' }}{% endblock %}
-{% block extra_head %}
-<style>
-.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-@media(max-width:900px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:480px){.stats-grid{grid-template-columns:1fr 1fr}}
-.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:20px;position:relative;overflow:hidden;transition:.2s;cursor:default}
-.stat-card:hover{border-color:var(--border2);transform:translateY(-2px)}
-.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--acc,var(--blue)),transparent);opacity:0;transition:.3s}
-.stat-card:hover::after{opacity:1}
-.stat-lbl{font-family:var(--ff-mono);font-size:9px;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
-.stat-val{font-family:var(--ff-head);font-size:36px;font-weight:900;line-height:1;margin-bottom:6px}
-.stat-sub{font-size:11px}
-.stat-icon{position:absolute;right:16px;top:16px;font-size:20px;opacity:.2}
-
-.dash-grid{display:grid;grid-template-columns:1fr 320px;gap:16px}
-@media(max-width:1000px){.dash-grid{grid-template-columns:1fr}}
-
-/* Tender rows */
-.tender-row{display:grid;grid-template-columns:1fr auto auto auto;align-items:center;gap:12px;padding:13px 18px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s}
-.tender-row:last-child{border-bottom:none}
-.tender-row:hover{background:rgba(255,255,255,.02)}
-.tender-objet{font-size:13px;font-weight:600;color:var(--text1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
-.tender-meta{display:flex;align-items:center;gap:10px;font-size:11px;color:var(--text3);font-family:var(--ff-mono)}
-.tender-acheteur{color:var(--text2)}
-
-/* Stars */
-.stars{display:flex;gap:1px;font-size:11px}
-.star-fill{color:var(--blue)}
-.star-empty{color:var(--border2)}
-
-/* Filter chips */
-.filter-row{display:flex;gap:8px;padding:12px 18px;border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
-.filter-row::-webkit-scrollbar{display:none}
-.chip{padding:5px 12px;border-radius:99px;font-size:11px;font-weight:700;border:1px solid var(--border);color:var(--text3);cursor:pointer;transition:.15s;white-space:nowrap;background:transparent}
-.chip:hover{border-color:var(--border2);color:var(--text2)}
-.chip.active{background:rgba(200,169,110,.1);border-color:rgba(200,169,110,.3);color:var(--blue2)}
-
-/* Right panel */
-.right-panel{display:flex;flex-direction:column;gap:14px}
-.sector-row{display:flex;flex-direction:column;gap:4px;padding:10px 18px;border-bottom:1px solid var(--border)}
-.sector-row:last-child{border-bottom:none}
-.sector-hd{display:flex;justify-content:space-between;align-items:center}
-.sector-name{font-size:11px;font-weight:600;color:var(--text2);font-family:var(--ff-mono)}
-.sector-cnt{font-family:var(--ff-mono);font-size:10px;color:var(--text3)}
-.bar-bg{height:3px;background:rgba(255,255,255,.05);border-radius:3px;overflow:hidden}
-.bar-fill{height:3px;border-radius:3px;background:linear-gradient(90deg,var(--blue),var(--gold));animation:growBar .8s ease both}
-@keyframes growBar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
-
-/* AI widget */
-.ai-widget{padding:18px;background:linear-gradient(135deg,rgba(200,169,110,.07),rgba(200,169,110,.02));border:1px solid rgba(200,169,110,.15);border-radius:var(--r-lg)}
-.ai-orb{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--blue),var(--gold));display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;animation:pOrb 4s ease-in-out infinite}
-@keyframes pOrb{0%,100%{box-shadow:0 0 14px rgba(200,169,110,.35)}50%{box-shadow:0 0 28px rgba(200,169,110,.6)}}
-.ai-insight{font-size:12px;color:var(--text2);line-height:1.7;margin:10px 0;font-style:italic}
-.ai-tags{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
-.ai-tag{padding:2px 8px;border-radius:99px;font-size:10px;font-family:var(--ff-mono)}
-.tag-hot{background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.2)}
-.tag-up{background:rgba(16,185,129,.08);color:#34d399;border:1px solid rgba(16,185,129,.18)}
-.tag-info{background:rgba(6,182,212,.08);color:#22d3ee;border:1px solid rgba(6,182,212,.18)}
-.ai-form{display:flex;gap:7px}
-.ai-input{flex:1;background:rgba(255,255,255,.04);border:1px solid var(--border2);border-radius:8px;padding:8px 11px;color:var(--text1);font-family:var(--ff-body);font-size:12px;outline:none;transition:.2s}
-.ai-input:focus{border-color:rgba(200,169,110,.4)}
-.ai-input::placeholder{color:var(--text3)}
-.ai-send{width:34px;height:34px;border-radius:8px;border:none;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:13px;color:#0a0700;cursor:pointer;transition:.2s;flex-shrink:0}
-.ai-send:hover{background:var(--gold)}
-.ai-answer{margin-top:8px;padding:9px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--text2);line-height:1.6;display:none}
-
-/* Pipeline mini */
-.pipeline-mini{display:flex;gap:8px;flex-wrap:wrap}
-.p-badge{padding:4px 10px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;transition:.15s}
-.p-watching{background:rgba(37,99,235,.1);color:#60a5fa;border:1px solid rgba(37,99,235,.2)}
-.p-submitted{background:rgba(245,158,11,.1);color:#fbbf24;border:1px solid rgba(245,158,11,.2)}
-.p-won{background:rgba(16,185,129,.1);color:#34d399;border:1px solid rgba(16,185,129,.2)}
-.p-lost{background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.2)}
-
-/* Stats cards colors */
-.c-blue{color:var(--blue2);--acc:var(--blue)}
-.c-amber{color:var(--amber);--acc:var(--amber)}
-.c-green{color:var(--green);--acc:var(--green)}
-.c-red{color:#ef4444;--acc:#ef4444}
-</style>
-{% endblock %}
-
+{% block title %}Dashboard — SOURCE{% endblock %}
 {% block content %}
-{% set is_ar = member.lang == 'ar' %}
-
-<!-- STATS -->
-<div class="stats-grid">
-  <div class="stat-card fade-up fade-up-1">
-    <span class="stat-icon">🏛</span>
-    <div class="stat-lbl">{{ 'MARCHÉS ACTIFS' if not is_ar else 'المناقصات النشطة' }}</div>
-    <div class="stat-val c-blue">{{ stats.tenders }}</div>
-    <div class="stat-sub" style="color:var(--green)">↑ +{{ stats.today }} {{ 'aujourd\'hui' if not is_ar else 'اليوم' }}</div>
-  </div>
-  <div class="stat-card fade-up fade-up-2" style="cursor:pointer" onclick="location.href='/favorites'">
-    <span class="stat-icon">⭐</span>
-    <div class="stat-lbl">{{ 'FAVORIS' if not is_ar else 'المفضلة' }}</div>
-    <div class="stat-val c-amber">{{ ms.favs }}</div>
-    <div class="stat-sub" style="color:var(--text2)">{{ 'cliquer pour voir' if not is_ar else 'انقر للعرض' }}</div>
-  </div>
-  <div class="stat-card fade-up fade-up-3" style="cursor:pointer" onclick="location.href='/pipeline'">
-    <span class="stat-icon">📋</span>
-    <div class="stat-lbl">{{ 'SOUMISSIONS' if not is_ar else 'تقديماتي' }}</div>
-    <div class="stat-val c-green">{{ ms.subs }}</div>
-    <div class="stat-sub" style="color:var(--green)">🏆 {{ ms.won }} {{ 'gagnés' if not is_ar else 'مكسوبة' }}</div>
-  </div>
-  <div class="stat-card fade-up fade-up-4" style="cursor:pointer" onclick="location.href='/calendar'">
-    <span class="stat-icon">📅</span>
-    <div class="stat-lbl">{{ 'ÉCHÉANCES PROCHES' if not is_ar else 'مواعيد قريبة' }}</div>
-    <div class="stat-val c-red">{{ ms.soon }}</div>
-    <div class="stat-sub" style="color:var(--amber)">⚠ {{ '< 7 jours' if not is_ar else 'أقل من 7 أيام' }}</div>
-  </div>
-</div>
-
-<!-- MAIN GRID -->
-<div class="dash-grid">
-
-  <!-- Tenders Table -->
-  <div class="card fade-up">
-    <div class="card-header">
-      <div class="card-title">
-        🏛 {{ 'Derniers Marchés' if not is_ar else 'آخر المناقصات' }}
-        <span class="badge-live">{{ 'TEMPS RÉEL' if not is_ar else 'مباشر' }}</span>
-      </div>
-      <div style="display:flex;gap:8px">
-        <a href="/calendar" class="btn btn-ghost btn-sm">📅</a>
-        <button class="btn btn-ghost btn-sm" onclick="scanNow()">↻</button>
-        <a href="/tenders" class="btn btn-ghost btn-sm">
-          {{ 'Tout voir →' if not is_ar else 'الكل ←' }}
-        </a>
-      </div>
-    </div>
-
-    <div class="filter-row" id="filterRow">
-      <div class="chip active" data-filter="">{{ 'Tous' if not is_ar else 'الكل' }}</div>
-      <div class="chip" data-filter="T">🔨 {{ 'Travaux' if not is_ar else 'أشغال' }}</div>
-      <div class="chip" data-filter="P">📦 {{ 'Produits' if not is_ar else 'منتجات' }}</div>
-      <div class="chip" data-filter="S">💼 {{ 'Services' if not is_ar else 'خدمات' }}</div>
-      <div class="chip" data-filter="urgent">🔴 {{ 'Urgent' if not is_ar else 'عاجل' }}</div>
-      <div class="chip" data-filter="5">⭐⭐⭐⭐⭐ {{ 'Top match' if not is_ar else 'الأنسب' }}</div>
-    </div>
-
-    <div id="tendersBody">
-      {% for t in recent %}
-      {% set dl_n, dl_label = days_left(t.date_limite) %}
-      {% set dl_cls = 'dl-urgent' if dl_n <= 3 else ('dl-soon' if dl_n <= 7 else 'dl-ok') %}
-      {% set stx_cls = 'stx10-' + t.stx10_code[0] if t.stx10_code else '' %}
-      {% set sc = t.get('score', 3) %}
-      <div class="tender-row"
-           data-stx="{{ t.stx10_code[0] if t.stx10_code else '' }}"
-           data-days="{{ dl_n }}"
-           data-score="{{ sc }}"
-           onclick="location.href='/tenders/{{ t.id }}'">
-        <div>
-          <div class="tender-objet">{{ t.objet[:85] }}</div>
-          <div class="tender-meta">
-            <span class="tender-acheteur">{{ t.acheteur[:50] }}</span>
-            {% if t.montant %}<span>· {{ t.montant }}</span>{% endif %}
-          </div>
+<div style="margin-bottom: 2rem;">
+    <div class="flex justify-between items-center mb-3">
+        <h1 style="font-size: 1.5rem; color: #f1f5f9;">Dashboard</h1>
+        <div class="flex gap-2">
+            {% if scraping %}
+            <span class="badge badge-yellow">🔄 Scan en cours...</span>
+            {% else %}
+            <span class="badge badge-green">✅ À jour</span>
+            {% endif %}
+            <span class="text-muted" style="font-size: 0.875rem;">Dernier scan: {{ last_scan }}</span>
         </div>
-        <!-- Score étoiles -->
-        <div class="stars">
-          {% for i in range(5) %}
-          <span class="{{ 'star-fill' if i < sc else 'star-empty' }}">★</span>
-          {% endfor %}
-        </div>
-        {% if t.stx10_code %}
-        <span class="stx10-badge {{ stx_cls }}">{{ t.stx10_code }}</span>
-        {% endif %}
-        {% if dl_label %}
-        <span class="dl-badge {{ dl_cls }}">{{ dl_label }}</span>
-        {% endif %}
-      </div>
-      {% else %}
-      <div style="padding:32px;text-align:center;color:var(--text3)">
-        {{ 'Aucun marché — scan en cours...' if not is_ar else 'لا توجد مناقصات — جاري الفحص...' }}
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-
-  <!-- RIGHT PANEL -->
-  <div class="right-panel">
-
-    <!-- AI Widget -->
-    <div class="ai-widget">
-      <div style="display:flex;align-items:center;gap:10px">
-        <div class="ai-orb">🧠</div>
-        <div>
-          <div style="font-size:12px;font-weight:700;color:var(--blue2)">{{ 'Assistant IA' if not is_ar else 'المساعد الذكي' }}</div>
-          <div style="font-family:var(--ff-mono);font-size:9px;color:var(--text3);letter-spacing:1px">GROQ · {{ cfg.AI_MODEL }}</div>
-        </div>
-      </div>
-      <div class="ai-insight" id="aiInsight">
-        {% if is_ar %}
-        "قطاع BTP يمثل أكبر حصة من المناقصات — 38% من الإجمالي هذا الشهر."
-        {% else %}
-        "Le secteur BTP concentre 38% des marchés actifs ce mois. Opportunité stratégique."
-        {% endif %}
-      </div>
-      <div class="ai-tags">
-        <span class="ai-tag tag-hot">🔥 {{ 'BTP en hausse' if not is_ar else 'BTP في ارتفاع' }}</span>
-        <span class="ai-tag tag-up">📈 IT +12%</span>
-        <span class="ai-tag tag-info">{{ '3 urgents' if not is_ar else '3 عاجلة' }}</span>
-      </div>
-      <div class="ai-form">
-        <input class="ai-input" id="aiQ" type="text"
-          placeholder="{{ 'Posez une question...' if not is_ar else 'اطرح سؤالاً...' }}"
-          onkeydown="if(event.key==='Enter')askAI()">
-        <button class="ai-send" onclick="askAI()">➤</button>
-      </div>
-      <div class="ai-answer" id="aiAnswer"></div>
     </div>
 
-    <!-- Pipeline résumé -->
-    {% if pipeline %}
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">📋 {{ 'Mon Pipeline' if not is_ar else 'خط أعمالي' }}</div>
-        <a href="/pipeline" class="btn btn-ghost btn-sm">{{ 'Gérer →' if not is_ar else 'إدارة ←' }}</a>
-      </div>
-      <div style="padding:14px 18px">
-        {% for s in pipeline[:4] %}
-        {% set dl_n2, dl_label2 = days_left(s.date_limite) %}
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border)" onclick="location.href='/tenders/{{ s.id }}'">
-          <div style="min-width:0">
-            <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ s.objet[:55] }}</div>
-            <span class="p-badge p-{{ s.sub_status }}" style="font-size:10px;margin-top:4px;display:inline-block">
-              {{ {'watching':'👁 Suivi','submitted':'📤 Soumis','won':'🏆 Gagné','lost':'❌ Perdu'}.get(s.sub_status,'?') if not is_ar
-                 else {'watching':'👁 متابعة','submitted':'📤 مقدّم','won':'🏆 مكسوب','lost':'❌ خسارة'}.get(s.sub_status,'?') }}
-            </span>
-          </div>
-          {% if dl_label2 %}
-          <span class="dl-badge {{ 'dl-urgent' if dl_n2<=3 else ('dl-soon' if dl_n2<=7 else 'dl-ok') }}" style="font-size:10px;flex-shrink:0;margin-left:8px">{{ dl_label2 }}</span>
-          {% endif %}
+    <div class="grid grid-4 mb-3">
+        <div class="card text-center">
+            <div class="text-muted" style="font-size: 0.875rem;">Favoris</div>
+            <div class="card-title">{{ ms.favs }}</div>
         </div>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- Top Sectors -->
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">📊 {{ 'Top Secteurs STX10' if not is_ar else 'أبرز القطاعات' }}</div>
-        <a href="/analytics" class="btn btn-ghost btn-sm">{{ 'Stats →' if not is_ar else 'إحصاءات' }}</a>
-      </div>
-      <div>
-        {% set max_cnt = top_stx10[0].cnt if top_stx10 else 1 %}
-        {% for s in top_stx10 %}
-        <div class="sector-row">
-          <div class="sector-hd">
-            <span class="sector-name">[{{ s.stx10_code }}] {{ s.stx10_label[:35] }}</span>
-            <span class="sector-cnt">{{ s.cnt }}</span>
-          </div>
-          <div class="bar-bg">
-            <div class="bar-fill" style="width:{{ (s.cnt/max_cnt*100)|int }}%;animation-delay:{{ loop.index0*0.08 }}s"></div>
-          </div>
+        <div class="card text-center">
+            <div class="text-muted" style="font-size: 0.875rem;">Soumissions</div>
+            <div class="card-title">{{ ms.subs }}</div>
         </div>
-        {% endfor %}
-      </div>
+        <div class="card text-center">
+            <div class="text-muted" style="font-size: 0.875rem;">Gagnés</div>
+            <div class="card-title text-success">{{ ms.won }}</div>
+        </div>
+        <div class="card text-center">
+            <div class="text-muted" style="font-size: 0.875rem;">Urgents (7j)</div>
+            <div class="card-title text-danger">{{ ms.soon }}</div>
+        </div>
     </div>
 
-    <!-- Matched -->
     {% if matched %}
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">✅ {{ 'Vos opportunités' if not is_ar else 'فرصك المخصصة' }}</div>
-        <span class="badge-live">{{ matched|length }}</span>
-      </div>
-      <div>
-        {% for t in matched[:5] %}
-        {% set dl_n3, dl_label3 = days_left(t.date_limite) %}
-        <div class="tender-row" onclick="location.href='/tenders/{{ t.id }}'">
-          <div>
-            <div class="tender-objet">{{ t.objet[:65] }}</div>
-            <div class="tender-meta">
-              {% for i in range(t.get('score',3)) %}<span style="color:var(--blue);font-size:10px">★</span>{% endfor %}
+    <div class="mb-3">
+        <h2 style="font-size: 1.125rem; color: #f1f5f9; margin-bottom: 1rem;">🔥 Marchés recommandés pour vous</h2>
+        <div class="grid grid-2">
+            {% for t in matched %}
+            <div class="card">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="badge badge-blue">{{ t.stx10_code }} - {{ t.stx10_label }}</span>
+                    <span class="text-muted" style="font-size: 0.75rem;">{{ days_left(t.date_limite)[1] }}</span>
+                </div>
+                <a href="/tenders/{{ t.id }}" style="color: #f1f5f9; text-decoration: none; font-weight: 500;">
+                    {{ t.objet[:100] }}{% if t.objet|length > 100 %}...{% endif %}
+                </a>
+                <div class="flex justify-between items-center mt-2">
+                    <span class="text-muted" style="font-size: 0.75rem;">{{ t.acheteur[:50] }}</span>
+                    <span class="badge badge-green">Score: {{ t.score }}/100</span>
+                </div>
             </div>
-          </div>
-          <span class="stx10-badge stx10-{{ t.stx10_code[0] if t.stx10_code else 'S' }}">{{ t.stx10_code }}</span>
-          {% if dl_label3 %}<span class="dl-badge {{ 'dl-urgent' if dl_n3<=3 else ('dl-soon' if dl_n3<=7 else 'dl-ok') }}">{{ dl_label3 }}</span>{% endif %}
+            {% endfor %}
         </div>
-        {% endfor %}
-      </div>
     </div>
     {% endif %}
-  </div>
+
+    {% if recent %}
+    <div class="mb-3">
+        <h2 style="font-size: 1.125rem; color: #f1f5f9; margin-bottom: 1rem;">🆕 Derniers marchés</h2>
+        {% for t in recent %}
+        <div class="card" style="padding: 1rem;">
+            <div class="flex justify-between items-center">
+                <div style="flex: 1;">
+                    <div class="flex gap-2 mb-1">
+                        <span class="badge badge-blue">{{ t.stx10_code }}</span>
+                        <span class="text-muted" style="font-size: 0.75rem;">{{ days_left(t.date_limite)[1] }}</span>
+                    </div>
+                    <a href="/tenders/{{ t.id }}" style="color: #f1f5f9; text-decoration: none;">
+                        {{ t.objet[:120] }}{% if t.objet|length > 120 %}...{% endif %}
+                    </a>
+                </div>
+                <div style="text-align: right;">
+                    <span class="badge badge-green">{{ t.score }}/100</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div style="text-align: center; margin-top: 2rem;">
+        <a href="/tenders" class="btn btn-primary">Voir tous les marchés →</a>
+    </div>
 </div>
-
-<!-- Scan status -->
-{% if scraping %}
-<div style="padding:10px 16px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:var(--r-sm);font-size:12px;color:var(--amber);display:flex;align-items:center;gap:8px">
-  <span style="animation:spin 1s linear infinite;display:inline-block">⟳</span>
-  {{ 'Scan en cours sur marchespublics.gov.ma...' if not is_ar else 'جاري الفحص على marchespublics.gov.ma...' }}
-</div>
-{% endif %}
-<style>@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}</style>
-{% endblock %}
-
-{% block scripts %}
-<script>
-const IS_AR = '{{ member.lang }}' === 'ar';
-
-// Filter
-document.querySelectorAll('#filterRow .chip').forEach(chip => {
-  chip.addEventListener('click', () => {
-    document.querySelectorAll('#filterRow .chip').forEach(c=>c.classList.remove('active'));
-    chip.classList.add('active');
-    const f = chip.dataset.filter;
-    document.querySelectorAll('#tendersBody .tender-row').forEach(row => {
-      const stx = row.dataset.stx||'';
-      const days = parseInt(row.dataset.days)||999;
-      const score = parseInt(row.dataset.score)||1;
-      let show = true;
-      if (f==='urgent') show = days<=5;
-      else if (f==='5') show = score>=4;
-      else if (f) show = stx===f;
-      row.style.display = show?'':'none';
-    });
-  });
-});
-
-// AI
-const INSIGHTS = IS_AR ? [
-  '"قطاع BTP يمثل 38% من المناقصات — أفضل فرصة استراتيجية."',
-  '"3 مناقصات في ملفك تنتهي خلال 48 ساعة — تصرّف الآن."',
-  '"مناقصات IT ترتفع 12% هذا الربع — فرصة لشركات البرمجيات."',
-] : [
-  '"Le secteur BTP concentre 38% des marchés — opportunité stratégique."',
-  '"5 marchés de votre profil arrivent à échéance dans 48h."',
-  '"Les marchés IT (S901/P818) sont en hausse de 12% ce trimestre."',
-];
-let idx=0;
-setInterval(()=>{
-  idx=(idx+1)%INSIGHTS.length;
-  const el=document.getElementById('aiInsight');
-  el.style.opacity='0';
-  setTimeout(()=>{el.textContent=INSIGHTS[idx];el.style.opacity='1';el.style.transition='opacity .4s'},300);
-},7000);
-
-async function askAI(){
-  const q=document.getElementById('aiQ').value.trim();
-  if(!q)return;
-  const ans=document.getElementById('aiAnswer');
-  ans.style.display='block';
-  ans.textContent=IS_AR?'⏳ جاري التحليل...':'⏳ Analyse...';
-  try{
-    const r=await fetch(`/api/ai/chat?q=${encodeURIComponent(q)}`);
-    const d=await r.json();
-    ans.textContent=d.ok?d.answer:(d.msg||'Erreur');
-  }catch{ans.textContent=IS_AR?'خطأ':'Erreur'}
-  document.getElementById('aiQ').value='';
-}
-document.getElementById('aiQ').addEventListener('keydown',e=>{if(e.key==='Enter')askAI()});
-
-async function scanNow(){
-  showToast(IS_AR?'⟳ جاري الفحص...':'⟳ Scan en cours...');
-  try{const r=await fetch('/admin/scan');const d=await r.json();
-    if(d.ok)showToast(IS_AR?'✅ تم إطلاق الفحص':'✅ Scan lancé');}catch{}
-}
-</script>
 {% endblock %}

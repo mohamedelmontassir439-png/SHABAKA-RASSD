@@ -1,109 +1,29 @@
 {% extends "base.html" %}
-{% set active_page = "calendar" %}
-{% block title %}SOURCE — {{ 'Calendrier' if member.lang!='ar' else 'التقويم' }}{% endblock %}
-{% block page_title %}{{ 'Calendrier des Échéances' if member.lang!='ar' else 'تقويم المواعيد' }}{% endblock %}
-{% block extra_head %}
-<style>
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:16px}
-.cal-day{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 6px;min-height:70px;cursor:pointer;transition:.15s;position:relative}
-.cal-day:hover{border-color:var(--border2)}
-.cal-day.today{border-color:rgba(200,169,110,.5);background:rgba(200,169,110,.05)}
-.cal-num{font-size:12px;font-weight:700;margin-bottom:4px}
-.cal-event{font-size:9px;padding:2px 5px;border-radius:4px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
-.ev-5{background:rgba(239,68,68,.2);color:#f87171}
-.ev-4{background:rgba(200,169,110,.15);color:var(--blue2)}
-.ev-3{background:rgba(16,185,129,.1);color:#34d399}
-.cal-hdr span{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:1px;text-align:center;display:block;padding:6px 0}
-.urgent-list{display:flex;flex-direction:column;gap:8px}
-.urgent-item{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--surface);border:1px solid rgba(239,68,68,.2);border-radius:10px;cursor:pointer;transition:.15s}
-.urgent-item:hover{border-color:rgba(239,68,68,.4)}
-</style>
-{% endblock %}
+{% block title %}Calendrier — SOURCE{% endblock %}
 {% block content %}
-{% set is_ar = member.lang == 'ar' %}
-<div style="display:grid;grid-template-columns:1fr 280px;gap:18px">
-  <!-- Calendar -->
-  <div class="card">
-    <div class="card-header">
-      <div class="card-title" id="calTitle"></div>
-      <div style="display:flex;gap:6px">
-        <button class="btn btn-ghost btn-sm" onclick="changeMonth(-1)">‹</button>
-        <button class="btn btn-ghost btn-sm" onclick="changeMonth(1)">›</button>
-      </div>
-    </div>
-    <div style="padding:14px">
-      <div class="cal-grid cal-hdr">
-        {% for d in (['L','M','M','J','V','S','D'] if not is_ar else ['ن','ث','ث','ر','خ','س','ح']) %}
-        <span>{{ d }}</span>
-        {% endfor %}
-      </div>
-      <div class="cal-grid" id="calGrid"></div>
-    </div>
-  </div>
+<div style="margin-bottom: 2rem;">
+    <h1 style="font-size: 1.5rem; color: #f1f5f9; margin-bottom: 1rem;">Calendrier des échéances</h1>
 
-  <!-- Urgent sidebar -->
-  <div style="display:flex;flex-direction:column;gap:14px">
-    <div class="card">
-      <div class="card-header"><div class="card-title">🔴 {{ 'Urgent — ≤ 7 jours' if not is_ar else 'عاجل — ≤ 7 أيام' }}</div></div>
-      <div style="padding:10px 14px;display:flex;flex-direction:column;gap:8px" id="urgentList">
-        {% for t in tenders if days_left(t.date_limite)[0] <= 7 and days_left(t.date_limite)[0] >= 0 %}
-        {% set n,lbl=days_left(t.date_limite) %}
-        <div class="urgent-item" onclick="location.href='/tenders/{{ t.id }}'">
-          <span style="font-size:20px">{{ '🔥' if n<=3 else '⏳' }}</span>
-          <div style="min-width:0">
-            <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ t.objet[:50] }}</div>
-            <div style="font-size:10px;color:var(--text3)">{{ lbl }} · {{ t.stx10_code }}</div>
-          </div>
+    <div class="grid grid-3">
+        {% for t in tenders %}
+        <div class="card" style="padding: 1rem;">
+            <div class="flex justify-between items-center mb-1">
+                <span class="badge badge-blue">{{ t.stx10_code }}</span>
+                <span class="{% if days_left(t.date_limite)[0] <= 3 %}text-danger{% elif days_left(t.date_limite)[0] <= 7 %}text-warning{% else %}text-success{% endif %}">
+                    {{ days_left(t.date_limite)[1] }}
+                </span>
+            </div>
+            <a href="/tenders/{{ t.id }}" style="color: #f1f5f9; text-decoration: none; font-size: 0.875rem;">
+                {{ t.objet[:80] }}{% if t.objet|length > 80 %}...{% endif %}
+            </a>
         </div>
-        {% else %}
-        <div style="text-align:center;color:var(--text3);font-size:12px;padding:12px">{{ '✅ Aucune urgence' if not is_ar else '✅ لا توجد عاجلات' }}</div>
         {% endfor %}
-      </div>
     </div>
 
-    <div class="card">
-      <div class="card-header"><div class="card-title">📅 {{ 'Ce mois — ' + tenders|length|string + ' marchés' if not is_ar else 'هذا الشهر — ' + tenders|length|string + ' مناقصة' }}</div></div>
-      <div style="padding:14px;font-size:13px;color:var(--text2)">
-        <div style="margin-bottom:8px">🔴 {{ tenders|selectattr('score','ge',1)|list|selectattr('date_limite')|list|length }} {{ 'avec échéance' if not is_ar else 'بموعد' }}</div>
-        <div>⭐⭐⭐⭐⭐ {{ tenders|selectattr('score','eq',5)|list|length }} {{ 'très pertinents' if not is_ar else 'مطابقة عالية' }}</div>
-      </div>
+    {% if not tenders %}
+    <div class="card text-center" style="padding: 3rem;">
+        <p class="text-muted">Aucune échéance à venir.</p>
     </div>
-  </div>
+    {% endif %}
 </div>
-
-<script>
-const EVENTS = {{ events_json }};
-const IS_AR = '{{ member.lang }}' === 'ar';
-let currentDate = new Date();
-
-function changeMonth(d){currentDate.setMonth(currentDate.getMonth()+d);renderCal();}
-
-function renderCal(){
-  const y=currentDate.getFullYear(),m=currentDate.getMonth();
-  const months=IS_AR?['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليوز','غشت','شتنبر','أكتوبر','نونبر','دجنبر']:
-    ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
-  document.getElementById('calTitle').textContent=`${months[m]} ${y}`;
-  const first=new Date(y,m,1).getDay();
-  const days=new Date(y,m+1,0).getDate();
-  const today=new Date();
-  let html='';
-  const startDay=(first+6)%7;
-  for(let i=0;i<startDay;i++) html+=`<div class="cal-day" style="opacity:.3"><div class="cal-num">·</div></div>`;
-  for(let d=1;d<=days;d++){
-    const isToday=today.getDate()===d&&today.getMonth()===m&&today.getFullYear()===y;
-    const dateStr=`${String(d).padStart(2,'0')}/${String(m+1).padStart(2,'0')}/${y}`;
-    const evs=EVENTS.filter(e=>{
-      const p=e.date.split('/');
-      if(p.length!==3)return false;
-      return parseInt(p[0])===d&&parseInt(p[1])===(m+1)&&parseInt(p[2])===y;
-    });
-    const evHTML=evs.slice(0,2).map(e=>
-      `<div class="cal-event ev-${e.score}" onclick="event.stopPropagation();location.href='/tenders/${e.id}'" title="${e.title}">${e.title}</div>`
-    ).join('')+(evs.length>2?`<div style="font-size:9px;color:var(--text3)">+${evs.length-2}</div>`:'');
-    html+=`<div class="cal-day ${isToday?'today':''}"><div class="cal-num">${d}</div>${evHTML}</div>`;
-  }
-  document.getElementById('calGrid').innerHTML=html;
-}
-renderCal();
-</script>
 {% endblock %}

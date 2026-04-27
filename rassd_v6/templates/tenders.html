@@ -1,207 +1,85 @@
 {% extends "base.html" %}
-{% set active_page = "tenders" %}
-{% block title %}SOURCE — {{ 'Marchés Publics' if member.lang!='ar' else 'المناقصات' }}{% endblock %}
-{% block page_title %}{{ 'Marchés Publics' if member.lang!='ar' else 'المناقصات العمومية' }}{% endblock %}
-{% block extra_head %}
-<style>
-.filters-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px 18px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
-.filter-group{display:flex;flex-direction:column;gap:4px;flex:1;min-width:130px}
-.filter-label{font-size:10px;font-weight:700;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase}
-select,input.s-inp{background:rgba(255,255,255,.04);border:1px solid var(--border2);border-radius:8px;padding:8px 11px;color:var(--text1);font-family:inherit;font-size:13px;outline:none;transition:.2s;width:100%}
-select:focus,input.s-inp:focus{border-color:rgba(200,169,110,.4)}
-select option{background:#0e0d14}
-.t-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px 18px;transition:all .15s;position:relative;overflow:hidden}
-.t-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--border);transition:.2s}
-.t-card:hover{border-color:var(--border2);transform:translateY(-1px)}
-.t-card:hover::before{background:var(--blue)}
-.t-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}
-.t-title{font-size:14px;font-weight:700;line-height:1.4;margin-bottom:8px;cursor:pointer}
-.t-title:hover{color:var(--blue2)}
-.t-meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
-.t-meta-item{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px}
-.t-acheteur{color:var(--text2);font-weight:500}
-.t-actions{display:flex;gap:8px;padding-top:12px;border-top:1px solid var(--border)}
-.btn-detail{flex:1;padding:9px;border-radius:8px;background:var(--blue);color:#0a0700;font-size:12px;font-weight:700;border:none;cursor:pointer;text-align:center;transition:.2s}
-.btn-detail:hover{background:var(--gold)}
-.btn-fav{width:36px;height:36px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.2s}
-.btn-fav:hover,.btn-fav.active{border-color:var(--amber);color:var(--amber)}
-.btn-pipe{width:36px;height:36px;border-radius:8px;border:1px solid var(--border2);background:transparent;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.2s}
-.btn-pipe:hover{border-color:var(--green);color:var(--green)}
-.stars{display:flex;gap:1px;font-size:11px}
-.star-f{color:var(--blue)}.star-e{color:var(--border2)}
-.page-btn{width:34px;height:34px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text2);font-size:13px;cursor:pointer;transition:.2s;display:flex;align-items:center;justify-content:center}
-.page-btn.active{background:var(--blue);border-color:var(--blue);color:#000}
-.page-btn:hover:not(.active){border-color:var(--border2);color:var(--text1)}
-.sort-btn{padding:6px 12px;border-radius:8px;font-size:11px;font-weight:700;border:1px solid var(--border);color:var(--text3);cursor:pointer;background:transparent;transition:.2s}
-.sort-btn.active{background:rgba(200,169,110,.1);border-color:rgba(200,169,110,.3);color:var(--blue2)}
-</style>
-{% endblock %}
-
+{% block title %}Marchés — SOURCE{% endblock %}
 {% block content %}
-{% set is_ar = member.lang == 'ar' %}
+<div style="margin-bottom: 2rem;">
+    <h1 style="font-size: 1.5rem; color: #f1f5f9; margin-bottom: 1rem;">Marchés Publics</h1>
 
-<!-- Filters -->
-<form method="GET" action="/tenders" class="filters-bar">
-  <div class="filter-group" style="flex:2;min-width:200px">
-    <span class="filter-label">{{ 'Recherche' if not is_ar else 'بحث' }}</span>
-    <input class="s-inp" type="text" name="q" value="{{ q }}"
-      placeholder="{{ 'Construction, informatique...' if not is_ar else 'بناء، معلوميات...' }}" autofocus>
-  </div>
-  <div class="filter-group">
-    <span class="filter-label">STX10</span>
-    <select name="stx10">
-      <option value="">{{ 'Tous' if not is_ar else 'الكل' }}</option>
-      {% for code in stx10_db|sort %}
-      <option value="{{ code }}" {% if stx10==code %}selected{% endif %}>
-        [{{ code }}] {{ STX10.get(code,'')[:40] }}
-      </option>
-      {% endfor %}
-    </select>
-  </div>
-  <div class="filter-group">
-    <span class="filter-label">{{ 'Région' if not is_ar else 'الجهة' }}</span>
-    <select name="region">
-      <option value="">{{ 'Toutes' if not is_ar else 'الكل' }}</option>
-      {% for r in regions %}
-      <option value="{{ r }}" {% if region==r %}selected{% endif %}>{{ r }}</option>
-      {% endfor %}
-    </select>
-  </div>
-  <button type="submit" class="btn btn-primary btn-sm" style="align-self:flex-end">🔍</button>
-  {% if q or stx10 or region %}
-  <a href="/tenders" class="btn btn-ghost btn-sm" style="align-self:flex-end">✕</a>
-  {% endif %}
-</form>
+    <form method="get" action="/tenders" class="card" style="margin-bottom: 1.5rem;">
+        <div class="grid grid-4" style="gap: 0.75rem;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <input type="text" name="q" value="{{ q }}" class="form-input" placeholder="Rechercher...">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <select name="stx10" class="form-input">
+                    <option value="">Tous les secteurs</option>
+                    {% for code in stx10_db %}
+                    <option value="{{ code }}" {% if code == stx10 %}selected{% endif %}>{{ code }} - {{ STX10[code] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <select name="sort" class="form-input">
+                    <option value="date" {% if sort == 'date' %}selected{% endif %}>Plus récents</option>
+                    <option value="deadline" {% if sort == 'deadline' %}selected{% endif %}>Date limite</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Filtrer</button>
+        </div>
+    </form>
 
-<!-- Sort + info -->
-<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-  <div style="font-family:var(--ff-mono);font-size:12px;color:var(--text3)">
-    {{ total }} {{ 'marché(s)' if not is_ar else 'نتيجة' }}
-    {% if q %} · "{{ q }}"{% endif %}
-  </div>
-  <div style="display:flex;gap:6px;align-items:center">
-    <span style="font-size:11px;color:var(--text3)">{{ 'Trier:' if not is_ar else 'ترتيب:' }}</span>
-    <a href="?q={{ q }}&stx10={{ stx10 }}&region={{ region }}&sort=date">
-      <button class="sort-btn {{ 'active' if sort!='deadline' else '' }}">{{ 'Date' if not is_ar else 'التاريخ' }}</button>
-    </a>
-    <a href="?q={{ q }}&stx10={{ stx10 }}&region={{ region }}&sort=deadline">
-      <button class="sort-btn {{ 'active' if sort=='deadline' else '' }}">⏰ {{ 'Échéance' if not is_ar else 'الموعد' }}</button>
-    </a>
-    {% if member.plan != 'free' %}
-    <a href="/export/csv{% if stx10 %}?stx10={{ stx10 }}{% endif %}" class="btn btn-ghost btn-sm">📥 CSV</a>
+    <div style="margin-bottom: 1rem;" class="flex justify-between items-center">
+        <span class="text-muted">{{ total }} résultats</span>
+        <a href="/export/csv{% if stx10 %}?stx10={{ stx10 }}{% endif %}" class="btn btn-outline" style="font-size: 0.75rem;">📥 Export CSV</a>
+    </div>
+
+    {% for t in tenders %}
+    <div class="card" style="padding: 1rem;">
+        <div class="flex justify-between items-start">
+            <div style="flex: 1;">
+                <div class="flex gap-2 mb-1">
+                    <span class="badge badge-blue">{{ t.stx10_code }} - {{ t.stx10_label }}</span>
+                    <span class="badge {% if t.score >= 70 %}badge-green{% elif t.score >= 40 %}badge-yellow{% else %}badge-red{% endif %}">
+                        Score: {{ t.score }}/100
+                    </span>
+                    <span class="text-muted" style="font-size: 0.75rem;">{{ days_left(t.date_limite)[1] }}</span>
+                </div>
+                <a href="/tenders/{{ t.id }}" style="color: #f1f5f9; text-decoration: none; font-weight: 500;">
+                    {{ t.objet[:150] }}{% if t.objet|length > 150 %}...{% endif %}
+                </a>
+                <div class="text-muted" style="font-size: 0.75rem; margin-top: 0.25rem;">
+                    {{ t.acheteur }} | {{ t.region }} | {{ t.montant }}
+                </div>
+            </div>
+            <div style="display: flex; gap: 0.5rem; flex-direction: column;">
+                <button onclick="toggleFav('{{ t.id }}')" class="btn btn-outline" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;">
+                    {% if t.id in fav_ids %}❤️{% else %}🤍{% endif %}
+                </button>
+                {% if t.id in sub_map %}
+                <span class="badge badge-green" style="font-size: 0.625rem;">{{ sub_map[t.id] }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
+    {% if pages > 1 %}
+    <div style="display: flex; justify-content: center; gap: 0.5rem; margin-top: 1.5rem;">
+        {% for p in range(1, pages + 1) %}
+        <a href="/tenders?q={{ q|urlencode }}&stx10={{ stx10 }}&sort={{ sort }}&page={{ p }}"
+           class="btn {% if p == page %}btn-primary{% else %}btn-outline{% endif %}"
+           style="padding: 0.375rem 0.75rem; font-size: 0.75rem;">
+            {{ p }}
+        </a>
+        {% endfor %}
+    </div>
     {% endif %}
-  </div>
 </div>
 
-<!-- Tenders -->
-{% if tenders %}
-<div style="display:flex;flex-direction:column;gap:10px">
-  {% for t in tenders %}
-  {% set dl_n, dl_label = days_left(t.date_limite) %}
-  {% set dl_cls = 'dl-urgent' if dl_n <= 3 else ('dl-soon' if dl_n <= 7 else 'dl-ok') %}
-  {% set sc = t.get('score',3) %}
-  {% set is_fav = t.id in fav_ids %}
-  {% set sub_status = sub_map.get(t.id,'') %}
-  <div class="t-card">
-    <div class="t-top">
-      <div class="stars">
-        {% for i in range(5) %}<span class="{{ 'star-f' if i < sc else 'star-e' }}">★</span>{% endfor %}
-      </div>
-      <div style="display:flex;gap:6px;flex-shrink:0">
-        {% if t.stx10_code %}
-        <span class="stx10-badge stx10-{{ t.stx10_code[0] }}">{{ t.stx10_code }}</span>
-        {% endif %}
-        {% if dl_label %}
-        <span class="dl-badge {{ dl_cls }}">{{ dl_label }}</span>
-        {% endif %}
-      </div>
-    </div>
-    <div class="t-title" onclick="location.href='/tenders/{{ t.id }}'">{{ t.objet[:160] }}</div>
-    <div class="t-meta">
-      {% if t.acheteur %}<span class="t-meta-item">🏢 <span class="t-acheteur">{{ t.acheteur[:70] }}</span></span>{% endif %}
-      {% if t.region %}<span class="t-meta-item">📍 {{ t.region[:40] }}</span>{% endif %}
-      {% if t.montant %}<span class="t-meta-item">💰 {{ t.montant }}</span>{% endif %}
-      {% if t.date_publication %}<span class="t-meta-item">📅 {{ t.date_publication }}</span>{% endif %}
-      {% if sub_status %}
-      <span class="p-badge p-{{ sub_status }}" style="font-size:10px">
-        {{ {'watching':'👁','submitted':'📤','won':'🏆','lost':'❌'}.get(sub_status,'') }}
-      </span>
-      {% endif %}
-    </div>
-    {% if t.ai_summary %}
-    <div style="font-size:12px;color:var(--text3);font-style:italic;margin-bottom:10px;border-left:2px solid var(--border2);padding-left:10px">{{ t.ai_summary[:200] }}</div>
-    {% endif %}
-    <div class="t-actions">
-      <button class="btn-detail" onclick="location.href='/tenders/{{ t.id }}'">
-        {{ 'Voir le détail →' if not is_ar else 'عرض التفاصيل ←' }}
-      </button>
-      <button class="btn-fav {{ 'active' if is_fav else '' }}" onclick="toggleFav('{{ t.id }}',this)" title="{{ 'Favori' if not is_ar else 'مفضلة' }}">
-        {{ '⭐' if is_fav else '☆' }}
-      </button>
-      <button class="btn-pipe" onclick="quickPipeline('{{ t.id }}',this)" title="{{ 'Pipeline' if not is_ar else 'خط الأعمال' }}">📋</button>
-    </div>
-  </div>
-  {% endfor %}
-</div>
-
-<!-- Pagination -->
-{% if pages > 1 %}
-<div style="display:flex;align-items:center;justify-content:center;gap:6px">
-  {% if page > 1 %}
-  <a href="?q={{ q }}&stx10={{ stx10 }}&region={{ region }}&sort={{ sort }}&page={{ page-1 }}">
-    <button class="page-btn">‹</button>
-  </a>
-  {% endif %}
-  {% for p in range(1, pages+1) %}
-  {% if p <= 2 or p >= pages-1 or (p >= page-1 and p <= page+1) %}
-  <a href="?q={{ q }}&stx10={{ stx10 }}&region={{ region }}&sort={{ sort }}&page={{ p }}">
-    <button class="page-btn {{ 'active' if p==page else '' }}">{{ p }}</button>
-  </a>
-  {% elif p == 3 and page > 4 %}
-  <span style="color:var(--text3)">…</span>
-  {% endif %}
-  {% endfor %}
-  {% if page < pages %}
-  <a href="?q={{ q }}&stx10={{ stx10 }}&region={{ region }}&sort={{ sort }}&page={{ page+1 }}">
-    <button class="page-btn">›</button>
-  </a>
-  {% endif %}
-</div>
-{% endif %}
-{% else %}
-<div style="text-align:center;padding:60px 20px;color:var(--text3)">
-  <div style="font-size:48px;margin-bottom:16px">🏛</div>
-  <h3 style="font-family:var(--ff-head);font-size:18px;color:var(--text2);margin-bottom:8px">
-    {{ 'Aucun marché trouvé' if not is_ar else 'لا توجد مناقصات' }}
-  </h3>
-  <p>{{ 'Essayez d\'autres filtres.' if not is_ar else 'جرب فلاتر أخرى.' }}</p>
-</div>
-{% endif %}
-{% endblock %}
-
-{% block scripts %}
 <script>
-const IS_AR = '{{ member.lang }}' === 'ar';
-async function toggleFav(id,btn){
-  try{
-    const r=await fetch(`/favorites/${id}`,{method:'POST'});
-    const d=await r.json();
-    if(d.ok){
-      btn.textContent=d.action==='added'?'⭐':'☆';
-      btn.classList.toggle('active',d.action==='added');
-      showToast(d.action==='added'?(IS_AR?'✅ أضيف للمفضلة':'✅ Ajouté aux favoris'):(IS_AR?'Retiré':'Retiré'));
-    }
-  }catch{}
-}
-async function quickPipeline(id,btn){
-  const status=prompt(IS_AR?'الحالة (watching/submitted/won/lost):':'Statut (watching/submitted/won/lost):','watching');
-  if(!status)return;
-  try{
-    const fd=new FormData();fd.append('status',status);
-    const r=await fetch(`/pipeline/${id}`,{method:'POST',body:fd});
-    const d=await r.json();
-    if(d.ok)showToast(IS_AR?'✅ Pipeline محدّث':'✅ Pipeline mis à jour');
-  }catch{}
+async function toggleFav(tid) {
+    const r = await fetch(`/favorites/${tid}`, {method: 'POST'});
+    const j = await r.json();
+    if (j.ok) location.reload();
 }
 </script>
 {% endblock %}

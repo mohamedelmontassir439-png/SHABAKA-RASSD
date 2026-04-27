@@ -1,268 +1,108 @@
 {% extends "base.html" %}
-{% block title %}SOURCE — {{ t.objet[:60] }}{% endblock %}
-{% block page_title %}{{ 'Détail du marché' if member.lang!='ar' else 'تفاصيل المناقصة' }}{% endblock %}
-{% block extra_head %}
-<style>
-.detail-grid{display:grid;grid-template-columns:1fr 300px;gap:18px}
-@media(max-width:900px){.detail-grid{grid-template-columns:1fr}}
-.detail-hero{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:26px}
-.detail-title{font-family:var(--ff-head);font-size:clamp(16px,3vw,22px);font-weight:800;line-height:1.3;margin-bottom:18px}
-.meta-table{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:10px;overflow:hidden}
-.meta-row{display:grid;grid-template-columns:110px 1fr;border-bottom:1px solid var(--border)}
-.meta-row:last-child{border-bottom:none}
-.meta-key{padding:11px 14px;font-size:10px;font-weight:700;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;background:rgba(255,255,255,.02)}
-.meta-val{padding:11px 14px;font-size:13px;color:var(--text2)}
-.meta-val.gold{color:var(--blue2);font-weight:700}
-.meta-val.red{color:#f87171;font-weight:700}
-.stars-lg{display:flex;gap:2px;font-size:18px}
-.star-fill{color:var(--blue)}.star-empty{color:var(--border2)}
-/* Go/No-Go */
-.gng{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px}
-.gng-title{font-size:13px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
-.gng-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer}
-.gng-item:last-child{border:none}
-.gng-check{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:10px;transition:.15s;background:transparent;flex-shrink:0}
-.gng-item.checked .gng-check{background:var(--green);border-color:var(--green);color:#fff}
-.gng-lbl{font-size:12px;color:var(--text2)}
-.gng-score{font-family:var(--ff-mono);font-size:13px;font-weight:800;margin-top:10px;padding:8px;background:rgba(255,255,255,.03);border-radius:8px;text-align:center}
-/* Notes */
-.note-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px}
-.note-ta{width:100%;background:rgba(255,255,255,.03);border:1px solid var(--border2);border-radius:8px;padding:10px;color:var(--text1);font-family:var(--ff-body);font-size:13px;resize:vertical;outline:none;transition:.2s;min-height:80px}
-.note-ta:focus{border-color:rgba(200,169,110,.4)}
-</style>
-{% endblock %}
-
+{% block title %}{{ t.objet[:50] }} — SOURCE{% endblock %}
 {% block content %}
-{% set is_ar = member.lang == 'ar' %}
-
-<!-- Breadcrumb -->
-<div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text3);margin-bottom:4px">
-  <a href="/tenders" style="color:var(--blue2)">{{ 'Marchés' if not is_ar else 'المناقصات' }}</a>
-  <span>›</span><span>{{ t.stx10_code }}</span>
-</div>
-
-<div class="detail-grid">
-  <!-- MAIN -->
-  <div style="display:flex;flex-direction:column;gap:14px">
-    <div class="detail-hero card">
-      <div style="padding:22px 22px 0">
-        <!-- Score + Badges -->
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-          <div class="stars-lg">
-            {% for i in range(5) %}<span class="{{ 'star-fill' if i < score else 'star-empty' }}">★</span>{% endfor %}
-          </div>
-          {% if t.stx10_code %}
-          <span class="stx10-badge stx10-{{ t.stx10_code[0] }}">{{ t.stx10_code }}</span>
-          <span style="font-size:12px;color:var(--text3)">{{ t.stx10_label[:60] }}</span>
-          {% endif %}
-        </div>
-        {% if dl_label %}
-        <div style="padding:10px 14px;border-radius:10px;display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;margin-bottom:16px;
-          {% if dl <= 3 %}background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.2)
-          {% elif dl <= 7 %}background:rgba(245,158,11,.1);color:#fbbf24;border:1px solid rgba(245,158,11,.2)
-          {% else %}background:rgba(16,185,129,.08);color:#34d399;border:1px solid rgba(16,185,129,.18){% endif %}">
-          ⏰ {{ dl_label }} — {{ t.date_limite }}
-        </div>
-        {% endif %}
-        <h1 class="detail-title">{{ t.objet }}</h1>
-      </div>
-      <div style="padding:0 22px 22px">
-        <div class="meta-table">
-          {% if t.acheteur %}<div class="meta-row"><div class="meta-key">{{ 'Acheteur' if not is_ar else 'الجهة' }}</div><div class="meta-val">{{ t.acheteur }}</div></div>{% endif %}
-          {% if t.region %}<div class="meta-row"><div class="meta-key">{{ 'Région' if not is_ar else 'الجهة' }}</div><div class="meta-val">{{ t.region }}</div></div>{% endif %}
-          {% if t.montant %}<div class="meta-row"><div class="meta-key">{{ 'Montant' if not is_ar else 'الميزانية' }}</div><div class="meta-val gold">{{ t.montant }}</div></div>{% endif %}
-          {% if t.date_publication %}<div class="meta-row"><div class="meta-key">{{ 'Publication' if not is_ar else 'النشر' }}</div><div class="meta-val">{{ t.date_publication }}</div></div>{% endif %}
-          {% if t.date_limite %}<div class="meta-row"><div class="meta-key">{{ 'Date limite' if not is_ar else 'الموعد' }}</div><div class="meta-val red">{{ t.date_limite }}</div></div>{% endif %}
-        </div>
-      </div>
-    </div>
-
-    <!-- AI Summary -->
-    <div style="background:linear-gradient(135deg,rgba(200,169,110,.07),rgba(200,169,110,.02));border:1px solid rgba(200,169,110,.15);border-radius:var(--r-lg);padding:18px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-        <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--blue),var(--gold));display:flex;align-items:center;justify-content:center;font-size:13px">🧠</div>
-        <div>
-          <div style="font-size:12px;font-weight:700;color:var(--blue2)">{{ 'Analyse IA' if not is_ar else 'تحليل ذكي' }}</div>
-          <div style="font-family:var(--ff-mono);font-size:9px;color:var(--text3)">GROQ</div>
-        </div>
-        <button class="btn btn-ghost btn-sm" style="margin-left:auto" onclick="loadSummary()">✨ {{ 'Analyser' if not is_ar else 'تحليل' }}</button>
-      </div>
-      <div id="summaryText" style="font-size:13px;color:var(--text2);line-height:1.7;font-style:italic">
-        {% if t.ai_summary %}{{ t.ai_summary }}
-        {% else %}{{ 'Cliquez "Analyser" pour obtenir une synthèse IA.' if not is_ar else 'انقر "تحليل" للحصول على ملخص ذكي.' }}
-        {% endif %}
-      </div>
-    </div>
-
-    <!-- Historique acheteur -->
-    {% if acheteur_history %}
+<div style="margin-bottom: 2rem;">
     <div class="card">
-      <div class="card-header">
-        <div class="card-title">🏢 {{ 'Autres marchés de cet acheteur' if not is_ar else 'مناقصات أخرى لهذه الجهة' }}</div>
-      </div>
-      <div>
-        {% for h in acheteur_history %}
-        {% set hn,hlbl=days_left(h.date_limite) %}
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 18px;border-bottom:1px solid var(--border);cursor:pointer;transition:.15s"
-             onclick="location.href='/tenders/{{ h.id }}'"
-             onmouseover="this.style.background='rgba(255,255,255,.02)'" onmouseout="this.style.background=''">
-          <div style="font-size:12px;font-weight:600;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ h.objet[:80] }}</div>
-          {% if hlbl %}<span class="dl-badge {{ 'dl-urgent' if hn<=3 else ('dl-soon' if hn<=7 else 'dl-ok') }}" style="font-size:10px;flex-shrink:0;margin-left:8px">{{ hlbl }}</span>{% endif %}
+        <div class="flex justify-between items-start mb-2">
+            <div class="flex gap-2">
+                <span class="badge badge-blue">{{ t.stx10_code }} - {{ t.stx10_label }}</span>
+                <span class="badge {% if score >= 70 %}badge-green{% elif score >= 40 %}badge-yellow{% else %}badge-red{% endif %}">Score: {{ score }}/100</span>
+            </div>
+            <button onclick="toggleFav('{{ t.id }}')" class="btn btn-outline" style="padding: 0.375rem 0.75rem;">
+                {% if is_fav %}❤️ Favori{% else %}🤍 Ajouter{% endif %}
+            </button>
         </div>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-  </div>
 
-  <!-- ASIDE -->
-  <div style="display:flex;flex-direction:column;gap:12px">
-    <!-- Actions -->
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px;display:flex;flex-direction:column;gap:9px">
-      <a href="{{ t.url }}" target="_blank" class="btn btn-primary" style="justify-content:center;color:#000">
-        🔗 {{ 'Voir sur marchespublics.gov.ma' if not is_ar else 'البوابة الرسمية' }}
-      </a>
-      <button class="btn btn-ghost" onclick="toggleFav('{{ t.id }}',this)" id="favBtn" style="justify-content:center">
-        {{ '⭐ Retirer favoris' if is_fav else '☆ Ajouter aux favoris' }}
-      </button>
+        <h1 style="font-size: 1.25rem; color: #f1f5f9; margin-bottom: 1rem;">{{ t.objet }}</h1>
+
+        <div class="grid grid-2 mb-3">
+            <div>
+                <div class="text-muted" style="font-size: 0.875rem;">Acheteur</div>
+                <div>{{ t.acheteur }}</div>
+            </div>
+            <div>
+                <div class="text-muted" style="font-size: 0.875rem;">Région</div>
+                <div>{{ t.region or "—" }}</div>
+            </div>
+            <div>
+                <div class="text-muted" style="font-size: 0.875rem;">Montant estimé</div>
+                <div>{{ t.montant or "—" }}</div>
+            </div>
+            <div>
+                <div class="text-muted" style="font-size: 0.875rem;">Date limite</div>
+                <div class="{% if dl <= 3 %}text-danger{% elif dl <= 7 %}text-warning{% else %}text-success{% endif %}">
+                    {{ t.date_limite }} ({{ dl_label }})
+                </div>
+            </div>
+        </div>
+
+        {% if t.ai_summary %}
+        <div class="card" style="background: rgba(14, 165, 233, 0.05); border-color: rgba(14, 165, 233, 0.2);">
+            <div style="font-size: 0.875rem; color: #7dd3fc; margin-bottom: 0.5rem;">🤖 Résumé IA</div>
+            <p style="font-size: 0.875rem; white-space: pre-line;">{{ t.ai_summary }}</p>
+        </div>
+        {% endif %}
+
+        {% if t.url %}
+        <a href="{{ t.url }}" target="_blank" class="btn btn-primary" style="margin-top: 1rem;">Voir l'annonce →</a>
+        {% endif %}
     </div>
 
     <!-- Pipeline -->
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:18px">
-      <div style="font-size:12px;font-weight:700;margin-bottom:12px">📋 {{ 'Mon pipeline' if not is_ar else 'خط أعمالي' }}</div>
-      <form id="pipeForm" style="display:flex;flex-direction:column;gap:8px">
-        {% set statuses=[('watching','👁 Surveiller','👁 متابعة'),('submitted','📤 Soumis','📤 مقدّم'),('won','🏆 Gagné','🏆 مكسوب'),('lost','❌ Perdu','❌ خسارة')] %}
-        {% for val,lbl_fr,lbl_ar in statuses %}
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:7px 10px;border-radius:8px;border:1px solid var(--border);transition:.15s" 
-               onmouseover="this.style.borderColor='var(--border2)'" onmouseout="this.style.borderColor='var(--border)'">
-          <input type="radio" name="status" value="{{ val }}" style="display:none"
-                 {% if sub and sub.status==val %}checked{% endif %}
-                 onchange="savePipeline()">
-          <span style="width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:9px;transition:.15s" class="radio-icon">✓</span>
-          <span style="font-size:12px">{{ lbl_ar if is_ar else lbl_fr }}</span>
-        </label>
-        {% endfor %}
-        <div id="pipe-status" style="font-size:11px;color:var(--green);text-align:center;display:none">✅ {{ 'Sauvegardé' if not is_ar else 'تم الحفظ' }}</div>
-      </form>
-    </div>
-
-    <!-- Go/No-Go checklist -->
-    <div class="gng">
-      <div class="gng-title">✅ {{ 'Checklist Go/No-Go' if not is_ar else 'قائمة القرار' }}</div>
-      {% set checks = [
-        ('ref','Références similaires disponibles','لدي مراجع مشابهة'),
-        ('cap','Capacité financière suffisante','قدرة مالية كافية'),
-        ('del','Délai réalisable (> 14 jours)','الموعد قابل للتحقيق'),
-        ('doc','Documents administratifs à jour','الوثائق الإدارية محدّثة'),
-        ('team','Équipe technique disponible','الفريق التقني متاح'),
-      ] %}
-      {% for id,lbl_fr,lbl_ar in checks %}
-      <div class="gng-item" onclick="toggleCheck(this,{{ loop.index0 }})" id="gng-{{ id }}">
-        <div class="gng-check">✓</div>
-        <div class="gng-lbl">{{ lbl_ar if is_ar else lbl_fr }}</div>
-      </div>
-      {% endfor %}
-      <div class="gng-score" id="gngScore" style="color:var(--text3)">{{ '0/5 — Évaluez votre Go/No-Go' if not is_ar else '0/5 — قيّم قرارك' }}</div>
+    <div class="card mt-2">
+        <h3 style="font-size: 1rem; color: #f1f5f9; margin-bottom: 1rem;">Pipeline</h3>
+        <form method="post" action="/pipeline/{{ t.id }}">
+            <div class="grid grid-3" style="gap: 0.75rem;">
+                <div class="form-group" style="margin-bottom: 0;">
+                    <select name="status" class="form-input">
+                        <option value="watching" {% if sub and sub.status == 'watching' %}selected{% endif %}>👀 À l'étude</option>
+                        <option value="submitted" {% if sub and sub.status == 'submitted' %}selected{% endif %}>📤 Soumis</option>
+                        <option value="won" {% if sub and sub.result == 'won' %}selected{% endif %}>✅ Gagné</option>
+                        <option value="lost" {% if sub and sub.result == 'lost' %}selected{% endif %}>❌ Perdu</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-bottom: 0;">
+                    <input type="number" name="score_go" value="{{ sub.score_go if sub else 0 }}" class="form-input" placeholder="Score Go/No-Go" min="0" max="100">
+                </div>
+                <button type="submit" class="btn btn-primary">Mettre à jour</button>
+            </div>
+            <div class="form-group mt-2" style="margin-bottom: 0;">
+                <textarea name="notes" class="form-input" rows="3" placeholder="Notes...">{{ sub.notes if sub else '' }}</textarea>
+            </div>
+        </form>
     </div>
 
     <!-- Notes -->
-    <div class="note-box">
-      <div style="font-size:12px;font-weight:700;margin-bottom:10px">📝 {{ 'Mes notes' if not is_ar else 'ملاحظاتي' }}</div>
-      <textarea class="note-ta" id="noteArea" placeholder="{{ 'Vos notes privées...' if not is_ar else 'ملاحظاتك الخاصة...' }}"
-        onblur="saveNote()">{{ note }}</textarea>
-      <div id="noteSaved" style="font-size:11px;color:var(--green);display:none;margin-top:4px">✅ {{ 'Sauvegardé' if not is_ar else 'تم الحفظ' }}</div>
+    <div class="card mt-2">
+        <h3 style="font-size: 1rem; color: #f1f5f9; margin-bottom: 1rem;">Mes notes</h3>
+        <form method="post" action="/notes/{{ t.id }}">
+            <textarea name="note" class="form-input" rows="4" placeholder="Vos notes personnelles...">{{ note }}</textarea>
+            <button type="submit" class="btn btn-secondary mt-2">Sauvegarder</button>
+        </form>
     </div>
 
-    <!-- Similar -->
     {% if similar %}
-    <div class="card">
-      <div class="card-header"><div class="card-title">{{ '↗ Similaires' if not is_ar else '↗ مشابهة' }}</div></div>
-      <div>
-        {% for s in similar %}
-        {% set sn,slbl=days_left(s.date_limite) %}
-        <div style="padding:10px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:.15s"
-             onclick="location.href='/tenders/{{ s.id }}'"
-             onmouseover="this.style.background='rgba(255,255,255,.02)'" onmouseout="this.style.background=''">
-          <div style="font-size:12px;font-weight:600;margin-bottom:4px">{{ s.objet[:70] }}</div>
-          <div style="display:flex;gap:6px">
-            <span class="stx10-badge stx10-{{ s.stx10_code[0] if s.stx10_code else 'S' }}" style="font-size:9px">{{ s.stx10_code }}</span>
-            {% if slbl %}<span class="{{ 'dl-urgent' if sn<=3 else ('dl-soon' if sn<=7 else 'dl-ok') }}" style="font-size:10px;padding:2px 7px;border-radius:6px">{{ slbl }}</span>{% endif %}
-          </div>
+    <div class="mt-3">
+        <h3 style="font-size: 1rem; color: #f1f5f9; margin-bottom: 1rem;">Marchés similaires</h3>
+        <div class="grid grid-2">
+            {% for s in similar %}
+            <div class="card" style="padding: 1rem;">
+                <span class="badge badge-blue">{{ s.stx10_code }}</span>
+                <a href="/tenders/{{ s.id }}" style="color: #f1f5f9; text-decoration: none; font-size: 0.875rem;">
+                    {{ s.objet[:100] }}{% if s.objet|length > 100 %}...{% endif %}
+                </a>
+            </div>
+            {% endfor %}
         </div>
-        {% endfor %}
-      </div>
     </div>
     {% endif %}
-  </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
 <script>
-const IS_AR = '{{ member.lang }}' === 'ar';
-const TID = '{{ t.id }}';
-
-async function loadSummary(){
-  const el=document.getElementById('summaryText');
-  el.textContent=IS_AR?'⏳ جاري التحليل...':'⏳ Analyse en cours...';
-  try{
-    const r=await fetch(`/api/ai/summarize/${TID}`);
-    const d=await r.json();
-    el.textContent=d.ok?d.summary:(d.msg||'Erreur');
-  }catch{el.textContent='Erreur'}
-}
-
-async function toggleFav(id,btn){
-  try{
-    const r=await fetch(`/favorites/${id}`,{method:'POST'});
-    const d=await r.json();
-    if(d.ok){
-      btn.textContent=d.action==='added'?(IS_AR?'⭐ إزالة':'⭐ Retirer favoris'):(IS_AR?'☆ إضافة':'☆ Ajouter aux favoris');
-      showToast(IS_AR?(d.action==='added'?'✅ أضيف للمفضلة':'Retiré'):(d.action==='added'?'✅ Ajouté':'Retiré'));
-    }
-  }catch{}
-}
-
-async function savePipeline(){
-  const status=document.querySelector('input[name="status"]:checked')?.value;
-  if(!status)return;
-  try{
-    const fd=new FormData();fd.append('status',status);
-    const r=await fetch(`/pipeline/${TID}`,{method:'POST',body:fd});
-    const d=await r.json();
-    if(d.ok){
-      const el=document.getElementById('pipe-status');
-      el.style.display='block';setTimeout(()=>el.style.display='none',2000);
-    }
-  }catch{}
-  // Update radio visual
-  document.querySelectorAll('.gng-check,.radio-icon').forEach(el=>{el.style.background='';el.style.color='';});
-}
-
-// Go/No-Go
-let checked=new Set();
-function toggleCheck(el,i){
-  el.classList.toggle('checked');
-  if(checked.has(i))checked.delete(i);else checked.add(i);
-  const n=checked.size;
-  const score=document.getElementById('gngScore');
-  const colors=['#ef4444','#f87171','#fbbf24','#34d399','#10b981'];
-  score.style.color=colors[n-1]||'var(--text3)';
-  score.textContent=`${n}/5 — ${IS_AR?(['لا تشارك','ضعيف','متوسط','جيد','اذهب!'][n]):([ 'Ne pas soumissionner','Risqué','Moyen','Bon','GO! 🚀'][n])}`;
-}
-
-// Notes
-async function saveNote(){
-  const note=document.getElementById('noteArea').value;
-  try{
-    const fd=new FormData();fd.append('note',note);
-    const r=await fetch(`/notes/${TID}`,{method:'POST',body:fd});
-    const d=await r.json();
-    if(d.ok){
-      const el=document.getElementById('noteSaved');
-      el.style.display='block';setTimeout(()=>el.style.display='none',2000);
-    }
-  }catch{}
+async function toggleFav(tid) {
+    const r = await fetch(`/favorites/${tid}`, {method: 'POST'});
+    const j = await r.json();
+    if (j.ok) location.reload();
 }
 </script>
 {% endblock %}

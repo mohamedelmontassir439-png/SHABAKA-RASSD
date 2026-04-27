@@ -1,497 +1,55 @@
-{% block fullpage %}
-<!DOCTYPE html>
-<html lang="fr" dir="ltr" id="htmlRoot">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SOURCE — Ne ratez plus aucun marché public au Maroc</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800;900&family=DM+Sans:wght@300;400;500;600&family=Noto+Kufi+Arabic:wght@400;500;700;800&display=swap" rel="stylesheet">
-<style>
-:root{
-  --void:#070501;--surface:#120d08;--blue:#c8a96e;--blue2:#d4b483;
-  --green:#10b981;--amber:#f59e0b;--red:#ef4444;
-  --text1:#f1f5f9;--text2:#94a3b8;--text3:#475569;
-  --border:rgba(200,169,110,.07);--border2:rgba(200,169,110,.16);
-  --ff-head:'Syne',sans-serif;--ff-body:'DM Sans',sans-serif;--ff-arab:'Noto Kufi Arabic',sans-serif;
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-body{background:#070501;color:#f5f0e8;font-family:var(--ff-body);overflow-x:hidden}
-body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.025;
-  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
-a{text-decoration:none;color:inherit}
-.z1{position:relative;z-index:1}
-
-/* NAV */
-nav{
-  position:fixed;top:0;left:0;right:0;z-index:1000;
-  background:rgba(2,4,8,.92);backdrop-filter:blur(20px);
-  border-bottom:1px solid var(--border);
-  padding:14px 24px;display:flex;align-items:center;justify-content:space-between;
-}
-.nav-logo{font-family:var(--ff-head);font-weight:900;font-size:20px;display:flex;align-items:center;gap:10px}
-.nav-logo .icon{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--blue),#8a6d3b);display:flex;align-items:center;justify-content:center;font-size:15px}
-.nav-right{display:flex;align-items:center;gap:10px}
-.lang-sw{display:flex;gap:2px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:2px}
-.lbtn{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;border:none;background:transparent;color:var(--text3);cursor:pointer;transition:.2s}
-.lbtn.active{background:var(--blue);color:#0a0700}
-.btn-nav{padding:8px 18px;border-radius:8px;background:var(--blue);color:#0a0700;font-weight:700;font-size:13px;border:none;cursor:pointer}
-
-/* HERO */
-.hero{padding:130px 0 80px;text-align:center;position:relative;overflow:hidden}
-.hero-glow{position:absolute;top:-100px;left:50%;transform:translateX(-50%);width:700px;height:500px;background:radial-gradient(ellipse,rgba(200,169,110,.18) 0%,transparent 70%);pointer-events:none}
-.c{max-width:960px;margin:0 auto;padding:0 24px}
-.hero-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 18px;border-radius:99px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);font-size:12px;font-weight:700;color:var(--green);margin-bottom:28px;letter-spacing:.5px;animation:fadeUp .5s ease both}
-.pulse{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 2s infinite;flex-shrink:0}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-h1{font-family:var(--ff-head);font-weight:900;font-size:clamp(34px,7vw,64px);line-height:1.05;letter-spacing:-2px;margin-bottom:24px;animation:fadeUp .5s ease .1s both}
-.accent-line{color:var(--blue2);display:block}
-.hero-sub{font-size:clamp(15px,2.5vw,19px);color:var(--text2);max-width:560px;margin:0 auto 40px;line-height:1.7;animation:fadeUp .5s ease .2s both}
-.hero-cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;animation:fadeUp .5s ease .3s both}
-.btn-primary{padding:16px 28px;border-radius:12px;background:var(--blue);color:#0a0700;font-family:var(--ff-head);font-size:16px;font-weight:800;border:none;cursor:pointer;transition:all .25s;box-shadow:0 8px 28px rgba(200,169,110,.4);display:inline-flex;align-items:center;gap:10px}
-.btn-primary:hover{background:var(--blue2);transform:translateY(-2px);box-shadow:0 12px 40px rgba(200,169,110,.5)}
-.btn-outline{padding:15px 24px;border-radius:12px;border:1px solid var(--border2);color:var(--text2);font-size:15px;font-weight:500;cursor:pointer;background:transparent;transition:.2s;display:inline-flex;align-items:center;gap:8px}
-.btn-outline:hover{border-color:var(--blue2);color:var(--text1)}
-
-/* SCARCITY */
-.scarcity{max-width:440px;margin:28px auto 0;background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:12px;padding:14px 18px;display:flex;gap:12px;align-items:flex-start;animation:fadeUp .5s ease .4s both;text-align:left}
-[dir="rtl"] .scarcity{text-align:right}
-.sc-text{font-size:12px;color:var(--text2)}
-.sc-text strong{color:var(--amber)}
-.sc-bar{height:4px;background:rgba(245,158,11,.15);border-radius:4px;margin-top:7px}
-.sc-fill{height:4px;background:linear-gradient(90deg,var(--amber),#d97706);border-radius:4px;width:72%}
-
-/* STATS */
-.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;max-width:540px;margin:48px auto 0;animation:fadeUp .5s ease .5s both}
-.stat-item{background:var(--surface);padding:22px 14px;text-align:center}
-.stat-item:first-child{border-radius:14px 0 0 14px}
-.stat-item:last-child{border-radius:0 14px 14px 0}
-.stat-num{font-family:var(--ff-head);font-size:30px;font-weight:900;color:var(--blue2)}
-.stat-lbl{font-size:11px;color:var(--text3);margin-top:3px}
-
-/* SECTION */
-.section{padding:64px 0}
-.section-lbl{font-family:'Geist Mono',monospace,var(--ff-head);font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--blue2);margin-bottom:12px}
-.section-title{font-family:var(--ff-head);font-size:clamp(24px,4vw,40px);font-weight:900;line-height:1.15;margin-bottom:40px;letter-spacing:-1px}
-
-/* LOSS AVERSION */
-.loss-box{background:linear-gradient(135deg,rgba(239,68,68,.06),rgba(200,169,110,.06));border:1px solid rgba(239,68,68,.15);border-radius:20px;padding:40px 32px;text-align:center}
-.loss-num{font-family:var(--ff-head);font-size:56px;font-weight:900;color:var(--red);line-height:1;display:block;margin-bottom:12px}
-.loss-box h3{font-family:var(--ff-head);font-size:clamp(18px,3vw,24px);font-weight:800;margin-bottom:12px}
-.loss-box p{font-size:15px;color:var(--text2);max-width:500px;margin:0 auto 24px}
-
-/* STEPS */
-.steps{display:flex;flex-direction:column;gap:14px;max-width:640px;margin:0 auto}
-.step{display:flex;gap:16px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;transition:border-color .2s}
-.step:hover{border-color:rgba(200,169,110,.3)}
-.step-n{width:38px;height:38px;border-radius:10px;background:rgba(200,169,110,.12);border:1px solid rgba(200,169,110,.2);display:flex;align-items:center;justify-content:center;font-family:var(--ff-head);font-size:15px;font-weight:900;color:var(--blue2);flex-shrink:0}
-.step h4{font-size:14px;font-weight:700;margin-bottom:4px}
-.step p{font-size:13px;color:var(--text2);line-height:1.6}
-
-/* WA MOCKUP */
-.wa-phone{background:#0a0a0a;border-radius:28px;padding:14px;border:6px solid #1a1a1a;max-width:300px;margin:0 auto;box-shadow:0 30px 80px rgba(0,0,0,.6)}
-.wa-hdr{background:#075e54;border-radius:14px 14px 0 0;padding:12px 14px;display:flex;align-items:center;gap:10px}
-.wa-av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#25d366,#128c7e);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
-.wa-body{background:#ece5dd;padding:14px 10px;border-radius:0 0 14px 14px;min-height:220px;display:flex;flex-direction:column;gap:10px}
-.wa-msg{max-width:88%;background:#fff;border-radius:0 12px 12px 12px;padding:10px 12px;font-size:12px;color:#111;line-height:1.5;box-shadow:0 1px 3px rgba(0,0,0,.1)}
-.wa-msg.out{align-self:flex-end;background:#dcf8c6;border-radius:12px 0 12px 12px}
-.wa-time{font-size:10px;color:#999;text-align:right;margin-top:3px}
-.wa-cta{background:#c8a96e;color:#fff;border-radius:8px;padding:9px 12px;text-align:center;font-size:12px;font-weight:700;cursor:pointer}
-
-/* TESTIMONIALS */
-.testi-grid{display:grid;grid-template-columns:1fr;gap:14px}
-@media(min-width:640px){.testi-grid{grid-template-columns:repeat(3,1fr)}}
-.testi-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px}
-.testi-stars{color:var(--amber);font-size:13px;margin-bottom:10px}
-.testi-txt{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:14px;font-style:italic}
-.testi-auth{display:flex;align-items:center;gap:10px}
-.testi-av{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#c8a96e,#8a6d3b);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:13px;flex-shrink:0}
-.testi-name{font-size:13px;font-weight:700}
-.testi-role{font-size:11px;color:var(--text3)}
-
-/* PLANS */
-.plans-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-@media(max-width:720px){.plans-grid{grid-template-columns:1fr}}
-.plan-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px 24px;position:relative}
-.plan-card.featured{border-color:var(--blue);background:linear-gradient(135deg,rgba(200,169,110,.1),var(--surface))}
-.plan-tag{position:absolute;top:16px;right:16px;background:var(--blue);color:#0a0700;font-size:10px;font-weight:800;padding:3px 10px;border-radius:99px;letter-spacing:.5px}
-[dir="rtl"] .plan-tag{right:auto;left:16px}
-.plan-name{font-family:var(--ff-head);font-size:11px;font-weight:700;color:var(--text3);letter-spacing:2px;text-transform:uppercase;margin-bottom:10px}
-.plan-price{font-family:var(--ff-head);font-size:46px;font-weight:900;line-height:1;margin-bottom:4px}
-.plan-price .cur{font-size:18px;color:var(--text2);font-weight:600}
-.plan-period{font-size:12px;color:var(--text3);margin-bottom:20px}
-.plan-feats{list-style:none;margin-bottom:22px}
-.plan-feats li{padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;color:var(--text2);display:flex;gap:8px}
-.plan-feats li:last-child{border:none}
-.f-ok{color:var(--green)}.f-no{color:var(--text3)}
-.btn-plan{width:100%;padding:13px;border-radius:10px;border:1.5px solid var(--border2);background:transparent;color:var(--text2);font-weight:700;font-size:13px;cursor:pointer;transition:.2s;font-family:var(--ff-body)}
-.btn-plan:hover,.plan-card.featured .btn-plan{background:var(--blue);border-color:var(--blue);color:#fff}
-
-/* PAY INFO */
-.pay-box{background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:14px;padding:20px;text-align:center;margin-top:14px}
-
-/* FOOTER */
-footer{padding:40px 0 60px;border-top:1px solid var(--border);text-align:center;color:var(--text3);font-size:12px}
-.footer-logo{font-family:var(--ff-head);font-size:22px;font-weight:900;color:var(--text1);margin-bottom:10px}
-
-/* ANIM */
-@keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
-.wa-float{position:fixed;bottom:24px;right:24px;z-index:500;width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#25d366,#128c7e);display:flex;align-items:center;justify-content:center;font-size:24px;text-decoration:none;box-shadow:0 4px 20px rgba(37,211,102,.4)}
-[lang="ar"] *{font-family:var(--ff-arab)!important}
-</style>
-</head>
-<body>
-
-<!-- NAV -->
-<nav>
-  <div class="nav-logo">
-    <div class="icon">⚡</div>
-    SOURCE
-  </div>
-  <div class="nav-right">
-    <div class="lang-sw">
-      <button class="lbtn active" onclick="setLang('fr','ltr')">FR</button>
-      <button class="lbtn" onclick="setLang('ar','rtl')">ع</button>
-    </div>
-    <a href="/login"><button class="btn-nav" onclick="void(0)">
-      <span class="fr">Connexion</span><span class="ar" style="display:none">دخول</span>
-    </button></a>
-  </div>
-</nav>
-
-<!-- HERO -->
-<section class="hero">
-  <div class="hero-glow"></div>
-  <div class="c z1">
-    <div class="hero-badge">
-      <span class="pulse"></span>
-      <span class="fr">+120 entreprises utilisent déjà SOURCE</span>
-      <span class="ar" style="display:none">+120 شركة تستخدم SOURCE</span>
-    </div>
-    <h1>
-      <span class="fr">Ne ratez plus<br>aucun marché rentable<br><span class="accent-line">dans votre domaine.</span></span>
-      <span class="ar" style="display:none">لا تفوّتوا<br>أي صفقة مربحة<br><span class="accent-line">في مجال نشاطكم.</span></span>
+{% extends "base.html" %}
+{% block title %}SOURCE — Marchés Publics Maroc{% endblock %}
+{% block content %}
+<div style="text-align: center; padding: 4rem 0;">
+    <h1 style="font-size: 3rem; font-weight: 700; color: #f1f5f9; margin-bottom: 1rem;">
+        🔍 SOURCE
     </h1>
-    <p class="hero-sub">
-      <span class="fr">SOURCE détecte, filtre et vous envoie les meilleures opportunités des marchés publics marocains — directement sur WhatsApp, avant vos concurrents.</span>
-      <span class="ar" style="display:none">SOURCE تكتشف وتصفّي وترسل لك أفضل فرص المناقصات العمومية المغربية — مباشرة على واتساب، قبل منافسيك.</span>
+    <p style="font-size: 1.25rem; color: #94a3b8; margin-bottom: 2rem; max-width: 600px; margin-left: auto; margin-right: auto;">
+        La plateforme intelligente de surveillance des marchés publics au Maroc. Ne manquez plus aucune opportunité.
     </p>
-    <div class="hero-cta">
-      <a href="/register"><button class="btn-primary">
-        <span>📬</span>
-        <span class="fr">Recevoir mes opportunités</span>
-        <span class="ar" style="display:none">استقبل فرصي الآن</span>
-      </button></a>
-      <button class="btn-outline" onclick="document.getElementById('how').scrollIntoView({behavior:'smooth'})">
-        <span class="fr">Comment ça marche?</span>
-        <span class="ar" style="display:none">كيف يعمل؟</span>
-      </button>
+    <div style="display: flex; gap: 1rem; justify-content: center; margin-bottom: 3rem;">
+        <a href="/register" class="btn btn-primary" style="font-size: 1rem; padding: 0.875rem 2rem;">Commencer gratuitement</a>
+        <a href="/login" class="btn btn-outline" style="font-size: 1rem; padding: 0.875rem 2rem;">Se connecter</a>
     </div>
-    <div class="scarcity">
-      <span style="font-size:20px;flex-shrink:0">⚡</span>
-      <div class="sc-text" style="flex:1">
-        <strong class="fr">Accès limité ce mois-ci — 7 places restantes</strong>
-        <strong class="ar" style="display:none">وصول محدود هذا الشهر — 7 أماكن متبقية</strong>
-        <br><span class="fr">18 entreprises ont rejoint SOURCE ce mois</span>
-        <span class="ar" style="display:none">18 شركة انضمت إلى SOURCE هذا الشهر</span>
-        <div class="sc-bar"><div class="sc-fill"></div></div>
-      </div>
-    </div>
-    <div class="stats-row">
-      <div class="stat-item">
-        <div class="stat-num">+2 400</div>
-        <div class="stat-lbl fr">Marchés traités</div>
-        <div class="stat-lbl ar" style="display:none">صفقة معالجة</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-num">98%</div>
-        <div class="stat-lbl fr">Pertinence</div>
-        <div class="stat-lbl ar" style="display:none">دقة التطابق</div>
-      </div>
-      <div class="stat-item">
-        <div class="stat-num">&lt;1h</div>
-        <div class="stat-lbl fr">Délai alerte</div>
-        <div class="stat-lbl ar" style="display:none">وقت التنبيه</div>
-      </div>
-    </div>
-  </div>
-</section>
 
-<!-- LOSS AVERSION -->
-<section class="section">
-  <div class="c">
-    <div class="loss-box">
-      <span class="loss-num" id="lossNum">14</span>
-      <h3 class="fr">marchés publiés hier dans votre domaine.</h3>
-      <h3 class="ar" style="display:none">صفقة نُشرت أمس في مجالك.</h3>
-      <p class="fr">Combien en avez-vous consultés ? Chaque jour sans SOURCE, vos concurrents accèdent en premier aux meilleures opportunités.</p>
-      <p class="ar" style="display:none">كم منها اطّلعت عليها؟ كل يوم بدون SOURCE، يصل منافسوك أولاً لأفضل الفرص.</p>
-      <a href="/register"><button class="btn-primary">
-        <span class="fr">Je ne veux plus rien rater</span>
-        <span class="ar" style="display:none">لا أريد أن يفوتني شيء</span>
-      </button></a>
+    <div class="grid grid-3" style="max-width: 900px; margin: 0 auto;">
+        <div class="card text-center">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📊</div>
+            <div class="card-title">{{ stats.tenders }}</div>
+            <p class="text-muted">Marchés actifs</p>
+        </div>
+        <div class="card text-center">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🆕</div>
+            <div class="card-title">{{ stats.today }}</div>
+            <p class="text-muted">Nouveaux aujourd'hui</p>
+        </div>
+        <div class="card text-center">
+            <div style="font-size: 2rem; margin-bottom: 0.5rem;">👥</div>
+            <div class="card-title">{{ stats.members }}</div>
+            <p class="text-muted">Membres</p>
+        </div>
     </div>
-  </div>
-</section>
 
-<!-- HOW -->
-<section class="section" id="how">
-  <div class="c">
-    <div style="text-align:center;margin-bottom:40px">
-      <div class="section-lbl fr">Comment ça marche</div>
-      <div class="section-lbl ar" style="display:none">كيف يعمل</div>
-      <h2 class="section-title fr">Simple. Rapide. Efficace.</h2>
-      <h2 class="section-title ar" style="display:none">بسيط. سريع. فعّال.</h2>
+    <div style="margin-top: 4rem;">
+        <h2 style="font-size: 1.5rem; color: #f1f5f9; margin-bottom: 1.5rem;">Fonctionnalités</h2>
+        <div class="grid grid-3">
+            <div class="card">
+                <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🤖</div>
+                <div class="card-title">IA Intégrée</div>
+                <p class="text-muted">Résumés intelligents et chatbot expert en marchés publics</p>
+            </div>
+            <div class="card">
+                <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🔔</div>
+                <div class="card-title">Alertes Temps Réel</div>
+                <p class="text-muted">Notifications Telegram, Email et WhatsApp personnalisées</p>
+            </div>
+            <div class="card">
+                <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📈</div>
+                <div class="card-title">Pipeline & Analytics</div>
+                <p class="text-muted">Suivez vos soumissions et analysez les tendances du marché</p>
+            </div>
+        </div>
     </div>
-    <div class="steps">
-      <div class="step">
-        <div class="step-n">1</div>
-        <div>
-          <h4 class="fr">Créez votre profil entreprise</h4>
-          <h4 class="ar" style="display:none">أنشئ ملف شركتك</h4>
-          <p class="fr">Secteur d'activité, région, type de marchés. 2 minutes.</p>
-          <p class="ar" style="display:none">قطاع النشاط، الجهة، نوع الصفقات. دقيقتان فقط.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-n">2</div>
-        <div>
-          <h4 class="fr">SOURCE surveille en continu</h4>
-          <h4 class="ar" style="display:none">SOURCE تراقب باستمرار</h4>
-          <p class="fr">Toutes les publications marchespublics.gov.ma, filtrées selon votre profil exact.</p>
-          <p class="ar" style="display:none">جميع نشرات marchespublics.gov.ma، مصفّاة حسب ملفك بدقة.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-n">3</div>
-        <div>
-          <h4 class="fr">Recevez les meilleures opportunités</h4>
-          <h4 class="ar" style="display:none">استقبل أفضل الفرص</h4>
-          <p class="fr">Sur WhatsApp et par email. Avec un score de pertinence. Avant vos concurrents.</p>
-          <p class="ar" style="display:none">على واتساب والبريد الإلكتروني. مع تقييم الأهمية. قبل منافسيك.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- WA MOCKUP -->
-<section class="section" style="padding-top:0">
-  <div class="c" style="text-align:center">
-    <div class="section-lbl fr">Vos alertes WhatsApp</div>
-    <div class="section-lbl ar" style="display:none">تنبيهاتك على واتساب</div>
-    <h2 class="section-title fr" style="margin-bottom:32px">Comme un assistant dédié.</h2>
-    <h2 class="section-title ar" style="display:none;margin-bottom:32px">كمساعد شخصي مخصص.</h2>
-    <div class="wa-phone">
-      <div class="wa-hdr">
-        <div class="wa-av">📋</div>
-        <div>
-          <div style="font-weight:700;font-size:13px;color:#fff">SOURCE</div>
-          <div style="font-size:10px;color:#fff;opacity:.8" class="fr">Vos opportunités · En ligne</div>
-          <div style="font-size:10px;color:#fff;opacity:.8;display:none" class="ar">فرصك · متصل</div>
-        </div>
-      </div>
-      <div class="wa-body">
-        <div class="wa-msg">
-          <div class="fr">Bonjour Mohamed 👋<br><br>Une opportunité dans votre domaine BTP vient d'être publiée.</div>
-          <div class="ar" style="display:none">مرحباً محمد 👋<br><br>فرصة في مجالك BTP نُشرت للتو.</div>
-          <div class="wa-time">09:14 ✓✓</div>
-        </div>
-        <div class="wa-msg">
-          <div class="fr"><strong>🏗️ [T101] Construction R+4 — Agadir</strong><br>Ministère de l'Intérieur<br>💰 8,5M MAD · ⏰ 8 jours<br>⭐⭐⭐⭐⭐ Très pertinent</div>
-          <div class="ar" style="display:none"><strong>🏗️ [T101] بناء R+4 — أكادير</strong><br>وزارة الداخلية<br>💰 8.5 م.د · ⏰ 8 أيام<br>⭐⭐⭐⭐⭐ مطابقة عالية جداً</div>
-          <div class="wa-time">09:14 ✓✓</div>
-        </div>
-        <div class="wa-cta fr">Voir les détails complets →</div>
-        <div class="wa-cta ar" style="display:none">عرض التفاصيل الكاملة →</div>
-        <div class="wa-msg out">
-          <div class="fr">Merci! Je vais consulter le dossier.</div>
-          <div class="ar" style="display:none">شكراً! سأطلع على الملف.</div>
-          <div class="wa-time">09:15 ✓✓</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- TESTIMONIALS -->
-<section class="section" style="padding-top:0">
-  <div class="c">
-    <div style="text-align:center;margin-bottom:32px">
-      <div class="section-lbl fr">Témoignages</div>
-      <div class="section-lbl ar" style="display:none">آراء العملاء</div>
-      <h2 class="section-title fr">Ils ont remporté des marchés grâce à SOURCE.</h2>
-      <h2 class="section-title ar" style="display:none;margin-bottom:0">فازوا بصفقات بفضل SOURCE.</h2>
-    </div>
-    <div class="testi-grid">
-      <div class="testi-card">
-        <div class="testi-stars">⭐⭐⭐⭐⭐</div>
-        <p class="testi-txt fr">"Avant SOURCE, je passais 2h par jour à chercher. Maintenant, je reçois directement les marchés BTP qui me correspondent. J'ai remporté 3 marchés en 2 mois."</p>
-        <p class="testi-txt ar" style="display:none">"قبل SOURCE كنت أقضي ساعتين يومياً في البحث. الآن أستقبل مناقصات BTP المناسبة مباشرة. فزت بـ3 عقود في شهرين."</p>
-        <div class="testi-auth">
-          <div class="testi-av">K</div>
-          <div>
-            <div class="testi-name">Karim B.</div>
-            <div class="testi-role fr">Bureau d'études · Casablanca</div>
-            <div class="testi-role ar" style="display:none">مكتب دراسات · الدار البيضاء</div>
-          </div>
-        </div>
-      </div>
-      <div class="testi-card">
-        <div class="testi-stars">⭐⭐⭐⭐⭐</div>
-        <p class="testi-txt fr">"La rapidité est impressionnante. Je reçois les alertes avant que mes concurrents voient les annonces. Avantage concurrentiel énorme."</p>
-        <p class="testi-txt ar" style="display:none">"السرعة مذهلة. أستقبل التنبيهات قبل أن يرى منافسي الإعلانات. ميزة تنافسية كبيرة جداً."</p>
-        <div class="testi-auth">
-          <div class="testi-av">N</div>
-          <div>
-            <div class="testi-name">Nadia M.</div>
-            <div class="testi-role fr">Topographe · Rabat</div>
-            <div class="testi-role ar" style="display:none">طبوغرافيا · الرباط</div>
-          </div>
-        </div>
-      </div>
-      <div class="testi-card">
-        <div class="testi-stars">⭐⭐⭐⭐⭐</div>
-        <p class="testi-txt fr">"Le filtrage STX10 est précis. Je ne reçois que les marchés qui me correspondent vraiment. Zéro bruit, 100% signal."</p>
-        <p class="testi-txt ar" style="display:none">"فلترة STX10 دقيقة جداً. أستقبل فقط المناقصات التي تناسبني حقاً. صفر ضوضاء، 100% مفيد."</p>
-        <div class="testi-auth">
-          <div class="testi-av">A</div>
-          <div>
-            <div class="testi-name">Ahmed O.</div>
-            <div class="testi-role fr">Informatique · Fès</div>
-            <div class="testi-role ar" style="display:none">معلوميات · فاس</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- PRICING -->
-<section class="section" id="pricing">
-  <div class="c">
-    <div style="text-align:center;margin-bottom:40px">
-      <div class="section-lbl fr">Tarifs</div>
-      <div class="section-lbl ar" style="display:none">الأسعار</div>
-      <h2 class="section-title fr">Un marché remporté rembourse votre abonnement.</h2>
-      <h2 class="section-title ar" style="display:none">صفقة واحدة تُعوّض تكلفة اشتراكك.</h2>
-    </div>
-    <div class="plans-grid">
-      <div class="plan-card">
-        <div class="plan-name fr">Gratuit</div>
-        <div class="plan-name ar" style="display:none">مجاني</div>
-        <div class="plan-price">0<span class="cur"></span></div>
-        <div class="plan-period fr">/ mois · pour découvrir</div>
-        <div class="plan-period ar" style="display:none">/ شهر · للاكتشاف</div>
-        <ul class="plan-feats">
-          <li><span class="f-ok">✓</span> <span class="fr">10 marchés / jour</span><span class="ar" style="display:none">10 صفقات / يوم</span></li>
-          <li><span class="f-ok">✓</span> <span class="fr">Filtres STX10</span><span class="ar" style="display:none">فلاتر STX10</span></li>
-          <li><span class="f-no">–</span> <span class="fr">Alertes WhatsApp</span><span class="ar" style="display:none">تنبيهات واتساب</span></li>
-          <li><span class="f-no">–</span> <span class="fr">Marchés illimités</span><span class="ar" style="display:none">صفقات غير محدودة</span></li>
-        </ul>
-        <a href="/register"><button class="btn-plan">
-          <span class="fr">Commencer gratuitement →</span>
-          <span class="ar" style="display:none">ابدأ مجاناً →</span>
-        </button></a>
-      </div>
-      <div class="plan-card featured">
-        <div class="plan-tag fr">Recommandé</div>
-        <div class="plan-tag ar" style="display:none">موصى به</div>
-        <div class="plan-name fr">Essentiel</div>
-        <div class="plan-name ar" style="display:none">أساسي</div>
-        <div class="plan-price"><span class="cur">MAD</span>149</div>
-        <div class="plan-period fr">/ mois · sans engagement</div>
-        <div class="plan-period ar" style="display:none">/ شهر · بدون التزام</div>
-        <ul class="plan-feats">
-          <li><span class="f-ok">✓</span> <span class="fr">Marchés illimités</span><span class="ar" style="display:none">صفقات غير محدودة</span></li>
-          <li><span class="f-ok">✓</span> <span class="fr">Alertes WhatsApp instantanées</span><span class="ar" style="display:none">تنبيهات واتساب فورية</span></li>
-          <li><span class="f-ok">✓</span> <span class="fr">Alertes Email</span><span class="ar" style="display:none">تنبيهات بريد</span></li>
-          <li><span class="f-ok">✓</span> <span class="fr">Classification STX10 IA</span><span class="ar" style="display:none">تصنيف STX10 ذكي</span></li>
-        </ul>
-        <button class="btn-plan" onclick="requestPlan('essentiel')">
-          <span class="fr">Demander activation →</span>
-          <span class="ar" style="display:none">طلب التفعيل →</span>
-        </button>
-      </div>
-      <div class="plan-card">
-        <div class="plan-name fr">Pro</div>
-        <div class="plan-name ar" style="display:none">احترافي</div>
-        <div class="plan-price"><span class="cur">MAD</span>399</div>
-        <div class="plan-period fr">/ mois · équipes & entreprises</div>
-        <div class="plan-period ar" style="display:none">/ شهر · للشركات</div>
-        <ul class="plan-feats">
-          <li><span class="f-ok">✓</span> <span class="fr">Tout Essentiel +</span><span class="ar" style="display:none">كل الأساسي +</span></li>
-          <li><span class="f-ok">✓</span> <span class="fr">API REST complète</span><span class="ar" style="display:none">API REST كاملة</span></li>
-          <li><span class="f-ok">✓</span> <span class="fr">Export CSV illimité</span><span class="ar" style="display:none">تصدير CSV غير محدود</span></li>
-          <li><span class="f-ok">✓</span> <span class="fr">Assistant IA avancé</span><span class="ar" style="display:none">مساعد ذكي متقدم</span></li>
-        </ul>
-        <button class="btn-plan" onclick="requestPlan('pro')">
-          <span class="fr">Demander activation →</span>
-          <span class="ar" style="display:none">طلب التفعيل →</span>
-        </button>
-      </div>
-    </div>
-    <div class="pay-box">
-      <p style="font-size:14px;color:var(--text2)">
-        <span class="fr">💳 Paiement par virement bancaire (CIH, Attijariwafa, BMCE…)<br>
-        <strong style="color:var(--green)">Activation en moins de 2h après confirmation du paiement.</strong></span>
-        <span class="ar" style="display:none">💳 الدفع بتحويل بنكي (CIH، Attijariwafa، BMCE...)<br>
-        <strong style="color:var(--green)">التفعيل في أقل من ساعتين بعد تأكيد الدفع.</strong></span>
-      </p>
-    </div>
-  </div>
-</section>
-
-<!-- FINAL CTA -->
-<section class="section" style="text-align:center;padding-bottom:80px">
-  <div class="c">
-    <h2 class="section-title fr">Chaque jour sans SOURCE,<br>des opportunités vous échappent.</h2>
-    <h2 class="section-title ar" style="display:none">كل يوم بدون SOURCE،<br>تفوتك فرص ثمينة.</h2>
-    <a href="/register"><button class="btn-primary" style="font-size:17px;padding:18px 36px">
-      🚀 <span class="fr">Commencer maintenant — C'est gratuit</span>
-      <span class="ar" style="display:none">ابدأ الآن — مجاناً</span>
-    </button></a>
-    <p style="font-size:12px;color:var(--text3);margin-top:14px" class="fr">Aucune carte bancaire · Activation en 24h · Sans engagement</p>
-    <p style="font-size:12px;color:var(--text3);margin-top:14px;display:none" class="ar">بدون بطاقة بنكية · تفعيل في 24 ساعة · بدون التزام</p>
-  </div>
-</section>
-
-<footer>
-  <div class="c">
-    <div class="footer-logo">SOURCE</div>
-    <p class="fr">Votre radar des marchés publics marocains.</p>
-    <p class="ar" style="display:none">رادار المناقصات العمومية المغربية.</p>
-    <p style="margin-top:14px">© 2026 SOURCE · Maroc · <a href="/login" style="color:var(--text3)">Connexion</a></p>
-  </div>
-</footer>
-
-<a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ cfg.PAYMENT_MSG|urlencode }}"
-   target="_blank" class="wa-float">💬</a>
-
-<script>
-let currentLang='fr';
-function setLang(l,d){
-  currentLang=l;
-  document.getElementById('htmlRoot').lang=l;
-  document.getElementById('htmlRoot').dir=d;
-  document.querySelectorAll('.fr').forEach(e=>e.style.display=l==='ar'?'none':'');
-  document.querySelectorAll('.ar').forEach(e=>e.style.display=l==='ar'?'':'none');
-  document.querySelectorAll('.lbtn').forEach(b=>b.classList.remove('active'));
-  document.querySelector(`.lbtn[onclick*="'${l}'"]`).classList.add('active');
-}
-function requestPlan(plan){
-  const msg=currentLang==='ar'
-    ?`مرحباً، أريد تفعيل خطة ${plan} على SOURCE.`
-    :`Bonjour, je souhaite activer le plan ${plan} sur SOURCE.`;
-  window.open(`https://wa.me/{{ cfg.PAYMENT_PHONE }}?text=${encodeURIComponent(msg)}`, '_blank');
-}
-// Animated loss counter
-let n=0;
-const tgt=Math.floor(Math.random()*10+8);
-const el=document.getElementById('lossNum');
-const timer=setInterval(()=>{n++;el.textContent=n;if(n>=tgt)clearInterval(timer)},80);
-</script>
-</body>
-</html>
+</div>
 {% endblock %}

@@ -1,22 +1,31 @@
-{% extends "base.html" %}{% block fullpage %}
-<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SOURCE — Mot de passe oublié</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@800;900&family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
-<style>:root{--blue:#c8a96e;--void:#07060a;--surface:#0e0d14;--border:rgba(255,255,255,.08);--border2:rgba(200,169,110,.2);--text1:#f1f5f9;--text2:#94a3b8;--text3:#475569;--green:#10b981}*{box-sizing:border-box;margin:0;padding:0}body{background:var(--void);color:var(--text1);font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}.wrap{width:100%;max-width:380px}.logo{font-family:'Syne',sans-serif;font-weight:900;font-size:22px;text-align:center;margin-bottom:28px;color:var(--blue)}.card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:28px 24px}h2{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;margin-bottom:6px}.sub{font-size:13px;color:var(--text2);margin-bottom:24px}.field{margin-bottom:16px}label{font-size:11px;font-weight:700;color:var(--text3);display:block;margin-bottom:5px}input{width:100%;background:rgba(255,255,255,.04);border:1px solid var(--border2);border-radius:9px;padding:11px 13px;color:var(--text1);font-family:inherit;font-size:14px;outline:none;transition:.2s}input:focus{border-color:rgba(200,169,110,.5)}.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:10px 14px;font-size:12px;color:#fca5a5;margin-bottom:14px}.ok{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);border-radius:8px;padding:12px 14px;font-size:13px;color:#34d399;margin-bottom:14px;text-align:center}.btn{width:100%;padding:13px;border-radius:9px;background:var(--blue);color:#0a0700;font-family:'Syne',sans-serif;font-weight:800;font-size:14px;border:none;cursor:pointer}.link{text-align:center;margin-top:16px;font-size:13px;color:var(--text2)}.link a{color:var(--blue);font-weight:600}</style></head>
-<body><div class="wrap">
-<div class="logo">⚡ SOURCE</div>
-<div class="card">
-{% if sent %}
-<div class="ok">✅ Email envoyé! Vérifiez votre boîte mail. Le lien expire dans 2 heures.</div>
-<div class="link"><a href="/login">← Retour connexion</a></div>
-{% else %}
-<h2>Mot de passe oublié</h2>
-<p class="sub">Entrez votre email pour recevoir un lien de réinitialisation.</p>
-{% if error %}<div class="err">{{ error }}</div>{% endif %}
-<form method="POST" action="/forgot">
-  <div class="field"><label>Email</label><input type="email" name="email" placeholder="email@exemple.ma" required autofocus></div>
-  <button type="submit" class="btn">Envoyer le lien →</button>
-</form>
-<div class="link"><a href="/login">← Retour connexion</a></div>
-{% endif %}
-</div></div></body></html>
+{% extends "base.html" %}
+{% block title %}Mot de passe oublié — SOURCE{% endblock %}
+{% block content %}
+<div style="max-width: 400px; margin: 3rem auto;">
+    <div class="card">
+        <h2 class="card-title text-center">Mot de passe oublié</h2>
+
+        {% if sent %}
+        <div class="alert alert-success">
+            Si cet email existe, un lien de réinitialisation a été envoyé.
+        </div>
+        {% else %}
+        {% if error %}
+        <div class="alert alert-error">{{ error }}</div>
+        {% endif %}
+
+        <form method="post" action="/forgot">
+            <div class="form-group">
+                <label class="form-label">Email</label>
+                <input type="email" name="email" class="form-input" placeholder="votre@email.com" required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Envoyer le lien</button>
+        </form>
+        {% endif %}
+
+        <div style="text-align: center; margin-top: 1rem; font-size: 0.875rem;">
+            <a href="/login" class="text-muted">← Retour à la connexion</a>
+        </div>
+    </div>
+</div>
 {% endblock %}
