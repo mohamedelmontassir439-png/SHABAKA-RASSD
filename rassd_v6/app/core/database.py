@@ -128,12 +128,17 @@ CREATE INDEX IF NOT EXISTS idx_members_token ON members(session_token);
 """
 
 def init_db():
-    """Initialize database with schema — uses executescript for multi-statement SQL"""
+    """Initialize database with schema — executes each statement individually via raw sqlite3"""
     os.makedirs(os.path.dirname(cfg.DB_PATH), exist_ok=True)
-    # SQLAlchemy text() can't run multiple statements — use raw sqlite3
-    import sqlite3 as _sq3
-    con = _sq3.connect(cfg.DB_PATH)
-    con.executescript(SCHEMA)
+    # Bypass SQLAlchemy entirely: split on semicolons and run one statement at a time
+    con = sqlite3.connect(cfg.DB_PATH)
+    cur = con.cursor()
+    for stmt in SCHEMA.split(";"):
+        stmt = stmt.strip()
+        # Skip empty chunks and comment-only lines
+        if not stmt or all(line.startswith("--") for line in stmt.splitlines() if line.strip()):
+            continue
+        cur.execute(stmt)
     con.commit()
     con.close()
 
