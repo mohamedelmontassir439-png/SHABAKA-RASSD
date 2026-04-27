@@ -15,6 +15,7 @@ from typing import Tuple, Optional
 
 import bcrypt
 from fastapi import Request
+from sqlalchemy import text
 
 from app.core.config import cfg
 
@@ -76,7 +77,7 @@ def get_member(req: Request) -> Optional[dict]:
     db = SessionLocal()
     try:
         row = db.execute(
-            "SELECT * FROM members WHERE session_token=? AND actif=1", (token,)
+            text("SELECT * FROM members WHERE session_token=:token AND actif=1"), {"token": token}
         ).fetchone()
         return dict(row) if row else None
     finally:
