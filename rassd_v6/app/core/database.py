@@ -131,7 +131,13 @@ def init_db():
     """Initialize database with schema"""
     os.makedirs(os.path.dirname(cfg.DB_PATH), exist_ok=True)
     with engine.connect() as conn:
-        conn.execute(text(SCHEMA))
+        for statement in SCHEMA.split(";"):
+            stripped = "\n".join(
+                line for line in statement.splitlines()
+                if line.strip() and not line.strip().startswith("--")
+            ).strip()
+            if stripped:
+                conn.execute(text(stripped))
         conn.commit()
 
 def get_db() -> Session:
