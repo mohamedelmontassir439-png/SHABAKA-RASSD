@@ -645,7 +645,7 @@ async def tender_detail(req: Request, tid: str, background_tasks: BackgroundTask
     async with get_db_session() as db:
         row = db.execute("SELECT * FROM tenders WHERE id=?", (tid,)).fetchone()
         if not row:
-            return render(req, "404.html", {}, status_code=404)
+            return render(req, "404.html", {}, 404)
 
         t = dict(row)
         n, dl_label = days_left(t.get("date_limite", ""))
@@ -1310,12 +1310,12 @@ async def admin_toggle(req: Request, mid: int):
 # === Errors ===
 @app.exception_handler(404)
 async def not_found(req, exc):
-    return render(req, "404.html", {}, status_code=404)
+    return render(req, "404.html", {}, 404)
 
 @app.exception_handler(500)
 async def server_error(req, exc):
     logger.error(f"[500] {req.url}: {exc}")
-    return render(req, "500.html", {}, status_code=500)
+    return render(req, "500.html", {}, 500)
 
 @app.exception_handler(429)
 async def rate_limit_error(req, exc):

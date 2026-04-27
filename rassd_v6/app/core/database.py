@@ -146,9 +146,13 @@ def get_db() -> Session:
         db.close()
 
 @asynccontextmanager
-async def get_db_session() -> AsyncGenerator[Session, None]:
-    """Async database session context manager"""
-    db = SessionLocal()
+async def get_db_session():
+    """Async database session — uses raw sqlite3 for compatibility"""
+    import sqlite3 as _sq3
+    db = _sq3.connect(cfg.DB_PATH, check_same_thread=False)
+    db.row_factory = _sq3.Row
+    db.execute("PRAGMA journal_mode=WAL")
+    db.execute("PRAGMA foreign_keys=ON")
     try:
         yield db
     finally:
