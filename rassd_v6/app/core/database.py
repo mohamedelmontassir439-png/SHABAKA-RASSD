@@ -128,11 +128,14 @@ CREATE INDEX IF NOT EXISTS idx_members_token ON members(session_token);
 """
 
 def init_db():
-    """Initialize database with schema"""
+    """Initialize database with schema — uses executescript for multi-statement SQL"""
     os.makedirs(os.path.dirname(cfg.DB_PATH), exist_ok=True)
-    with engine.connect() as conn:
-        conn.execute(text(SCHEMA))
-        conn.commit()
+    # SQLAlchemy text() can't run multiple statements — use raw sqlite3
+    import sqlite3 as _sq3
+    con = _sq3.connect(cfg.DB_PATH)
+    con.executescript(SCHEMA)
+    con.commit()
+    con.close()
 
 def get_db() -> Session:
     """Synchronous database session (for non-async contexts)"""
