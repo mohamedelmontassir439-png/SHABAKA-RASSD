@@ -8,6 +8,7 @@ from fastapi.routing import APIRouter
 from app.core.config   import cfg
 from app.core.database import get_db
 from app.core.dates    import is_expired, format_deadline
+from sqlalchemy import text
 from datetime import datetime, date, timedelta
 from typing import Optional
 logger = logging.getLogger(__name__)
@@ -41,9 +42,9 @@ async def admin_set_plan(pwd: str="", member_id: int=0, plan: str="free"):
     chk(pwd)
     db = get_db()
     try:
-        db.execute("UPDATE members SET plan=?,verified=1 WHERE id=?", (plan, member_id))
+        db.execute(text("UPDATE members SET plan=:plan,verified=1 WHERE id=:mid"), {"plan":plan,"mid":member_id})
         db.commit()
-        row = db.execute("SELECT email,nom,telegram FROM members WHERE id=?", (member_id,)).fetchone()
+        row = db.execute(text("SELECT email,nom,telegram FROM members WHERE id=:mid"), {"mid":member_id}).fetchone()
     finally: db.close()
     if row and dict(row).get("telegram"):
         plan_names = {"free":"Gratuit","pro":"Pro 99 DH/mois","enterprise":"Entreprise"}
@@ -139,11 +140,11 @@ async def admin(req: Request, pwd:str=""):
     db=get_db()
     try:
         stats  =MonitorAgent.get_stats()
-        tenders=[dict(r) for r in db.execute("SELECT * FROM tenders ORDER BY date_extraction DESC LIMIT 50").fetchall()]
-        members=[dict(r) for r in db.execute("SELECT * FROM members ORDER BY id DESC LIMIT 20").fetchall()]
-        hist   =[dict(r) for r in db.execute("SELECT * FROM scrape_runs ORDER BY id DESC LIMIT 8").fetchall()]
-        errors =[dict(r) for r in db.execute("SELECT * FROM agent_errors WHERE resolved=0 ORDER BY last_seen DESC LIMIT 10").fetchall()]
-        notifs =[dict(r) for r in db.execute("SELECT * FROM notif_queue ORDER BY id DESC LIMIT 30").fetchall()]
+        tenders=[dict(r) for r in db.execute(text("SELECT * FROM tenders ORDER BY date_extraction DESC LIMIT 50")).fetchall()]
+        members=[dict(r) for r in db.execute(text("SELECT * FROM members ORDER BY id DESC LIMIT 20")).fetchall()]
+        hist   =[dict(r) for r in db.execute(text("SELECT * FROM scrape_runs ORDER BY id DESC LIMIT 8")).fetchall()]
+        errors =[dict(r) for r in db.execute(text("SELECT * FROM agent_errors WHERE resolved=0 ORDER BY last_seen DESC LIMIT 10")).fetchall()]
+        notifs =[dict(r) for r in db.execute(text("SELECT * FROM notif_queue ORDER BY id DESC LIMIT 30")).fetchall()]
     finally: db.close()
     return render(req,"admin.html",{
         "stats":stats,"tenders":tenders,"members":members,
@@ -172,7 +173,7 @@ async def admin_scrape(req: Request, pwd:str="", sources:str="all"):
                 extra=[s for s in (src_list or list(MULTI_SRC.keys())) if s!="marchespublics"]
                 if extra:
                     db=get_db()
-                    try: known=set(r[0] for r in db.execute("SELECT id FROM tenders").fetchall())
+                    try: known=set(r[0] for r in db.execute(text("SELECT id FROM tenders")).fetchall())
                     finally: db.close()
                     def run_m(): return run_all_scrapers(known,extra,SLog.add)
                     loop=asyncio.get_event_loop()
@@ -224,8 +225,8 @@ async def admin_test(pwd:str="", chat_id:str=""):
         results["telegram"]=f"✅ envoyé" if ok else f"❌ {err[:80]}"
     db=get_db()
     try:
-        results["queue"]={"pending":db.execute("SELECT COUNT(*) FROM notif_queue WHERE status='pending'").fetchone()[0],"sent":db.execute("SELECT COUNT(*) FROM notif_queue WHERE status='sent'").fetchone()[0],"failed":db.execute("SELECT COUNT(*) FROM notif_queue WHERE status='failed'").fetchone()[0]}
-        results["members"]={"total":db.execute("SELECT COUNT(*) FROM members WHERE actif=1").fetchone()[0],"with_tg":db.execute("SELECT COUNT(*) FROM members WHERE telegram!='' AND actif=1").fetchone()[0]}
+        results["queue"]={"pending":db.execute(text("SELECT COUNT(*) FROM notif_queue WHERE status='pending'")).fetchone()[0],"sent":db.execute(text("SELECT COUNT(*) FROM notif_queue WHERE status='sent'")).fetchone()[0],"failed":db.execute(text("SELECT COUNT(*) FROM notif_queue WHERE status='failed'")).fetchone()[0]}
+        results["members"]={"total":db.execute(text("SELECT COUNT(*) FROM members WHERE actif=1")).fetchone()[0],"with_tg":db.execute(text("SELECT COUNT(*) FROM members WHERE telegram!='' AND actif=1")).fetchone()[0]}
     finally: db.close()
     return JSONResponse({"ok":True,"results":results})
 
@@ -236,8 +237,8 @@ async def admin_set_tg(pwd:str="", email:str="", chat_id:str=""):
     chk(pwd)
     db=get_db()
     try:
-        db.execute("UPDATE members SET telegram=? WHERE email=?",(chat_id,email.lower().strip())); db.commit()
-        ch=db.execute("SELECT changes()").fetchone()[0]
+        db.execute(text("UPDATE members SET telegram=:chat_id WHERE email=:email"),{"chat_id":chat_id,"email":email.lower().strip()}); db.commit()
+        ch=db.execute(text("SELECT changes()")).fetchone()[0]
     finally: db.close()
     if ch and chat_id:
         asyncio.create_task(NotifyAgent.send_telegram(chat_id,f"✅ <b>Alertes Telegram activées!</b>\n\nCompte lié: {email}\n🌐 {SITE_URL}"))
@@ -247,7 +248,7 @@ async def admin_set_tg(pwd:str="", email:str="", chat_id:str=""):
 @router.get("/admin/activate")
 async def admin_activate(pwd:str="", member_id:int=0, plan:str="pro"):
     chk(pwd); db=get_db()
-    try: db.execute("UPDATE members SET plan=?,verified=1 WHERE id=?",(plan,member_id)); db.commit()
+    try: db.execute(text("UPDATE members SET plan=:plan,verified=1 WHERE id=:mid"),{"plan":plan,"mid":member_id}); db.commit()
     finally: db.close()
     return JSONResponse({"ok":True})
 
@@ -255,7 +256,7 @@ async def admin_activate(pwd:str="", member_id:int=0, plan:str="pro"):
 @router.get("/admin/delete_tender")
 async def admin_del(pwd:str="", tid:str=""):
     chk(pwd); db=get_db()
-    try: db.execute("DELETE FROM tenders WHERE id=?",(tid,)); db.commit()
+    try: db.execute(text("DELETE FROM tenders WHERE id=:tid"),{"tid":tid}); db.commit()
     finally: db.close()
     return JSONResponse({"ok":True})
 
@@ -268,7 +269,7 @@ async def admin_expire_now(request: Request, pwd: str = ""):
     try:
         from datetime import date, datetime as _dt
         today = date.today()
-        rows = db.execute("SELECT id,date_limite FROM tenders WHERE statut='actif' AND date_limite!=''").fetchall()
+        rows = db.execute(text("SELECT id,date_limite FROM tenders WHERE statut='actif' AND date_limite!=''")).fetchall()
         exp = []
         for r in rows:
             dl = (r["date_limite"] or "").strip()
@@ -279,10 +280,12 @@ async def admin_expire_now(request: Request, pwd: str = ""):
                         exp.append(r["id"]); break
                 except: pass
         if exp:
-            db.execute(f"UPDATE tenders SET statut='expire' WHERE id IN ({chr(44).join([chr(63)]*len(exp))})", exp)
-        db.execute("UPDATE tenders SET statut='expire' WHERE statut='actif' AND date_limite NOT LIKE '%/%' AND date_limite < date('now') AND date_limite!='' AND date_limite!='N/A'")
+            exp_params = {f"id{i}": v for i, v in enumerate(exp)}
+            ph = ",".join([f":id{i}" for i in range(len(exp))])
+            db.execute(text(f"UPDATE tenders SET statut='expire' WHERE id IN ({ph})"), exp_params)
+        db.execute(text("UPDATE tenders SET statut='expire' WHERE statut='actif' AND date_limite NOT LIKE '%/%' AND date_limite < date('now') AND date_limite!='' AND date_limite!='N/A'"))
         db.commit()
-        active = db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif'").fetchone()[0]
+        active = db.execute(text("SELECT COUNT(*) FROM tenders WHERE statut='actif'")).fetchone()[0]
         db.close()
         return JSONResponse({"ok":True,"expired_python":len(exp),"active_remaining":active})
     except Exception as e:
@@ -295,11 +298,11 @@ async def admin_expire_now(request: Request, pwd: str = ""):
 async def admin_cleanup(pwd:str=""):
     chk(pwd); db=get_db()
     try:
-        db.execute("DELETE FROM tenders WHERE statut IN ('expire','annule') AND date_extraction < date('now','-60 days')")
-        db.execute("DELETE FROM chats WHERE created_at < date('now','-7 days')")
-        db.execute("DELETE FROM notif_queue WHERE status='sent' AND sent_at < date('now','-30 days')")
-        db.execute("DELETE FROM tenders WHERE length(objet) < 10")
-        r=db.execute("SELECT COUNT(*) FROM tenders").fetchone()[0]
+        db.execute(text("DELETE FROM tenders WHERE statut IN ('expire','annule') AND date_extraction < date('now','-60 days')"))
+        db.execute(text("DELETE FROM chats WHERE created_at < date('now','-7 days')"))
+        db.execute(text("DELETE FROM notif_queue WHERE status='sent' AND sent_at < date('now','-30 days')"))
+        db.execute(text("DELETE FROM tenders WHERE length(objet) < 10"))
+        r=db.execute(text("SELECT COUNT(*) FROM tenders")).fetchone()[0]
         db.commit()
     finally: db.close()
     return JSONResponse({"ok":True,"remaining":r})
@@ -312,10 +315,10 @@ async def admin_cleanup_tenders(pwd:str=""):
         bad=["Liste des avis d'achat","ConsultationsRésultats","Accueil","Se connecter"]
         deleted=0
         for p in bad:
-            db.execute("DELETE FROM tenders WHERE objet LIKE ?",(f"%{p}%",))
-            deleted+=db.execute("SELECT changes()").fetchone()[0]
-        db.execute("DELETE FROM tenders WHERE length(objet) < 10")
-        deleted+=db.execute("SELECT changes()").fetchone()[0]
+            db.execute(text("DELETE FROM tenders WHERE objet LIKE :pat"),{"pat":f"%{p}%"})
+            deleted+=db.execute(text("SELECT changes()")).fetchone()[0]
+        db.execute(text("DELETE FROM tenders WHERE length(objet) < 10"))
+        deleted+=db.execute(text("SELECT changes()")).fetchone()[0]
         db.commit()
     finally: db.close()
     return JSONResponse({"ok":True,"deleted":deleted})
@@ -324,7 +327,7 @@ async def admin_cleanup_tenders(pwd:str=""):
 @router.get("/admin/resolve_error")
 async def admin_resolve(pwd:str="", eid:int=0):
     chk(pwd); db=get_db()
-    try: db.execute("UPDATE agent_errors SET resolved=1 WHERE id=?",(eid,)); db.commit()
+    try: db.execute(text("UPDATE agent_errors SET resolved=1 WHERE id=:eid"),{"eid":eid}); db.commit()
     finally: db.close()
     return JSONResponse({"ok":True})
 
@@ -333,8 +336,8 @@ async def admin_resolve(pwd:str="", eid:int=0):
 async def admin_notify_status(pwd:str=""):
     chk(pwd); db=get_db()
     try:
-        members=[dict(r) for r in db.execute("SELECT id,nom,email,telegram,notif_email,notif_tg,secteur FROM members WHERE actif=1").fetchall()]
-        queue  =[dict(r) for r in db.execute("SELECT channel,status,recipient,error,attempts,created_at FROM notif_queue ORDER BY id DESC LIMIT 20").fetchall()]
+        members=[dict(r) for r in db.execute(text("SELECT id,nom,email,telegram,notif_email,notif_tg,secteur FROM members WHERE actif=1")).fetchall()]
+        queue  =[dict(r) for r in db.execute(text("SELECT channel,status,recipient,error,attempts,created_at FROM notif_queue ORDER BY id DESC LIMIT 20")).fetchall()]
     finally: db.close()
     return JSONResponse({
         "brevo":      "✅" if BREVO_KEY else "❌ non configuré (recommandé)",
@@ -399,9 +402,9 @@ async def admin_clear_db(req: Request, pwd: str = "", confirm: str = ""):
 </body></html>""")
     db = get_db()
     try:
-        count = db.execute("SELECT COUNT(*) FROM tenders").fetchone()[0]
+        count = db.execute(text("SELECT COUNT(*) FROM tenders")).fetchone()[0]
         for tbl in ["tenders","favoris","notif_queue","scrape_runs","agent_errors","api_keys"]:
-            try: db.execute(f"DELETE FROM {tbl}")
+            try: db.execute(text(f"DELETE FROM {tbl}"))
             except: pass
         db.commit()
         db.close()
@@ -436,7 +439,7 @@ async def admin_heal_now(req: Request, pwd: str = ""):
         schema = SelfHealingAgent.repair_schema(db)
         expired = SelfHealingAgent.expire_tenders(db)
         clean = SelfHealingAgent.clean_db(db)
-        active = db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif'").fetchone()[0]
+        active = db.execute(text("SELECT COUNT(*) FROM tenders WHERE statut='actif'")).fetchone()[0]
         return JSONResponse({
             "ok": True,
             "schema_repairs": len([r for r in schema if r.startswith("✅")]),

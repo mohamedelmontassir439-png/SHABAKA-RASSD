@@ -140,10 +140,7 @@ def init_db():
 def get_db() -> Session:
     """Synchronous database session (for non-async contexts)"""
     db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+    return db
 
 @asynccontextmanager
 async def get_db_session():
