@@ -7,6 +7,7 @@ from fastapi.routing import APIRouter
 from app.core.config   import cfg
 from app.core.database import get_db
 from app.core.dates    import is_expired, format_deadline
+from sqlalchemy import text
 import re, json, csv, io, secrets, logging
 from datetime import datetime, date
 from typing import Optional
@@ -30,14 +31,14 @@ async def home(req: Request):
     db = get_db()
     try:
         stats = {
-            "tenders_total":  db.execute("SELECT COUNT(*) FROM tenders").fetchone()[0],
-            "tenders_active": db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif'").fetchone()[0],
-            "easy_to_win":    db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif' AND ai_score>=70").fetchone()[0],
-            "members":        db.execute("SELECT COUNT(*) FROM members WHERE actif=1").fetchone()[0],
-            "members_tg":     db.execute("SELECT COUNT(*) FROM members WHERE telegram IS NOT NULL AND telegram!='' AND actif=1").fetchone()[0],
+            "tenders_total":  db.execute(text("SELECT COUNT(*) FROM tenders")).fetchone()[0],
+            "tenders_active": db.execute(text("SELECT COUNT(*) FROM tenders WHERE statut='actif'")).fetchone()[0],
+            "easy_to_win":    db.execute(text("SELECT COUNT(*) FROM tenders WHERE statut='actif' AND ai_score>=70")).fetchone()[0],
+            "members":        db.execute(text("SELECT COUNT(*) FROM members WHERE actif=1")).fetchone()[0],
+            "members_tg":     db.execute(text("SELECT COUNT(*) FROM members WHERE telegram IS NOT NULL AND telegram!='' AND actif=1")).fetchone()[0],
         }
         sources = [dict(r) for r in db.execute(
-            "SELECT source, COUNT(*) as active FROM tenders WHERE statut='actif' GROUP BY source ORDER BY active DESC"
+            text("SELECT source, COUNT(*) as active FROM tenders WHERE statut='actif' GROUP BY source ORDER BY active DESC")
         ).fetchall()]
     finally: db.close()
     counter("pv:home")
@@ -59,22 +60,23 @@ async def tenders_page(req: Request, code_f="", region_f="", source_f="", type_f
     per=20; off=(page-1)*per
     db = get_db()
     try:
-        conds=["statut='actif'"]; params=[]
-        if code_f:    conds.append("domaine LIKE ?"); params.append(f"{code_f}%")
-        if region_f:  conds.append("region=?");       params.append(region_f)
-        if source_f:  conds.append("source=?");        params.append(source_f)
-        if type_f:    conds.append("type_marche=?");   params.append(type_f)
+        conds=["statut='actif'"]; params={}
+        if code_f:    conds.append("domaine LIKE :code_f"); params["code_f"]=f"{code_f}%"
+        if region_f:  conds.append("region=:region_f");     params["region_f"]=region_f
+        if source_f:  conds.append("source=:source_f");     params["source_f"]=source_f
+        if type_f:    conds.append("type_marche=:type_f");  params["type_f"]=type_f
         if easy=="1": conds.append("ai_score >= 70")
         if q:
-            conds.append("(objet LIKE ? OR acheteur LIKE ? OR description LIKE ?)")
-            params += [f"%{q[:80]}%"]*3
+            conds.append("(objet LIKE :q1 OR acheteur LIKE :q2 OR description LIKE :q3)")
+            params["q1"]=f"%{q[:80]}%"; params["q2"]=f"%{q[:80]}%"; params["q3"]=f"%{q[:80]}%"
         w = " AND ".join(conds)
-        total  = db.execute(f"SELECT COUNT(*) FROM tenders WHERE {w}", params).fetchone()[0]
+        params["per"]=per; params["off"]=off
+        total  = db.execute(text(f"SELECT COUNT(*) FROM tenders WHERE {w}"), params).fetchone()[0]
         rows   = [dict(r) for r in db.execute(
-            f"SELECT * FROM tenders WHERE {w} ORDER BY " + ("date_extraction DESC" if sort=="date" else ("date_limite ASC" if sort=="deadline" else "ai_score DESC, date_extraction DESC")) + " LIMIT ? OFFSET ?",
-            params+[per,off]).fetchall()]
-        regions_list = [r[0] for r in db.execute("SELECT DISTINCT region FROM tenders WHERE region!='' ORDER BY region").fetchall()]
-        sources_list = [r[0] for r in db.execute("SELECT DISTINCT source FROM tenders WHERE source!='' ORDER BY source").fetchall()]
+            text(f"SELECT * FROM tenders WHERE {w} ORDER BY " + ("date_extraction DESC" if sort=="date" else ("date_limite ASC" if sort=="deadline" else "ai_score DESC, date_extraction DESC")) + " LIMIT :per OFFSET :off"),
+            params).fetchall()]
+        regions_list = [r[0] for r in db.execute(text("SELECT DISTINCT region FROM tenders WHERE region!='' ORDER BY region")).fetchall()]
+        sources_list = [r[0] for r in db.execute(text("SELECT DISTINCT source FROM tenders WHERE source!='' ORDER BY source")).fetchall()]
     finally: db.close()
     counter("pv:tenders")
     return render(req,"tenders.html",{
@@ -88,13 +90,13 @@ async def tenders_page(req: Request, code_f="", region_f="", source_f="", type_f
 async def tender_detail(req: Request, tid: str):
     db = get_db()
     try:
-        row = db.execute("SELECT * FROM tenders WHERE id=?",(tid,)).fetchone()
+        row = db.execute(text("SELECT * FROM tenders WHERE id=:tid"),{"tid":tid}).fetchone()
         if not row: raise HTTPException(404)
         t = dict(row)
-        db.execute("UPDATE tenders SET views=COALESCE(views,0)+1 WHERE id=?",(tid,)); db.commit()
+        db.execute(text("UPDATE tenders SET views=COALESCE(views,0)+1 WHERE id=:tid"),{"tid":tid}); db.commit()
         related = [dict(r) for r in db.execute(
-            "SELECT * FROM tenders WHERE domaine=? AND id!=? AND statut='actif' ORDER BY ai_score DESC, date_extraction DESC LIMIT 5",
-            (t["domaine"],tid)).fetchall()]
+            text("SELECT * FROM tenders WHERE domaine=:domaine AND id!=:tid AND statut='actif' ORDER BY ai_score DESC, date_extraction DESC LIMIT 5"),
+            {"domaine":t["domaine"],"tid":tid}).fetchall()]
     finally: db.close()
     counter("pv:tender_detail")
     return render(req,"tender_detail.html",{"t":t,"related":related})
@@ -105,20 +107,21 @@ async def marketplace(req: Request, type_f="", secteur_f="", region_f="", q="", 
     per=16; off=(page-1)*per
     db=get_db()
     try:
-        conds=["p.status='actif'"]; params=[]
-        if type_f:    conds.append("p.type=?");    params.append(type_f)
-        if secteur_f: conds.append("p.secteur=?"); params.append(secteur_f)
-        if region_f:  conds.append("p.region=?");  params.append(region_f)
+        conds=["p.status='actif'"]; params={}
+        if type_f:    conds.append("p.type=:type_f");    params["type_f"]=type_f
+        if secteur_f: conds.append("p.secteur=:secteur_f"); params["secteur_f"]=secteur_f
+        if region_f:  conds.append("p.region=:region_f");  params["region_f"]=region_f
         if q:
-            conds.append("(p.titre LIKE ? OR p.description LIKE ?)")
-            params+=[f"%{q[:80]}%"]*2
+            conds.append("(p.titre LIKE :q1 OR p.description LIKE :q2)")
+            params["q1"]=f"%{q[:80]}%"; params["q2"]=f"%{q[:80]}%"
         w=" AND ".join(conds)
-        total  = db.execute(f"SELECT COUNT(*) FROM posts p WHERE {w}",params).fetchone()[0]
+        params["per"]=per; params["off"]=off
+        total  = db.execute(text(f"SELECT COUNT(*) FROM posts p WHERE {w}"),params).fetchone()[0]
         posts  = [dict(r) for r in db.execute(
-            f"""SELECT p.*,m.nom as m_nom,m.entreprise,m.rating_avg,m.rating_count,m.verified
+            text(f"""SELECT p.*,m.nom as m_nom,m.entreprise,m.rating_avg,m.rating_count,m.verified
                 FROM posts p JOIN members m ON m.id=p.member_id WHERE {w}
-                ORDER BY p.id DESC LIMIT ? OFFSET ?""",
-            params+[per,off]).fetchall()]
+                ORDER BY p.id DESC LIMIT :per OFFSET :off"""),
+            params).fetchall()]
     finally: db.close()
     counter("pv:marketplace")
     return render(req,"marketplace.html",{
@@ -144,8 +147,8 @@ async def mp_new_post(req: Request, titre:str=Form(""), description:str=Form("")
     if len(titre.strip())<10: return render(req,"marketplace_new.html",{"error":"Titre trop court (min 10 chars)"})
     db=get_db()
     try:
-        db.execute("INSERT INTO posts (member_id,type,titre,description,secteur,region,budget,contact,created_at) VALUES (?,?,?,?,?,?,?,?,?)",
-                   (m["id"],type_p,titre.strip()[:200],description.strip()[:3000],secteur,region,budget.strip()[:60],contact.strip()[:100],now_str()))
+        db.execute(text("INSERT INTO posts (member_id,type,titre,description,secteur,region,budget,contact,created_at) VALUES (:member_id,:type_p,:titre,:description,:secteur,:region,:budget,:contact,:created_at)"),
+                   {"member_id":m["id"],"type_p":type_p,"titre":titre.strip()[:200],"description":description.strip()[:3000],"secteur":secteur,"region":region,"budget":budget.strip()[:60],"contact":contact.strip()[:100],"created_at":now_str()})
         db.commit()
     finally: db.close()
     return RedirectResponse("/marketplace",302)
@@ -155,14 +158,14 @@ async def mp_new_post(req: Request, titre:str=Form(""), description:str=Form("")
 async def mp_detail(req: Request, pid:int):
     db=get_db()
     try:
-        row=db.execute("SELECT p.*,m.nom as m_nom,m.entreprise,m.rating_avg,m.rating_count,m.verified,m.phone,m.email as m_email FROM posts p JOIN members m ON m.id=p.member_id WHERE p.id=? AND p.status='actif'",(pid,)).fetchone()
+        row=db.execute(text("SELECT p.*,m.nom as m_nom,m.entreprise,m.rating_avg,m.rating_count,m.verified,m.phone,m.email as m_email FROM posts p JOIN members m ON m.id=p.member_id WHERE p.id=:pid AND p.status='actif'"),{"pid":pid}).fetchone()
         if not row: raise HTTPException(404)
         post=dict(row)
-        db.execute("UPDATE posts SET views=COALESCE(views,0)+1 WHERE id=?",(pid,)); db.commit()
-        ratings=[dict(r) for r in db.execute("SELECT r.*,m.nom as from_nom FROM ratings r JOIN members m ON m.id=r.from_id WHERE r.to_id=? ORDER BY r.id DESC LIMIT 10",(post["member_id"],)).fetchall()]
+        db.execute(text("UPDATE posts SET views=COALESCE(views,0)+1 WHERE id=:pid"),{"pid":pid}); db.commit()
+        ratings=[dict(r) for r in db.execute(text("SELECT r.*,m.nom as from_nom FROM ratings r JOIN members m ON m.id=r.from_id WHERE r.to_id=:mid ORDER BY r.id DESC LIMIT 10"),{"mid":post["member_id"]}).fetchall()]
         cur=get_member(req)
         can_rate=cur and cur["id"]!=post["member_id"]
-        already=cur and bool(db.execute("SELECT 1 FROM ratings WHERE from_id=? AND to_id=?",(cur["id"],post["member_id"])).fetchone())
+        already=cur and bool(db.execute(text("SELECT 1 FROM ratings WHERE from_id=:from_id AND to_id=:to_id"),{"from_id":cur["id"],"to_id":post["member_id"]}).fetchone())
     finally: db.close()
     return render(req,"marketplace_detail.html",{"post":post,"ratings":ratings,"can_rate":can_rate,"already_rated":already})
 
@@ -174,10 +177,10 @@ async def mp_rate(req: Request, mid:int, score:int=Form(5), comment:str=Form("")
     if cur["id"]==mid: raise HTTPException(400)
     db=get_db()
     try:
-        db.execute("INSERT OR IGNORE INTO ratings (from_id,to_id,score,comment,created_at) VALUES (?,?,?,?,?)",(cur["id"],mid,max(1,min(5,score)),comment.strip()[:300],now_str()))
+        db.execute(text("INSERT OR IGNORE INTO ratings (from_id,to_id,score,comment,created_at) VALUES (:from_id,:to_id,:score,:comment,:created_at)"),{"from_id":cur["id"],"to_id":mid,"score":max(1,min(5,score)),"comment":comment.strip()[:300],"created_at":now_str()})
         db.commit()
-        avg=db.execute("SELECT AVG(score),COUNT(*) FROM ratings WHERE to_id=?",(mid,)).fetchone()
-        db.execute("UPDATE members SET rating_avg=?,rating_count=? WHERE id=?",(round(avg[0],1),avg[1],mid))
+        avg=db.execute(text("SELECT AVG(score),COUNT(*) FROM ratings WHERE to_id=:mid"),{"mid":mid}).fetchone()
+        db.execute(text("UPDATE members SET rating_avg=:avg,rating_count=:cnt WHERE id=:mid"),{"avg":round(avg[0],1),"cnt":avg[1],"mid":mid})
         db.commit()
     finally: db.close()
     return RedirectResponse(req.headers.get("referer","/marketplace"),302)
@@ -187,10 +190,10 @@ async def mp_rate(req: Request, mid:int, score:int=Form(5), comment:str=Form("")
 async def annuaire(req: Request, secteur_f="", q=""):
     db=get_db()
     try:
-        conds=["actif=1"]; params=[]
-        if secteur_f: conds.append("secteur=?"); params.append(secteur_f)
-        if q: conds.append("(nom LIKE ? OR entreprise LIKE ? OR ville LIKE ?)"); params+=[f"%{q}%"]*3
-        members=[dict(r) for r in db.execute(f"SELECT * FROM members WHERE {' AND '.join(conds)} ORDER BY rating_avg DESC,id DESC LIMIT 60",params).fetchall()]
+        conds=["actif=1"]; params={}
+        if secteur_f: conds.append("secteur=:secteur_f"); params["secteur_f"]=secteur_f
+        if q: conds.append("(nom LIKE :q1 OR entreprise LIKE :q2 OR ville LIKE :q3)"); params["q1"]=f"%{q}%"; params["q2"]=f"%{q}%"; params["q3"]=f"%{q}%"
+        members=[dict(r) for r in db.execute(text(f"SELECT * FROM members WHERE {' AND '.join(conds)} ORDER BY rating_avg DESC,id DESC LIMIT 60"),params).fetchall()]
     finally: db.close()
     return render(req,"annuaire.html",{"members":members,"secteur_f":secteur_f,"q":q})
 
@@ -200,7 +203,7 @@ async def filters_get(req: Request):
     m=get_member(req)
     if not m: return RedirectResponse("/login",302)
     db=get_db()
-    try: my_filters=[dict(r) for r in db.execute("SELECT * FROM member_filters WHERE member_id=? ORDER BY type,value",(m["id"],)).fetchall()]
+    try: my_filters=[dict(r) for r in db.execute(text("SELECT * FROM member_filters WHERE member_id=:mid ORDER BY type,value"),{"mid":m["id"]}).fetchall()]
     finally: db.close()
     return render(req,"filters.html",{"m":m,"my_filters":my_filters})
 
@@ -212,7 +215,7 @@ async def filters_add(req: Request, ftype:str=Form(""), value:str=Form("")):
     if ftype in ["secteur","region","keyword"] and value.strip():
         db=get_db()
         try:
-            db.execute("INSERT OR IGNORE INTO member_filters (member_id,type,value,created_at) VALUES (?,?,?,?)",(m["id"],ftype,value.strip()[:80],now_str()))
+            db.execute(text("INSERT OR IGNORE INTO member_filters (member_id,type,value,created_at) VALUES (:mid,:ftype,:value,:created_at)"),{"mid":m["id"],"ftype":ftype,"value":value.strip()[:80],"created_at":now_str()})
             db.commit()
         finally: db.close()
     return RedirectResponse("/filters",302)
@@ -223,7 +226,7 @@ async def filters_delete(req: Request, fid:int=Form(0)):
     m=get_member(req)
     if not m: return RedirectResponse("/login",302)
     db=get_db()
-    try: db.execute("DELETE FROM member_filters WHERE id=? AND member_id=?",(fid,m["id"])); db.commit()
+    try: db.execute(text("DELETE FROM member_filters WHERE id=:fid AND member_id=:mid"),{"fid":fid,"mid":m["id"]}); db.commit()
     finally: db.close()
     return RedirectResponse("/filters",302)
 
@@ -247,13 +250,13 @@ async def reg_post(req: Request, nom:str=Form(""), entreprise:str=Form(""),
     else:
         db=get_db()
         try:
-            if db.execute("SELECT 1 FROM members WHERE email=?",(email.lower(),)).fetchone():
+            if db.execute(text("SELECT 1 FROM members WHERE email=:email"),{"email":email.lower()}).fetchone():
                 error="Email déjà utilisé"
             else:
-                db.execute("INSERT INTO members (nom,entreprise,email,phone,secteur,ville,pw_hash,actif,notif_email,notif_tg,created_at) VALUES (?,?,?,?,?,?,?,1,1,1,?)",
-                           (nom.strip(),entreprise.strip(),email.lower().strip(),phone.strip(),secteur,ville.strip(),hash_pw(password),now_str()))
+                db.execute(text("INSERT INTO members (nom,entreprise,email,phone,secteur,ville,pw_hash,actif,notif_email,notif_tg,created_at) VALUES (:nom,:entreprise,:email,:phone,:secteur,:ville,:pw_hash,1,1,1,:created_at)"),
+                           {"nom":nom.strip(),"entreprise":entreprise.strip(),"email":email.lower().strip(),"phone":phone.strip(),"secteur":secteur,"ville":ville.strip(),"pw_hash":hash_pw(password),"created_at":now_str()})
                 db.commit()
-                uid=db.execute("SELECT id FROM members WHERE email=?",(email.lower(),)).fetchone()[0]
+                uid=db.execute(text("SELECT id FROM members WHERE email=:email"),{"email":email.lower()}).fetchone()[0]
                 db.close()
                 counter("registrations")
                 # Send verification email
@@ -289,11 +292,11 @@ async def login_post(req: Request, email:str=Form(""), password:str=Form("")):
     rl(req,f"login:{get_ip(req)}",5,300)
     db=get_db()
     try:
-        row=db.execute("SELECT * FROM members WHERE email=? AND actif=1",(email.lower().strip(),)).fetchone()
+        row=db.execute(text("SELECT * FROM members WHERE email=:email AND actif=1"),{"email":email.lower().strip()}).fetchone()
         if not row or not check_pw(password,dict(row).get("pw_hash","")):
             return render(req,"login.html",{"error":"Email ou mot de passe incorrect","reset":""})
         m=dict(row)
-        db.execute("UPDATE members SET last_login=? WHERE id=?",(now_str(),m["id"])); db.commit()
+        db.execute(text("UPDATE members SET last_login=:ts WHERE id=:id"),{"ts":now_str(),"id":m["id"]}); db.commit()
     finally: db.close()
     counter("logins")
     resp=RedirectResponse("/dashboard",302)
@@ -315,7 +318,7 @@ async def forgot_get(req: Request):
 async def forgot_post(req: Request, email:str=Form("")):
     rl(req,"forgot",3,3600)
     db=get_db()
-    try: row=db.execute("SELECT id,nom FROM members WHERE email=? AND actif=1",(email.lower().strip(),)).fetchone()
+    try: row=db.execute(text("SELECT id,nom FROM members WHERE email=:email AND actif=1"),{"email":email.lower().strip()}).fetchone()
     finally: db.close()
     if row:
         token=secrets.token_urlsafe(32)
@@ -325,7 +328,7 @@ async def forgot_post(req: Request, email:str=Form("")):
             f'<div style="font-family:Georgia;background:#0d0d0d;color:#fff;padding:28px;border-radius:10px"><div style="font-size:18px;font-weight:700;color:#c9a84c;margin-bottom:14px">◆ Modern Business</div><p>Cliquez pour réinitialiser votre mot de passe (valide 2h):</p><a href="{reset_url}" style="display:inline-block;margin-top:14px;padding:10px 22px;background:#c9a84c;color:#000;border-radius:6px;font-weight:700;text-decoration:none">Réinitialiser →</a></div>')
         db=get_db()
         try:
-            tg=db.execute("SELECT telegram FROM members WHERE email=?",(email.lower(),)).fetchone()
+            tg=db.execute(text("SELECT telegram FROM members WHERE email=:email"),{"email":email.lower()}).fetchone()
             if tg and tg["telegram"]:
                 NotifyAgent.enqueue(None,"telegram",tg["telegram"],"",
                     f"🔑 <b>Réinitialisation mot de passe</b>\n\nLien (2h):\n{reset_url}")
@@ -349,7 +352,7 @@ async def reset_post(req: Request, token:str=Form(""), password:str=Form(""), pa
     if len(password)<8: return render(req,"reset.html",{"token":token,"error":"Minimum 8 caractères"})
     if password!=password2: return render(req,"reset.html",{"token":token,"error":"Mots de passe différents"})
     db=get_db()
-    try: db.execute("UPDATE members SET pw_hash=? WHERE email=?",(hash_pw(password),data["email"])); db.commit()
+    try: db.execute(text("UPDATE members SET pw_hash=:pw_hash WHERE email=:email"),{"pw_hash":hash_pw(password),"email":data["email"]}); db.commit()
     finally: db.close()
     del RESET_TOKENS[token]
     return RedirectResponse("/login?reset=1",302)
@@ -362,8 +365,8 @@ async def dashboard(req: Request):
     if not m: return RedirectResponse("/login",302)
     db=get_db()
     try:
-        my_posts=[dict(r) for r in db.execute("SELECT * FROM posts WHERE member_id=? ORDER BY id DESC LIMIT 5",(m["id"],)).fetchall()]
-        my_ratings=[dict(r) for r in db.execute("SELECT r.*,mem.nom as from_nom FROM ratings r JOIN members mem ON mem.id=r.from_id WHERE r.to_id=? ORDER BY r.id DESC LIMIT 5",(m["id"],)).fetchall()]
+        my_posts=[dict(r) for r in db.execute(text("SELECT * FROM posts WHERE member_id=:mid ORDER BY id DESC LIMIT 5"),{"mid":m["id"]}).fetchall()]
+        my_ratings=[dict(r) for r in db.execute(text("SELECT r.*,mem.nom as from_nom FROM ratings r JOIN members mem ON mem.id=r.from_id WHERE r.to_id=:mid ORDER BY r.id DESC LIMIT 5"),{"mid":m["id"]}).fetchall()]
         stats=MonitorAgent.get_stats()
     finally: db.close()
     counter("pv:dashboard")
@@ -387,13 +390,13 @@ async def settings_post(req: Request, nom:str=Form(""), entreprise:str=Form(""),
     error=""
     db=get_db()
     try:
-        db.execute("UPDATE members SET nom=?,entreprise=?,phone=?,secteur=?,ville=?,notif_email=?,notif_tg=? WHERE id=?",
-                   (nom.strip() or m["nom"],entreprise.strip(),phone.strip(),secteur,ville.strip(),
-                    1 if notif_email else 0,1 if notif_tg else 0,m["id"]))
+        db.execute(text("UPDATE members SET nom=:nom,entreprise=:entreprise,phone=:phone,secteur=:secteur,ville=:ville,notif_email=:notif_email,notif_tg=:notif_tg WHERE id=:id"),
+                   {"nom":nom.strip() or m["nom"],"entreprise":entreprise.strip(),"phone":phone.strip(),"secteur":secteur,"ville":ville.strip(),
+                    "notif_email":1 if notif_email else 0,"notif_tg":1 if notif_tg else 0,"id":m["id"]})
         if password and password_new:
             if not check_pw(password,m.get("pw_hash","")): error="Mot de passe actuel incorrect"
             elif len(password_new)<8: error="Nouveau mot de passe trop court"
-            else: db.execute("UPDATE members SET pw_hash=? WHERE id=?",(hash_pw(password_new),m["id"]))
+            else: db.execute(text("UPDATE members SET pw_hash=:pw_hash WHERE id=:id"),{"pw_hash":hash_pw(password_new),"id":m["id"]})
         db.commit()
     finally: db.close()
     m=get_member(req)
@@ -453,7 +456,7 @@ async def verify_email(req: Request, token: str = ""):
         return render(req, "login.html", {"error": "Lien expiré. Connectez-vous pour en recevoir un nouveau.", "reset": ""})
     db = get_db()
     try:
-        db.execute("UPDATE members SET verified=1 WHERE id=?", (data["uid"],))
+        db.execute(text("UPDATE members SET verified=1 WHERE id=:uid"), {"uid": data["uid"]})
         db.commit()
     finally: db.close()
     try: del VERIFY_TOKENS[token]
@@ -476,9 +479,9 @@ async def admin_set_plan(pwd: str="", member_id: int=0, plan: str="free"):
     chk(pwd)
     db = get_db()
     try:
-        db.execute("UPDATE members SET plan=?,verified=1 WHERE id=?", (plan, member_id))
+        db.execute(text("UPDATE members SET plan=:plan,verified=1 WHERE id=:mid"), {"plan":plan,"mid":member_id})
         db.commit()
-        row = db.execute("SELECT email,nom,telegram FROM members WHERE id=?", (member_id,)).fetchone()
+        row = db.execute(text("SELECT email,nom,telegram FROM members WHERE id=:mid"), {"mid":member_id}).fetchone()
     finally: db.close()
     if row and dict(row).get("telegram"):
         plan_names = {"free":"Gratuit","pro":"Pro 99 DH/mois","enterprise":"Entreprise"}
@@ -504,7 +507,7 @@ async def api_chat(req: Request):
         if not user_msg: return JSONResponse({"error":"Message vide"},400)
         db=get_db()
         try:
-            rows=db.execute("SELECT role,content FROM chats WHERE session_key=? ORDER BY id DESC LIMIT 16",(sess,)).fetchall()
+            rows=db.execute(text("SELECT role,content FROM chats WHERE session_key=:sess ORDER BY id DESC LIMIT 16"),{"sess":sess}).fetchall()
             history=[{"role":r["role"],"content":r["content"]} for r in reversed(rows)]
         finally: db.close()
         history.append({"role":"user","content":user_msg})
@@ -512,9 +515,9 @@ async def api_chat(req: Request):
         db=get_db()
         try:
             ts=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            db.execute("INSERT INTO chats (session_key,role,content,created_at) VALUES (?,?,?,?)",(sess,"user",user_msg,ts))
-            db.execute("INSERT INTO chats (session_key,role,content,created_at) VALUES (?,?,?,?)",(sess,"assistant",response,ts))
-            db.execute("DELETE FROM chats WHERE session_key=? AND id NOT IN (SELECT id FROM chats WHERE session_key=? ORDER BY id DESC LIMIT 40)",(sess,sess))
+            db.execute(text("INSERT INTO chats (session_key,role,content,created_at) VALUES (:sess,:role_u,:msg,:ts)"),{"sess":sess,"role_u":"user","msg":user_msg,"ts":ts})
+            db.execute(text("INSERT INTO chats (session_key,role,content,created_at) VALUES (:sess,:role_a,:resp,:ts)"),{"sess":sess,"role_a":"assistant","resp":response,"ts":ts})
+            db.execute(text("DELETE FROM chats WHERE session_key=:sess AND id NOT IN (SELECT id FROM chats WHERE session_key=:sess2 ORDER BY id DESC LIMIT 40)"),{"sess":sess,"sess2":sess})
             db.commit()
         finally: db.close()
         counter("chat_messages")
@@ -538,21 +541,22 @@ async def api_v1_tenders(req: Request, source:str="", code:str="", region:str=""
     per_page=min(per_page,100); off=(page-1)*per_page
     db=get_db()
     try:
-        conds=["statut='actif'"]; params=[]
-        if source:     conds.append("source=?");        params.append(source)
-        if code:       conds.append("domaine LIKE ?");  params.append(f"{code}%")
-        if region:     conds.append("region LIKE ?");   params.append(f"%{region}%")
-        if type_m:     conds.append("type_marche=?");   params.append(type_m)
-        if min_score:  conds.append("ai_score >= ?");   params.append(min_score)
+        conds=["statut='actif'"]; params={}
+        if source:     conds.append("source=:source");        params["source"]=source
+        if code:       conds.append("domaine LIKE :code");    params["code"]=f"{code}%"
+        if region:     conds.append("region LIKE :region");   params["region"]=f"%{region}%"
+        if type_m:     conds.append("type_marche=:type_m");   params["type_m"]=type_m
+        if min_score:  conds.append("ai_score >= :min_score"); params["min_score"]=min_score
         if easy=="1":  conds.append("ai_score >= 70")
         if q:
-            conds.append("(objet LIKE ? OR description LIKE ? OR acheteur LIKE ?)")
-            params+=[f"%{q}%"]*3
+            conds.append("(objet LIKE :q1 OR description LIKE :q2 OR acheteur LIKE :q3)")
+            params["q1"]=f"%{q}%"; params["q2"]=f"%{q}%"; params["q3"]=f"%{q}%"
         w=" AND ".join(conds)
-        total=db.execute(f"SELECT COUNT(*) FROM tenders WHERE {w}",params).fetchone()[0]
+        params["per_page"]=per_page; params["off"]=off
+        total=db.execute(text(f"SELECT COUNT(*) FROM tenders WHERE {w}"),params).fetchone()[0]
         rows=[dict(r) for r in db.execute(
-            f"SELECT id,objet,acheteur,region,domaine,type_marche,montant,date_limite,source,contact,ai_score,ai_category,ai_reason,url,date_extraction FROM tenders WHERE {w} ORDER BY ai_score DESC, date_extraction DESC LIMIT ? OFFSET ?",
-            params+[per_page,off]).fetchall()]
+            text(f"SELECT id,objet,acheteur,region,domaine,type_marche,montant,date_limite,source,contact,ai_score,ai_category,ai_reason,url,date_extraction FROM tenders WHERE {w} ORDER BY ai_score DESC, date_extraction DESC LIMIT :per_page OFFSET :off"),
+            params).fetchall()]
     finally: db.close()
     return JSONResponse({"total":total,"page":page,"per_page":per_page,"pages":max(1,(total+per_page-1)//per_page),"tenders":rows})
 
@@ -562,7 +566,7 @@ async def api_v1_new(hours:int=24):
     db=get_db()
     try:
         since=(datetime.now()-timedelta(hours=hours)).strftime("%Y-%m-%d %H:%M")
-        rows=[dict(r) for r in db.execute("SELECT id,objet,acheteur,region,domaine,source,ai_score,date_limite,url FROM tenders WHERE date_extraction>=? AND statut='actif' ORDER BY ai_score DESC, date_extraction DESC LIMIT 50",(since,)).fetchall()]
+        rows=[dict(r) for r in db.execute(text("SELECT id,objet,acheteur,region,domaine,source,ai_score,date_limite,url FROM tenders WHERE date_extraction>=:since AND statut='actif' ORDER BY ai_score DESC, date_extraction DESC LIMIT 50"),{"since":since}).fetchall()]
     finally: db.close()
     return JSONResponse({"count":len(rows),"since_hours":hours,"tenders":rows})
 
@@ -571,7 +575,7 @@ async def api_v1_new(hours:int=24):
 async def api_v1_easy(min_score:int=70, limit:int=20):
     db=get_db()
     try:
-        rows=[dict(r) for r in db.execute("SELECT id,objet,acheteur,region,domaine,source,montant,ai_score,ai_reason,date_limite,url FROM tenders WHERE statut='actif' AND ai_score>=? ORDER BY ai_score DESC LIMIT ?",(min_score,limit)).fetchall()]
+        rows=[dict(r) for r in db.execute(text("SELECT id,objet,acheteur,region,domaine,source,montant,ai_score,ai_reason,date_limite,url FROM tenders WHERE statut='actif' AND ai_score>=:min_score ORDER BY ai_score DESC LIMIT :limit"),{"min_score":min_score,"limit":limit}).fetchall()]
     finally: db.close()
     return JSONResponse({"count":len(rows),"min_score":min_score,"tenders":rows})
 
@@ -580,9 +584,9 @@ async def api_v1_easy(min_score:int=70, limit:int=20):
 async def api_v1_detail(tid:str):
     db=get_db()
     try:
-        row=db.execute("SELECT * FROM tenders WHERE id=?",(tid,)).fetchone()
+        row=db.execute(text("SELECT * FROM tenders WHERE id=:tid"),{"tid":tid}).fetchone()
         if not row: raise HTTPException(404,"Not found")
-        t=dict(row); db.execute("UPDATE tenders SET views=COALESCE(views,0)+1 WHERE id=?",(tid,)); db.commit()
+        t=dict(row); db.execute(text("UPDATE tenders SET views=COALESCE(views,0)+1 WHERE id=:tid"),{"tid":tid}); db.commit()
     finally: db.close()
     return JSONResponse(t)
 
@@ -591,7 +595,7 @@ async def api_v1_detail(tid:str):
 async def api_v1_sources():
     db=get_db()
     try:
-        rows=[dict(r) for r in db.execute("SELECT source,COUNT(*) as total,SUM(CASE WHEN statut='actif' THEN 1 ELSE 0 END) as active,AVG(ai_score) as avg_score FROM tenders GROUP BY source ORDER BY total DESC").fetchall()]
+        rows=[dict(r) for r in db.execute(text("SELECT source,COUNT(*) as total,SUM(CASE WHEN statut='actif' THEN 1 ELSE 0 END) as active,AVG(ai_score) as avg_score FROM tenders GROUP BY source ORDER BY total DESC")).fetchall()]
     finally: db.close()
     return JSONResponse({"sources":rows,"multi_available":HAS_MULTI})
 
@@ -601,8 +605,8 @@ async def api_v1_stats():
     s=MonitorAgent.get_stats()
     db=get_db()
     try:
-        s["sources"]=[dict(r) for r in db.execute("SELECT source,COUNT(*) as total,SUM(CASE WHEN statut='actif' THEN 1 ELSE 0 END) as active FROM tenders GROUP BY source ORDER BY total DESC").fetchall()]
-        s["avg_score"]=round(db.execute("SELECT AVG(ai_score) FROM tenders WHERE statut='actif'").fetchone()[0] or 50,1)
+        s["sources"]=[dict(r) for r in db.execute(text("SELECT source,COUNT(*) as total,SUM(CASE WHEN statut='actif' THEN 1 ELSE 0 END) as active FROM tenders GROUP BY source ORDER BY total DESC")).fetchall()]
+        s["avg_score"]=round(db.execute(text("SELECT AVG(ai_score) FROM tenders WHERE statut='actif'")).fetchone()[0] or 50,1)
     finally: db.close()
     return JSONResponse(s)
 
@@ -612,7 +616,7 @@ async def api_my_filters(req: Request):
     m=get_member(req)
     if not m: return JSONResponse({"error":"Non connecté"},401)
     db=get_db()
-    try: filters=[dict(r) for r in db.execute("SELECT id,type,value FROM member_filters WHERE member_id=?",(m["id"],)).fetchall()]
+    try: filters=[dict(r) for r in db.execute(text("SELECT id,type,value FROM member_filters WHERE member_id=:mid"),{"mid":m["id"]}).fetchall()]
     finally: db.close()
     return JSONResponse({"filters":filters})
 
@@ -639,9 +643,9 @@ async def tg_webhook(req: Request):
             email=text.split()[1].strip().lower()
             db=get_db()
             try:
-                row=db.execute("SELECT id,nom FROM members WHERE email=? AND actif=1",(email,)).fetchone()
+                row=db.execute(text("SELECT id,nom FROM members WHERE email=:email AND actif=1"),{"email":email}).fetchone()
                 if row:
-                    db.execute("UPDATE members SET telegram=? WHERE id=?",(chat_id,row["id"])); db.commit()
+                    db.execute(text("UPDATE members SET telegram=:chat_id WHERE id=:id"),{"chat_id":chat_id,"id":row["id"]}); db.commit()
                     await reply(f"✅ <b>Alertes activées, {row['nom']}!</b>\n\nVous recevrez les marchés de votre secteur.\n\n/secteur — Choisir votre secteur\n🌐 {SITE_URL}")
                 else:
                     await reply(f"❌ Email non trouvé.\nInscrivez-vous: {SITE_URL}/register\nPuis: /link votre@email.com")
@@ -654,11 +658,11 @@ async def tg_webhook(req: Request):
                 new_s=parts[1].strip()
                 db=get_db()
                 try:
-                    row=db.execute("SELECT id,nom FROM members WHERE telegram=? AND actif=1",(chat_id,)).fetchone()
+                    row=db.execute(text("SELECT id,nom FROM members WHERE telegram=:chat_id AND actif=1"),{"chat_id":chat_id}).fetchone()
                     if row:
                         matched=next((s for s in SECTEURS.keys() if new_s.lower() in s.lower() or s[:4].lower()==new_s[:4].lower()),None)
                         if matched:
-                            db.execute("UPDATE members SET secteur=? WHERE id=?",(matched,row["id"])); db.commit()
+                            db.execute(text("UPDATE members SET secteur=:secteur WHERE id=:id"),{"secteur":matched,"id":row["id"]}); db.commit()
                             await reply(f"✅ Secteur: <b>{matched}</b>\nVous recevrez uniquement ces marchés.")
                         else:
                             sl="\n".join(f"• {s}" for s in list(SECTEURS.keys())[:12])
@@ -668,7 +672,7 @@ async def tg_webhook(req: Request):
                 finally: db.close()
             else:
                 db=get_db()
-                try: row=db.execute("SELECT nom,secteur FROM members WHERE telegram=? AND actif=1",(chat_id,)).fetchone()
+                try: row=db.execute(text("SELECT nom,secteur FROM members WHERE telegram=:chat_id AND actif=1"),{"chat_id":chat_id}).fetchone()
                 finally: db.close()
                 if row:
                     await reply(f"Votre secteur: <b>{dict(row).get('secteur') or 'Non défini'}</b>\n\nChanger: /secteur [code]\nEx: /secteur T101\n\nSecteurs:\n"+"\n".join(f"• {s}" for s in list(SECTEURS.keys())[:15]))
@@ -677,7 +681,7 @@ async def tg_webhook(req: Request):
             return {"ok":True}
         if text in ["/start","start"]:
             db=get_db()
-            try: row=db.execute("SELECT nom,secteur FROM members WHERE telegram=? AND actif=1",(chat_id,)).fetchone()
+            try: row=db.execute(text("SELECT nom,secteur FROM members WHERE telegram=:chat_id AND actif=1"),{"chat_id":chat_id}).fetchone()
             finally: db.close()
             if row:
                 m2=dict(row)
@@ -686,7 +690,7 @@ async def tg_webhook(req: Request):
                 await reply(f"🏛 <b>Modern Business</b>\nIntelligence des Marchés Publics Maroc\n\n📱 <b>2 étapes:</b>\n1️⃣ Inscrivez-vous: {SITE_URL}/register\n2️⃣ <code>/link votre@email.com</code>\n\n✅ Recevez les marchés de votre secteur!\n\n🌐 {SITE_URL}")
         elif text=="/tenders":
             db=get_db()
-            try: rows=db.execute("SELECT objet,acheteur,region,domaine,date_limite,url FROM tenders WHERE statut='actif' ORDER BY ai_score DESC, date_extraction DESC LIMIT 5").fetchall()
+            try: rows=db.execute(text("SELECT objet,acheteur,region,domaine,date_limite,url FROM tenders WHERE statut='actif' ORDER BY ai_score DESC, date_extraction DESC LIMIT 5")).fetchall()
             finally: db.close()
             if rows:
                 lines=[f"🏛 <b>5 derniers marchés actifs</b>\n{'━'*28}"]
@@ -804,11 +808,11 @@ async def admin(req: Request, pwd:str=""):
     db=get_db()
     try:
         stats  =MonitorAgent.get_stats()
-        tenders=[dict(r) for r in db.execute("SELECT * FROM tenders ORDER BY date_extraction DESC LIMIT 50").fetchall()]
-        members=[dict(r) for r in db.execute("SELECT * FROM members ORDER BY id DESC LIMIT 20").fetchall()]
-        hist   =[dict(r) for r in db.execute("SELECT * FROM scrape_runs ORDER BY id DESC LIMIT 8").fetchall()]
-        errors =[dict(r) for r in db.execute("SELECT * FROM agent_errors WHERE resolved=0 ORDER BY last_seen DESC LIMIT 10").fetchall()]
-        notifs =[dict(r) for r in db.execute("SELECT * FROM notif_queue ORDER BY id DESC LIMIT 30").fetchall()]
+        tenders=[dict(r) for r in db.execute(text("SELECT * FROM tenders ORDER BY date_extraction DESC LIMIT 50")).fetchall()]
+        members=[dict(r) for r in db.execute(text("SELECT * FROM members ORDER BY id DESC LIMIT 20")).fetchall()]
+        hist   =[dict(r) for r in db.execute(text("SELECT * FROM scrape_runs ORDER BY id DESC LIMIT 8")).fetchall()]
+        errors =[dict(r) for r in db.execute(text("SELECT * FROM agent_errors WHERE resolved=0 ORDER BY last_seen DESC LIMIT 10")).fetchall()]
+        notifs =[dict(r) for r in db.execute(text("SELECT * FROM notif_queue ORDER BY id DESC LIMIT 30")).fetchall()]
     finally: db.close()
     return render(req,"admin.html",{
         "stats":stats,"tenders":tenders,"members":members,
@@ -837,7 +841,7 @@ async def admin_scrape(req: Request, pwd:str="", sources:str="all"):
                 extra=[s for s in (src_list or list(MULTI_SRC.keys())) if s!="marchespublics"]
                 if extra:
                     db=get_db()
-                    try: known=set(r[0] for r in db.execute("SELECT id FROM tenders").fetchall())
+                    try: known=set(r[0] for r in db.execute(text("SELECT id FROM tenders")).fetchall())
                     finally: db.close()
                     def run_m(): return run_all_scrapers(known,extra,SLog.add)
                     loop=asyncio.get_event_loop()
@@ -889,8 +893,8 @@ async def admin_test(pwd:str="", chat_id:str=""):
         results["telegram"]=f"✅ envoyé" if ok else f"❌ {err[:80]}"
     db=get_db()
     try:
-        results["queue"]={"pending":db.execute("SELECT COUNT(*) FROM notif_queue WHERE status='pending'").fetchone()[0],"sent":db.execute("SELECT COUNT(*) FROM notif_queue WHERE status='sent'").fetchone()[0],"failed":db.execute("SELECT COUNT(*) FROM notif_queue WHERE status='failed'").fetchone()[0]}
-        results["members"]={"total":db.execute("SELECT COUNT(*) FROM members WHERE actif=1").fetchone()[0],"with_tg":db.execute("SELECT COUNT(*) FROM members WHERE telegram!='' AND actif=1").fetchone()[0]}
+        results["queue"]={"pending":db.execute(text("SELECT COUNT(*) FROM notif_queue WHERE status='pending'")).fetchone()[0],"sent":db.execute(text("SELECT COUNT(*) FROM notif_queue WHERE status='sent'")).fetchone()[0],"failed":db.execute(text("SELECT COUNT(*) FROM notif_queue WHERE status='failed'")).fetchone()[0]}
+        results["members"]={"total":db.execute(text("SELECT COUNT(*) FROM members WHERE actif=1")).fetchone()[0],"with_tg":db.execute(text("SELECT COUNT(*) FROM members WHERE telegram!='' AND actif=1")).fetchone()[0]}
     finally: db.close()
     return JSONResponse({"ok":True,"results":results})
 
@@ -901,8 +905,8 @@ async def admin_set_tg(pwd:str="", email:str="", chat_id:str=""):
     chk(pwd)
     db=get_db()
     try:
-        db.execute("UPDATE members SET telegram=? WHERE email=?",(chat_id,email.lower().strip())); db.commit()
-        ch=db.execute("SELECT changes()").fetchone()[0]
+        db.execute(text("UPDATE members SET telegram=:chat_id WHERE email=:email"),{"chat_id":chat_id,"email":email.lower().strip()}); db.commit()
+        ch=db.execute(text("SELECT changes()")).fetchone()[0]
     finally: db.close()
     if ch and chat_id:
         asyncio.create_task(NotifyAgent.send_telegram(chat_id,f"✅ <b>Alertes Telegram activées!</b>\n\nCompte lié: {email}\n🌐 {SITE_URL}"))
@@ -912,7 +916,7 @@ async def admin_set_tg(pwd:str="", email:str="", chat_id:str=""):
 @router.get("/admin/activate")
 async def admin_activate(pwd:str="", member_id:int=0, plan:str="pro"):
     chk(pwd); db=get_db()
-    try: db.execute("UPDATE members SET plan=?,verified=1 WHERE id=?",(plan,member_id)); db.commit()
+    try: db.execute(text("UPDATE members SET plan=:plan,verified=1 WHERE id=:mid"),{"plan":plan,"mid":member_id}); db.commit()
     finally: db.close()
     return JSONResponse({"ok":True})
 
@@ -920,7 +924,7 @@ async def admin_activate(pwd:str="", member_id:int=0, plan:str="pro"):
 @router.get("/admin/delete_tender")
 async def admin_del(pwd:str="", tid:str=""):
     chk(pwd); db=get_db()
-    try: db.execute("DELETE FROM tenders WHERE id=?",(tid,)); db.commit()
+    try: db.execute(text("DELETE FROM tenders WHERE id=:tid"),{"tid":tid}); db.commit()
     finally: db.close()
     return JSONResponse({"ok":True})
 
@@ -933,7 +937,7 @@ async def admin_expire_now(request: Request, pwd: str = ""):
     try:
         from datetime import date, datetime as _dt
         today = date.today()
-        rows = db.execute("SELECT id,date_limite FROM tenders WHERE statut='actif' AND date_limite!=''").fetchall()
+        rows = db.execute(text("SELECT id,date_limite FROM tenders WHERE statut='actif' AND date_limite!=''")).fetchall()
         exp = []
         for r in rows:
             dl = (r["date_limite"] or "").strip()
@@ -944,10 +948,12 @@ async def admin_expire_now(request: Request, pwd: str = ""):
                         exp.append(r["id"]); break
                 except: pass
         if exp:
-            db.execute(f"UPDATE tenders SET statut='expire' WHERE id IN ({chr(44).join([chr(63)]*len(exp))})", exp)
-        db.execute("UPDATE tenders SET statut='expire' WHERE statut='actif' AND date_limite NOT LIKE '%/%' AND date_limite < date('now') AND date_limite!='' AND date_limite!='N/A'")
+            exp_params = {f"id{i}": v for i, v in enumerate(exp)}
+            ph = ",".join([f":id{i}" for i in range(len(exp))])
+            db.execute(text(f"UPDATE tenders SET statut='expire' WHERE id IN ({ph})"), exp_params)
+        db.execute(text("UPDATE tenders SET statut='expire' WHERE statut='actif' AND date_limite NOT LIKE '%/%' AND date_limite < date('now') AND date_limite!='' AND date_limite!='N/A'"))
         db.commit()
-        active = db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif'").fetchone()[0]
+        active = db.execute(text("SELECT COUNT(*) FROM tenders WHERE statut='actif'")).fetchone()[0]
         db.close()
         return JSONResponse({"ok":True,"expired_python":len(exp),"active_remaining":active})
     except Exception as e:
@@ -960,11 +966,11 @@ async def admin_expire_now(request: Request, pwd: str = ""):
 async def admin_cleanup(pwd:str=""):
     chk(pwd); db=get_db()
     try:
-        db.execute("DELETE FROM tenders WHERE statut IN ('expire','annule') AND date_extraction < date('now','-60 days')")
-        db.execute("DELETE FROM chats WHERE created_at < date('now','-7 days')")
-        db.execute("DELETE FROM notif_queue WHERE status='sent' AND sent_at < date('now','-30 days')")
-        db.execute("DELETE FROM tenders WHERE length(objet) < 10")
-        r=db.execute("SELECT COUNT(*) FROM tenders").fetchone()[0]
+        db.execute(text("DELETE FROM tenders WHERE statut IN ('expire','annule') AND date_extraction < date('now','-60 days')"))
+        db.execute(text("DELETE FROM chats WHERE created_at < date('now','-7 days')"))
+        db.execute(text("DELETE FROM notif_queue WHERE status='sent' AND sent_at < date('now','-30 days')"))
+        db.execute(text("DELETE FROM tenders WHERE length(objet) < 10"))
+        r=db.execute(text("SELECT COUNT(*) FROM tenders")).fetchone()[0]
         db.commit()
     finally: db.close()
     return JSONResponse({"ok":True,"remaining":r})
@@ -977,10 +983,10 @@ async def admin_cleanup_tenders(pwd:str=""):
         bad=["Liste des avis d'achat","ConsultationsRésultats","Accueil","Se connecter"]
         deleted=0
         for p in bad:
-            db.execute("DELETE FROM tenders WHERE objet LIKE ?",(f"%{p}%",))
-            deleted+=db.execute("SELECT changes()").fetchone()[0]
-        db.execute("DELETE FROM tenders WHERE length(objet) < 10")
-        deleted+=db.execute("SELECT changes()").fetchone()[0]
+            db.execute(text("DELETE FROM tenders WHERE objet LIKE :pat"),{"pat":f"%{p}%"})
+            deleted+=db.execute(text("SELECT changes()")).fetchone()[0]
+        db.execute(text("DELETE FROM tenders WHERE length(objet) < 10"))
+        deleted+=db.execute(text("SELECT changes()")).fetchone()[0]
         db.commit()
     finally: db.close()
     return JSONResponse({"ok":True,"deleted":deleted})
@@ -989,7 +995,7 @@ async def admin_cleanup_tenders(pwd:str=""):
 @router.get("/admin/resolve_error")
 async def admin_resolve(pwd:str="", eid:int=0):
     chk(pwd); db=get_db()
-    try: db.execute("UPDATE agent_errors SET resolved=1 WHERE id=?",(eid,)); db.commit()
+    try: db.execute(text("UPDATE agent_errors SET resolved=1 WHERE id=:eid"),{"eid":eid}); db.commit()
     finally: db.close()
     return JSONResponse({"ok":True})
 
@@ -998,8 +1004,8 @@ async def admin_resolve(pwd:str="", eid:int=0):
 async def admin_notify_status(pwd:str=""):
     chk(pwd); db=get_db()
     try:
-        members=[dict(r) for r in db.execute("SELECT id,nom,email,telegram,notif_email,notif_tg,secteur FROM members WHERE actif=1").fetchall()]
-        queue  =[dict(r) for r in db.execute("SELECT channel,status,recipient,error,attempts,created_at FROM notif_queue ORDER BY id DESC LIMIT 20").fetchall()]
+        members=[dict(r) for r in db.execute(text("SELECT id,nom,email,telegram,notif_email,notif_tg,secteur FROM members WHERE actif=1")).fetchall()]
+        queue  =[dict(r) for r in db.execute(text("SELECT channel,status,recipient,error,attempts,created_at FROM notif_queue ORDER BY id DESC LIMIT 20")).fetchall()]
     finally: db.close()
     return JSONResponse({
         "brevo":      "✅" if BREVO_KEY else "❌ non configuré (recommandé)",
@@ -1033,17 +1039,17 @@ async def ar_home(req: Request):
     db = get_db()
     try:
         stats = {
-            "tenders_total":  db.execute("SELECT COUNT(*) FROM tenders").fetchone()[0],
-            "tenders_active": db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif'").fetchone()[0],
-            "easy_to_win":    db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif' AND ai_score>=70").fetchone()[0],
-            "members":        db.execute("SELECT COUNT(*) FROM members WHERE actif=1").fetchone()[0],
-            "members_tg":     db.execute("SELECT COUNT(*) FROM members WHERE telegram IS NOT NULL AND telegram!=''").fetchone()[0],
+            "tenders_total":  db.execute(text("SELECT COUNT(*) FROM tenders")).fetchone()[0],
+            "tenders_active": db.execute(text("SELECT COUNT(*) FROM tenders WHERE statut='actif'")).fetchone()[0],
+            "easy_to_win":    db.execute(text("SELECT COUNT(*) FROM tenders WHERE statut='actif' AND ai_score>=70")).fetchone()[0],
+            "members":        db.execute(text("SELECT COUNT(*) FROM members WHERE actif=1")).fetchone()[0],
+            "members_tg":     db.execute(text("SELECT COUNT(*) FROM members WHERE telegram IS NOT NULL AND telegram!=''")).fetchone()[0],
         }
         tenders = [dict(r) for r in db.execute(
-            "SELECT * FROM tenders WHERE statut='actif' ORDER BY ai_score DESC, date_extraction DESC LIMIT 6"
+            text("SELECT * FROM tenders WHERE statut='actif' ORDER BY ai_score DESC, date_extraction DESC LIMIT 6")
         ).fetchall()]
         sources = [dict(r) for r in db.execute(
-            "SELECT source, COUNT(*) as active FROM tenders WHERE statut='actif' GROUP BY source ORDER BY active DESC"
+            text("SELECT source, COUNT(*) as active FROM tenders WHERE statut='actif' GROUP BY source ORDER BY active DESC")
         ).fetchall()]
     finally:
         db.close()
@@ -1059,19 +1065,20 @@ async def ar_home(req: Request):
 async def ar_tenders(req: Request, q: str = "", code_f: str = "", easy: str = "",
                      region: str = "", page: int = 1):
     db = get_db(); per = 18
-    conds = ["statut='actif'"]; params: list = []
+    conds = ["statut='actif'"]; params: dict = {}
     if q:
-        conds.append("(objet LIKE ? OR acheteur LIKE ?)"); params += [f"%{q}%", f"%{q}%"]
+        conds.append("(objet LIKE :q1 OR acheteur LIKE :q2)"); params["q1"]=f"%{q}%"; params["q2"]=f"%{q}%"
     if code_f:
-        conds.append("domaine LIKE ?"); params.append(f"{code_f}%")
+        conds.append("domaine LIKE :code_f"); params["code_f"]=f"{code_f}%"
     if easy == "1":
         conds.append("ai_score >= 70")
     where = " AND ".join(conds)
+    params["per"]=per; params["off"]=(page-1)*per
     try:
-        total = db.execute(f"SELECT COUNT(*) FROM tenders WHERE {where}", params).fetchone()[0]
+        total = db.execute(text(f"SELECT COUNT(*) FROM tenders WHERE {where}"), params).fetchone()[0]
         tenders = [dict(r) for r in db.execute(
-            f"SELECT * FROM tenders WHERE {where} ORDER BY ai_score DESC, date_extraction DESC LIMIT ? OFFSET ?",
-            params + [per, (page-1)*per]
+            text(f"SELECT * FROM tenders WHERE {where} ORDER BY ai_score DESC, date_extraction DESC LIMIT :per OFFSET :off"),
+            params
         ).fetchall()]
     finally:
         db.close()
@@ -1108,8 +1115,8 @@ async def ar_login_get(req: Request):
     db = get_db()
     try:
         stats = {
-            "tenders_active": db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif'").fetchone()[0],
-            "members": db.execute("SELECT COUNT(*) FROM members WHERE actif=1").fetchone()[0],
+            "tenders_active": db.execute(text("SELECT COUNT(*) FROM tenders WHERE statut='actif'")).fetchone()[0],
+            "members": db.execute(text("SELECT COUNT(*) FROM members WHERE actif=1")).fetchone()[0],
         }
     finally:
         db.close()
@@ -1144,36 +1151,37 @@ async def api_ingest(req: Request):
             obj_key = (t.get("objet","")[:60]).strip().lower()
             if len(obj_key) > 10:
                 dup = db.execute(
-                    "SELECT id FROM tenders WHERE LOWER(SUBSTR(objet,1,60))=? AND date_extraction >= date(\'now\',\'-1 day\')",
-                    (obj_key,)
+                    text("SELECT id FROM tenders WHERE LOWER(SUBSTR(objet,1,60))=:obj_key AND date_extraction >= date('now','-1 day')"),
+                    {"obj_key": obj_key}
                 ).fetchone()
                 if dup: continue  # déjà en DB
-            # Classify with AI
             domaine = ClassifierAgent.secteur((t.get("objet","") + " " + t.get("description",""))[:300])
             region  = ClassifierAgent.region((t.get("acheteur","") + " " + t.get("objet",""))[:300])
             score   = 50
             try:
-                changed = db.execute("""INSERT OR IGNORE INTO tenders
+                changed = db.execute(text("""INSERT OR IGNORE INTO tenders
                     (id,objet,acheteur,region,domaine,type_marche,montant,
                      date_publication,date_limite,description,statut,url,source,
                      ai_score,date_extraction)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (
-                    str(t.get("id",""))[:80],
-                    str(t.get("objet",""))[:400],
-                    str(t.get("acheteur",""))[:200],
-                    str(region or t.get("region","Maroc"))[:100],
-                    str(domaine or t.get("domaine",""))[:80],
-                    str(ClassifierAgent.type_marche(t.get("objet","")))[:40],
-                    str(t.get("montant",""))[:80],
-                    datetime.now().strftime("%d/%m/%Y"),
-                    str(t.get("date_limite",""))[:20],
-                    str(t.get("description",""))[:2000],
-                    str(t.get("statut","actif")),
-                    str(t.get("source_url",""))[:400],
-                    str(t.get("source","local"))[:40],
-                    score,
-                    datetime.now().strftime("%Y-%m-%d %H:%M"),
-                )).rowcount
+                    VALUES (:id,:objet,:acheteur,:region,:domaine,:type_marche,:montant,
+                     :date_publication,:date_limite,:description,:statut,:url,:source,
+                     :ai_score,:date_extraction)"""), {
+                    "id": str(t.get("id",""))[:80],
+                    "objet": str(t.get("objet",""))[:400],
+                    "acheteur": str(t.get("acheteur",""))[:200],
+                    "region": str(region or t.get("region","Maroc"))[:100],
+                    "domaine": str(domaine or t.get("domaine",""))[:80],
+                    "type_marche": str(ClassifierAgent.type_marche(t.get("objet","")))[:40],
+                    "montant": str(t.get("montant",""))[:80],
+                    "date_publication": datetime.now().strftime("%d/%m/%Y"),
+                    "date_limite": str(t.get("date_limite",""))[:20],
+                    "description": str(t.get("description",""))[:2000],
+                    "statut": str(t.get("statut","actif")),
+                    "url": str(t.get("source_url",""))[:400],
+                    "source": str(t.get("source","local"))[:40],
+                    "ai_score": score,
+                    "date_extraction": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                }).rowcount
                 if changed: saved += 1
             except Exception as e:
                 logger.error(f"[ingest] {e}")
@@ -1195,18 +1203,18 @@ async def export_csv(req: Request, q:str="", code_f:str="", region:str="", easy:
     if not m:
         return RedirectResponse("/login", 302)
     db = get_db()
-    conds = ["statut='actif'"]; params = []
+    conds = ["statut='actif'"]; params = {}
     if q:
-        conds.append("(objet LIKE ? OR acheteur LIKE ?)"); params += [f"%{q}%",f"%{q}%"]
+        conds.append("(objet LIKE :q1 OR acheteur LIKE :q2)"); params["q1"]=f"%{q}%"; params["q2"]=f"%{q}%"
     if code_f:
-        conds.append("domaine LIKE ?"); params.append(f"{code_f}%")
+        conds.append("domaine LIKE :code_f"); params["code_f"]=f"{code_f}%"
     if region:
-        conds.append("region LIKE ?"); params.append(f"%{region}%")
+        conds.append("region LIKE :region"); params["region"]=f"%{region}%"
     if easy == "1":
         conds.append("ai_score >= 70")
     where = " AND ".join(conds)
     rows = db.execute(
-        f"SELECT objet,acheteur,region,domaine,montant,date_publication,date_limite,source,ai_score,url FROM tenders WHERE {where} ORDER BY ai_score DESC LIMIT 2000",
+        text(f"SELECT objet,acheteur,region,domaine,montant,date_publication,date_limite,source,ai_score,url FROM tenders WHERE {where} ORDER BY ai_score DESC LIMIT 2000"),
         params
     ).fetchall()
     db.close()
@@ -1238,16 +1246,16 @@ async def toggle_fav(req: Request, tid: str):
     db = get_db()
     try:
         ex = db.execute(
-            "SELECT id FROM favoris WHERE member_id=? AND tender_id=?",
-            (m["id"], tid)
+            text("SELECT id FROM favoris WHERE member_id=:mid AND tender_id=:tid"),
+            {"mid":m["id"], "tid":tid}
         ).fetchone()
         if ex:
-            db.execute("DELETE FROM favoris WHERE member_id=? AND tender_id=?", (m["id"], tid))
+            db.execute(text("DELETE FROM favoris WHERE member_id=:mid AND tender_id=:tid"), {"mid":m["id"], "tid":tid})
             db.commit(); db.close()
             return JSONResponse({"fav": False})
         db.execute(
-            "INSERT OR IGNORE INTO favoris(member_id,tender_id,created_at) VALUES(?,?,?)",
-            (m["id"], tid, datetime.now().strftime("%Y-%m-%d %H:%M"))
+            text("INSERT OR IGNORE INTO favoris(member_id,tender_id,created_at) VALUES(:mid,:tid,:created_at)"),
+            {"mid":m["id"], "tid":tid, "created_at":datetime.now().strftime("%Y-%m-%d %H:%M")}
         )
         db.commit(); db.close()
         return JSONResponse({"fav": True})
@@ -1266,16 +1274,17 @@ async def favoris_page(req: Request):
     db = get_db()
     try:
         fav_rows = db.execute(
-            "SELECT tender_id FROM favoris WHERE member_id=? ORDER BY created_at DESC",
-            (m["id"],)
+            text("SELECT tender_id FROM favoris WHERE member_id=:mid ORDER BY created_at DESC"),
+            {"mid":m["id"]}
         ).fetchall()
         fav_ids = [r["tender_id"] for r in fav_rows]
         tenders = []
         if fav_ids:
-            ph = ",".join(["?"]*len(fav_ids))
+            ph = ",".join([f":id{i}" for i in range(len(fav_ids))])
+            fav_params = {f"id{i}": v for i, v in enumerate(fav_ids)}
             tenders = [dict(r) for r in db.execute(
-                f"SELECT * FROM tenders WHERE id IN ({ph}) ORDER BY ai_score DESC",
-                fav_ids
+                text(f"SELECT * FROM tenders WHERE id IN ({ph}) ORDER BY ai_score DESC"),
+                fav_params
             ).fetchall()]
     finally:
         db.close()
@@ -1354,9 +1363,9 @@ async def admin_clear_db(req: Request, pwd: str = "", confirm: str = ""):
 </body></html>""")
     db = get_db()
     try:
-        count = db.execute("SELECT COUNT(*) FROM tenders").fetchone()[0]
+        count = db.execute(text("SELECT COUNT(*) FROM tenders")).fetchone()[0]
         for tbl in ["tenders","favoris","notif_queue","scrape_runs","agent_errors","api_keys"]:
-            try: db.execute(f"DELETE FROM {tbl}")
+            try: db.execute(text(f"DELETE FROM {tbl}"))
             except: pass
         db.commit()
         db.close()
@@ -1391,7 +1400,7 @@ async def admin_heal_now(req: Request, pwd: str = ""):
         schema = SelfHealingAgent.repair_schema(db)
         expired = SelfHealingAgent.expire_tenders(db)
         clean = SelfHealingAgent.clean_db(db)
-        active = db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif'").fetchone()[0]
+        active = db.execute(text("SELECT COUNT(*) FROM tenders WHERE statut='actif'")).fetchone()[0]
         return JSONResponse({
             "ok": True,
             "schema_repairs": len([r for r in schema if r.startswith("✅")]),
@@ -1406,7 +1415,7 @@ async def admin_heal_now(req: Request, pwd: str = ""):
 @router.get("/health")
 async def health():
     db=get_db()
-    try: active=db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif'").fetchone()[0]
+    try: active=db.execute(text("SELECT COUNT(*) FROM tenders WHERE statut='actif'")).fetchone()[0]
     finally: db.close()
     return JSONResponse({"status":"ok","version":"5.0","brand":BRAND,"active_tenders":active,
         "agents":["ScraperAgent","ClassifierAgent","NotifyAgent","MonitorAgent","ChatAgent"],

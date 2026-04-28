@@ -7,6 +7,7 @@ from fastapi.routing import APIRouter
 from app.core.config   import cfg
 from app.core.database import get_db
 from app.core.dates    import is_expired, format_deadline
+from sqlalchemy import text
 import re, json, secrets, logging
 from datetime import datetime, date
 from typing import Optional
@@ -33,20 +34,21 @@ async def marketplace(req: Request, type_f="", secteur_f="", region_f="", q="", 
     per=16; off=(page-1)*per
     db=get_db()
     try:
-        conds=["p.status='actif'"]; params=[]
-        if type_f:    conds.append("p.type=?");    params.append(type_f)
-        if secteur_f: conds.append("p.secteur=?"); params.append(secteur_f)
-        if region_f:  conds.append("p.region=?");  params.append(region_f)
+        conds=["p.status='actif'"]; params={}
+        if type_f:    conds.append("p.type=:type_f");    params["type_f"]=type_f
+        if secteur_f: conds.append("p.secteur=:secteur_f"); params["secteur_f"]=secteur_f
+        if region_f:  conds.append("p.region=:region_f");  params["region_f"]=region_f
         if q:
-            conds.append("(p.titre LIKE ? OR p.description LIKE ?)")
-            params+=[f"%{q[:80]}%"]*2
+            conds.append("(p.titre LIKE :q1 OR p.description LIKE :q2)")
+            params["q1"]=f"%{q[:80]}%"; params["q2"]=f"%{q[:80]}%"
         w=" AND ".join(conds)
-        total  = db.execute(f"SELECT COUNT(*) FROM posts p WHERE {w}",params).fetchone()[0]
+        params["per"]=per; params["off"]=off
+        total  = db.execute(text(f"SELECT COUNT(*) FROM posts p WHERE {w}"),params).fetchone()[0]
         posts  = [dict(r) for r in db.execute(
-            f"""SELECT p.*,m.nom as m_nom,m.entreprise,m.rating_avg,m.rating_count,m.verified
+            text(f"""SELECT p.*,m.nom as m_nom,m.entreprise,m.rating_avg,m.rating_count,m.verified
                 FROM posts p JOIN members m ON m.id=p.member_id WHERE {w}
-                ORDER BY p.id DESC LIMIT ? OFFSET ?""",
-            params+[per,off]).fetchall()]
+                ORDER BY p.id DESC LIMIT :per OFFSET :off"""),
+            params).fetchall()]
     finally: db.close()
     counter("pv:marketplace")
     return render(req,"marketplace.html",{
@@ -72,8 +74,8 @@ async def mp_new_post(req: Request, titre:str=Form(""), description:str=Form("")
     if len(titre.strip())<10: return render(req,"marketplace_new.html",{"error":"Titre trop court (min 10 chars)"})
     db=get_db()
     try:
-        db.execute("INSERT INTO posts (member_id,type,titre,description,secteur,region,budget,contact,created_at) VALUES (?,?,?,?,?,?,?,?,?)",
-                   (m["id"],type_p,titre.strip()[:200],description.strip()[:3000],secteur,region,budget.strip()[:60],contact.strip()[:100],now_str()))
+        db.execute(text("INSERT INTO posts (member_id,type,titre,description,secteur,region,budget,contact,created_at) VALUES (:member_id,:type_p,:titre,:description,:secteur,:region,:budget,:contact,:created_at)"),
+                   {"member_id":m["id"],"type_p":type_p,"titre":titre.strip()[:200],"description":description.strip()[:3000],"secteur":secteur,"region":region,"budget":budget.strip()[:60],"contact":contact.strip()[:100],"created_at":now_str()})
         db.commit()
     finally: db.close()
     return RedirectResponse("/marketplace",302)
@@ -83,14 +85,14 @@ async def mp_new_post(req: Request, titre:str=Form(""), description:str=Form("")
 async def mp_detail(req: Request, pid:int):
     db=get_db()
     try:
-        row=db.execute("SELECT p.*,m.nom as m_nom,m.entreprise,m.rating_avg,m.rating_count,m.verified,m.phone,m.email as m_email FROM posts p JOIN members m ON m.id=p.member_id WHERE p.id=? AND p.status='actif'",(pid,)).fetchone()
+        row=db.execute(text("SELECT p.*,m.nom as m_nom,m.entreprise,m.rating_avg,m.rating_count,m.verified,m.phone,m.email as m_email FROM posts p JOIN members m ON m.id=p.member_id WHERE p.id=:pid AND p.status='actif'"),{"pid":pid}).fetchone()
         if not row: raise HTTPException(404)
         post=dict(row)
-        db.execute("UPDATE posts SET views=COALESCE(views,0)+1 WHERE id=?",(pid,)); db.commit()
-        ratings=[dict(r) for r in db.execute("SELECT r.*,m.nom as from_nom FROM ratings r JOIN members m ON m.id=r.from_id WHERE r.to_id=? ORDER BY r.id DESC LIMIT 10",(post["member_id"],)).fetchall()]
+        db.execute(text("UPDATE posts SET views=COALESCE(views,0)+1 WHERE id=:pid"),{"pid":pid}); db.commit()
+        ratings=[dict(r) for r in db.execute(text("SELECT r.*,m.nom as from_nom FROM ratings r JOIN members m ON m.id=r.from_id WHERE r.to_id=:mid ORDER BY r.id DESC LIMIT 10"),{"mid":post["member_id"]}).fetchall()]
         cur=get_member(req)
         can_rate=cur and cur["id"]!=post["member_id"]
-        already=cur and bool(db.execute("SELECT 1 FROM ratings WHERE from_id=? AND to_id=?",(cur["id"],post["member_id"])).fetchone())
+        already=cur and bool(db.execute(text("SELECT 1 FROM ratings WHERE from_id=:from_id AND to_id=:to_id"),{"from_id":cur["id"],"to_id":post["member_id"]}).fetchone())
     finally: db.close()
     return render(req,"marketplace_detail.html",{"post":post,"ratings":ratings,"can_rate":can_rate,"already_rated":already})
 
@@ -102,10 +104,10 @@ async def mp_rate(req: Request, mid:int, score:int=Form(5), comment:str=Form("")
     if cur["id"]==mid: raise HTTPException(400)
     db=get_db()
     try:
-        db.execute("INSERT OR IGNORE INTO ratings (from_id,to_id,score,comment,created_at) VALUES (?,?,?,?,?)",(cur["id"],mid,max(1,min(5,score)),comment.strip()[:300],now_str()))
+        db.execute(text("INSERT OR IGNORE INTO ratings (from_id,to_id,score,comment,created_at) VALUES (:from_id,:to_id,:score,:comment,:created_at)"),{"from_id":cur["id"],"to_id":mid,"score":max(1,min(5,score)),"comment":comment.strip()[:300],"created_at":now_str()})
         db.commit()
-        avg=db.execute("SELECT AVG(score),COUNT(*) FROM ratings WHERE to_id=?",(mid,)).fetchone()
-        db.execute("UPDATE members SET rating_avg=?,rating_count=? WHERE id=?",(round(avg[0],1),avg[1],mid))
+        avg=db.execute(text("SELECT AVG(score),COUNT(*) FROM ratings WHERE to_id=:mid"),{"mid":mid}).fetchone()
+        db.execute(text("UPDATE members SET rating_avg=:avg,rating_count=:cnt WHERE id=:mid"),{"avg":round(avg[0],1),"cnt":avg[1],"mid":mid})
         db.commit()
     finally: db.close()
     return RedirectResponse(req.headers.get("referer","/marketplace"),302)
@@ -115,10 +117,10 @@ async def mp_rate(req: Request, mid:int, score:int=Form(5), comment:str=Form("")
 async def annuaire(req: Request, secteur_f="", q=""):
     db=get_db()
     try:
-        conds=["actif=1"]; params=[]
-        if secteur_f: conds.append("secteur=?"); params.append(secteur_f)
-        if q: conds.append("(nom LIKE ? OR entreprise LIKE ? OR ville LIKE ?)"); params+=[f"%{q}%"]*3
-        members=[dict(r) for r in db.execute(f"SELECT * FROM members WHERE {' AND '.join(conds)} ORDER BY rating_avg DESC,id DESC LIMIT 60",params).fetchall()]
+        conds=["actif=1"]; params={}
+        if secteur_f: conds.append("secteur=:secteur_f"); params["secteur_f"]=secteur_f
+        if q: conds.append("(nom LIKE :q1 OR entreprise LIKE :q2 OR ville LIKE :q3)"); params["q1"]=f"%{q}%"; params["q2"]=f"%{q}%"; params["q3"]=f"%{q}%"
+        members=[dict(r) for r in db.execute(text(f"SELECT * FROM members WHERE {' AND '.join(conds)} ORDER BY rating_avg DESC,id DESC LIMIT 60"),params).fetchall()]
     finally: db.close()
     return render(req,"annuaire.html",{"members":members,"secteur_f":secteur_f,"q":q})
 
@@ -128,7 +130,7 @@ async def filters_get(req: Request):
     m=get_member(req)
     if not m: return RedirectResponse("/login",302)
     db=get_db()
-    try: my_filters=[dict(r) for r in db.execute("SELECT * FROM member_filters WHERE member_id=? ORDER BY type,value",(m["id"],)).fetchall()]
+    try: my_filters=[dict(r) for r in db.execute(text("SELECT * FROM member_filters WHERE member_id=:mid ORDER BY type,value"),{"mid":m["id"]}).fetchall()]
     finally: db.close()
     return render(req,"filters.html",{"m":m,"my_filters":my_filters})
 
@@ -140,7 +142,7 @@ async def filters_add(req: Request, ftype:str=Form(""), value:str=Form("")):
     if ftype in ["secteur","region","keyword"] and value.strip():
         db=get_db()
         try:
-            db.execute("INSERT OR IGNORE INTO member_filters (member_id,type,value,created_at) VALUES (?,?,?,?)",(m["id"],ftype,value.strip()[:80],now_str()))
+            db.execute(text("INSERT OR IGNORE INTO member_filters (member_id,type,value,created_at) VALUES (:mid,:ftype,:value,:created_at)"),{"mid":m["id"],"ftype":ftype,"value":value.strip()[:80],"created_at":now_str()})
             db.commit()
         finally: db.close()
     return RedirectResponse("/filters",302)
@@ -151,7 +153,7 @@ async def filters_delete(req: Request, fid:int=Form(0)):
     m=get_member(req)
     if not m: return RedirectResponse("/login",302)
     db=get_db()
-    try: db.execute("DELETE FROM member_filters WHERE id=? AND member_id=?",(fid,m["id"])); db.commit()
+    try: db.execute(text("DELETE FROM member_filters WHERE id=:fid AND member_id=:mid"),{"fid":fid,"mid":m["id"]}); db.commit()
     finally: db.close()
     return RedirectResponse("/filters",302)
 
@@ -163,8 +165,8 @@ async def dashboard(req: Request):
     if not m: return RedirectResponse("/login",302)
     db=get_db()
     try:
-        my_posts=[dict(r) for r in db.execute("SELECT * FROM posts WHERE member_id=? ORDER BY id DESC LIMIT 5",(m["id"],)).fetchall()]
-        my_ratings=[dict(r) for r in db.execute("SELECT r.*,mem.nom as from_nom FROM ratings r JOIN members mem ON mem.id=r.from_id WHERE r.to_id=? ORDER BY r.id DESC LIMIT 5",(m["id"],)).fetchall()]
+        my_posts=[dict(r) for r in db.execute(text("SELECT * FROM posts WHERE member_id=:mid ORDER BY id DESC LIMIT 5"),{"mid":m["id"]}).fetchall()]
+        my_ratings=[dict(r) for r in db.execute(text("SELECT r.*,mem.nom as from_nom FROM ratings r JOIN members mem ON mem.id=r.from_id WHERE r.to_id=:mid ORDER BY r.id DESC LIMIT 5"),{"mid":m["id"]}).fetchall()]
         stats=MonitorAgent.get_stats()
     finally: db.close()
     counter("pv:dashboard")
@@ -188,13 +190,13 @@ async def settings_post(req: Request, nom:str=Form(""), entreprise:str=Form(""),
     error=""
     db=get_db()
     try:
-        db.execute("UPDATE members SET nom=?,entreprise=?,phone=?,secteur=?,ville=?,notif_email=?,notif_tg=? WHERE id=?",
-                   (nom.strip() or m["nom"],entreprise.strip(),phone.strip(),secteur,ville.strip(),
-                    1 if notif_email else 0,1 if notif_tg else 0,m["id"]))
+        db.execute(text("UPDATE members SET nom=:nom,entreprise=:entreprise,phone=:phone,secteur=:secteur,ville=:ville,notif_email=:notif_email,notif_tg=:notif_tg WHERE id=:id"),
+                   {"nom":nom.strip() or m["nom"],"entreprise":entreprise.strip(),"phone":phone.strip(),"secteur":secteur,"ville":ville.strip(),
+                    "notif_email":1 if notif_email else 0,"notif_tg":1 if notif_tg else 0,"id":m["id"]})
         if password and password_new:
             if not check_pw(password,m.get("pw_hash","")): error="Mot de passe actuel incorrect"
             elif len(password_new)<8: error="Nouveau mot de passe trop court"
-            else: db.execute("UPDATE members SET pw_hash=? WHERE id=?",(hash_pw(password_new),m["id"]))
+            else: db.execute(text("UPDATE members SET pw_hash=:pw_hash WHERE id=:id"),{"pw_hash":hash_pw(password_new),"id":m["id"]})
         db.commit()
     finally: db.close()
     m=get_member(req)

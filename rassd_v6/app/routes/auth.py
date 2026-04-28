@@ -7,6 +7,7 @@ from fastapi.routing import APIRouter
 from app.core.config   import cfg
 from app.core.database import get_db
 from app.core.dates    import is_expired, format_deadline
+from sqlalchemy import text
 import re, json, secrets, logging
 from datetime import datetime, date, timedelta
 from typing import Optional
@@ -51,13 +52,13 @@ async def reg_post(req: Request, nom:str=Form(""), entreprise:str=Form(""),
     else:
         db=get_db()
         try:
-            if db.execute("SELECT 1 FROM members WHERE email=?",(email.lower(),)).fetchone():
+            if db.execute(text("SELECT 1 FROM members WHERE email=:email"),{"email":email.lower()}).fetchone():
                 error="Email déjà utilisé"
             else:
-                db.execute("INSERT INTO members (nom,entreprise,email,phone,secteur,ville,pw_hash,actif,notif_email,notif_tg,created_at) VALUES (?,?,?,?,?,?,?,1,1,1,?)",
-                           (nom.strip(),entreprise.strip(),email.lower().strip(),phone.strip(),secteur,ville.strip(),hash_pw(password),now_str()))
+                db.execute(text("INSERT INTO members (nom,entreprise,email,phone,secteur,ville,pw_hash,actif,notif_email,notif_tg,created_at) VALUES (:nom,:entreprise,:email,:phone,:secteur,:ville,:pw_hash,1,1,1,:created_at)"),
+                           {"nom":nom.strip(),"entreprise":entreprise.strip(),"email":email.lower().strip(),"phone":phone.strip(),"secteur":secteur,"ville":ville.strip(),"pw_hash":hash_pw(password),"created_at":now_str()})
                 db.commit()
-                uid=db.execute("SELECT id FROM members WHERE email=?",(email.lower(),)).fetchone()[0]
+                uid=db.execute(text("SELECT id FROM members WHERE email=:email"),{"email":email.lower()}).fetchone()[0]
                 db.close()
                 counter("registrations")
                 # Send verification email
@@ -93,11 +94,11 @@ async def login_post(req: Request, email:str=Form(""), password:str=Form("")):
     rl(req,f"login:{get_ip(req)}",5,300)
     db=get_db()
     try:
-        row=db.execute("SELECT * FROM members WHERE email=? AND actif=1",(email.lower().strip(),)).fetchone()
+        row=db.execute(text("SELECT * FROM members WHERE email=:email AND actif=1"),{"email":email.lower().strip()}).fetchone()
         if not row or not check_pw(password,dict(row).get("pw_hash","")):
             return render(req,"login.html",{"error":"Email ou mot de passe incorrect","reset":""})
         m=dict(row)
-        db.execute("UPDATE members SET last_login=? WHERE id=?",(now_str(),m["id"])); db.commit()
+        db.execute(text("UPDATE members SET last_login=:ts WHERE id=:id"),{"ts":now_str(),"id":m["id"]}); db.commit()
     finally: db.close()
     counter("logins")
     resp=RedirectResponse("/dashboard",302)
@@ -119,7 +120,7 @@ async def forgot_get(req: Request):
 async def forgot_post(req: Request, email:str=Form("")):
     rl(req,"forgot",3,3600)
     db=get_db()
-    try: row=db.execute("SELECT id,nom FROM members WHERE email=? AND actif=1",(email.lower().strip(),)).fetchone()
+    try: row=db.execute(text("SELECT id,nom FROM members WHERE email=:email AND actif=1"),{"email":email.lower().strip()}).fetchone()
     finally: db.close()
     if row:
         token=secrets.token_urlsafe(32)
@@ -129,7 +130,7 @@ async def forgot_post(req: Request, email:str=Form("")):
             f'<div style="font-family:Georgia;background:#0d0d0d;color:#fff;padding:28px;border-radius:10px"><div style="font-size:18px;font-weight:700;color:#c9a84c;margin-bottom:14px">◆ Modern Business</div><p>Cliquez pour réinitialiser votre mot de passe (valide 2h):</p><a href="{reset_url}" style="display:inline-block;margin-top:14px;padding:10px 22px;background:#c9a84c;color:#000;border-radius:6px;font-weight:700;text-decoration:none">Réinitialiser →</a></div>')
         db=get_db()
         try:
-            tg=db.execute("SELECT telegram FROM members WHERE email=?",(email.lower(),)).fetchone()
+            tg=db.execute(text("SELECT telegram FROM members WHERE email=:email"),{"email":email.lower()}).fetchone()
             if tg and tg["telegram"]:
                 NotifyAgent.enqueue(None,"telegram",tg["telegram"],"",
                     f"🔑 <b>Réinitialisation mot de passe</b>\n\nLien (2h):\n{reset_url}")
@@ -153,7 +154,7 @@ async def reset_post(req: Request, token:str=Form(""), password:str=Form(""), pa
     if len(password)<8: return render(req,"reset.html",{"token":token,"error":"Minimum 8 caractères"})
     if password!=password2: return render(req,"reset.html",{"token":token,"error":"Mots de passe différents"})
     db=get_db()
-    try: db.execute("UPDATE members SET pw_hash=? WHERE email=?",(hash_pw(password),data["email"])); db.commit()
+    try: db.execute(text("UPDATE members SET pw_hash=:pw_hash WHERE email=:email"),{"pw_hash":hash_pw(password),"email":data["email"]}); db.commit()
     finally: db.close()
     del RESET_TOKENS[token]
     return RedirectResponse("/login?reset=1",302)
@@ -167,7 +168,7 @@ async def verify_email(req: Request, token: str = ""):
         return render(req, "login.html", {"error": "Lien expiré. Connectez-vous pour en recevoir un nouveau.", "reset": ""})
     db = get_db()
     try:
-        db.execute("UPDATE members SET verified=1 WHERE id=?", (data["uid"],))
+        db.execute(text("UPDATE members SET verified=1 WHERE id=:uid"), {"uid": data["uid"]})
         db.commit()
     finally: db.close()
     try: del VERIFY_TOKENS[token]
