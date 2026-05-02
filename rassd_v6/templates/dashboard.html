@@ -1,87 +1,124 @@
 {% extends "base.html" %}
-{% block title %}Dashboard — SOURCE{% endblock %}
-{% block content %}
-<div style="margin-bottom: 2rem;">
-    <div class="flex justify-between items-center mb-3">
-        <h1 style="font-size: 1.5rem; color: #f1f5f9;">Dashboard</h1>
-        <div class="flex gap-2">
-            {% if scraping %}
-            <span class="badge badge-yellow">🔄 Scan en cours...</span>
-            {% else %}
-            <span class="badge badge-green">✅ À jour</span>
-            {% endif %}
-            <span class="text-muted" style="font-size: 0.875rem;">Dernier scan: {{ last_scan }}</span>
-        </div>
+{% block title %}Mon espace — Atlas Pro{% endblock %}
+{% block body %}
+<style>
+.dash-hero { padding: 64px 0 32px; border-bottom: 1px solid var(--line); }
+.dash-greeting { font-family: var(--serif); font-style: italic; font-weight: 300; font-size: clamp(36px, 5vw, 64px); color: var(--text1); line-height: 1; letter-spacing: -.02em; font-variation-settings: "opsz" 144, "SOFT" 100, "WONK" 1; margin-top: 16px; }
+.dash-greeting em { color: var(--gold); }
+.dash-meta { display: flex; gap: 32px; margin-top: 28px; font-family: var(--mono); font-size: 11px; letter-spacing: .15em; text-transform: uppercase; color: var(--text3); flex-wrap: wrap; }
+.dash-meta-item span { color: var(--gold); }
+
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); margin: 56px 0; }
+.stat-cell { background: var(--bg); padding: 36px 28px; text-align: left; }
+.stat-num { font-family: var(--serif); font-style: italic; font-weight: 300; font-size: 64px; color: var(--gold); line-height: .9; font-variation-settings: "opsz" 144, "SOFT" 100, "WONK" 1; }
+.stat-label { font-family: var(--mono); font-size: 10px; color: var(--text4); letter-spacing: .25em; text-transform: uppercase; margin-top: 16px; }
+
+.dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; padding: 56px 0; }
+.dash-section-label { font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: .3em; text-transform: uppercase; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+
+.rec-row { display: block; padding: 20px 16px; border-bottom: 1px solid var(--line); transition: all .35s; text-decoration: none; color: inherit; }
+.rec-row:hover { background: rgba(212,165,116,.04); padding-left: 28px; }
+.rec-tags { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+.rec-title { font-family: var(--serif); font-weight: 300; font-size: 16px; color: var(--text1); line-height: 1.35; margin-bottom: 6px; font-variation-settings: "opsz" 80, "SOFT" 50; }
+.rec-meta { font-family: var(--mono); font-size: 10px; color: var(--text4); letter-spacing: .12em; }
+
+.notif-row { display: grid; grid-template-columns: 1fr auto; gap: 16px; align-items: center; padding: 18px 16px; border-bottom: 1px solid var(--line); }
+.notif-title { font-size: 14px; color: var(--text1); margin-bottom: 4px; line-height: 1.45; }
+.notif-meta { font-family: var(--mono); font-size: 9px; color: var(--text4); letter-spacing: .12em; text-transform: uppercase; }
+
+.empty-tile { padding: 48px 24px; text-align: center; border: 1px dashed var(--line); border-radius: var(--r2); }
+.empty-tile-text { font-family: var(--serif); font-style: italic; font-size: 17px; color: var(--text3); margin-bottom: 20px; line-height: 1.5; font-variation-settings: "opsz" 80, "SOFT" 100; }
+
+.quick-bar { background: var(--bg2); border: 1px solid var(--line); padding: 24px 28px; margin-top: 56px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; border-radius: var(--r2); }
+.quick-bar-label { font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: .25em; text-transform: uppercase; flex: 1; }
+
+@media(max-width: 900px) {
+  .stats-row { grid-template-columns: 1fr 1fr; }
+  .dash-grid { grid-template-columns: 1fr; gap: 40px; }
+  .stat-num { font-size: 44px; }
+}
+</style>
+
+<div class="container" style="padding-top: 24px;">
+  <section class="dash-hero">
+    <div class="section-label">Espace personnel</div>
+    <h1 class="dash-greeting">Bonjour, <em>{{ member.nom or 'bienvenue' }}.</em></h1>
+    <div class="dash-meta">
+      <div class="dash-meta-item">Plan <span>{{ member.plan|upper }}</span></div>
+      <div class="dash-meta-item">Statut <span>Actif</span></div>
+      <div class="dash-meta-item">Membre depuis <span>{{ (member.created_at or '')[:10] }}</span></div>
+    </div>
+  </section>
+
+  <div class="stats-row">
+    <div class="stat-cell">
+      <div class="stat-num">{{ stats.favs or 0 }}</div>
+      <div class="stat-label">Favoris</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-num">{{ stats.notifs or 0 }}</div>
+      <div class="stat-label">Alertes reçues</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-num">{{ member.plan|upper if member.plan else '—' }}</div>
+      <div class="stat-label">Plan actuel</div>
+    </div>
+    <div class="stat-cell">
+      <div class="stat-num">●</div>
+      <div class="stat-label">En activité</div>
+    </div>
+  </div>
+
+  <div class="dash-grid">
+    <div>
+      <div class="dash-section-label">Marchés recommandés</div>
+      {% if recs %}
+        {% for t in recs %}
+        {% set dl_n, dl_l = days_left(t.date_limite) %}
+        <a href="/tenders/{{ t.id }}" class="rec-row">
+          <div class="rec-tags">
+            <span class="badge badge-gold">{{ t.secteur[:22] }}</span>
+            {% if dl_l and dl_n <= 7 %}<span class="badge badge-red">{{ dl_l }}</span>{% endif %}
+          </div>
+          <div class="rec-title">{{ t.objet[:100] }}</div>
+          <div class="rec-meta">⏰ {{ t.date_limite or '—' }}</div>
+        </a>
+        {% endfor %}
+      {% else %}
+      <div class="empty-tile">
+        <div class="empty-tile-text">Définissez vos secteurs pour des recommandations personnalisées.</div>
+        <a href="/settings" class="btn btn-outline btn-sm">Configurer mes secteurs →</a>
+      </div>
+      {% endif %}
     </div>
 
-    <div class="grid grid-4 mb-3">
-        <div class="card text-center">
-            <div class="text-muted" style="font-size: 0.875rem;">Favoris</div>
-            <div class="card-title">{{ ms.favs }}</div>
-        </div>
-        <div class="card text-center">
-            <div class="text-muted" style="font-size: 0.875rem;">Soumissions</div>
-            <div class="card-title">{{ ms.subs }}</div>
-        </div>
-        <div class="card text-center">
-            <div class="text-muted" style="font-size: 0.875rem;">Gagnés</div>
-            <div class="card-title text-success">{{ ms.won }}</div>
-        </div>
-        <div class="card text-center">
-            <div class="text-muted" style="font-size: 0.875rem;">Urgents (7j)</div>
-            <div class="card-title text-danger">{{ ms.soon }}</div>
-        </div>
-    </div>
-
-    {% if matched %}
-    <div class="mb-3">
-        <h2 style="font-size: 1.125rem; color: #f1f5f9; margin-bottom: 1rem;">🔥 Marchés recommandés pour vous</h2>
-        <div class="grid grid-2">
-            {% for t in matched %}
-            <div class="card">
-                <div class="flex justify-between items-center mb-1">
-                    <span class="badge badge-blue">{{ t.stx10_code }} - {{ t.stx10_label }}</span>
-                    <span class="text-muted" style="font-size: 0.75rem;">{{ days_left(t.date_limite)[1] }}</span>
-                </div>
-                <a href="/tenders/{{ t.id }}" style="color: #f1f5f9; text-decoration: none; font-weight: 500;">
-                    {{ t.objet[:100] }}{% if t.objet|length > 100 %}...{% endif %}
-                </a>
-                <div class="flex justify-between items-center mt-2">
-                    <span class="text-muted" style="font-size: 0.75rem;">{{ t.acheteur[:50] }}</span>
-                    <span class="badge badge-green">Score: {{ t.score }}/100</span>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-
-    {% if recent %}
-    <div class="mb-3">
-        <h2 style="font-size: 1.125rem; color: #f1f5f9; margin-bottom: 1rem;">🆕 Derniers marchés</h2>
-        {% for t in recent %}
-        <div class="card" style="padding: 1rem;">
-            <div class="flex justify-between items-center">
-                <div style="flex: 1;">
-                    <div class="flex gap-2 mb-1">
-                        <span class="badge badge-blue">{{ t.stx10_code }}</span>
-                        <span class="text-muted" style="font-size: 0.75rem;">{{ days_left(t.date_limite)[1] }}</span>
-                    </div>
-                    <a href="/tenders/{{ t.id }}" style="color: #f1f5f9; text-decoration: none;">
-                        {{ t.objet[:120] }}{% if t.objet|length > 120 %}...{% endif %}
-                    </a>
-                </div>
-                <div style="text-align: right;">
-                    <span class="badge badge-green">{{ t.score }}/100</span>
-                </div>
-            </div>
+    <div>
+      <div class="dash-section-label">Dernières notifications</div>
+      {% if notifs %}
+        {% for n in notifs %}
+        <div class="notif-row">
+          <div>
+            <div class="notif-title">{{ n.objet[:80] }}</div>
+            <div class="notif-meta">{{ n.channel }} · {{ n.sent_at[:10] }}</div>
+          </div>
+          <span class="badge {% if n.channel=='email' %}badge-blue{% else %}badge-gold{% endif %}">{{ n.channel }}</span>
         </div>
         {% endfor %}
+      {% else %}
+      <div class="empty-tile">
+        <div class="empty-tile-text">Aucune notification reçue. Activez les alertes pour rester informé.</div>
+        <a href="/settings" class="btn btn-primary btn-sm">Activer les alertes →</a>
+      </div>
+      {% endif %}
     </div>
-    {% endif %}
+  </div>
 
-    <div style="text-align: center; margin-top: 2rem;">
-        <a href="/tenders" class="btn btn-primary">Voir tous les marchés →</a>
-    </div>
+  <div class="quick-bar">
+    <span class="quick-bar-label">Accès rapide</span>
+    <a href="/tenders" class="btn btn-outline btn-sm">Tous les marchés</a>
+    <a href="/favorites" class="btn btn-outline btn-sm">★ Favoris</a>
+    <a href="/settings" class="btn btn-outline btn-sm">Alertes</a>
+    <a href="/feedback" class="btn btn-outline btn-sm">Feedback</a>
+  </div>
 </div>
 {% endblock %}

@@ -1,108 +1,214 @@
 {% extends "base.html" %}
-{% block title %}{{ t.objet[:50] }} — SOURCE{% endblock %}
-{% block content %}
-<div style="margin-bottom: 2rem;">
-    <div class="card">
-        <div class="flex justify-between items-start mb-2">
-            <div class="flex gap-2">
-                <span class="badge badge-blue">{{ t.stx10_code }} - {{ t.stx10_label }}</span>
-                <span class="badge {% if score >= 70 %}badge-green{% elif score >= 40 %}badge-yellow{% else %}badge-red{% endif %}">Score: {{ score }}/100</span>
-            </div>
-            <button onclick="toggleFav('{{ t.id }}')" class="btn btn-outline" style="padding: 0.375rem 0.75rem;">
-                {% if is_fav %}❤️ Favori{% else %}🤍 Ajouter{% endif %}
-            </button>
-        </div>
+{% block title %}{{ (t.objet or '')[:60] }} — Atlas Pro{% endblock %}
+{% block body %}
+<style>
+.detail-back { display: inline-flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 10px; color: var(--text4); letter-spacing: .25em; text-transform: uppercase; transition: color .25s; margin-bottom: 40px; }
+.detail-back:hover { color: var(--gold); }
 
-        <h1 style="font-size: 1.25rem; color: #f1f5f9; margin-bottom: 1rem;">{{ t.objet }}</h1>
+.detail-grid { display: grid; grid-template-columns: 1fr 320px; gap: 48px; align-items: flex-start; }
 
-        <div class="grid grid-2 mb-3">
-            <div>
-                <div class="text-muted" style="font-size: 0.875rem;">Acheteur</div>
-                <div>{{ t.acheteur }}</div>
-            </div>
-            <div>
-                <div class="text-muted" style="font-size: 0.875rem;">Région</div>
-                <div>{{ t.region or "—" }}</div>
-            </div>
-            <div>
-                <div class="text-muted" style="font-size: 0.875rem;">Montant estimé</div>
-                <div>{{ t.montant or "—" }}</div>
-            </div>
-            <div>
-                <div class="text-muted" style="font-size: 0.875rem;">Date limite</div>
-                <div class="{% if dl <= 3 %}text-danger{% elif dl <= 7 %}text-warning{% else %}text-success{% endif %}">
-                    {{ t.date_limite }} ({{ dl_label }})
-                </div>
-            </div>
-        </div>
+.detail-eyebrow { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }
 
-        {% if t.ai_summary %}
-        <div class="card" style="background: rgba(14, 165, 233, 0.05); border-color: rgba(14, 165, 233, 0.2);">
-            <div style="font-size: 0.875rem; color: #7dd3fc; margin-bottom: 0.5rem;">🤖 Résumé IA</div>
-            <p style="font-size: 0.875rem; white-space: pre-line;">{{ t.ai_summary }}</p>
-        </div>
+.detail-title {
+  font-family: var(--serif); font-weight: 300;
+  font-size: clamp(28px, 4vw, 48px);
+  color: var(--text1); line-height: 1.15;
+  letter-spacing: -.015em;
+  font-variation-settings: "opsz" 144, "SOFT" 50, "WONK" 1;
+  margin-bottom: 32px;
+}
+
+.deadline-banner {
+  padding: 18px 24px; border-radius: var(--r2);
+  font-family: var(--mono); font-size: 11px; font-weight: 500;
+  letter-spacing: .15em; text-transform: uppercase;
+  margin-bottom: 40px;
+  display: flex; align-items: center; gap: 12px;
+}
+
+.info-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 1px; background: var(--line);
+  border: 1px solid var(--line);
+  margin: 40px 0;
+}
+.info-cell { background: var(--bg); padding: 24px 28px; }
+.info-label { font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: .25em; text-transform: uppercase; margin-bottom: 10px; }
+.info-value { font-family: var(--serif); font-weight: 300; font-size: 22px; color: var(--text1); letter-spacing: -.005em; line-height: 1.2; font-variation-settings: "opsz" 80, "SOFT" 50; }
+.info-value em { font-style: italic; color: var(--gold); }
+
+.desc-section { margin-top: 56px; padding-top: 40px; border-top: 1px solid var(--line); }
+.desc-label { font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: .3em; text-transform: uppercase; margin-bottom: 24px; }
+.desc-content { font-family: var(--serif); font-weight: 300; font-size: 17px; color: var(--text2); line-height: 1.85; white-space: pre-wrap; max-height: 280px; overflow: hidden; transition: max-height .5s; font-variation-settings: "opsz" 80, "SOFT" 30; }
+.desc-content.expanded { max-height: 4000px; }
+.desc-toggle { background: transparent; border: none; color: var(--gold); font-family: var(--mono); font-size: 10px; letter-spacing: .2em; cursor: pointer; margin-top: 16px; padding: 8px 0; }
+
+.related-section { margin-top: 80px; padding-top: 56px; border-top: 1px solid var(--line); }
+.related-label { font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: .3em; text-transform: uppercase; margin-bottom: 32px; }
+.related-row { display: block; padding: 24px 16px; border-bottom: 1px solid var(--line); transition: all .35s; text-decoration: none; }
+.related-row:hover { background: rgba(212,165,116,.04); padding-left: 28px; }
+.related-title { font-family: var(--serif); font-weight: 300; font-size: 18px; color: var(--text1); line-height: 1.3; margin-bottom: 6px; font-variation-settings: "opsz" 80, "SOFT" 50; }
+.related-meta { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: .15em; }
+
+.sticky-box { position: sticky; top: 96px; }
+.action-card { background: var(--bg2); border: 1px solid var(--line); padding: 24px; margin-bottom: 16px; border-radius: var(--r2); }
+.action-card-label { font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: .25em; text-transform: uppercase; margin-bottom: 16px; }
+.action-card-info { display: flex; flex-direction: column; gap: 12px; }
+.action-card-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.action-card-row:last-child { border-bottom: none; }
+.action-card-key { font-family: var(--mono); font-size: 10px; color: var(--text4); letter-spacing: .15em; text-transform: uppercase; }
+.action-card-val { font-family: var(--mono); font-size: 11px; color: var(--text1); letter-spacing: .1em; }
+
+.alert-card {
+  background: var(--goldb);
+  border: 1px solid rgba(212,165,116,.25);
+  padding: 28px 24px;
+  border-radius: var(--r2);
+  position: relative;
+  overflow: hidden;
+}
+.alert-card::before { content: "✦"; position: absolute; top: 12px; right: 16px; color: var(--gold); font-size: 14px; }
+.alert-card-title { font-family: var(--serif); font-weight: 300; font-size: 22px; color: var(--text1); margin-bottom: 12px; line-height: 1.25; font-variation-settings: "opsz" 80, "SOFT" 100, "WONK" 1; font-style: italic; }
+.alert-card-text { font-size: 13px; color: var(--text3); line-height: 1.7; margin-bottom: 20px; }
+
+@media (max-width: 900px) {
+  .detail-grid { grid-template-columns: 1fr; gap: 32px; }
+  .sticky-box { position: relative; top: 0; }
+  .info-grid { grid-template-columns: 1fr; }
+}
+</style>
+
+<div class="page" style="max-width: 1200px;">
+  <a href="/tenders" class="detail-back">← Retour aux marchés</a>
+
+  <div class="detail-grid">
+    <div>
+      <div class="detail-eyebrow">
+        <span class="badge badge-gold">{{ t.secteur }}</span>
+        {% if t.region %}<span class="badge badge-gray">{{ t.region }}</span>{% endif %}
+        {% if t.description and 'Source:' in t.description %}
+          {% set src_name = t.description.split('Source:')[1].split('|')[0].strip()[:20] %}
+          <span class="badge badge-blue">{{ src_name }}</span>
+        {% else %}
+          <span class="badge badge-gray">marchespublics.gov.ma</span>
         {% endif %}
+      </div>
 
-        {% if t.url %}
-        <a href="{{ t.url }}" target="_blank" class="btn btn-primary" style="margin-top: 1rem;">Voir l'annonce →</a>
-        {% endif %}
-    </div>
+      <h1 class="detail-title">{{ t.objet }}</h1>
 
-    <!-- Pipeline -->
-    <div class="card mt-2">
-        <h3 style="font-size: 1rem; color: #f1f5f9; margin-bottom: 1rem;">Pipeline</h3>
-        <form method="post" action="/pipeline/{{ t.id }}">
-            <div class="grid grid-3" style="gap: 0.75rem;">
-                <div class="form-group" style="margin-bottom: 0;">
-                    <select name="status" class="form-input">
-                        <option value="watching" {% if sub and sub.status == 'watching' %}selected{% endif %}>👀 À l'étude</option>
-                        <option value="submitted" {% if sub and sub.status == 'submitted' %}selected{% endif %}>📤 Soumis</option>
-                        <option value="won" {% if sub and sub.result == 'won' %}selected{% endif %}>✅ Gagné</option>
-                        <option value="lost" {% if sub and sub.result == 'lost' %}selected{% endif %}>❌ Perdu</option>
-                    </select>
-                </div>
-                <div class="form-group" style="margin-bottom: 0;">
-                    <input type="number" name="score_go" value="{{ sub.score_go if sub else 0 }}" class="form-input" placeholder="Score Go/No-Go" min="0" max="100">
-                </div>
-                <button type="submit" class="btn btn-primary">Mettre à jour</button>
-            </div>
-            <div class="form-group mt-2" style="margin-bottom: 0;">
-                <textarea name="notes" class="form-input" rows="3" placeholder="Notes...">{{ sub.notes if sub else '' }}</textarea>
-            </div>
-        </form>
-    </div>
+      {% if days_left is defined %}
+        {% set dl_n, dl_l = days_left(t.date_limite) %}
+      {% elif dl is defined %}
+        {% set dl_n, dl_l = dl(t.date_limite) %}
+      {% else %}
+        {% set dl_n = 999 %}{% set dl_l = "" %}
+      {% endif %}
 
-    <!-- Notes -->
-    <div class="card mt-2">
-        <h3 style="font-size: 1rem; color: #f1f5f9; margin-bottom: 1rem;">Mes notes</h3>
-        <form method="post" action="/notes/{{ t.id }}">
-            <textarea name="note" class="form-input" rows="4" placeholder="Vos notes personnelles...">{{ note }}</textarea>
-            <button type="submit" class="btn btn-secondary mt-2">Sauvegarder</button>
-        </form>
-    </div>
+      {% if dl_l %}
+      <div class="deadline-banner" style="background: {% if dl_n < 0 %}rgba(210,120,102,.06){% elif dl_n <= 3 %}rgba(210,120,102,.06){% elif dl_n <= 7 %}rgba(212,165,116,.06){% else %}rgba(125,200,154,.05){% endif %}; border: 1px solid {% if dl_n < 0 or dl_n <= 3 %}rgba(210,120,102,.22){% elif dl_n <= 7 %}rgba(212,165,116,.22){% else %}rgba(125,200,154,.18){% endif %}; color: {% if dl_n < 0 or dl_n <= 3 %}var(--red){% elif dl_n <= 7 %}var(--gold){% else %}var(--grn){% endif %};">
+        ⏱ {{ dl_l }} {% if dl_n >= 0 and t.date_limite %}— Date limite : {{ t.date_limite }}{% endif %}
+      </div>
+      {% endif %}
 
-    {% if similar %}
-    <div class="mt-3">
-        <h3 style="font-size: 1rem; color: #f1f5f9; margin-bottom: 1rem;">Marchés similaires</h3>
-        <div class="grid grid-2">
-            {% for s in similar %}
-            <div class="card" style="padding: 1rem;">
-                <span class="badge badge-blue">{{ s.stx10_code }}</span>
-                <a href="/tenders/{{ s.id }}" style="color: #f1f5f9; text-decoration: none; font-size: 0.875rem;">
-                    {{ s.objet[:100] }}{% if s.objet|length > 100 %}...{% endif %}
-                </a>
-            </div>
-            {% endfor %}
+      <div class="info-grid">
+        <div class="info-cell">
+          <div class="info-label">Acheteur</div>
+          <div class="info-value">{{ (t.acheteur or '—')[:60] }}</div>
         </div>
+        <div class="info-cell">
+          <div class="info-label">Secteur</div>
+          <div class="info-value"><em>{{ t.secteur }}</em></div>
+        </div>
+        <div class="info-cell">
+          <div class="info-label">Publication</div>
+          <div class="info-value">{{ t.date_publication or '—' }}</div>
+        </div>
+        <div class="info-cell">
+          <div class="info-label">Date limite</div>
+          <div class="info-value" style="color: var(--red);">{{ t.date_limite or '—' }}</div>
+        </div>
+        <div class="info-cell">
+          <div class="info-label">Montant</div>
+          <div class="info-value" style="color: var(--grn);">{{ t.montant or '—' }}</div>
+        </div>
+        <div class="info-cell">
+          <div class="info-label">Vues</div>
+          <div class="info-value">{{ (t.views or 0) }}</div>
+        </div>
+      </div>
+
+      {% if t.description and (t.description or '')|length > 80 %}
+      <div class="desc-section">
+        <div class="desc-label">Description complète</div>
+        <div id="desc" class="desc-content">{{ t.description[:5000] }}</div>
+        <button class="desc-toggle" onclick="const d=document.getElementById('desc');const exp=d.classList.toggle('expanded');this.textContent=exp?'Réduire ▲':'Lire la suite ▼';">Lire la suite ▼</button>
+      </div>
+      {% endif %}
+
+      {% if related %}
+      <div class="related-section">
+        <div class="related-label">Marchés similaires</div>
+        {% for r2 in related %}
+        <a href="/tenders/{{ r2.id }}" class="related-row" style="color: inherit;">
+          <div class="related-title">{{ r2.objet[:120] }}</div>
+          <div class="related-meta">⏰ {{ r2.date_limite or '—' }} · {{ (r2.acheteur or '')[:40] }}</div>
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
     </div>
-    {% endif %}
+
+    <div class="sticky-box">
+      <div class="action-card">
+        <a href="{{ t.url }}" target="_blank" class="btn btn-primary btn-full" style="margin-bottom: 12px;">Source officielle ↗</a>
+        {% if member %}
+        <button onclick="toggleFav(this,'{{ t.id }}')" id="favbtn" class="btn btn-outline btn-full btn-sm {% if is_fav %}active{% endif %}">
+          {% if is_fav %}★ Retirer des favoris{% else %}☆ Ajouter aux favoris{% endif %}
+        </button>
+        {% else %}
+        <a href="/register" class="btn btn-outline btn-full btn-sm">M'alerter sur ce secteur</a>
+        {% endif %}
+      </div>
+
+      <div class="action-card">
+        <div class="action-card-label">Métadonnées</div>
+        <div class="action-card-info">
+          <div class="action-card-row">
+            <span class="action-card-key">ID</span>
+            <span class="action-card-val">{{ t.id[:14] }}</span>
+          </div>
+          <div class="action-card-row">
+            <span class="action-card-key">Scrapé</span>
+            <span class="action-card-val">{{ t.scraped_at[:10] }}</span>
+          </div>
+          <div class="action-card-row">
+            <span class="action-card-key">Statut</span>
+            <span class="badge badge-grn">{{ t.statut }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert-card">
+        <div class="alert-card-title">Alerte <span style="color: var(--gold);">automatique</span></div>
+        <div class="alert-card-text">Recevez les prochains marchés «&nbsp;{{ t.secteur }}&nbsp;» par Email & Telegram, dès leur publication.</div>
+        <a href="{% if member %}/settings{% else %}/register{% endif %}" class="btn btn-primary btn-full btn-sm">
+          {% if member %}Gérer mes alertes{% else %}Créer mon alerte{% endif %}
+        </a>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
-async function toggleFav(tid) {
-    const r = await fetch(`/favorites/${tid}`, {method: 'POST'});
-    const j = await r.json();
-    if (j.ok) location.reload();
+async function toggleFav(btn, tid) {
+  try {
+    const r = await fetch(`/tenders/${tid}/favorite`, {method: 'POST'});
+    const d = await r.json();
+    if (d.ok) {
+      btn.textContent = d.fav ? '★ Retirer des favoris' : '☆ Ajouter aux favoris';
+      btn.classList.toggle('active', d.fav);
+    }
+  } catch(e) { console.error(e); }
 }
 </script>
 {% endblock %}

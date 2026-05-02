@@ -1,10 +1,26 @@
 {% extends "base.html" %}
-{% block title %}Page non trouvée — SOURCE{% endblock %}
-{% block content %}
-<div style="text-align: center; padding: 5rem 0;">
-    <div style="font-size: 5rem; margin-bottom: 1rem;">🔍</div>
-    <h1 style="font-size: 2rem; color: #f1f5f9; margin-bottom: 1rem;">404 — Page non trouvée</h1>
-    <p class="text-muted mb-3">La page que vous recherchez n'existe pas.</p>
-    <a href="/" class="btn btn-primary">Retour à l'accueil</a>
+{% block title %}Page introuvable — Atlas Pro{% endblock %}
+{% block body %}
+<style>
+.err-wrap { min-height: calc(100vh - 200px); display: flex; align-items: center; justify-content: center; padding: 60px 24px; position: relative; overflow: hidden; text-align: center; }
+.err-wrap::before { content: ""; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 800px; height: 800px; border-radius: 50%; background: radial-gradient(circle, rgba(212,165,116,.5) 0%, transparent 60%); opacity: .08; filter: blur(100px); }
+.err-content { position: relative; z-index: 2; max-width: 600px; }
+.err-num { font-family: var(--serif); font-style: italic; font-weight: 300; font-size: clamp(160px, 28vw, 360px); line-height: .8; color: var(--gold); font-variation-settings: "opsz" 144, "SOFT" 100, "WONK" 1; opacity: .9; letter-spacing: -.05em; }
+.err-title { font-family: var(--serif); font-weight: 300; font-size: clamp(36px, 5vw, 64px); line-height: 1; letter-spacing: -.02em; color: var(--text1); margin: 24px 0; font-variation-settings: "opsz" 144, "SOFT" 50, "WONK" 1; }
+.err-title em { font-style: italic; color: var(--gold); }
+.err-sub { font-family: var(--serif); font-style: italic; font-size: 19px; color: var(--text3); line-height: 1.6; margin-bottom: 48px; font-variation-settings: "opsz" 80, "SOFT" 100, "WONK" 1; }
+.err-cta { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+</style>
+
+<div class="err-wrap">
+  <div class="err-content">
+    <div class="err-num">404</div>
+    <h1 class="err-title">Page <em>introuvable.</em></h1>
+    <p class="err-sub">La page que vous cherchez n'existe plus, ou n'a peut-être jamais existé. Le marché a peut-être expiré.</p>
+    <div class="err-cta">
+      <a href="/" class="btn btn-primary btn-lg">Retour à l'accueil →</a>
+      <a href="/tenders" class="btn btn-outline btn-lg">Voir les marchés</a>
+    </div>
+  </div>
 </div>
 {% endblock %}

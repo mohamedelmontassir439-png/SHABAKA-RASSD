@@ -1,5 +1,5 @@
 """
-SOURCE — WhatsApp Client (Baileys bridge)
+ATLAS PRO — WhatsApp Client (Baileys bridge)
 Envoie des messages via le service Node.js Baileys local
 """
 import os, logging, requests
@@ -12,10 +12,14 @@ WA_SECRET = os.getenv("WA_SECRET", "atlas_wa_secret_2024")
 HEADERS   = {"x-wa-token": WA_SECRET, "Content-Type": "application/json"}
 
 def wa_connected() -> bool:
+    """Vérifie si le service WhatsApp local est connecté."""
     try:
         r = requests.get(f"{WA_URL}/health", timeout=3)
         return r.json().get("connected", False)
-    except: return False
+    except (requests.RequestException, ValueError) as e:
+        # RequestException = réseau down, ValueError = JSON invalide
+        logger.debug(f"[wa_connected] Service indisponible: {e}")
+        return False
 
 def send_wa(phone: str, message: str) -> bool:
     """Envoie un message WhatsApp"""
@@ -48,7 +52,7 @@ def format_tender_wa(tender: dict) -> str:
     url     = tender.get("url","")
     site    = cfg.SITE_URL
 
-    return f"""🔔 *SOURCE — Nouveau Marché*
+    return f"""🔔 *ATLAS PRO — Nouveau Marché*
 
 📋 *{objet}*
 
@@ -58,4 +62,4 @@ def format_tender_wa(tender: dict) -> str:
 
 👉 Voir les détails: {site}/tenders/{tender.get('id','')}
 
-_SOURCE — Veille Marchés Publics Maroc_"""
+_ATLAS PRO — Veille Marchés Publics Maroc_"""

@@ -1,31 +1,36 @@
 {% extends "base.html" %}
-{% block title %}Mot de passe oublié — SOURCE{% endblock %}
-{% block content %}
-<div style="max-width: 400px; margin: 3rem auto;">
-    <div class="card">
-        <h2 class="card-title text-center">Mot de passe oublié</h2>
+{% block title %}Mot de passe oublié — Atlas Pro{% endblock %}
+{% block body %}
+<style>
+.auth-wrap { min-height: calc(100vh - 200px); display: flex; align-items: center; justify-content: center; padding: 60px 24px; position: relative; overflow: hidden; }
+.auth-wrap::before { content: ""; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 700px; height: 700px; border-radius: 50%; background: radial-gradient(circle, rgba(212,165,116,.5) 0%, transparent 60%); opacity: .08; filter: blur(100px); pointer-events: none; }
+.auth-card { width: 100%; max-width: 460px; position: relative; z-index: 2; }
+.auth-eyebrow { font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: .35em; text-transform: uppercase; margin-bottom: 20px; text-align: center; }
+.auth-title { font-family: var(--serif); font-weight: 300; font-size: 56px; color: var(--text1); line-height: 1; letter-spacing: -.025em; text-align: center; margin-bottom: 12px; font-variation-settings: "opsz" 144, "SOFT" 50, "WONK" 1; }
+.auth-title em { font-style: italic; color: var(--gold); }
+.auth-sub { font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--text3); text-align: center; margin-bottom: 56px; line-height: 1.5; font-variation-settings: "opsz" 80, "SOFT" 100, "WONK" 1; }
+.auth-form { display: flex; flex-direction: column; gap: 28px; }
+.auth-foot { text-align: center; margin-top: 40px; padding-top: 32px; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 11px; color: var(--text4); letter-spacing: .1em; }
+.auth-foot a { color: var(--gold); }
+</style>
 
-        {% if sent %}
-        <div class="alert alert-success">
-            Si cet email existe, un lien de réinitialisation a été envoyé.
-        </div>
-        {% else %}
-        {% if error %}
-        <div class="alert alert-error">{{ error }}</div>
-        {% endif %}
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-eyebrow">Récupération</div>
+    <h1 class="auth-title">Mot de passe <em>oublié ?</em></h1>
+    <p class="auth-sub">Saisissez votre email — nous vous enverrons un lien de réinitialisation.</p>
 
-        <form method="post" action="/forgot">
-            <div class="form-group">
-                <label class="form-label">Email</label>
-                <input type="email" name="email" class="form-input" placeholder="votre@email.com" required>
-            </div>
-            <button type="submit" class="btn btn-primary" style="width: 100%;">Envoyer le lien</button>
-        </form>
-        {% endif %}
+    {% if msg %}<div class="alert alert-ok" style="margin-bottom: 24px;">{{ msg }}</div>{% endif %}
+    {% if err %}<div class="alert alert-err" style="margin-bottom: 24px;">{{ err }}</div>{% endif %}
 
-        <div style="text-align: center; margin-top: 1rem; font-size: 0.875rem;">
-            <a href="/login" class="text-muted">← Retour à la connexion</a>
-        </div>
+    <form method="post" class="auth-form">
+      <div class="field"><label>Email</label><input name="email" type="email" class="inp" required autofocus></div>
+      <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top: 16px;">Envoyer le lien →</button>
+    </form>
+
+    <div class="auth-foot">
+      <a href="/login">← Retour à la connexion</a>
     </div>
+  </div>
 </div>
 {% endblock %}

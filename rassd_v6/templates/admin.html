@@ -1,108 +1,236 @@
-{% extends "base.html" %}
-{% block title %}Admin — SOURCE{% endblock %}
-{% block content %}
-<div style="margin-bottom: 2rem;">
-    <h1 style="font-size: 1.5rem; color: #f1f5f9; margin-bottom: 1rem;">Administration</h1>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Admin — Atlas Pro</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=JetBrains+Mono:wght@300;400;500&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0e; --bg2: #12121a; --bg3: #1a1a26;
+  --bdr: rgba(244,236,224,.08); --bdr2: rgba(244,236,224,.18);
+  --gold: #d4a574; --gold2: #e8bf8f;
+  --t1: #f4ece0; --t2: #d4ccbe; --t3: #9a9388; --t4: #5a544c;
+  --grn: #7dc89a; --red: #d27866; --blue: #8aa8d4;
+  --serif: 'Fraunces', Georgia, serif;
+  --sans: 'Manrope', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--t2); font-family: var(--sans); font-weight: 300; font-size: 13px; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+a { color: inherit; text-decoration: none; }
 
-    <div class="flex gap-2 mb-3">
-        <a href="/admin/scan" class="btn btn-primary">🔄 Lancer un scan</a>
-        <a href="/admin/test_notif" class="btn btn-secondary">📧 Test notifications</a>
-        <a href="/" class="btn btn-outline">← Retour au site</a>
-    </div>
+.topbar { background: rgba(10,10,14,.85); backdrop-filter: blur(20px); border-bottom: 1px solid var(--bdr); height: 64px; display: flex; align-items: center; padding: 0 32px; gap: 24px; position: sticky; top: 0; z-index: 100; }
+.brand { font-family: var(--serif); font-style: italic; font-weight: 300; font-size: 26px; color: var(--t1); letter-spacing: -.01em; }
+.brand em { color: var(--gold); }
+.brand-meta { font-family: var(--mono); font-size: 9px; color: var(--t4); letter-spacing: .25em; text-transform: uppercase; }
 
-    <div class="grid grid-3 mb-3">
-        <div class="card text-center">
-            <div class="text-muted" style="font-size: 0.875rem;">Marchés</div>
-            <div class="card-title">{{ stats.tenders }}</div>
-        </div>
-        <div class="card text-center">
-            <div class="text-muted" style="font-size: 0.875rem;">Membres</div>
-            <div class="card-title">{{ stats.members }}</div>
-        </div>
-        <div class="card text-center">
-            <div class="text-muted" style="font-size: 0.875rem;">Dernier scan</div>
-            <div class="card-title">{{ last_scan }}</div>
-        </div>
-    </div>
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; font-family: var(--mono); font-size: 10px; font-weight: 400; letter-spacing: .15em; text-transform: uppercase; cursor: pointer; border: 1px solid transparent; transition: all .25s; border-radius: 4px; }
+.btn-p { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+.btn-p:hover { background: var(--gold2); }
+.btn-o { background: transparent; border-color: var(--bdr2); color: var(--t2); }
+.btn-o:hover { border-color: var(--gold); color: var(--gold); }
+.btn-d { background: rgba(210,120,102,.08); border-color: rgba(210,120,102,.25); color: var(--red); }
 
-    <div class="card">
-        <h3 style="font-size: 1rem; color: #f1f5f9; margin-bottom: 1rem;">Membres</h3>
-        <div style="overflow-x: auto;">
-            <table style="width: 100%; font-size: 0.875rem;">
-                <thead>
-                    <tr style="border-bottom: 1px solid #334155;">
-                        <th style="text-align: left; padding: 0.5rem;">ID</th>
-                        <th style="text-align: left; padding: 0.5rem;">Nom</th>
-                        <th style="text-align: left; padding: 0.5rem;">Email</th>
-                        <th style="text-align: left; padding: 0.5rem;">Plan</th>
-                        <th style="text-align: left; padding: 0.5rem;">Statut</th>
-                        <th style="text-align: left; padding: 0.5rem;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for m in members %}
-                    <tr style="border-bottom: 1px solid #334155;">
-                        <td style="padding: 0.5rem;">{{ m.id }}</td>
-                        <td style="padding: 0.5rem;">{{ m.nom }}</td>
-                        <td style="padding: 0.5rem;">{{ m.email }}</td>
-                        <td style="padding: 0.5rem;"><span class="badge badge-blue">{{ m.plan }}</span></td>
-                        <td style="padding: 0.5rem;">
-                            {% if m.actif %}
-                            <span class="badge badge-green">Actif</span>
-                            {% else %}
-                            <span class="badge badge-red">Inactif</span>
-                            {% endif %}
-                        </td>
-                        <td style="padding: 0.5rem;">
-                            <form method="post" action="/admin/member/{{ m.id }}/toggle" style="display: inline;">
-                                <button type="submit" class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
-                                    {% if m.actif %}Désactiver{% else %}Activer{% endif %}
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
+.page { max-width: 1280px; margin: 0 auto; padding: 40px 32px; }
+.page-h { display: flex; align-items: end; justify-content: space-between; margin-bottom: 48px; padding-bottom: 24px; border-bottom: 1px solid var(--bdr); }
+.page-h-title { font-family: var(--serif); font-weight: 300; font-size: 56px; color: var(--t1); line-height: 1; letter-spacing: -.02em; }
+.page-h-title em { font-style: italic; color: var(--gold); }
+.page-h-sub { font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: .3em; text-transform: uppercase; margin-bottom: 12px; }
 
-    <div class="card mt-3">
-        <h3 style="font-size: 1rem; color: #f1f5f9; margin-bottom: 1rem;">Top Secteurs</h3>
-        {% for item in top_stx10 %}
-        <div class="flex justify-between items-center" style="padding: 0.5rem 0; border-bottom: 1px solid #334155;">
-            <span>{{ item.stx10_code }} - {{ item.stx10_label }}</span>
-            <span class="badge badge-blue">{{ item.cnt }}</span>
-        </div>
-        {% endfor %}
-    </div>
+.stats-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px; background: var(--bdr); border: 1px solid var(--bdr); margin-bottom: 32px; }
+.stat { background: var(--bg); padding: 24px 18px; }
+.stat-n { font-family: var(--serif); font-style: italic; font-weight: 300; font-size: 36px; color: var(--gold); line-height: 1; }
+.stat-l { font-family: var(--mono); font-size: 9px; color: var(--t4); margin-top: 12px; letter-spacing: .25em; text-transform: uppercase; }
 
-    <div class="card mt-3">
-        <h3 style="font-size: 1rem; color: #f1f5f9; margin-bottom: 1rem;">Demandes de paiement</h3>
-        <div style="overflow-x: auto;">
-            <table style="width: 100%; font-size: 0.875rem;">
-                <thead>
-                    <tr style="border-bottom: 1px solid #334155;">
-                        <th style="text-align: left; padding: 0.5rem;">Date</th>
-                        <th style="text-align: left; padding: 0.5rem;">Nom</th>
-                        <th style="text-align: left; padding: 0.5rem;">Plan</th>
-                        <th style="text-align: left; padding: 0.5rem;">Montant</th>
-                        <th style="text-align: left; padding: 0.5rem;">Statut</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for p in payments %}
-                    <tr style="border-bottom: 1px solid #334155;">
-                        <td style="padding: 0.5rem;">{{ p.created_at[:10] if p.created_at else '—' }}</td>
-                        <td style="padding: 0.5rem;">{{ p.nom }}</td>
-                        <td style="padding: 0.5rem;"><span class="badge badge-blue">{{ p.plan }}</span></td>
-                        <td style="padding: 0.5rem;">{{ p.amount }} MAD</td>
-                        <td style="padding: 0.5rem;"><span class="badge badge-yellow">{{ p.status }}</span></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.card { background: var(--bg2); border: 1px solid var(--bdr); margin-bottom: 24px; border-radius: 4px; }
+.card-h { padding: 18px 24px; border-bottom: 1px solid var(--bdr); display: flex; align-items: center; justify-content: space-between; }
+.card-ht { font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: .25em; text-transform: uppercase; }
+.card-b { padding: 24px; }
+
+.terminal { background: #050508; padding: 20px 24px; font-family: var(--mono); font-size: 11px; height: 360px; overflow-y: auto; line-height: 1.85; border-top: 1px solid var(--bdr); }
+.log-ok { color: var(--grn); }
+.log-err { color: var(--red); }
+.log-hdr { color: var(--gold); }
+.log-n { color: var(--t4); }
+
+.badge { display: inline-flex; padding: 3px 10px; font-family: var(--mono); font-size: 9px; font-weight: 500; letter-spacing: .15em; text-transform: uppercase; border-radius: 2px; }
+.b-g { background: rgba(212,165,116,.12); color: var(--gold); border: 1px solid rgba(212,165,116,.25); }
+.b-r { background: rgba(210,120,102,.08); color: var(--red); }
+.b-grn { background: rgba(125,200,154,.08); color: var(--grn); }
+
+.inp, .sel { background: transparent; border: 1px solid var(--bdr2); padding: 7px 10px; color: var(--t1); font-family: var(--mono); font-size: 11px; outline: none; border-radius: 3px; }
+.inp:focus, .sel:focus { border-color: var(--gold); }
+
+table { width: 100%; border-collapse: collapse; }
+th { font-family: var(--mono); font-size: 9px; font-weight: 500; color: var(--t4); letter-spacing: .25em; text-transform: uppercase; padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--bdr); }
+td { padding: 14px 16px; border-bottom: 1px solid var(--bdr); font-size: 12px; color: var(--t2); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(212,165,116,.03); }
+
+.sectors-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.sector-tag { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; background: var(--bg3); border: 1px solid var(--bdr); font-family: var(--mono); font-size: 10px; letter-spacing: .1em; border-radius: 99px; }
+.sector-tag span { color: var(--t2); }
+.sector-tag b { color: var(--gold); font-weight: 500; }
+
+.run-status { font-family: var(--mono); font-size: 10px; letter-spacing: .15em; }
+
+@media (max-width: 1100px) { .stats-grid { grid-template-columns: repeat(3, 1fr); } .grid2 { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand">Atlas<em>°</em></span>
+  <span class="brand-meta">Administration · v3.0</span>
+  <div style="margin-left: auto; display: flex; gap: 8px;">
+    <a href="/" class="btn btn-o">← Site public</a>
+    <a href="/admin/expire" class="btn btn-o" onclick="return confirm('Expirer les marchés passés ?')">Expirer</a>
+    <a href="/admin/clear?confirm=yes" class="btn btn-d" onclick="return confirm('SUPPRIMER TOUS LES MARCHÉS ? Action irréversible.')">Vider DB</a>
+  </div>
 </div>
-{% endblock %}
+
+<div class="page">
+  <div class="page-h">
+    <div>
+      <div class="page-h-sub">Tableau de bord administrateur</div>
+      <div class="page-h-title">Vue <em>globale.</em></div>
+    </div>
+  </div>
+
+  <div class="stats-grid">
+    {% for n, l in [(stats.tenders, 'Marchés actifs'), (stats.today, "Publiés aujourd'hui"), (stats.members, 'Membres'), (stats.notifs, 'Notifs (7j)'), (stats.expired, 'Expirés'), (stats.scrapes, 'Scans total')] %}
+    <div class="stat">
+      <div class="stat-n">{{ n }}</div>
+      <div class="stat-l">{{ l }}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="grid2">
+    <div>
+      <div class="card">
+        <div class="card-h">
+          <span class="card-ht">Scraper en temps réel</span>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <span id="st" class="run-status" style="color: {% if running %}var(--gold){% else %}var(--t4){% endif %};">{% if running %}● EN COURS{% else %}○ INACTIF{% endif %}</span>
+            <button onclick="launch()" id="btn" class="btn btn-p" {% if running %}disabled{% endif %}>▶ Lancer scan</button>
+            <a href="/admin/scrape" class="btn btn-o" title="Fallback direct">⚡</a>
+          </div>
+        </div>
+        {% if last_run %}
+        <div style="padding: 12px 24px; font-family: var(--mono); font-size: 10px; color: var(--t4); border-bottom: 1px solid var(--bdr); letter-spacing: .15em;">Dernier scan : {{ last_run[:16] }}</div>
+        {% endif %}
+        <div class="terminal" id="trm">
+          {% for l in logs %}
+          <div class="{% if '✓' in l %}log-ok{% elif '❌' in l or '⚠' in l %}log-err{% elif '═' in l or '✅' in l %}log-hdr{% else %}log-n{% endif %}">{{ l }}</div>
+          {% endfor %}
+        </div>
+      </div>
+
+      {% if scrapes %}
+      <div class="card">
+        <div class="card-h"><span class="card-ht">Historique des scans</span></div>
+        <table>
+          <tr><th>Date</th><th>Trouvés</th><th>Sauvés</th><th>Erreurs</th></tr>
+          {% for s in scrapes %}
+          <tr>
+            <td style="font-family: var(--mono); font-size: 10px; color: var(--t4); letter-spacing: .1em;">{{ s.run_at[:16] }}</td>
+            <td style="color: var(--blue);">{{ s.found }}</td>
+            <td style="color: var(--grn);">{{ s.saved }}</td>
+            <td style="color: {{ 'var(--red)' if s.errors > 0 else 'var(--t4)' }};">{{ s.errors }}</td>
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
+      {% endif %}
+    </div>
+
+    <div>
+      <div class="card">
+        <div class="card-h"><span class="card-ht">Répartition par secteur</span></div>
+        <div class="card-b">
+          <div class="sectors-grid">
+            {% for s in sectors %}
+            <div class="sector-tag">
+              <span>{{ s.secteur[:24] }}</span>
+              <b>{{ s.cnt }}</b>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h">
+          <span class="card-ht">Derniers membres</span>
+          <span style="font-family: var(--mono); font-size: 10px; color: var(--t4); letter-spacing: .15em;">{{ stats.members }} total</span>
+        </div>
+        <table>
+          <tr><th>Membre</th><th>Plan</th><th>Inscrit</th></tr>
+          {% for m in members %}
+          <tr>
+            <td>
+              <div style="color: var(--t1); font-size: 13px;">{{ m.nom or '—' }}</div>
+              <div style="color: var(--t4); font-size: 10px; font-family: var(--mono); letter-spacing: .1em;">{{ m.email[:30] }}</div>
+            </td>
+            <td>
+              <form method="post" action="/admin/member/{{ m.id }}/plan">
+                <select name="plan" class="sel" onchange="this.form.submit()">
+                  <option value="free" {% if m.plan=='free' %}selected{% endif %}>Gratuit</option>
+                  <option value="pro" {% if m.plan=='pro' %}selected{% endif %}>Pro</option>
+                  <option value="business" {% if m.plan=='business' %}selected{% endif %}>Business</option>
+                </select>
+              </form>
+            </td>
+            <td style="font-family: var(--mono); font-size: 10px; color: var(--t4); letter-spacing: .1em;">{{ m.created_at[:10] }}</td>
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let sse = null;
+async function launch() {
+  const btn = document.getElementById('btn'), trm = document.getElementById('trm'), st = document.getElementById('st');
+  btn.disabled = true; btn.textContent = '⏳ En cours…';
+  st.textContent = '● EN COURS'; st.style.color = 'var(--gold)';
+  trm.innerHTML = '<div class="log-hdr">═══ Lancement scraper temps réel ═══</div>';
+  const r = await fetch('/admin/scrape', { credentials: 'include' });
+  const d = await r.json();
+  if (!d.ok) {
+    trm.innerHTML += `<div class="log-err">❌ ${d.msg || 'Erreur: non autorisé'}</div>`;
+    trm.innerHTML += `<div class="log-n">→ <a href="/admin/scrape" style="color:var(--gold)" target="_blank">Cliquez ici pour lancer manuellement</a></div>`;
+    btn.disabled = false; btn.textContent = '▶ Lancer scan'; return;
+  }
+  if (sse) sse.close();
+  sse = new EventSource('/admin/scrape_stream', { withCredentials: true });
+  sse.onmessage = e => {
+    const data = JSON.parse(e.data);
+    if (data.log) {
+      const div = document.createElement('div');
+      const l = data.log;
+      div.className = l.includes('✓') ? 'log-ok' : (l.includes('❌') || l.includes('⚠')) ? 'log-err' : (l.includes('═') || l.includes('✅')) ? 'log-hdr' : 'log-n';
+      div.textContent = l;
+      trm.appendChild(div); trm.scrollTop = trm.scrollHeight;
+    }
+    if (data.done) {
+      sse.close();
+      btn.disabled = false; btn.textContent = '▶ Lancer scan';
+      st.textContent = '○ INACTIF'; st.style.color = 'var(--t4)';
+      const d2 = document.createElement('div'); d2.className = 'log-hdr';
+      d2.textContent = `✅ ${data.saved || 0} nouveaux marchés sauvegardés (${data.found || 0} trouvés)`;
+      trm.appendChild(d2); trm.scrollTop = trm.scrollHeight;
+      setTimeout(() => location.reload(), 3000);
+    }
+  };
+}
+document.getElementById('trm').scrollTop = document.getElementById('trm').scrollHeight;
+</script>
+</body>
+</html>

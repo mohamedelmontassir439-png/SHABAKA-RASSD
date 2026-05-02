@@ -1,162 +1,160 @@
-"""
-SOURCE v2.1 — Security Utilities
-=================================
-✅ bcrypt for password hashing
-✅ secrets for token generation
-✅ HMAC for admin signature
-✅ Input validation
-"""
-import re
-import secrets
-import hmac
-import hashlib
-from datetime import datetime, timedelta
-from typing import Tuple, Optional
-
-import bcrypt
-from fastapi import Request
-
+import bcrypt, hashlib, secrets, re
+from datetime import datetime, date, timedelta
+from typing import Optional
+from fastapi import Request, HTTPException
 from app.core.config import cfg
+from app.core.database import get_db
 
-# === Password Hashing ===
-def hash_pw(password: str) -> str:
-    """Hash password using bcrypt"""
-    return bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=12)).decode()
+def hash_pw(pw: str) -> str:
+    return bcrypt.hashpw(pw.encode(), bcrypt.gensalt(rounds=12)).decode()
 
-def verify_pw(password: str, hashed: str) -> bool:
-    """Verify password against bcrypt hash"""
-    return bcrypt.checkpw(password.encode(), hashed.encode())
+def verify_pw(pw: str, hashed: str) -> bool:
+    """Vérifie qu'un mot de passe correspond à son hash bcrypt.
 
-# === Token Generation ===
-def make_token(length: int = 32) -> str:
-    """Generate cryptographically secure random token"""
-    return secrets.token_urlsafe(length)
-
-def make_sig(subject: str, secret: str) -> str:
-    """Generate HMAC signature for admin"""
-    return hmac.new(
-        cfg.SECRET_KEY.encode(),
-        f"{subject}:{secret}".encode(),
-        hashlib.sha256
-    ).hexdigest()
-
-def verify_sig(subject: str, secret: str, sig: str) -> bool:
-    """Verify HMAC signature"""
-    return hmac.compare_digest(make_sig(subject, secret), sig)
-
-# === Input Validation ===
-EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
-
-def validate_email(email: str) -> bool:
-    """Validate email format"""
-    return bool(email and EMAIL_REGEX.match(email.strip().lower()))
-
-def validate_password(password: str) -> Tuple[bool, str]:
-    """Validate password strength"""
-    if len(password) < 8:
-        return False, "Le mot de passe doit contenir au moins 8 caractères."
-    if not re.search(r'[A-Z]', password):
-        return False, "Le mot de passe doit contenir au moins une majuscule."
-    if not re.search(r'[a-z]', password):
-        return False, "Le mot de passe doit contenir au moins une minuscule."
-    if not re.search(r'\d', password):
-        return False, "Le mot de passe doit contenir au moins un chiffre."
-    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
-        return False, "Le mot de passe doit contenir au moins un caractère spécial."
-    return True, ""
-
-# === Member Helpers ===
-def get_member(req: Request) -> Optional[dict]:
-    """Get current member from session cookie"""
-    token = req.cookies.get("_session", "")
-    if not token:
-        return None
-
-    from app.core.database import SessionLocal
-    db = SessionLocal()
+    Retourne False en cas d'erreur (hash invalide, encoding, etc.) au lieu de crasher.
+    """
     try:
+        return bcrypt.checkpw(pw.encode(), hashed.encode())
+    except (ValueError, TypeError) as e:
+        # Hash corrompu ou format invalide
+        import logging
+        logging.getLogger("atlas.security").warning(f"[verify_pw] Hash invalide: {e}")
+        return False
+
+def make_token(val: str, salt: str = "") -> str:
+    """Token stable basé sur SECRET_KEY (obligatoire, pas de fallback).
+
+    SECRET_KEY DOIT être défini en variable d'environnement en production.
+    Sans lui, tous les tokens deviendraient prévisibles = faille de sécurité majeure.
+    """
+    key = cfg.SECRET_KEY
+    if not key or len(key) < 32:
+        raise RuntimeError(
+            "SECRET_KEY manquant ou trop court (min 32 caractères). "
+            "Définis-le dans les variables d'environnement Railway. "
+            "Génère-en un avec: python -c 'import secrets; print(secrets.token_hex(32))'"
+        )
+    return hashlib.sha256(f"{val}{salt}{key}".encode()).hexdigest()[:40]
+
+def make_random_token() -> str:
+    return secrets.token_urlsafe(32)
+
+def make_session_token() -> str:
+    """Token aléatoire stocké en DB — indépendant du SECRET_KEY"""
+    return secrets.token_urlsafe(40)
+
+def get_member(req: Request) -> Optional[dict]:
+    token = req.cookies.get("_session", "")
+    if not token or len(token) < 10: return None
+    db = get_db()
+    try:
+        # Method 1: Direct DB token lookup (fast, no SECRET_KEY dependency)
         row = db.execute(
-            "SELECT * FROM members WHERE session_token=? AND actif=1", (token,)
+            "SELECT * FROM members WHERE actif=1 AND session_token=?",
+            (token,)
         ).fetchone()
-        return dict(row) if row else None
+        if row:
+            return dict(row)
+        # Method 2: Fallback - computed token (backward compat)
+        rows = db.execute("SELECT * FROM members WHERE actif=1").fetchall()
+        for row in rows:
+            if make_token(row["email"], row["created_at"]) == token:
+                # Migrate: store token in DB
+                db.execute("UPDATE members SET session_token=? WHERE id=?",
+                          (token, row["id"]))
+                db.commit()
+                return dict(row)
+    except Exception as e:
+        import logging
+        logging.getLogger("atlas.security").error(f"[get_member] {e}")
     finally:
         db.close()
+    return None
 
-def is_admin(req: Request) -> bool:
-    """Check if request is from admin"""
-    sig = req.cookies.get("_admin", "")
-    if not sig or not cfg.ADMIN_PASS:
-        return False
-    return verify_sig("admin", cfg.ADMIN_PASS, sig)
+def require_member(req: Request) -> dict:
+    m = get_member(req)
+    if not m:
+        from fastapi.responses import RedirectResponse
+        raise HTTPException(status_code=307, headers={"Location": "/login"})
+    return m
 
-def days_left(date_str: str) -> Tuple[int, str]:
-    """Calculate days left until deadline"""
-    if not date_str:
-        return (999, "—")
-    try:
-        dl = datetime.strptime(date_str, "%Y-%m-%d")
-        delta = (dl - datetime.now()).days
-        if delta < 0:
-            return (delta, "Expiré")
-        elif delta <= 3:
-            return (delta, f"{delta}j — Urgent")
-        elif delta <= 7:
-            return (delta, f"{delta}j")
-        else:
-            return (delta, f"{delta}j")
-    except ValueError:
-        return (999, "—")
+def require_admin(req: Request):
+    """Vérifie que le cookie admin est valide.
 
-def is_plan_ok(member: dict, required: str) -> bool:
-    """Check if member plan meets requirement"""
-    if not member:
-        return False
+    Le cookie contient un token dérivé de ADMIN_PASS + SECRET_KEY.
+    ADMIN_PASS doit être défini en variable d'environnement (jamais en clair dans le code).
+    """
+    if not cfg.ADMIN_PASS or cfg.ADMIN_PASS == "atlas2026":
+        # Valeur par défaut détectée = config non sécurisée
+        from fastapi.responses import RedirectResponse
+        raise HTTPException(
+            status_code=503,
+            detail="ADMIN_PASS non configuré ou utilise la valeur par défaut. "
+                   "Change-le dans les variables d'environnement Railway."
+        )
+    cookie = req.cookies.get("_admin", "")
+    if cookie != make_token("admin", cfg.ADMIN_PASS):
+        from fastapi.responses import RedirectResponse
+        raise HTTPException(status_code=307, headers={"Location": "/admin/login"})
+
+def validate_email(email: str) -> bool:
+    return bool(re.match(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$', email))
+
+def validate_password(pw: str) -> tuple[bool, str]:
+    """Valide qu'un mot de passe est suffisamment fort.
+
+    Règles:
+    - Au moins 8 caractères
+    - Au moins 1 chiffre OU 1 caractère spécial (anti-mot-de-passe trivial)
+    - Pas dans la liste des mots de passe trop courants
+    """
+    if len(pw) < 8:
+        return False, "Au moins 8 caractères"
+    if len(pw) > 128:
+        return False, "Trop long (max 128 caractères)"
+
+    # Rejette les mots de passe trop faibles même s'ils font 8+ caractères
+    weak = {"password", "12345678", "qwerty12", "admin123", "atlas123",
+            "00000000", "11111111", "abcdefgh", "password1"}
+    if pw.lower() in weak:
+        return False, "Mot de passe trop commun"
+
+    # Exige au moins 1 chiffre OU 1 caractère spécial
+    has_digit = any(c.isdigit() for c in pw)
+    has_special = any(not c.isalnum() for c in pw)
+    if not (has_digit or has_special):
+        return False, "Ajoute au moins un chiffre ou un caractère spécial"
+
+    return True, ""
+
+def is_plan_allowed(member: dict, feature: str) -> bool:
     plan = member.get("plan", "free")
-    hierarchy = {"free": 0, "essentiel": 1, "pro": 2, "unlimited": 3}
-    req_level = {"free": 0, "essentiel": 1, "pro": 2, "unlimited": 3, "api": 2}
-    return hierarchy.get(plan, 0) >= req_level.get(required, 0)
+    plans = cfg.PLANS
+    p = plans.get(plan, plans["free"])
+    if feature == "telegram": return p.get("telegram", False)
+    if feature == "api":      return p.get("api", False)
+    if feature == "tenders":
+        limit = p.get("tenders_day", 15)
+        return limit == 0  # 0 = unlimited
+    return False
 
-def compute_relevance_score(tender: dict, member_codes: list, member_regions: list) -> int:
-    """Compute relevance score for a tender"""
-    score = 0
-    if tender.get("stx10_code") in member_codes:
-        score += 50
-    if any(r in (tender.get("region", "") or "") for r in member_regions):
-        score += 30
-    dl = days_left(tender.get("date_limite", ""))[0]
-    if 0 <= dl <= 7:
-        score += 20
-    return min(score, 100)
-
-def send_reset_email(email: str, token: str) -> bool:
-    """Send password reset email"""
-    import smtplib
-    from email.mime.text import MIMEText
-
-    if not all([cfg.SMTP_HOST, cfg.SMTP_USER, cfg.SMTP_PASS]):
-        return False
-
+def days_left(dl: str):
+    """Retourne (nb_jours: int, label: str)"""
+    if not dl or str(dl).strip() in ("", "N/A", "—", "-"):
+        return 999, ""
+    import re as _re
+    m = _re.search(r'(\d{2}/\d{2}/\d{4}|\d{4}-\d{2}-\d{2})', str(dl))
+    if not m:
+        return 999, ""
     try:
-        reset_url = f"{cfg.SITE_URL}/reset?token={token}"
-        msg = MIMEText(f"""
-Bonjour,
-
-Cliquez sur ce lien pour réinitialiser votre mot de passe SOURCE :
-{reset_url}
-
-Ce lien expire dans 2 heures.
-
-SOURCE — Marchés Publics Maroc
-        """, "plain", "utf-8")
-        msg["Subject"] = "Réinitialisation de mot de passe SOURCE"
-        msg["From"] = cfg.SMTP_FROM
-        msg["To"] = email
-
-        with smtplib.SMTP(cfg.SMTP_HOST, cfg.SMTP_PORT) as server:
-            server.starttls()
-            server.login(cfg.SMTP_USER, cfg.SMTP_PASS)
-            server.send_message(msg)
-        return True
-    except Exception as e:
-        print(f"[send_reset_email] {e}")
-        return False
+        fmt   = "%d/%m/%Y" if "/" in m.group(1)[:3] else "%Y-%m-%d"
+        d     = datetime.strptime(m.group(1), fmt).date()
+        delta = (d - date.today()).days
+        if delta < 0:   return delta, "Expiré"
+        if delta == 0:  return 0,     "Aujourd'hui !"
+        if delta == 1:  return 1,     "Demain"
+        if delta <= 3:  return delta, f"{delta}j 🔥"
+        if delta <= 7:  return delta, f"{delta}j ⏳"
+        return delta, f"{delta} jours"
+    except Exception:
+        return 999, ""

@@ -1,48 +1,71 @@
 {% extends "base.html" %}
-{% block title %}Inscription — SOURCE{% endblock %}
-{% block content %}
-<div style="max-width: 400px; margin: 3rem auto;">
-    <div class="card">
-        <h2 class="card-title text-center">Créer un compte</h2>
+{% block title %}Inscription — Atlas Pro{% endblock %}
+{% block body %}
+<style>
+.reg-wrap { max-width: 720px; margin: 0 auto; padding: 80px 32px; position: relative; }
+.reg-eyebrow { font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: .35em; text-transform: uppercase; text-align: center; margin-bottom: 20px; }
+.reg-title { font-family: var(--serif); font-weight: 300; font-size: clamp(48px, 7vw, 84px); color: var(--text1); line-height: .95; letter-spacing: -.025em; text-align: center; margin-bottom: 16px; font-variation-settings: "opsz" 144, "SOFT" 50, "WONK" 1; }
+.reg-title em { font-style: italic; color: var(--gold); font-variation-settings: "opsz" 144, "SOFT" 100, "WONK" 1; }
+.reg-sub { font-family: var(--serif); font-style: italic; font-size: 19px; color: var(--text3); text-align: center; margin-bottom: 56px; font-variation-settings: "opsz" 80, "SOFT" 100, "WONK" 1; }
+.reg-form { display: flex; flex-direction: column; gap: 32px; }
+.sector-group { margin-bottom: 24px; }
+.sector-group-title { font-family: var(--mono); font-size: 9px; color: var(--gold); letter-spacing: .25em; text-transform: uppercase; margin-bottom: 14px; }
+.sector-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.sector-chip { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; background: transparent; border: 1px solid var(--bdr2); cursor: pointer; font-family: var(--sans); font-size: 12px; color: var(--text3); transition: all .25s; user-select: none; border-radius: var(--r2); }
+.sector-chip:hover { border-color: var(--gold); color: var(--gold); }
+.sector-chip input { display: none; }
+.sector-chip input:checked + span { color: var(--gold); }
+.sector-chip:has(input:checked) { border-color: var(--gold); color: var(--gold); background: var(--goldb); }
+.sector-chip-code { font-family: var(--mono); font-size: 9px; opacity: .7; letter-spacing: .1em; }
+.reg-foot { text-align: center; margin-top: 32px; padding-top: 32px; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 11px; color: var(--text4); letter-spacing: .1em; }
+.reg-foot a { color: var(--gold); }
+</style>
 
-        {% if error %}
-        <div class="alert alert-error">{{ error }}</div>
-        {% endif %}
+<div class="reg-wrap">
+  <div class="reg-eyebrow">Créer un compte</div>
+  <h1 class="reg-title">Commencer <em>gratuitement.</em></h1>
+  <p class="reg-sub">14 jours d'essai · Aucune carte requise.</p>
 
-        {% if success %}
-        <div class="alert alert-success">{{ success }}</div>
-        {% endif %}
+  {% if err %}<div class="alert alert-err" style="margin-bottom: 24px;">{{ err }}</div>{% endif %}
 
-        <form method="post" action="/register">
-            <div class="form-group">
-                <label class="form-label">Nom complet</label>
-                <input type="text" name="nom" class="form-input" placeholder="Votre nom" required>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Email</label>
-                <input type="email" name="email" class="form-input" placeholder="votre@email.com" required>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Mot de passe</label>
-                <input type="password" name="password" class="form-input" placeholder="Min. 8 caractères" required>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label">Confirmer le mot de passe</label>
-                <input type="password" name="confirm" class="form-input" placeholder="••••••••" required>
-            </div>
-
-            <input type="hidden" name="lang" value="fr">
-
-            <button type="submit" class="btn btn-primary" style="width: 100%;">S'inscrire</button>
-        </form>
-
-        <div style="text-align: center; margin-top: 1rem; font-size: 0.875rem;">
-            <span class="text-muted">Déjà membre ? </span>
-            <a href="/login" class="text-primary">Se connecter</a>
-        </div>
+  <form method="post" class="reg-form">
+    <div class="grid-2">
+      <div class="field"><label>Nom complet</label><input name="nom" class="inp" placeholder="Mohamed Alaoui" value="{{ (vals or {}).get('nom','') }}"></div>
+      <div class="field"><label>Email *</label><input name="email" type="email" class="inp" placeholder="email@entreprise.ma" required value="{{ (vals or {}).get('email','') }}"></div>
     </div>
+    <div class="grid-2">
+      <div class="field"><label>Téléphone</label><input name="phone" class="inp" placeholder="+212 6xx xxxxxx" value="{{ (vals or {}).get('phone','') }}"></div>
+      <div class="field"><label>Entreprise</label><input name="company" class="inp" placeholder="Nom de votre société" value="{{ (vals or {}).get('company','') }}"></div>
+    </div>
+    <div class="grid-2">
+      <div class="field"><label>Mot de passe *</label><input name="pw" type="password" class="inp" required minlength="8" placeholder="Min. 8 caractères"></div>
+      <div class="field"><label>Confirmer *</label><input name="pw2" type="password" class="inp" required placeholder="Répéter"></div>
+    </div>
+
+    <div>
+      <div class="field"><label>Secteurs d'activité (optionnel)</label></div>
+      <p style="font-family: var(--serif); font-style: italic; font-size: 14px; color: var(--text4); margin-bottom: 24px; margin-top: 8px;">Laissez vide pour recevoir tous les marchés.</p>
+      {% for group_name, group_sectors in sector_groups.items() %}
+      <div class="sector-group">
+        <div class="sector-group-title">{{ group_name }}</div>
+        <div class="sector-chips">
+          {% for code, label in group_sectors.items() %}
+          <label class="sector-chip">
+            <input type="checkbox" name="secteurs_sel" value="{{ code }}">
+            <span class="sector-chip-code">{{ code }}</span>
+            <span>{{ label[:30] }}</span>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-full btn-lg">Créer mon compte →</button>
+  </form>
+
+  <div class="reg-foot">
+    Déjà inscrit ? <a href="/login">Se connecter</a>
+  </div>
 </div>
 {% endblock %}

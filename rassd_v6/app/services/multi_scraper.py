@@ -1,7 +1,17 @@
 """
-SOURCE Multi-Source Scraper v1.0
+ATLAS PRO Multi-Source Scraper v2.0
 ================================
-Sources: marchespublics + ONDA + Le Matin + ONEE + ONCF + IAM + SNRT + BCP + Crédit Agricole
+Sources (16) :
+  Originales : marchespublics + ONDA + Le Matin + ONEE + ONCF + IAM + SNRT
+              + BCP + Crédit Agricole + Équipement + AMMC
+  Ajouts v2.0 : Marsa Maroc + RADEEM + LYDEC + Min. Santé + Min. Éducation
+              + Global-Marchés (actualités publiques uniquement)
+
+Note éthique : nous scrapons UNIQUEMENT les sources publiques officielles
+(organismes émetteurs, annonces légales, ministères). Le contenu
+derrière paywall (espace membre payant d'agrégateurs concurrents) n'est
+PAS extrait — c'est plus rapide, plus exhaustif et 100% légitime de
+remonter directement à la source.
 """
 import re, ssl, time, random, logging
 from datetime import datetime, date
@@ -48,8 +58,10 @@ def _session() -> requests.Session:
 def _parse_date(s: str) -> Optional[date]:
     s = str(s).strip().split()[0]
     for fmt in DATE_FMT:
-        try: return datetime.strptime(s, fmt).date()
-        except: pass
+        try:
+            return datetime.strptime(s, fmt).date()
+        except ValueError:
+            continue
     return None
 
 def _extract_date(text: str) -> str:
@@ -365,6 +377,189 @@ def scrape_ammc(s: requests.Session, log) -> list:
         log(f"⚠ AMMC: {e}"); return []
 
 # ══════════════════════════════════════════════════════════
+# SOURCE 11: Global-Marchés (NEWS ONLY — publicly accessible)
+# ══════════════════════════════════════════════════════════
+# NOTE: Le contenu réel des appels d'offres de global-marches.com
+# est derrière un paywall (espace membre payant). Nous ne scrapons
+# QUE les actualités publiques et conservons l'éthique.
+# Les VRAIES sources d'appels d'offres sont scrapées directement
+# auprès des organismes émetteurs (ONDA, ONEE, etc.) — bien plus
+# rapide et exhaustif que via un agrégateur.
+def scrape_global_marches(s: requests.Session, log) -> list:
+    """Scrape uniquement les actualités publiques (pas de tenders payants)."""
+    base = "https://www.global-marches.com"
+    try:
+        r = s.get(base + "/", timeout=20)
+        if r.status_code != 200:
+            log(f"⚠ Global-Marchés: HTTP {r.status_code}")
+            return []
+        soup = BS(r.text, "lxml")
+        results = []
+        # Récupère les news (publiquement accessibles)
+        for a in soup.find_all("a", href=re.compile(r'/news/\d+')):
+            title = a.get_text(strip=True)
+            if len(title) < 20: continue
+            href = a.get("href", "")
+            full_url = base + href if href.startswith("/") else href
+            # Les news ne sont pas des tenders — on les classe comme "Communication / Veille"
+            t = _tender(
+                "Global-Marchés (Veille)",
+                f"[Actualité] {title}",
+                "Veille marchés publics",
+                "",
+                full_url
+            )
+            if t:
+                t["secteur"] = "Communication – Veille marchés"
+                results.append(t)
+        log(f"✅ Global-Marchés (news): {len(results)} actualités")
+        return results[:10]
+    except Exception as e:
+        log(f"⚠ Global-Marchés: {e}"); return []
+
+# ══════════════════════════════════════════════════════════
+# SOURCE 12: Marsa Maroc — Ports
+# ══════════════════════════════════════════════════════════
+def scrape_marsamaroc(s: requests.Session, log) -> list:
+    url = "https://www.marsamaroc.co.ma/fr/appels-doffres"
+    try:
+        r = s.get(url, timeout=20)
+        if r.status_code != 200: return []
+        soup = BS(r.text, "lxml")
+        results = []
+        seen = set()
+        for blk in soup.find_all(["article", "div", "li", "tr"]):
+            txt = blk.get_text(" ", strip=True)
+            if len(txt) < 30 or len(txt) > 500: continue
+            if not any(w in txt.lower() for w in ["appel", "offre", "marché", "consultation"]):
+                continue
+            key = txt[:50]
+            if key in seen: continue
+            seen.add(key)
+            dl = _extract_date(txt)
+            t = _tender("Marsa Maroc", txt[:250], "Marsa Maroc — Ports", dl, url)
+            if t:
+                t["secteur"] = "Transport – Ports & Maritime"
+                results.append(t)
+        log(f"✅ Marsa Maroc: {len(results)} marchés")
+        return results[:20]
+    except Exception as e:
+        log(f"⚠ Marsa Maroc: {e}"); return []
+
+# ══════════════════════════════════════════════════════════
+# SOURCE 13: RADEEM — Régie de Meknès (eau/élec)
+# ══════════════════════════════════════════════════════════
+def scrape_radeem(s: requests.Session, log) -> list:
+    url = "https://www.radeem.ma/index.php/appels-d-offres"
+    try:
+        r = s.get(url, timeout=20)
+        if r.status_code != 200: return []
+        soup = BS(r.text, "lxml")
+        results = []
+        for row in soup.find_all(["tr", "li", "div"]):
+            cells = row.find_all(["td", "p"])
+            if len(cells) < 2: continue
+            objet = cells[0].get_text(strip=True)
+            full_text = " ".join(c.get_text() for c in cells)
+            dl = _extract_date(full_text)
+            if len(objet) > 25:
+                t = _tender("RADEEM", objet[:250], "Régie Autonome Eau & Électricité Meknès", dl, url)
+                if t:
+                    t["secteur"] = "Hydraulique – Eau & Électricité"
+                    results.append(t)
+        log(f"✅ RADEEM: {len(results)} marchés")
+        return results[:20]
+    except Exception as e:
+        log(f"⚠ RADEEM: {e}"); return []
+
+# ══════════════════════════════════════════════════════════
+# SOURCE 14: LYDEC — Casablanca utilities
+# ══════════════════════════════════════════════════════════
+def scrape_lydec(s: requests.Session, log) -> list:
+    url = "https://www.lydec.ma/Pages/Appels-d-offres.aspx"
+    try:
+        r = s.get(url, timeout=20)
+        if r.status_code != 200: return []
+        soup = BS(r.text, "lxml")
+        results = []
+        seen = set()
+        for blk in soup.find_all(["tr", "div", "li", "article"]):
+            txt = blk.get_text(" ", strip=True)
+            if len(txt) < 30 or len(txt) > 600: continue
+            if not any(w in txt.lower() for w in ["appel", "offre", "marché", "consultation"]):
+                continue
+            key = txt[:60]
+            if key in seen: continue
+            seen.add(key)
+            dl = _extract_date(txt)
+            t = _tender("LYDEC", txt[:250], "LYDEC — Casablanca", dl, url)
+            if t:
+                t["secteur"] = "Hydraulique – Eau, Électricité, Assainissement"
+                results.append(t)
+        log(f"✅ LYDEC: {len(results)} marchés")
+        return results[:20]
+    except Exception as e:
+        log(f"⚠ LYDEC: {e}"); return []
+
+# ══════════════════════════════════════════════════════════
+# SOURCE 15: Ministère de la Santé
+# ══════════════════════════════════════════════════════════
+def scrape_sante(s: requests.Session, log) -> list:
+    url = "https://www.sante.gov.ma/Pages/AppelsOffre.aspx"
+    try:
+        r = s.get(url, timeout=20)
+        if r.status_code != 200: return []
+        soup = BS(r.text, "lxml")
+        results = []
+        seen = set()
+        for row in soup.find_all(["tr", "li", "div"]):
+            cells = row.find_all(["td", "span", "p"])
+            txt = row.get_text(" ", strip=True)
+            if len(txt) < 30 or len(txt) > 500: continue
+            if not any(w in txt.lower() for w in ["appel", "offre", "marché"]): continue
+            key = txt[:60]
+            if key in seen: continue
+            seen.add(key)
+            dl = _extract_date(txt)
+            t = _tender("Santé", txt[:250], "Ministère de la Santé", dl, url)
+            if t:
+                t["secteur"] = "Santé – Médical & Pharmaceutique"
+                results.append(t)
+        log(f"✅ Min. Santé: {len(results)} marchés")
+        return results[:20]
+    except Exception as e:
+        log(f"⚠ Min. Santé: {e}"); return []
+
+# ══════════════════════════════════════════════════════════
+# SOURCE 16: Ministère de l'Éducation
+# ══════════════════════════════════════════════════════════
+def scrape_education(s: requests.Session, log) -> list:
+    url = "https://www.men.gov.ma/Fr/Pages/appels-offres.aspx"
+    try:
+        r = s.get(url, timeout=20)
+        if r.status_code != 200: return []
+        soup = BS(r.text, "lxml")
+        results = []
+        seen = set()
+        for blk in soup.find_all(["tr", "div", "li", "article"]):
+            txt = blk.get_text(" ", strip=True)
+            if len(txt) < 30 or len(txt) > 500: continue
+            if not any(w in txt.lower() for w in ["appel", "offre", "marché", "consultation"]):
+                continue
+            key = txt[:60]
+            if key in seen: continue
+            seen.add(key)
+            dl = _extract_date(txt)
+            t = _tender("Éducation", txt[:250], "Ministère de l'Éducation Nationale", dl, url)
+            if t:
+                t["secteur"] = "Formation – Éducation & Enseignement"
+                results.append(t)
+        log(f"✅ Min. Éducation: {len(results)} marchés")
+        return results[:20]
+    except Exception as e:
+        log(f"⚠ Min. Éducation: {e}"); return []
+
+# ══════════════════════════════════════════════════════════
 # RUNNER PRINCIPAL
 # ══════════════════════════════════════════════════════════
 SCRAPERS = [
@@ -378,6 +573,13 @@ SCRAPERS = [
     ("BCP",             scrape_bcp),
     ("Équipement",      scrape_equipement),
     ("AMMC",            scrape_ammc),
+    # Nouveaux ajouts v2.0 — sources originales
+    ("Global-Marchés",  scrape_global_marches),  # actualités uniquement (paywall)
+    ("Marsa Maroc",     scrape_marsamaroc),
+    ("RADEEM",          scrape_radeem),
+    ("LYDEC",           scrape_lydec),
+    ("Min. Santé",      scrape_sante),
+    ("Min. Éducation",  scrape_education),
 ]
 
 def run_all(known_ids: set, log_fn=print) -> list:
@@ -387,8 +589,8 @@ def run_all(known_ids: set, log_fn=print) -> list:
     errors  = []
 
     log_fn("═" * 48)
-    log_fn("  SOURCE Multi-Source Scraper v1.0")
-    log_fn(f"  {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
+    log_fn("  ATLAS PRO Multi-Source Scraper v2.0")
+    log_fn(f"  {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}  ·  {len(SCRAPERS)} sources")
     log_fn("═" * 48)
 
     for name, scraper_fn in SCRAPERS:

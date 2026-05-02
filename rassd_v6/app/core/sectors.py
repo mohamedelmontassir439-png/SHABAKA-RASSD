@@ -1,5 +1,5 @@
 """
-SOURCE — Classification officielle des marchés publics Maroc
+ATLAS PRO — Classification officielle des marchés publics Maroc
 Basée sur le référentiel MB SA (maroc-business.com)
 83 secteurs organisés en 3 groupes: Travaux / Équipements / Services
 """

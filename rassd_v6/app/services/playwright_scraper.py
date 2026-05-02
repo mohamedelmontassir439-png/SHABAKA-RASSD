@@ -1,5 +1,5 @@
 """
-SOURCE — Playwright Scraper
+ATLAS PRO — Playwright Scraper
 Pour les sites nécessitant JavaScript:
   - ONCF (iframe + JS table)
   - BCP Banque Populaire
@@ -21,8 +21,10 @@ _NOISE = ["accueil","connexion","navigation","retour","login","menu",
 
 def _parse_date(s: str) -> Optional[date]:
     for fmt in DATE_FMT:
-        try: return datetime.strptime(s.strip(), fmt).date()
-        except: pass
+        try:
+            return datetime.strptime(s.strip(), fmt).date()
+        except ValueError:
+            continue
     return None
 
 def _is_expired(text: str) -> bool:

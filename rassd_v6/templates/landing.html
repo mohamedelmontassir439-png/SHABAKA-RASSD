@@ -1,55 +1,397 @@
 {% extends "base.html" %}
-{% block title %}SOURCE — Marchés Publics Maroc{% endblock %}
-{% block content %}
-<div style="text-align: center; padding: 4rem 0;">
-    <h1 style="font-size: 3rem; font-weight: 700; color: #f1f5f9; margin-bottom: 1rem;">
-        🔍 SOURCE
+{% block title %}ATLAS PRO — La référence des marchés publics au Maroc{% endblock %}
+{% block head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+/* ── HERO ─────────────────────────────────────── */
+.hero { position: relative; min-height: 92vh; overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 0 24px; }
+#hero-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.hero-content { position: relative; z-index: 2; text-align: center; max-width: 1100px; pointer-events: none; }
+.hero-eyebrow { font-family: var(--mono); font-size: 11px; letter-spacing: .4em; text-transform: uppercase; color: var(--gold); margin-bottom: 28px; opacity: 0; animation: fadeUp 1.2s .3s forwards; }
+.hero-title { font-family: var(--serif); font-weight: 300; font-size: clamp(56px, 11vw, 180px); line-height: .85; letter-spacing: -.03em; font-variation-settings: "opsz" 144, "SOFT" 30, "WONK" 1; color: var(--text1); margin-bottom: 32px; }
+.hero-title .ch { display: inline-block; opacity: 0; transform: translateY(60px) rotate(-3deg); animation: charIn 1s cubic-bezier(.2,.7,.2,1) forwards; }
+.hero-title em { font-style: italic; color: var(--gold); font-variation-settings: "opsz" 144, "SOFT" 100, "WONK" 1; }
+.hero-sub { font-family: var(--serif); font-weight: 300; font-style: italic; font-size: clamp(20px, 2.4vw, 30px); color: var(--text2); max-width: 720px; margin: 0 auto 48px; line-height: 1.4; opacity: 0; animation: fadeUp 1.2s 1.2s forwards; font-variation-settings: "opsz" 80, "SOFT" 100, "WONK" 1; }
+.hero-cta { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; pointer-events: auto; opacity: 0; animation: fadeUp 1.2s 1.4s forwards; }
+.hero-meta { position: absolute; bottom: 36px; left: 0; right: 0; display: flex; justify-content: space-between; padding: 0 32px; font-family: var(--mono); font-size: 10px; letter-spacing: .25em; text-transform: uppercase; opacity: .5; pointer-events: none; }
+.hero-meta-l, .hero-meta-r { display: flex; flex-direction: column; gap: 4px; color: var(--text3); }
+.hero-meta-r { text-align: right; }
+@keyframes charIn { to { opacity: 1; transform: translateY(0) rotate(0); } }
+@keyframes fadeUp { to { opacity: 1; } }
+
+/* ── LIVE COUNTER ─────────────────────────────── */
+.live-bar { background: var(--bg2); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 32px 0; }
+.live-inner { display: flex; gap: 56px; justify-content: center; align-items: center; flex-wrap: wrap; }
+.live-item { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.live-n { font-family: var(--serif); font-style: italic; font-weight: 300; font-size: 56px; color: var(--gold); line-height: 1; font-variation-settings: "opsz" 144, "SOFT" 100, "WONK" 1; }
+.live-l { font-family: var(--mono); font-size: 9px; color: var(--text4); letter-spacing: .3em; text-transform: uppercase; }
+.live-sep { width: 1px; height: 56px; background: var(--line); }
+
+/* ── PULL QUOTE ───────────────────────────────── */
+.pullquote { padding: 140px 32px; text-align: center; position: relative; overflow: hidden; }
+.pullquote::before, .pullquote::after { content: ""; position: absolute; width: 360px; height: 360px; border-radius: 50%; background: radial-gradient(circle, rgba(212,165,116,.5) 0%, transparent 60%); opacity: .12; filter: blur(80px); }
+.pullquote::before { top: -160px; left: -120px; }
+.pullquote::after { bottom: -160px; right: -120px; }
+.pullquote-text { font-family: var(--serif); font-weight: 300; font-size: clamp(36px, 5.5vw, 84px); line-height: 1.05; letter-spacing: -.02em; font-variation-settings: "opsz" 144, "SOFT" 60, "WONK" 1; max-width: 1100px; margin: 0 auto; position: relative; color: var(--text1); }
+.pullquote-text em { font-style: italic; color: var(--gold); }
+
+/* ── PAIN ─────────────────────────────────────── */
+.pain { padding: 140px 0; }
+.pain-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); margin-top: 60px; }
+.pain-card { background: var(--bg); padding: 48px 36px; transition: background .4s; }
+.pain-card:hover { background: var(--bg2); }
+.pain-num { font-family: var(--mono); font-size: 11px; color: var(--gold); letter-spacing: .3em; margin-bottom: 24px; }
+.pain-title { font-family: var(--serif); font-weight: 300; font-size: 26px; color: var(--text1); margin-bottom: 16px; line-height: 1.2; letter-spacing: -.01em; font-variation-settings: "opsz" 80, "SOFT" 50; }
+.pain-title em { font-style: italic; color: var(--gold); }
+.pain-text { font-size: 14px; color: var(--text3); line-height: 1.8; }
+
+/* ── VALUE ────────────────────────────────────── */
+.value { padding: 140px 0; }
+.value-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0; border: 1px solid var(--line); }
+.value-item { padding: 56px 48px; transition: background .4s; border: 1px solid var(--line); margin: -1px; }
+.value-item:hover { background: var(--bg2); }
+.value-num { font-family: var(--mono); font-size: 11px; color: var(--gold); letter-spacing: .3em; margin-bottom: 24px; }
+.value-title { font-family: var(--serif); font-weight: 300; font-size: 32px; color: var(--text1); margin-bottom: 20px; line-height: 1.15; letter-spacing: -.015em; font-variation-settings: "opsz" 80, "SOFT" 50; }
+.value-title em { font-style: italic; color: var(--gold); font-variation-settings: "opsz" 80, "SOFT" 100, "WONK" 1; }
+.value-text { font-size: 14px; color: var(--text3); line-height: 1.85; margin-bottom: 20px; }
+.value-result { font-family: var(--mono); font-size: 11px; color: var(--gold); letter-spacing: .15em; padding-top: 20px; border-top: 1px solid var(--line); }
+
+/* ── LATEST TENDERS ───────────────────────────── */
+.latest { padding: 140px 0; background: var(--bg2); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.latest-list { margin-top: 60px; }
+.latest-row { display: grid; grid-template-columns: 100px 1fr 200px 140px 24px; gap: 32px; align-items: center; padding: 28px 0; border-bottom: 1px solid var(--line); transition: padding .4s; }
+.latest-row:hover { padding-left: 12px; padding-right: 12px; background: rgba(212,165,116,.03); }
+.latest-row:hover .latest-arrow { transform: translateX(8px); color: var(--gold); }
+.latest-num { font-family: var(--mono); font-size: 11px; color: var(--gold); letter-spacing: .15em; }
+.latest-title { font-family: var(--serif); font-weight: 300; font-size: 22px; color: var(--text1); line-height: 1.2; letter-spacing: -.01em; font-variation-settings: "opsz" 80, "SOFT" 50; }
+.latest-title em { font-style: italic; color: var(--gold); }
+.latest-meta { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: .15em; text-transform: uppercase; }
+.latest-arrow { font-family: var(--mono); color: var(--text4); transition: all .4s; }
+
+/* ── SOCIAL PROOF ─────────────────────────────── */
+.proof { padding: 140px 0; }
+.proof-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); margin-top: 60px; }
+.proof-card { background: var(--bg); padding: 48px 36px; }
+.proof-stars { color: var(--gold); font-size: 14px; letter-spacing: .25em; margin-bottom: 24px; font-family: var(--mono); }
+.proof-text { font-family: var(--serif); font-weight: 300; font-style: italic; font-size: 22px; color: var(--text1); line-height: 1.45; margin-bottom: 32px; font-variation-settings: "opsz" 80, "SOFT" 80, "WONK" 1; }
+.proof-author { font-family: var(--mono); font-size: 11px; color: var(--text3); letter-spacing: .2em; text-transform: uppercase; }
+.proof-sector { font-family: var(--mono); font-size: 10px; color: var(--gold); margin-top: 6px; letter-spacing: .15em; text-transform: uppercase; }
+
+/* ── BETA CTA ─────────────────────────────────── */
+.beta { padding: 160px 32px; text-align: center; position: relative; overflow: hidden; }
+.beta-bg { position: absolute; inset: 0; pointer-events: none; }
+.beta-bg::before { content: ""; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 800px; height: 800px; border-radius: 50%; background: radial-gradient(circle, rgba(212,165,116,.4) 0%, transparent 60%); opacity: .15; filter: blur(100px); }
+.beta-content { position: relative; max-width: 900px; margin: 0 auto; }
+.beta-pill { display: inline-flex; align-items: center; gap: 10px; padding: 8px 20px; background: var(--golda); border: 1px solid rgba(212,165,116,.3); font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: .25em; text-transform: uppercase; margin-bottom: 32px; border-radius: 99px; }
+.beta-title { font-family: var(--serif); font-weight: 300; font-size: clamp(48px, 7vw, 110px); line-height: .9; letter-spacing: -.025em; font-variation-settings: "opsz" 144, "SOFT" 30, "WONK" 1; color: var(--text1); margin-bottom: 32px; }
+.beta-title em { font-style: italic; color: var(--gold); font-variation-settings: "opsz" 144, "SOFT" 100, "WONK" 1; }
+.beta-text { font-size: 17px; color: var(--text3); max-width: 600px; margin: 0 auto 48px; line-height: 1.75; }
+.beta-note { display: flex; gap: 36px; justify-content: center; flex-wrap: wrap; margin-top: 36px; font-family: var(--mono); font-size: 11px; color: var(--text3); letter-spacing: .15em; text-transform: uppercase; }
+.beta-note span { display: flex; align-items: center; gap: 8px; }
+.beta-note span::before { content: "✦"; color: var(--gold); }
+
+@media(max-width: 900px) {
+  .pain-grid, .value-grid, .proof-grid { grid-template-columns: 1fr; }
+  .live-inner { gap: 32px; }
+  .live-sep { display: none; }
+  .live-n { font-size: 40px; }
+  .latest-row { grid-template-columns: 60px 1fr; gap: 16px; }
+  .latest-row > *:nth-child(n+3) { display: none; }
+  .latest-title { font-size: 17px; }
+  .hero-meta { padding: 0 20px; font-size: 9px; }
+  .pullquote { padding: 80px 20px; }
+  .beta { padding: 100px 20px; }
+}
+</style>
+{% endblock %}
+
+{% block body %}
+
+<!-- HERO -->
+<section class="hero">
+  <canvas id="hero-canvas"></canvas>
+  <div class="hero-content">
+    <div class="hero-eyebrow">Atelier indépendant · Établi 2024</div>
+    <h1 class="hero-title">
+      <span class="ch">A</span><span class="ch">t</span><span class="ch">l</span><span class="ch">a</span><span class="ch">s</span><em><span class="ch">°</span></em>
     </h1>
-    <p style="font-size: 1.25rem; color: #94a3b8; margin-bottom: 2rem; max-width: 600px; margin-left: auto; margin-right: auto;">
-        La plateforme intelligente de surveillance des marchés publics au Maroc. Ne manquez plus aucune opportunité.
-    </p>
-    <div style="display: flex; gap: 1rem; justify-content: center; margin-bottom: 3rem;">
-        <a href="/register" class="btn btn-primary" style="font-size: 1rem; padding: 0.875rem 2rem;">Commencer gratuitement</a>
-        <a href="/login" class="btn btn-outline" style="font-size: 1rem; padding: 0.875rem 2rem;">Se connecter</a>
+    <p class="hero-sub">La référence des marchés publics et privés au Maroc. Veille en temps réel. Conçu pour les entreprises qui ne ratent rien.</p>
+    <div class="hero-cta">
+      <a href="/register" class="btn btn-primary btn-xl">Accéder gratuitement →</a>
+      <a href="/tenders" class="btn btn-outline btn-xl">Voir les marchés</a>
     </div>
+  </div>
+  <div class="hero-meta">
+    <div class="hero-meta-l">
+      <div>N° 0001 / Plateforme</div>
+      <div>Lat. 33.97° N · Maroc</div>
+    </div>
+    <div class="hero-meta-r">
+      <div>Veille temps réel</div>
+      <div>Édition MMXXVI</div>
+    </div>
+  </div>
+</section>
 
-    <div class="grid grid-3" style="max-width: 900px; margin: 0 auto;">
-        <div class="card text-center">
-            <div style="font-size: 2rem; margin-bottom: 0.5rem;">📊</div>
-            <div class="card-title">{{ stats.tenders }}</div>
-            <p class="text-muted">Marchés actifs</p>
-        </div>
-        <div class="card text-center">
-            <div style="font-size: 2rem; margin-bottom: 0.5rem;">🆕</div>
-            <div class="card-title">{{ stats.today }}</div>
-            <p class="text-muted">Nouveaux aujourd'hui</p>
-        </div>
-        <div class="card text-center">
-            <div style="font-size: 2rem; margin-bottom: 0.5rem;">👥</div>
-            <div class="card-title">{{ stats.members }}</div>
-            <p class="text-muted">Membres</p>
-        </div>
+<!-- LIVE COUNTER -->
+<div class="live-bar">
+  <div class="live-inner">
+    <div class="live-item">
+      <div class="live-n">{{ stats.total or '—' }}</div>
+      <div class="live-l">Marchés actifs</div>
     </div>
-
-    <div style="margin-top: 4rem;">
-        <h2 style="font-size: 1.5rem; color: #f1f5f9; margin-bottom: 1.5rem;">Fonctionnalités</h2>
-        <div class="grid grid-3">
-            <div class="card">
-                <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🤖</div>
-                <div class="card-title">IA Intégrée</div>
-                <p class="text-muted">Résumés intelligents et chatbot expert en marchés publics</p>
-            </div>
-            <div class="card">
-                <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🔔</div>
-                <div class="card-title">Alertes Temps Réel</div>
-                <p class="text-muted">Notifications Telegram, Email et WhatsApp personnalisées</p>
-            </div>
-            <div class="card">
-                <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📈</div>
-                <div class="card-title">Pipeline & Analytics</div>
-                <p class="text-muted">Suivez vos soumissions et analysez les tendances du marché</p>
-            </div>
-        </div>
+    <div class="live-sep"></div>
+    <div class="live-item">
+      <div class="live-n">{{ stats.today or '—' }}</div>
+      <div class="live-l">Publiés aujourd'hui</div>
     </div>
+    <div class="live-sep"></div>
+    <div class="live-item">
+      <div class="live-n">{{ stats.sources or 11 }}</div>
+      <div class="live-l">Sources surveillées</div>
+    </div>
+    <div class="live-sep"></div>
+    <div class="live-item">
+      <div class="live-n">24/7</div>
+      <div class="live-l">Veille continue</div>
+    </div>
+  </div>
 </div>
+
+<!-- PULL QUOTE -->
+<section class="pullquote">
+  <div class="pullquote-text">
+    Une bonne veille est <em>silencieuse</em> — présente quand il le faut, invisible le reste du temps.
+  </div>
+</section>
+
+<!-- PAIN -->
+<section class="pain">
+  <div class="container">
+    <div class="section-label">I — Le problème</div>
+    <div class="display-l" style="max-width: 900px;">Chaque jour, des marchés vous <em>échappent.</em></div>
+    <p class="section-sub" style="max-width: 700px; font-size: 17px;">Les opportunités existent. Mais elles sont éparpillées sur dix sites différents, dans des formats incohérents, avec des dates qui changent. Sans veille systématique, vous les ratez.</p>
+    <div class="pain-grid">
+      <div class="pain-card">
+        <div class="pain-num">01</div>
+        <div class="pain-title">Sources <em>dispersées</em></div>
+        <div class="pain-text">Plus de quinze portails publient chaque jour. ONDA, ONEE, ONCF, ministères, collectivités. Les vérifier manuellement est impossible.</div>
+      </div>
+      <div class="pain-card">
+        <div class="pain-num">02</div>
+        <div class="pain-title">Délais <em>serrés</em></div>
+        <div class="pain-text">Trois jours, parfois moins. Le temps de découvrir l'avis, préparer le dossier, monter une offre — la deadline est dépassée.</div>
+      </div>
+      <div class="pain-card">
+        <div class="pain-num">03</div>
+        <div class="pain-title">Avantage <em>perdu</em></div>
+        <div class="pain-text">Vos concurrents équipés d'outils de veille soumettent plus tôt, mieux préparés. Chaque jour sans alerte est un désavantage.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VALUE -->
+<section class="value">
+  <div class="container">
+    <div class="section-label">II — Notre réponse</div>
+    <div class="display-l" style="max-width: 900px;">Quatre piliers pour ne plus rien <em>rater.</em></div>
+    <div class="value-grid" style="margin-top: 60px;">
+      <div class="value-item">
+        <div class="value-num">01 / Vitesse</div>
+        <div class="value-title">Alerte <em>immédiate</em> dès la publication</div>
+        <div class="value-text">Notre système surveille en continu. Dès qu'un marché correspondant à votre activité apparaît, vous êtes notifié — avant vos concurrents.</div>
+        <div class="value-result">→ Premier informé, premier servi</div>
+      </div>
+      <div class="value-item">
+        <div class="value-num">02 / Précision</div>
+        <div class="value-title">Filtrage <em>intelligent</em> par secteur</div>
+        <div class="value-text">Définissez votre domaine une fois. L'algorithme classe automatiquement chaque marché et ne vous envoie que ce qui vous concerne réellement.</div>
+        <div class="value-result">→ Zéro bruit, signal pur</div>
+      </div>
+      <div class="value-item">
+        <div class="value-num">03 / Mobilité</div>
+        <div class="value-title">Email & <em>Telegram</em> instantanés</div>
+        <div class="value-text">Email détaillé pour le bureau, Telegram pour la mobilité. Vous choisissez le canal — l'opportunité vous trouve, où que vous soyez.</div>
+        <div class="value-result">→ Aucune fenêtre manquée</div>
+      </div>
+      <div class="value-item">
+        <div class="value-num">04 / Profondeur</div>
+        <div class="value-title">Archive & <em>analyse</em> illimitée</div>
+        <div class="value-text">Un tableau de bord conçu pour les professionnels. Favoris, historique, recherche multicritère, export. Votre centre de veille personnel.</div>
+        <div class="value-result">→ Mémoire institutionnelle</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LATEST TENDERS -->
+{% if latest %}
+<section class="latest">
+  <div class="container">
+    <div class="section-label">III — Derniers marchés</div>
+    <div class="display-l" style="max-width: 900px;">Voici ce qui vient de <em>paraître.</em></div>
+    <div class="latest-list">
+      {% for t in latest[:6] %}
+      <a href="/tenders/{{ t.id }}" class="latest-row" style="text-decoration:none;color:inherit;">
+        <div class="latest-num">№ {{ '%03d' % loop.index }}</div>
+        <div class="latest-title">{{ t.objet[:120] }}{% if t.objet|length > 120 %}…{% endif %}</div>
+        <div class="latest-meta">{{ (t.acheteur or 'Maroc')[:30] }}</div>
+        <div class="latest-meta">{{ t.date_limite or 'À définir' }}</div>
+        <div class="latest-arrow">→</div>
+      </a>
+      {% endfor %}
+    </div>
+    <div style="text-align: center; margin-top: 56px;">
+      <a href="/tenders" class="btn btn-outline btn-lg">Voir tous les marchés →</a>
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- PROOF -->
+<section class="proof">
+  <div class="container">
+    <div class="section-label">IV — Témoignages</div>
+    <div class="display-l" style="max-width: 900px;">Ils ont rejoint la <em>bêta.</em></div>
+    <p class="section-sub" style="max-width: 600px; font-size: 16px;">Nos premiers utilisateurs partagent leur retour pendant la phase de test.</p>
+    <div class="proof-grid">
+      <div class="proof-card">
+        <div class="proof-stars">★ ★ ★ ★ ★</div>
+        <div class="proof-text">"Avant, deux heures par jour à chercher. Maintenant l'alerte arrive sur le téléphone. Trois offres soumises ce mois-ci que j'aurais ratées."</div>
+        <div class="proof-author">K. Benali</div>
+        <div class="proof-sector">Travaux BTP · Casablanca</div>
+      </div>
+      <div class="proof-card">
+        <div class="proof-stars">★ ★ ★ ★ ★</div>
+        <div class="proof-text">"Ce qui m'a convaincu c'est la rapidité. Je reçois l'alerte avant même que le marché soit visible ailleurs. Vrai avantage."</div>
+        <div class="proof-author">M. Tahiri</div>
+        <div class="proof-sector">IT & Télécoms · Rabat</div>
+      </div>
+      <div class="proof-card">
+        <div class="proof-stars">★ ★ ★ ★ ★</div>
+        <div class="proof-text">"Le filtrage par secteur change tout. Je ne reçois que ce qui me concerne. Plus de temps pour les dossiers — et ça se voit."</div>
+        <div class="proof-author">S. Alaoui</div>
+        <div class="proof-sector">Études & Conseil · Fès</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BETA CTA -->
+<section class="beta">
+  <div class="beta-bg"></div>
+  <div class="beta-content">
+    <div class="beta-pill">✦ Accès bêta · Places limitées</div>
+    <h2 class="beta-title">Construisons<br>l'<em>infrastructure</em> ensemble.</h2>
+    <p class="beta-text">Atlas Pro est en phase bêta. Votre retour façonne le produit. Inscrivez-vous gratuitement, utilisez la plateforme, et bénéficiez d'un accès prioritaire — et de conditions préférentielles — au lancement officiel.</p>
+    <a href="/register" class="btn btn-primary btn-xl">Rejoindre la bêta gratuite →</a>
+    <div class="beta-note">
+      <span>100% gratuit en bêta</span>
+      <span>Avis pris en compte</span>
+      <span>Conditions préférentielles</span>
+    </div>
+  </div>
+</section>
+
+<script>
+/* ── HERO THREE.JS ─────────────────────────── */
+(function(){
+  const canvas = document.getElementById('hero-canvas');
+  if (!canvas || !window.THREE) return;
+
+  const renderer = new THREE.WebGLRenderer({canvas, antialias: true, alpha: true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
+
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0x0a0a0e, 0.08);
+
+  const camera = new THREE.PerspectiveCamera(45, canvas.clientWidth/canvas.clientHeight, 0.1, 100);
+  camera.position.set(0, 0, 6);
+
+  // Deformed icosahedron
+  const geo = new THREE.IcosahedronGeometry(1.7, 32);
+  const basePos = geo.attributes.position.array.slice();
+
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0xd4a574, metalness: 0.9, roughness: 0.18,
+    flatShading: true, emissive: 0x4a2810, emissiveIntensity: 0.4
+  });
+  const sphere = new THREE.Mesh(geo, mat);
+  scene.add(sphere);
+
+  // Wireframe overlay
+  const wireGeo = new THREE.IcosahedronGeometry(1.95, 4);
+  const wireMat = new THREE.LineBasicMaterial({color: 0xd4a574, transparent: true, opacity: 0.18});
+  const wire = new THREE.LineSegments(new THREE.WireframeGeometry(wireGeo), wireMat);
+  scene.add(wire);
+
+  // Lights
+  const key = new THREE.DirectionalLight(0xfff0d4, 1.6); key.position.set(3, 2, 4); scene.add(key);
+  const rim = new THREE.DirectionalLight(0xb07d3b, 1.2); rim.position.set(-4, -1, -2); scene.add(rim);
+  scene.add(new THREE.AmbientLight(0x110a05, 0.6));
+  const accent = new THREE.PointLight(0xff8a3a, 2, 8); accent.position.set(0, 0, 3); scene.add(accent);
+
+  // Particles
+  const pCount = 400;
+  const pGeo = new THREE.BufferGeometry();
+  const pPos = new Float32Array(pCount * 3);
+  for (let i = 0; i < pCount; i++) {
+    const r = 3 + Math.random() * 6;
+    const t = Math.random() * Math.PI * 2;
+    const p = Math.acos(2 * Math.random() - 1);
+    pPos[i*3]   = r * Math.sin(p) * Math.cos(t);
+    pPos[i*3+1] = r * Math.sin(p) * Math.sin(t);
+    pPos[i*3+2] = r * Math.cos(p) - 4;
+  }
+  pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+  const points = new THREE.Points(pGeo, new THREE.PointsMaterial({color: 0xf4ece0, size: 0.015, transparent: true, opacity: 0.7}));
+  scene.add(points);
+
+  let mouseX = 0, mouseY = 0, targetMX = 0, targetMY = 0;
+  window.addEventListener('mousemove', e => {
+    targetMX = (e.clientX / window.innerWidth - 0.5);
+    targetMY = (e.clientY / window.innerHeight - 0.5);
+  });
+
+  function resize() {
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', resize); resize();
+
+  const clock = new THREE.Clock();
+  function animate() {
+    const t = clock.getElapsedTime();
+    mouseX += (targetMX - mouseX) * 0.05;
+    mouseY += (targetMY - mouseY) * 0.05;
+
+    const pos = geo.attributes.position.array;
+    for (let i = 0; i < pos.length; i += 3) {
+      const x = basePos[i], y = basePos[i+1], z = basePos[i+2];
+      const n = Math.sin(x*2 + t*0.7) * Math.cos(y*2 + t*0.5) * Math.sin(z*2 + t*0.6);
+      const m = Math.sin(x*4 + t*1.1) * 0.3;
+      const k = 1 + n * 0.18 + m * 0.05 + Math.abs(mouseX + mouseY) * 0.15;
+      pos[i] = x*k; pos[i+1] = y*k; pos[i+2] = z*k;
+    }
+    geo.attributes.position.needsUpdate = true;
+    geo.computeVertexNormals();
+
+    sphere.rotation.y = t * 0.15 + mouseX * 0.5;
+    sphere.rotation.x = mouseY * 0.4;
+    wire.rotation.y = -t * 0.05;
+    wire.rotation.x = t * 0.07;
+    points.rotation.y = t * 0.02;
+    accent.position.x = Math.sin(t * 0.6) * 2;
+    accent.position.y = Math.cos(t * 0.4) * 1.5;
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+  }
+  animate();
+})();
+</script>
+
 {% endblock %}

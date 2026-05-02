@@ -1,14 +1,70 @@
-__pycache__/
-*.pyc
-*.pyo
+# ============================================================
+# ATLAS PRO — Fichiers à ne jamais committer
+# ============================================================
+
+# --- SECRETS (CRITIQUE) ---
+.env
+.env.local
+.env.production
+*.key
+*.pem
+secrets.json
+
+# --- Base de données locale ---
 data/
 *.db
+*.db-journal
+*.db-wal
+*.db-shm
 *.sqlite
-.env
-.env.*
+*.sqlite3
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
 venv/
+env/
 .venv/
-dist/
-*.egg-info/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# --- Logs ---
+*.log
+logs/
+atlas.log
+
+# --- IDE ---
+.vscode/
+.idea/
+*.swp
+*.swo
 .DS_Store
 Thumbs.db
+
+# --- WhatsApp sessions (contiennent tokens) ---
+whatsapp_service/auth/
+whatsapp_service/node_modules/
+whatsapp_service/sessions/
+
+# --- Uploads utilisateurs ---
+uploads/
+static/uploads/
+
+# --- Railway / Deploy ---
+.railway/
+
+# --- Tests ---
+test_*.db
+coverage.xml
+
+# --- Build ---
+dist/
+build/
+*.egg-info/
