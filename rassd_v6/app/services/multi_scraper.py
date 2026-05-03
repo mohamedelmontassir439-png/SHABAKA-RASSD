@@ -386,36 +386,18 @@ def scrape_ammc(s: requests.Session, log) -> list:
 # auprès des organismes émetteurs (ONDA, ONEE, etc.) — bien plus
 # rapide et exhaustif que via un agrégateur.
 def scrape_global_marches(s: requests.Session, log) -> list:
-    """Scrape uniquement les actualités publiques (pas de tenders payants)."""
-    base = "https://www.global-marches.com"
+    """Global-Marches — avec authentification si credentials disponibles."""
     try:
-        r = s.get(base + "/", timeout=20)
-        if r.status_code != 200:
-            log(f"⚠ Global-Marchés: HTTP {r.status_code}")
-            return []
-        soup = BS(r.text, "lxml")
-        results = []
-        # Récupère les news (publiquement accessibles)
-        for a in soup.find_all("a", href=re.compile(r'/news/\d+')):
-            title = a.get_text(strip=True)
-            if len(title) < 20: continue
-            href = a.get("href", "")
-            full_url = base + href if href.startswith("/") else href
-            # Les news ne sont pas des tenders — on les classe comme "Communication / Veille"
-            t = _tender(
-                "Global-Marchés (Veille)",
-                f"[Actualité] {title}",
-                "Veille marchés publics",
-                "",
-                full_url
-            )
-            if t:
-                t["secteur"] = "Communication – Veille marchés"
-                results.append(t)
-        log(f"✅ Global-Marchés (news): {len(results)} actualités")
-        return results[:10]
+        from app.services.global_marches import scrape_global_marches_auth, scrape_global_marches_public
+        import os
+        if os.getenv("GM_USERNAME") and os.getenv("GM_PASSWORD"):
+            return scrape_global_marches_auth(set(), log)
+        else:
+            return scrape_global_marches_public(set(), log)
     except Exception as e:
-        log(f"⚠ Global-Marchés: {e}"); return []
+        log(f"⚠ Global-Marches: {e}")
+        return []
+
 
 # ══════════════════════════════════════════════════════════
 # SOURCE 12: Marsa Maroc — Ports

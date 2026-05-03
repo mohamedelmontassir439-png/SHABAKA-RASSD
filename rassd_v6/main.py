@@ -20,8 +20,21 @@ from app.core.security import (hash_pw, verify_pw, make_token, make_session_toke
                                 validate_password, days_left)
 from app.services.notifications import dispatch_notifications, tg_admin, test_notifications
 
-MULTI_OK = False
-PW_OK = False
+# Try to import multi_scraper
+try:
+    from app.services.multi_scraper import run_all as multi_run
+    MULTI_OK = True
+except Exception as _e:
+    MULTI_OK = False
+    multi_run = None
+
+# Try to import playwright scraper
+try:
+    from app.services.playwright_scraper import run_playwright
+    PW_OK = True
+except Exception as _e:
+    PW_OK = False
+
 SUPA_OK = False
 
 logging.basicConfig(
@@ -128,7 +141,7 @@ async def do_scrape():
                 db     = get_db()
                 known2 = {r[0] for r in db.execute("SELECT id FROM tenders").fetchall()}
                 db.close()
-                multi = await loop.run_in_executor(None, lambda: multi_run(known2, State.log))
+                multi = await loop.run_in_executor(None, lambda: multi_run(known2, State.log)) if multi_run else []
                 State.found += len(multi)
                 saved2 = _save_tenders(multi, new_tenders)
                 State.saved += saved2
