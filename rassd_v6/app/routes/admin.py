@@ -63,7 +63,7 @@ async def admin_set_plan(pwd: str="", member_id: int=0, plan: str="free"):
 async def admin_login_page(req: Request):
     # If already authenticated via cookie, redirect
     session = req.cookies.get("admin_session","")
-    if session == ADMIN_PASS:
+    if ADMIN_PASS and session == ADMIN_PASS:
         return RedirectResponse("/admin", 302)
     return HTMLResponse("""<!DOCTYPE html>
 <html lang="fr"><head><meta charset="UTF-8">
@@ -113,7 +113,7 @@ if(p.get('err'))document.getElementById('err').style.display='block';
 
 @router.post("/admin/login")
 async def admin_login_post(req: Request, pwd: str = Form("")):
-    if pwd == ADMIN_PASS:
+    if ADMIN_PASS and pwd == ADMIN_PASS:
         resp = RedirectResponse("/admin", 302)
         resp.set_cookie("admin_session", ADMIN_PASS, max_age=86400*7,
                         httponly=True, samesite="lax")
@@ -134,7 +134,7 @@ async def admin_logout():
 async def admin(req: Request, pwd:str=""):
     # Redirect to login if not authenticated
     cookie = req.cookies.get("admin_session","")
-    if pwd != ADMIN_PASS and cookie != ADMIN_PASS:
+    if not (ADMIN_PASS and (pwd == ADMIN_PASS or cookie == ADMIN_PASS)):
         return RedirectResponse("/admin/login", 302)
     db=get_db()
     try:
@@ -157,7 +157,7 @@ async def admin(req: Request, pwd:str=""):
 @router.get("/admin/scrape")
 async def admin_scrape(req: Request, pwd:str="", sources:str="all"):
     cookie = req.cookies.get("admin_session","")
-    if pwd != ADMIN_PASS and cookie != ADMIN_PASS:
+    if not (ADMIN_PASS and (pwd == ADMIN_PASS or cookie == ADMIN_PASS)):
         return JSONResponse({"ok":False,"msg":"Non autorisé"},401)
     if SState.running: return JSONResponse({"ok":False,"msg":"Déjà en cours"})
     src_list=None if sources=="all" else [s.strip() for s in sources.split(",") if s.strip()]
@@ -263,7 +263,7 @@ async def admin_del(pwd:str="", tid:str=""):
 
 @router.get("/admin/expire_now")
 async def admin_expire_now(request: Request, pwd: str = ""):
-    if pwd != ADMIN_PASS: return JSONResponse({"error":"unauthorized"},401)
+    if not (ADMIN_PASS and pwd == ADMIN_PASS): return JSONResponse({"error":"unauthorized"},401)
     db = get_db()
     try:
         from datetime import date, datetime as _dt
@@ -364,7 +364,7 @@ async def admin_test_digest(pwd:str=""):
 @router.get("/admin/backup")
 async def admin_backup(req: Request, pwd: str = ""):
     cookie = req.cookies.get("admin_session", "")
-    if pwd != ADMIN_PASS and cookie != ADMIN_PASS:
+    if not (ADMIN_PASS and (pwd == ADMIN_PASS or cookie == ADMIN_PASS)):
         return RedirectResponse("/admin/login", 302)
     import shutil
     bp = DB_PATH.replace(".db", f"_backup_{datetime.now().strftime('%Y%m%d_%H%M')}.db")
@@ -384,7 +384,7 @@ async def admin_backup(req: Request, pwd: str = ""):
 async def admin_clear_db(req: Request, pwd: str = "", confirm: str = ""):
     """Vide toutes les tables de tenders"""
     cookie = req.cookies.get("admin_session","")
-    if pwd != ADMIN_PASS and cookie != ADMIN_PASS:
+    if not (ADMIN_PASS and (pwd == ADMIN_PASS or cookie == ADMIN_PASS)):
         return RedirectResponse("/admin/login",302)
     if confirm != "yes":
         return HTMLResponse("""<html><body style="font-family:monospace;background:#030303;color:#f3eee7;padding:40px">
@@ -418,7 +418,7 @@ async def admin_clear_db(req: Request, pwd: str = "", confirm: str = ""):
 async def admin_healing(req: Request, pwd: str = ""):
     """Rapport du SelfHealingAgent"""
     cookie = req.cookies.get("admin_session","")
-    if pwd != ADMIN_PASS and cookie != ADMIN_PASS:
+    if not (ADMIN_PASS and (pwd == ADMIN_PASS or cookie == ADMIN_PASS)):
         return RedirectResponse("/admin/login",302)
     report = SelfHealingAgent.get_report()
     return JSONResponse(report)
@@ -429,7 +429,7 @@ async def admin_healing(req: Request, pwd: str = ""):
 async def admin_heal_now(req: Request, pwd: str = ""):
     """Force une réparation immédiate"""
     cookie = req.cookies.get("admin_session","")
-    if pwd != ADMIN_PASS and cookie != ADMIN_PASS:
+    if not (ADMIN_PASS and (pwd == ADMIN_PASS or cookie == ADMIN_PASS)):
         return RedirectResponse("/admin/login",302)
     db = get_db()
     try:
