@@ -101,7 +101,7 @@ tr:hover td { background: var(--surface2); }
   </div>
 
   <div class="stats-grid">
-    {% for n, l in [(stats.tenders, 'Marchés actifs'), (stats.today, "Publiés aujourd'hui"), (stats.members, 'Membres'), (stats.notifs, 'Notifs (7j)'), (stats.expired, 'Expirés'), (stats.scrapes, 'Scans total')] %}
+    {% for n, l in [(stats.tenders, 'Marchés actifs'), (stats.today, "Publiés aujourd'hui"), (stats.members, 'Membres'), (stats.notifs, 'Notifs (7j)'), (stats.expired, 'Expirés'), (stats.scrapes, 'Cycles de veille')] %}
     <div class="stat">
       <div class="stat-n">{{ n }}</div>
       <div class="stat-l">{{ l }}</div>
@@ -113,15 +113,15 @@ tr:hover td { background: var(--surface2); }
     <div>
       <div class="card">
         <div class="card-h">
-          <span class="card-ht">Scraper en temps réel</span>
+          <span class="card-ht">Veille en temps réel</span>
           <div style="display: flex; gap: 8px; align-items: center;">
             <span id="st" class="run-status" style="color: {% if running %}var(--amberd){% else %}var(--t4){% endif %};">{% if running %}● EN COURS{% else %}○ INACTIF{% endif %}</span>
-            <button onclick="launch()" id="btn" class="btn btn-p" {% if running %}disabled{% endif %}>▶ Lancer scan</button>
+            <button onclick="launch()" id="btn" class="btn btn-p" {% if running %}disabled{% endif %}>▶ Actualiser</button>
             <a href="/admin/scrape" class="btn btn-o" title="Fallback direct">⚡</a>
           </div>
         </div>
         {% if last_run %}
-        <div style="padding: 10px 20px; font-size: 12px; color: var(--t3); border-bottom: 1px solid var(--line);">Dernier scan : {{ last_run[:16] }}</div>
+        <div style="padding: 10px 20px; font-size: 12px; color: var(--t3); border-bottom: 1px solid var(--line);">Dernière mise à jour : {{ last_run[:16] }}</div>
         {% endif %}
         <div class="terminal" id="trm">
           {% for l in logs %}
@@ -132,7 +132,7 @@ tr:hover td { background: var(--surface2); }
 
       {% if scrapes %}
       <div class="card">
-        <div class="card-h"><span class="card-ht">Historique des scans</span></div>
+        <div class="card-h"><span class="card-ht">Historique des mises à jour</span></div>
         <table>
           <tr><th>Date</th><th>Trouvés</th><th>Sauvés</th><th>Erreurs</th></tr>
           {% for s in scrapes %}
@@ -165,7 +165,7 @@ tr:hover td { background: var(--surface2); }
             <span class="badge b-r" id="wa-badge">Vérification…</span>
           </div>
           <div style="display:flex;gap:8px;margin-top:6px;">
-            <a href="{{ cfg.WA_SERVICE_URL }}/qr" target="_blank" class="btn btn-o" style="flex:1;justify-content:center;">📷 Scanner le QR</a>
+            <a href="{{ cfg.WA_SERVICE_URL }}/qr" target="_blank" class="btn btn-o" style="flex:1;justify-content:center;">📷 Connecter WhatsApp</a>
             <button onclick="checkWA()" class="btn btn-o">↻</button>
           </div>
         </div>
@@ -222,13 +222,13 @@ async function launch() {
   const btn = document.getElementById('btn'), trm = document.getElementById('trm'), st = document.getElementById('st');
   btn.disabled = true; btn.textContent = '⏳ En cours…';
   st.textContent = '● EN COURS'; st.style.color = '#f2a93b';
-  trm.innerHTML = '<div class="log-hdr">═══ Lancement scraper temps réel ═══</div>';
+  trm.innerHTML = '<div class="log-hdr">═══ Lancement de la veille ═══</div>';
   const r = await fetch('/admin/scrape', { credentials: 'include' });
   const d = await r.json();
   if (!d.ok) {
     trm.innerHTML += `<div class="log-err">❌ ${d.msg || 'Erreur: non autorisé'}</div>`;
     trm.innerHTML += `<div class="log-n">→ <a href="/admin/scrape" style="color:#f2a93b" target="_blank">Cliquez ici pour lancer manuellement</a></div>`;
-    btn.disabled = false; btn.textContent = '▶ Lancer scan'; return;
+    btn.disabled = false; btn.textContent = '▶ Actualiser'; return;
   }
   if (sse) sse.close();
   sse = new EventSource('/admin/scrape_stream', { withCredentials: true });
@@ -243,7 +243,7 @@ async function launch() {
     }
     if (data.done) {
       sse.close();
-      btn.disabled = false; btn.textContent = '▶ Lancer scan';
+      btn.disabled = false; btn.textContent = '▶ Actualiser';
       st.textContent = '○ INACTIF'; st.style.color = '#98a1b3';
       const d2 = document.createElement('div'); d2.className = 'log-hdr';
       d2.textContent = `✅ ${data.saved || 0} nouveaux marchés sauvegardés (${data.found || 0} trouvés)`;

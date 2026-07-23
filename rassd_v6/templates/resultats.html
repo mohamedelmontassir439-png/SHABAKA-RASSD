@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Résultats des marchés — Atlas Pro{% endblock %}
+{% block body %}
+<style>
+.res-hero { padding: 44px 0 32px; border-bottom: 1px solid var(--line); background: var(--surface); }
+.res-meta { display: flex; gap: 20px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+.res-meta-item { font-size: 13px; color: var(--text3); font-weight: 500; }
+.res-meta-item span { color: var(--navy); font-weight: 700; }
+
+.filters-bar { display: flex; gap: 10px; padding: 20px 0; flex-wrap: wrap; align-items: center; }
+.search-input { flex: 1; min-width: 220px; max-width: 420px; }
+
+.res-table { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+.res-row { border: 1px solid var(--line); border-radius: var(--r3); background: var(--surface); padding: 20px; transition: all .15s; }
+.res-row:hover { border-color: var(--navy); box-shadow: var(--sh2); }
+.res-title { font-weight: 600; font-size: 16px; color: var(--text1); line-height: 1.35; margin-bottom: 10px; }
+.res-tags { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+.res-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+.res-cell-label { font-size: 11px; font-weight: 700; color: var(--amberd); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 4px; }
+.res-cell-val { font-size: 14px; color: var(--text1); font-weight: 600; }
+.res-links { display: flex; gap: 8px; margin-top: 14px; }
+
+.pagination { display: flex; gap: 8px; justify-content: center; margin-top: 40px; flex-wrap: wrap; align-items: center; padding-bottom: 48px; }
+.pag-btn { padding: 9px 14px; border: 1px solid var(--line2); font-size: 13px; font-weight: 600; color: var(--text3); transition: all .15s; text-decoration: none; border-radius: var(--r2); background: var(--surface); }
+.pag-btn:hover { border-color: var(--navy); color: var(--navy); }
+.pag-btn.current { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+.empty-state { text-align: center; padding: 96px 24px; }
+.empty-icon { font-size: 56px; opacity: .3; line-height: 1; }
+.empty-title { font-weight: 800; font-size: 26px; color: var(--text1); margin-top: 20px; }
+.empty-title em { font-style: normal; color: var(--navy); }
+.empty-text { font-size: 15px; color: var(--text3); margin-top: 12px; }
+
+@media (max-width: 900px) {
+  .res-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+
+<div class="res-hero">
+  <div class="container">
+    <div class="section-label" style="margin-bottom: 10px;">Adjudications · Maroc</div>
+    <h1 class="display-l">{{ total }} résultats <em>publiés</em></h1>
+    <div class="res-meta">
+      <div class="res-meta-item">Attributaire <span>et montant final</span></div>
+      <div class="res-meta-item">Mise à jour <span>continue</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <form method="get" class="filters-bar">
+    <div class="search-input">
+      <input name="q" value="{{ q }}" class="inp" placeholder="Rechercher par objet, acheteur ou attributaire…">
+    </div>
+    <button type="submit" class="btn btn-outline btn-sm">Filtrer</button>
+    {% if q %}<a href="/resultats" class="btn btn-ghost btn-sm">✕ Effacer</a>{% endif %}
+  </form>
+
+  {% if resultats %}
+  <div class="res-table">
+    {% for r in resultats %}
+    <div class="res-row">
+      <div class="res-title">{{ r.objet[:160] }}{% if r.objet|length > 160 %}…{% endif %}</div>
+      <div class="res-tags">
+        <span class="badge badge-gold">{{ get_label(r.secteur)[:24] }}</span>
+        {% if r.region %}<span class="badge badge-gray">{{ r.region[:18] }}</span>{% endif %}
+        {% if r.reference %}<span class="badge badge-gray">Réf. {{ r.reference[:20] }}</span>{% endif %}
+      </div>
+      <div class="res-grid">
+        <div>
+          <div class="res-cell-label">Acheteur</div>
+          <div class="res-cell-val">{{ (r.acheteur or '—')[:40] }}</div>
+        </div>
+        <div>
+          <div class="res-cell-label">Attributaire</div>
+          <div class="res-cell-val" style="color: var(--grn);">{{ (r.adjudicataire or '—')[:40] }}</div>
+        </div>
+        <div>
+          <div class="res-cell-label">Montant</div>
+          <div class="res-cell-val">{{ r.montant or '—' }}</div>
+        </div>
+        <div>
+          <div class="res-cell-label">Date d'adjudication</div>
+          <div class="res-cell-val">{{ r.date_adjudication or '—' }}</div>
+        </div>
+      </div>
+      {% if r.dao_url or r.pv_url %}
+      <div class="res-links">
+        {% if r.dao_url %}<a href="/resultats/{{ r.id }}/dao" target="_blank" class="btn btn-outline btn-sm">Dossier (D.A.O)</a>{% endif %}
+        {% if r.pv_url %}<a href="/resultats/{{ r.id }}/pv" target="_blank" class="btn btn-outline btn-sm">Procès-verbal</a>{% endif %}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if pages > 1 %}
+  <div class="pagination">
+    {% if page > 1 %}<a href="?q={{ q }}&page={{ page-1 }}" class="pag-btn">← Préc.</a>{% endif %}
+    {% for pp in range(1, pages+1) %}
+      {% if pp == page %}<span class="pag-btn current">{{ pp }}</span>
+      {% elif pp == 1 or pp == pages or (pp >= page-2 and pp <= page+2) %}<a href="?q={{ q }}&page={{ pp }}" class="pag-btn">{{ pp }}</a>
+      {% elif pp == page-3 or pp == page+3 %}<span style="color:var(--text4);padding:9px 4px;font-size:13px;">…</span>{% endif %}
+    {% endfor %}
+    {% if page < pages %}<a href="?q={{ q }}&page={{ page+1 }}" class="pag-btn">Suiv. →</a>{% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">∅</div>
+    <div class="empty-title">Aucun résultat <em>trouvé</em></div>
+    <div class="empty-text">{% if q %}Modifiez votre recherche.{% else %}Les premiers résultats apparaîtront ici après le prochain cycle de veille.{% endif %}</div>
+    {% if q %}<div style="margin-top: 28px;"><a href="/resultats" class="btn btn-outline btn-lg">Voir tous les résultats</a></div>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

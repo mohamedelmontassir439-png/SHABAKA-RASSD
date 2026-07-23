@@ -236,6 +236,9 @@ h1,h2,h3,h4 { color: var(--text1); font-weight: 700; letter-spacing: -.02em; }
   <div class="nav-links">
     <a href="/" class="nav-link {% if request.url.path == '/' %}active{% endif %}">Accueil</a>
     <a href="/tenders" class="nav-link {% if request.url.path.startswith('/tenders') %}active{% endif %}">Marchés</a>
+    {% if member %}
+    <a href="/resultats" class="nav-link {% if request.url.path == '/resultats' %}active{% endif %}">Résultats</a>
+    {% endif %}
     <a href="/tarifs" class="nav-link {% if request.url.path == '/tarifs' %}active{% endif %}">Offres</a>
     {% if member %}
     <a href="/dashboard" class="nav-link {% if request.url.path == '/dashboard' %}active{% endif %}">Tableau de bord</a>

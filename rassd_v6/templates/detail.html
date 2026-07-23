@@ -62,7 +62,7 @@
         {% if t.type_offre=='Privé' %}<span class="badge badge-blue">Privé</span>{% endif %}
         <span class="badge badge-gold">{{ get_label(t.secteur) }}</span>
         {% if t.region %}<span class="badge badge-gray">{{ t.region }}</span>{% endif %}
-        <span class="badge badge-gray">{{ t.source or 'marchespublics.gov.ma' }}</span>
+        {% if source_label(t.source) %}<span class="badge badge-gray">{{ source_label(t.source) }}</span>{% endif %}
       </div>
 
       <h1 class="detail-title">{{ t.objet }}</h1>
@@ -131,7 +131,7 @@
 
     <div class="sticky-box">
       <div class="action-card">
-        <a href="{{ t.url }}" target="_blank" class="btn btn-primary btn-full" style="margin-bottom: 10px;">Source officielle ↗</a>
+        <a href="/tenders/{{ t.id }}/source" target="_blank" class="btn btn-primary btn-full" style="margin-bottom: 10px;">Source officielle ↗</a>
         {% if member %}
         <button onclick="toggleFav(this,'{{ t.id }}')" id="favbtn" class="btn btn-outline btn-full btn-sm {% if is_fav %}active{% endif %}">
           {% if is_fav %}★ Retirer des favoris{% else %}☆ Ajouter aux favoris{% endif %}
@@ -149,7 +149,7 @@
             <span class="action-card-val">{{ t.id[:14] }}</span>
           </div>
           <div class="action-card-row">
-            <span class="action-card-key">Scrapé</span>
+            <span class="action-card-key">Ajouté le</span>
             <span class="action-card-val">{{ t.scraped_at[:10] }}</span>
           </div>
           <div class="action-card-row">

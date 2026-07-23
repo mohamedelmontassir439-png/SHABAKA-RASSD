@@ -67,10 +67,14 @@ def build_tg_message(t: dict) -> str:
     if dl:
         badge = f" — <b>{dl_label}</b>" if dl_label else ""
         lines.append(f"⏰ <b>{dl}{badge}</b>")
-    source_name = t.get("source", "marchespublics") or "marchespublics"
+    lines.append("")
+    # Le lien passe par notre propre domaine (redirection serveur) — la source
+    # des marchés privés n'apparaît donc jamais dans le message.
+    if t.get("source") == "marchespublics":
+        lines.append(f"🔗 <a href='{t['url']}'>Voir sur marchespublics.gov.ma</a>")
+    else:
+        lines.append(f"🔗 <a href='{cfg.SITE_URL}/tenders/{t['id']}/source'>Voir le marché</a>")
     lines += [
-        "",
-        f"🔗 <a href='{t['url']}'>Voir sur {source_name}</a>",
         f"📱 <a href='{cfg.SITE_URL}/tenders/{t['id']}'>Voir sur ATLAS PRO</a>",
         "",
         "<i>ATLAS PRO · Veille Marchés Publics & Privés Maroc</i>",
@@ -126,7 +130,11 @@ def build_email(t: dict, nom: str = "") -> str:
     _n, dl_label    = days_left(t.get("date_limite", ""))
     site            = cfg.SITE_URL
     type_offre      = t.get("type_offre", "Public")
-    source_name     = t.get("source", "marchespublics") or "marchespublics"
+    is_public       = t.get("source") == "marchespublics"
+    cta_label       = "Voir sur marchespublics.gov.ma" if is_public else "Voir le marché"
+    # Le lien passe par notre propre domaine (redirection serveur) pour les
+    # marchés privés — leur source n'apparaît donc jamais dans l'email.
+    cta_url         = t["url"] if is_public else f"{site}/tenders/{t['id']}/source"
     badge_html      = f'''<div class="dl-badge">⏰ {dl_label}</div>''' if dl_label else ""
     region_row      = f'<tr><td class="lbl">📍 Région</td><td class="val">{t.get("region","")}</td></tr>' if t.get("region") else ""
     montant_row     = f'<tr><td class="lbl">💰 Montant</td><td class="val">{t.get("montant","")}</td></tr>' if t.get("montant") else ""
@@ -165,7 +173,7 @@ td{{padding:10px 0;border-bottom:1px solid #e3e7ef;vertical-align:top;font-size:
 <tr><td class="lbl">⏰ Date limite</td><td class="val val-r">{dl}</td></tr>
 <tr><td class="lbl">📅 Publication</td><td class="val">{t.get("date_publication","—")}</td></tr>
 </table>
-<a href="{t["url"]}" class="cta">Voir sur {source_name} ↗</a>
+<a href="{cta_url}" class="cta">{cta_label} ↗</a>
 <a href="{site}/tenders/{t["id"]}" class="cta2">Détails ATLAS PRO</a>
 </div>
 <div class="ftr"><p style="color:#98a1b3;font-size:11px">ATLAS PRO · <a href="{site}" style="color:#6b7488">atlaspro.ma</a> · <a href="{site}/settings" style="color:#6b7488">Gérer mes alertes</a></p></div>

@@ -94,6 +94,24 @@ CREATE TABLE IF NOT EXISTS feedback (
     created_at TEXT DEFAULT ''
 );
 
+CREATE TABLE IF NOT EXISTS tender_results (
+    id                TEXT PRIMARY KEY,
+    reference         TEXT DEFAULT '',
+    objet             TEXT DEFAULT '',
+    acheteur          TEXT DEFAULT '',
+    adjudicataire     TEXT DEFAULT '',
+    region            TEXT DEFAULT '',
+    budget            TEXT DEFAULT '',
+    montant           TEXT DEFAULT '',
+    secteur           TEXT DEFAULT '',
+    date_adjudication TEXT DEFAULT '',
+    date_ouverture    TEXT DEFAULT '',
+    date_affichage    TEXT DEFAULT '',
+    dao_url           TEXT DEFAULT '',
+    pv_url            TEXT DEFAULT '',
+    scraped_at        TEXT DEFAULT ''
+);
+
 CREATE INDEX IF NOT EXISTS idx_t_statut   ON tenders(statut);
 CREATE INDEX IF NOT EXISTS idx_t_scraped  ON tenders(scraped_at DESC);
 CREATE INDEX IF NOT EXISTS idx_t_secteur  ON tenders(secteur);
@@ -101,6 +119,8 @@ CREATE INDEX IF NOT EXISTS idx_t_deadline ON tenders(date_limite);
 CREATE INDEX IF NOT EXISTS idx_t_type     ON tenders(type_offre);
 CREATE INDEX IF NOT EXISTS idx_m_email    ON members(email);
 CREATE INDEX IF NOT EXISTS idx_fav_member ON favorites(member_id);
+CREATE INDEX IF NOT EXISTS idx_r_scraped  ON tender_results(scraped_at DESC);
+CREATE INDEX IF NOT EXISTS idx_r_secteur  ON tender_results(secteur);
 """
 
 def migrate_db():

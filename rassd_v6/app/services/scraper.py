@@ -130,7 +130,7 @@ def find_max_id(s, log_fn=print) -> int:
         # Cette plage est une estimation grossière — le do_scrape() appelant
         # prend de toute façon le max avec l'ID le plus récent déjà en DB,
         # donc une valeur basse ici est rattrapée sauf en tout premier scan.
-        log_fn("Listing inaccessible — scan binaire pour trouver max ID...")
+        log_fn("Listing inaccessible — recherche binaire pour trouver max ID...")
         return _find_max_binary(s, 360000, 400000, log_fn)
 
     except Exception as e:
@@ -272,7 +272,7 @@ def run(known_ids: set, log_fn=print) -> list:
     s = make_session()
     results = []
 
-    log_fn("═══ Real-Time Scraper ═══")
+    log_fn("═══ Veille temps réel ═══")
     log_fn(f"Date: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
 
     # Trouver le max ID actuel
@@ -299,7 +299,7 @@ def run(known_ids: set, log_fn=print) -> list:
     scan_ids = [str(i) for i in range(start_id, end_id+1)
                 if f"bdc_{i}" not in known_ids]
 
-    log_fn(f"Scan: #{start_id} → #{end_id} ({len(scan_ids)} IDs, {SCRAPER_WORKERS} en parallèle)")
+    log_fn(f"Plage: #{start_id} → #{end_id} ({len(scan_ids)} IDs, {SCRAPER_WORKERS} en parallèle)")
 
     # Une session indépendante par worker (UA propre à chacune) — un objet
     # requests.Session partagé entre threads fonctionnerait pour les GET

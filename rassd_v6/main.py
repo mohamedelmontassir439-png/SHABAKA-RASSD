@@ -91,6 +91,29 @@ def _save_tenders(tenders: list, new_list: list) -> int:
     db.commit(); db.close()
     return saved
 
+def _save_results(results: list) -> int:
+    if not results: return 0
+    db = get_db(); saved = 0
+    for r in results:
+        try:
+            db.execute("""INSERT OR IGNORE INTO tender_results
+                (id,reference,objet,acheteur,adjudicataire,region,budget,montant,
+                 secteur,date_adjudication,date_ouverture,date_affichage,
+                 dao_url,pv_url,scraped_at)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (r["id"], r.get("reference",""), r["objet"], r.get("acheteur",""),
+                 r.get("adjudicataire",""), r.get("region",""), r.get("budget",""),
+                 r.get("montant",""), r.get("secteur",""),
+                 r.get("date_adjudication",""), r.get("date_ouverture",""),
+                 r.get("date_affichage",""), r.get("dao_url",""), r.get("pv_url",""),
+                 r["scraped_at"]))
+            if db.execute("SELECT changes()").fetchone()[0]:
+                saved += 1
+        except Exception as e:
+            logger.error(f"[save_results] {e}")
+    db.commit(); db.close()
+    return saved
+
 async def do_scrape():
     if State.running: return
     State.running = True
@@ -103,7 +126,7 @@ async def do_scrape():
 
         # ── marchespublics.gov.ma ─────────────────────────
         State.log("═" * 48)
-        State.log("  ATLAS PRO Scraper v3.2 — Multi-Source")
+        State.log("  ATLAS PRO — Veille v3.2")
         State.log(f"  {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
         State.log("═" * 48)
         try:
@@ -137,7 +160,7 @@ async def do_scrape():
             except Exception as e:
                 State.log(f"⚠ Multi: {e}")
 
-        # ── Global Marches (appels d'offres privés) ───────
+        # ── Marchés privés ─────────────────────────────────
         try:
             State.log("─" * 48)
             from app.services.private_scraper import run as gm_run
@@ -148,10 +171,24 @@ async def do_scrape():
             State.found += len(gm_results)
             saved3 = _save_tenders(gm_results, new_tenders)
             State.saved += saved3
-            State.log(f"✅ Global Marches: {saved3} nouveaux")
+            State.log(f"✅ Marchés privés: {saved3} nouveaux")
         except Exception as e:
-            State.log(f"❌ Global Marches: {e}")
+            State.log(f"❌ Marchés privés: {e}")
             logger.error(f"[gm scraper] {e}", exc_info=True)
+
+        # ── Résultats des marchés (adjudications) ──────────
+        try:
+            State.log("─" * 48)
+            from app.services.private_scraper import run_results as gm_run_results
+            db      = get_db()
+            known4  = {r[0] for r in db.execute("SELECT id FROM tender_results").fetchall()}
+            db.close()
+            gm_res  = await loop.run_in_executor(None, lambda: gm_run_results(known4, State.log))
+            saved4  = _save_results(gm_res)
+            State.log(f"✅ Résultats des marchés: {saved4} nouveaux")
+        except Exception as e:
+            State.log(f"❌ Résultats des marchés: {e}")
+            logger.error(f"[gm results scraper] {e}", exc_info=True)
 
         # ── Log run ───────────────────────────────────────
         db = get_db()
@@ -240,8 +277,19 @@ a{display:inline-flex;align-items:center;justify-content:center;padding:13px 26p
 <p>Notre équipe a été notifiée. Merci de réessayer dans un instant.</p>
 <a href="/">Retour à l'accueil →</a>
 </div></body></html>""", 500)
+def source_label(source: str) -> str:
+    """Libellé affichable pour la source d'un marché.
+
+    N'expose jamais le nom du fournisseur de données des marchés privés —
+    seul le nom du portail public officiel est communiqué.
+    """
+    if source == "marchespublics":
+        return "marchespublics.gov.ma"
+    return ""
+
 templates = Jinja2Templates(directory="templates")
 templates.env.globals["get_label"] = get_label
+templates.env.globals["source_label"] = source_label
 try:
     os.makedirs("static", exist_ok=True)
     app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -382,6 +430,19 @@ async def tender_detail(req: Request, tid: str):
     db.close()
     return render(req, "detail.html", {"t":dict(t),"related":related,"is_fav":is_fav})
 
+@app.get("/tenders/{tid}/source")
+async def tender_source_redirect(req: Request, tid: str):
+    """Redirige vers la source d'origine sans jamais exposer son nom/domaine
+    dans le HTML de la page (uniquement dans l'en-tête Location de la 302)."""
+    if not get_member(req):
+        return RedirectResponse("/login?next=/tenders/" + tid, 302)
+    db = get_db()
+    t  = db.execute("SELECT url FROM tenders WHERE id=?", (tid,)).fetchone()
+    db.close()
+    if not t or not t["url"]:
+        return RedirectResponse("/tenders/" + tid, 302)
+    return RedirectResponse(t["url"], 302)
+
 @app.post("/tenders/{tid}/favorite")
 async def toggle_fav(req: Request, tid: str):
     member = get_member(req)
@@ -412,6 +473,40 @@ async def favorites_page(req: Request):
         (member["id"],)).fetchall()]
     db.close()
     return render(req,"favorites.html",{"tenders":rows})
+
+@app.get("/resultats", response_class=HTMLResponse)
+async def resultats_page(req: Request, q:str="", page:int=1):
+    if not get_member(req):
+        return RedirectResponse("/login?next=/resultats", 302)
+    db = get_db(); per = 25; page = max(1, page)
+    where, params = ["1=1"], []
+    if q:
+        where.append("(objet LIKE ? OR acheteur LIKE ? OR adjudicataire LIKE ?)")
+        params += [f"%{q}%"]*3
+    wh    = " AND ".join(where)
+    total = db.execute(f"SELECT COUNT(*) FROM tender_results WHERE {wh}", params).fetchone()[0]
+    rows  = [dict(x) for x in db.execute(
+        f"SELECT * FROM tender_results WHERE {wh} ORDER BY scraped_at DESC LIMIT ? OFFSET ?",
+        params+[per,(page-1)*per]).fetchall()]
+    db.close()
+    pages = max(1,(total+per-1)//per)
+    return render(req, "resultats.html", {
+        "resultats":rows,"total":total,"page":page,"pages":pages,"q":q})
+
+@app.get("/resultats/{rid}/{doc}")
+async def resultat_doc_redirect(req: Request, rid: str, doc: str):
+    """Redirige vers le document (D.A.O/PV) sans exposer sa source dans le HTML."""
+    if not get_member(req):
+        return RedirectResponse("/login?next=/resultats", 302)
+    if doc not in ("dao", "pv"):
+        return RedirectResponse("/resultats", 302)
+    db = get_db()
+    r  = db.execute("SELECT dao_url, pv_url FROM tender_results WHERE id=?", (rid,)).fetchone()
+    db.close()
+    url = (r["dao_url"] if doc == "dao" else r["pv_url"]) if r else ""
+    if not url:
+        return RedirectResponse("/resultats", 302)
+    return RedirectResponse(url, 302)
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(req: Request):
@@ -597,9 +692,9 @@ async def admin_scrape(req: Request):
     if not _is_admin(req):
         return JSONResponse({"ok":False,"msg":"Non autorisé — reconnectez-vous à /admin/login"},401)
     if State.running:
-        return JSONResponse({"ok":False,"msg":"Scan déjà en cours"})
+        return JSONResponse({"ok":False,"msg":"Veille déjà en cours"})
     asyncio.create_task(do_scrape())
-    return JSONResponse({"ok":True,"msg":"Scan lancé"})
+    return JSONResponse({"ok":True,"msg":"Veille lancée"})
 
 @app.get("/admin/scrape_stream")
 async def admin_stream(req: Request):
@@ -719,7 +814,6 @@ async def api_secteurs():
 async def api_sources():
     sources = [
         {"name":"marchespublics.gov.ma","type":"public",      "status":"active"},
-        {"name":"global-marches.com",   "type":"private",      "status":"active" if (cfg.GM_USERNAME and cfg.GM_PASSWORD) else "disabled"},
         {"name":"ONDA",                 "type":"semi-public", "status":"active" if MULTI_OK else "disabled"},
         {"name":"ONEE",                 "type":"semi-public", "status":"active" if MULTI_OK else "disabled"},
         {"name":"ONCF",                 "type":"semi-public", "status":"active" if MULTI_OK else "disabled"},

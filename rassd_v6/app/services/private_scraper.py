@@ -109,19 +109,19 @@ def _parse_row(row_html: str):
 def run(known_ids: set, log_fn=print) -> list:
     """Récupère les appels d'offres privés publiés récemment sur global-marches.com."""
     if not cfg.GM_USERNAME or not cfg.GM_PASSWORD:
-        log_fn("⚠ Global Marches: GM_USERNAME/GM_PASSWORD non configurés")
+        log_fn("⚠ Marchés privés: identifiants non configurés")
         return []
 
-    log_fn("═══ Global Marches — Appels d'offres privés ═══")
+    log_fn("═══ Marchés privés ═══")
     s = requests.Session()
     s.headers.update({"User-Agent": UA})
 
     try:
         if not _login(s):
-            log_fn("❌ Global Marches: échec de connexion (identifiants invalides ?)")
+            log_fn("❌ Marchés privés: échec de connexion (identifiants invalides ?)")
             return []
     except Exception as e:
-        log_fn(f"❌ Global Marches: erreur connexion — {e}")
+        log_fn(f"❌ Marchés privés: erreur connexion — {e}")
         logger.error(f"[gm login] {e}", exc_info=True)
         return []
 
@@ -133,7 +133,7 @@ def run(known_ids: set, log_fn=print) -> list:
     try:
         html = _search(s, date_from, date_to)
     except Exception as e:
-        log_fn(f"❌ Global Marches: erreur recherche — {e}")
+        log_fn(f"❌ Marchés privés: erreur recherche — {e}")
         logger.error(f"[gm search] {e}", exc_info=True)
         return []
 
@@ -146,4 +146,114 @@ def run(known_ids: set, log_fn=print) -> list:
         log_fn(f"✓ {t['id']} │ {t['secteur'][:16]:16} │ {t['objet'][:45]}")
 
     log_fn(f"═══ {len(results)} nouveaux marchés privés ═══")
+    return results
+
+
+# ══════════════════════════════════════════════════════════
+# RÉSULTATS DES APPELS D'OFFRES (adjudications)
+# ══════════════════════════════════════════════════════════
+
+RESULTS_PARAMS = [
+    ("CAT_OFFRE", "Prive"),
+    ("CLASSES[]", "%"), ("Classe[]", "%"), ("Domaine[]", "%"),
+    ("ORG[]", "%"), ("Qualification[]", "%"), ("Secteur[]", "%"), ("VILLE[]", "%"),
+    ("MOT_CLE_1", ""), ("MOT_CLE_CRET_1", "AND"),
+    ("MOT_CLE_2", ""), ("MOT_CLE_CRET_2", "AND"), ("MOT_CLE_3", ""),
+    ("MONTANT_MARCHE_1", ""), ("MONTANT_MARCHE_2", ""),
+    ("ANNEE", ""), ("MOIS", ""),
+    ("REFERENCE", ""), ("Adjudicataire", ""), ("N_ORDRE", ""),
+    ("WITHOUT_CLASSIFICATION", ""), ("SAVE", ""),
+]
+
+RESULT_BLOCK_RE = re.compile(r'<table width="100%" id="resultTable"[^>]*>.*?</table>', re.S)
+RESULT_ID_RE    = re.compile(r'data-id="(\d+)"')
+RESULT_REF_RE   = re.compile(r"<th width='9%'>R.f.rence</th>\s*<th width='80%'>([^<]*)</th>", re.S)
+RESULT_ROW_RE   = re.compile(r'<th colspan="2">([^<]+):</th>\s*<td colspan="[24]">(.*?)</td>', re.S)
+RESULT_DAO_RE   = re.compile(r'D\.A\.O\s*:</th>\s*<td colspan="2">\s*<a href="([^"]+)"')
+RESULT_PV_RE    = re.compile(r'PV\s*:</th>\s*<td colspan="2">\s*<a href="([^"]+)"')
+
+
+def _search_results(s: requests.Session) -> str:
+    r = s.get(BASE + "/listresultataoresultat", params=RESULTS_PARAMS, timeout=30)
+    r.raise_for_status()
+    return r.text
+
+
+def _parse_result_block(block_html: str):
+    id_m = RESULT_ID_RE.search(block_html)
+    if not id_m:
+        return None
+    rid = id_m.group(1)
+
+    ref_m  = RESULT_REF_RE.search(block_html)
+    fields = {_clean(k): _clean(v) for k, v in RESULT_ROW_RE.findall(block_html)}
+
+    objet = fields.get("Objet", "")
+    if not objet or len(objet) < 5:
+        return None
+
+    dao_m = RESULT_DAO_RE.search(block_html)
+    pv_m  = RESULT_PV_RE.search(block_html)
+
+    acheteur      = fields.get("Maitre d'ouvrage", "")
+    adjudicataire = fields.get("Adjudicataire", "")
+    full_text     = f"{acheteur} {objet}"
+
+    return {
+        "id":                f"gmr_{rid}",
+        "reference":         _clean(ref_m.group(1)) if ref_m else "",
+        "objet":             objet[:400],
+        "acheteur":          acheteur[:200],
+        "adjudicataire":     adjudicataire[:200],
+        "region":            fields.get("Ville", "")[:100],
+        "budget":            fields.get("Budget(DHs)", "")[:80],
+        "montant":           fields.get("Montant(DHs)", "")[:80],
+        "secteur":           classify(full_text),
+        "date_adjudication": fields.get("Date des adjudications", ""),
+        "date_ouverture":    fields.get("Date d'ouverture", ""),
+        "date_affichage":    fields.get("Date d'affichage", ""),
+        "dao_url":           BASE + dao_m.group(1) if dao_m else "",
+        "pv_url":            BASE + pv_m.group(1) if pv_m else "",
+        "scraped_at":        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+
+
+def run_results(known_ids: set, log_fn=print) -> list:
+    """Récupère les résultats d'adjudication (gagnant, montant final) publiés
+    récemment. Le site trie par défaut par date d'affichage décroissante, donc
+    la première page (50 résultats) couvre toujours les plus récents — le
+    dédoublonnage via known_ids gère le reste."""
+    if not cfg.GM_USERNAME or not cfg.GM_PASSWORD:
+        log_fn("⚠ Résultats des marchés: identifiants non configurés")
+        return []
+
+    log_fn("═══ Résultats des marchés ═══")
+    s = requests.Session()
+    s.headers.update({"User-Agent": UA})
+
+    try:
+        if not _login(s):
+            log_fn("❌ Résultats des marchés: échec de connexion")
+            return []
+    except Exception as e:
+        log_fn(f"❌ Résultats des marchés: erreur connexion — {e}")
+        logger.error(f"[gm results login] {e}", exc_info=True)
+        return []
+
+    try:
+        html = _search_results(s)
+    except Exception as e:
+        log_fn(f"❌ Résultats des marchés: erreur recherche — {e}")
+        logger.error(f"[gm results search] {e}", exc_info=True)
+        return []
+
+    results = []
+    for block in RESULT_BLOCK_RE.findall(html):
+        r = _parse_result_block(block)
+        if not r or r["id"] in known_ids:
+            continue
+        results.append(r)
+        log_fn(f"✓ {r['id']} │ {r['adjudicataire'][:24]:24} │ {r['objet'][:40]}")
+
+    log_fn(f"═══ {len(results)} nouveaux résultats ═══")
     return results
