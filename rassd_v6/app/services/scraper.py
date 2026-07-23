@@ -7,9 +7,9 @@ Stratégie:
 2. Surveille en boucle les nouveaux IDs
 3. Alerte immédiatement à chaque nouvelle صفقة
 """
-import re, time, ssl, random, logging, os, requests, urllib3
+import re, ssl, random, logging, requests, urllib3
+import concurrent.futures
 from datetime import datetime, date
-from typing import Optional
 from app.core.sectors import classify
 
 urllib3.disable_warnings()
@@ -18,6 +18,13 @@ logger = logging.getLogger("rassd.rt")
 BASE   = "https://www.marchespublics.gov.ma/bdc/entreprise/consultation"
 LIST_URL = "https://www.marchespublics.gov.ma/bdc/entreprise/consultation/list"
 HOME_URL = "https://www.marchespublics.gov.ma"
+
+# Timeout court + requêtes en parallèle: avec un timeout=20s séquentiel, un
+# segment d'IDs lents/indisponibles pouvait bloquer le scan entier pendant
+# des dizaines de minutes (State.running restait bloqué à True, empêchant
+# tout scan suivant). 8s + 12 workers ramène le pire cas de ~80min à ~3min.
+REQUEST_TIMEOUT  = 8
+SCRAPER_WORKERS  = 12
 
 UA = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0 Safari/537.36",
@@ -107,9 +114,9 @@ def find_max_id(s, log_fn=print) -> int:
     """
     try:
         # Page listing principale
-        r = s.get(LIST_URL, timeout=20)
+        r = s.get(LIST_URL, timeout=REQUEST_TIMEOUT)
         if r.status_code != 200:
-            r = s.get(f"{HOME_URL}/bdc/entreprise/consultation", timeout=20)
+            r = s.get(f"{HOME_URL}/bdc/entreprise/consultation", timeout=REQUEST_TIMEOUT)
 
         if r.status_code == 200:
             # Chercher tous les IDs dans les liens
@@ -119,13 +126,16 @@ def find_max_id(s, log_fn=print) -> int:
                 log_fn(f"Max ID depuis listing: #{max_id}")
                 return max_id
 
-        # Fallback: scan binaire pour trouver le dernier ID actif
+        # Fallback: scan binaire pour trouver le dernier ID actif.
+        # Cette plage est une estimation grossière — le do_scrape() appelant
+        # prend de toute façon le max avec l'ID le plus récent déjà en DB,
+        # donc une valeur basse ici est rattrapée sauf en tout premier scan.
         log_fn("Listing inaccessible — scan binaire pour trouver max ID...")
-        return _find_max_binary(s, 312000, 320000, log_fn)
+        return _find_max_binary(s, 360000, 400000, log_fn)
 
     except Exception as e:
-        log_fn(f"find_max_id error: {e} — fallback 313000")
-        return 313000
+        log_fn(f"find_max_id error: {e} — fallback 370000")
+        return 370000
 
 
 def _find_max_binary(s, low, high, log_fn) -> int:
@@ -134,7 +144,7 @@ def _find_max_binary(s, low, high, log_fn) -> int:
     while low <= high:
         mid = (low + high) // 2
         try:
-            r = s.get(f"{BASE}/show/{mid}", timeout=15)
+            r = s.get(f"{BASE}/show/{mid}", timeout=REQUEST_TIMEOUT)
             if r.status_code == 200 and len(r.text) > 2000:
                 best = mid
                 low = mid + 1
@@ -241,11 +251,22 @@ def parse_page(html, tid):
         return None
 
 
+def _fetch_one(session: requests.Session, tid: str):
+    """Récupère et parse une seule fiche. Retourne (tender_ou_None, erreur_ou_None)."""
+    try:
+        r = session.get(f"{BASE}/show/{tid}", timeout=REQUEST_TIMEOUT)
+        if r.status_code == 404 or r.status_code != 200 or len(r.text) < 1500:
+            return None, None
+        return parse_page(r.text, tid), None
+    except Exception as e:
+        return None, str(e)[:80]
+
+
 def run(known_ids: set, log_fn=print) -> list:
     """
     Scraper temps réel:
     1. Trouve le max ID actuel
-    2. Scanne 50 en arrière + 200 en avant
+    2. Scanne 50 en arrière + 200 en avant, en parallèle (SCRAPER_WORKERS threads)
     3. Retourne uniquement les nouvelles صفقات actives
     """
     s = make_session()
@@ -278,27 +299,34 @@ def run(known_ids: set, log_fn=print) -> list:
     scan_ids = [str(i) for i in range(start_id, end_id+1)
                 if f"bdc_{i}" not in known_ids]
 
-    log_fn(f"Scan: #{start_id} → #{end_id} ({len(scan_ids)} IDs)")
+    log_fn(f"Scan: #{start_id} → #{end_id} ({len(scan_ids)} IDs, {SCRAPER_WORKERS} en parallèle)")
+
+    # Une session indépendante par worker (UA propre à chacune) — un objet
+    # requests.Session partagé entre threads fonctionnerait pour les GET
+    # simples, mais rester isolé évite toute mauvaise surprise de mutation
+    # concurrente des en-têtes.
+    sessions = [make_session() for _ in range(SCRAPER_WORKERS)]
 
     errors = 0
-    for i, tid in enumerate(scan_ids):
-        if i % 80 == 0 and i > 0:
-            s.headers["User-Agent"] = random.choice(UA)
-        try:
-            r = s.get(f"{BASE}/show/{tid}", timeout=20)
-            if r.status_code == 404: continue
-            if r.status_code != 200 or len(r.text) < 1500: continue
-
-            t = parse_page(r.text, tid)
-            if not t: continue
-
-            results.append(t)
-            log_fn(f"✓ #{tid} │ {t['secteur'][:16]:16} │ {t['objet'][:45]} │ ⏰{t['date_limite'] or '?'}")
-            time.sleep(0.25)
-
-        except Exception as e:
-            errors += 1
-            if errors <= 2: log_fn(f"⚠ #{tid}: {str(e)[:60]}")
+    done   = 0
+    with concurrent.futures.ThreadPoolExecutor(max_workers=SCRAPER_WORKERS) as pool:
+        future_to_tid = {
+            pool.submit(_fetch_one, sessions[i % SCRAPER_WORKERS], tid): tid
+            for i, tid in enumerate(scan_ids)
+        }
+        for future in concurrent.futures.as_completed(future_to_tid):
+            tid = future_to_tid[future]
+            t, err = future.result()
+            done += 1
+            if err:
+                errors += 1
+                if errors <= 5:
+                    log_fn(f"⚠ #{tid}: {err}")
+            elif t:
+                results.append(t)
+                log_fn(f"✓ #{tid} │ {t['secteur'][:16]:16} │ {t['objet'][:45]} │ ⏰{t['date_limite'] or '?'}")
+            if done % 50 == 0:
+                log_fn(f"… {done}/{len(scan_ids)} traités ({errors} erreurs)")
 
     log_fn(f"═══ {len(results)} nouveaux │ {errors} erreurs ═══")
     return results
