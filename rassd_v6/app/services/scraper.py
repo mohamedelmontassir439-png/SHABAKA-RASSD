@@ -10,6 +10,7 @@ Stratégie:
 import re, time, ssl, random, logging, os, requests, urllib3
 from datetime import datetime, date
 from typing import Optional
+from app.core.sectors import classify
 
 urllib3.disable_warnings()
 logger = logging.getLogger("rassd.rt")
@@ -63,21 +64,6 @@ def is_expired(text):
         d = _parse_date(m.group(1))
         if d: return d < date.today()
     return False
-
-def _detect_secteur(text):
-    t = text.lower()
-    if any(k in t for k in ["travaux","construction","réhabilitation","génie civil","route","béton"]): return "Travaux BTP"
-    if any(k in t for k in ["informatique","logiciel","système","réseau","serveur","cloud"]): return "IT & Télécoms"
-    if any(k in t for k in ["médical","médicament","hôpital","santé","clinique","laboratoire"]): return "Santé & Médical"
-    if any(k in t for k in ["véhicule","automobile","voiture","camion","transport"]): return "Transport & Véhicules"
-    if any(k in t for k in ["nettoyage","entretien","maintenance","gardiennage"]): return "Services Généraux"
-    if any(k in t for k in ["étude","mission","audit","conseil","expertise","ingénierie"]): return "Études & Conseil"
-    if any(k in t for k in ["formation","enseignement","éducation","stage"]): return "Formation"
-    if any(k in t for k in ["restauration","hôtellerie","alimentation","repas"]): return "Restauration"
-    if any(k in t for k in ["électricité","éclairage","énergie","photovoltaïque"]): return "Énergie"
-    if any(k in t for k in ["hydraulique","eau potable","assainissement"]): return "Hydraulique"
-    if any(k in t for k in ["papeterie","cartouche","toner"]): return "Fournitures Bureau"
-    return "Autres Fournitures"
 
 def _cell(soup, *labels):
     for row in soup.find_all("tr"):
@@ -243,7 +229,7 @@ def parse_page(html, tid):
             "date_publication": _extract_date(_cell(soup,"date de publication","publication")),
             "date_limite": date_lim,
             "montant": montant[:80],
-            "secteur": _detect_secteur(objet + " " + full[:400]),
+            "secteur": classify(objet + " " + full[:400]),
             "url": f"{BASE}/show/{tid}",
             "source": "marchespublics",
             "statut": "actif",

@@ -2,60 +2,68 @@
 {% block title %}Mes alertes — Atlas Pro{% endblock %}
 {% block body %}
 <style>
-.set-wrap { max-width: 760px; margin: 0 auto; padding: 80px 32px; }
-.set-hero { margin-bottom: 56px; }
-.set-block { padding: 40px 0; border-top: 1px solid var(--line); }
-.set-block:first-of-type { border-top: none; }
-.set-block-h { font-family: var(--serif); font-weight: 300; font-size: 32px; color: var(--text1); line-height: 1.1; margin-bottom: 8px; letter-spacing: -.015em; font-variation-settings: "opsz" 80, "SOFT" 50; }
-.set-block-h em { font-style: italic; color: var(--gold); }
-.set-block-sub { font-family: var(--serif); font-style: italic; font-size: 15px; color: var(--text3); margin-bottom: 32px; line-height: 1.5; font-variation-settings: "opsz" 80, "SOFT" 100; }
+.set-wrap { max-width: 740px; margin: 0 auto; padding: 48px 24px 80px; }
+.set-hero { margin-bottom: 32px; }
+.set-block { padding: 28px; border: 1px solid var(--line); border-radius: var(--r3); background: var(--surface); margin-bottom: 20px; box-shadow: var(--sh); }
+.set-block-h { font-weight: 800; font-size: 21px; color: var(--text1); line-height: 1.2; margin-bottom: 6px; letter-spacing: -.01em; }
+.set-block-h em { font-style: normal; color: var(--navy); }
+.set-block-sub { font-size: 14px; color: var(--text3); margin-bottom: 24px; line-height: 1.55; }
 
-.notif-channel { display: flex; align-items: flex-start; gap: 16px; padding: 20px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
+.notif-channel { display: flex; align-items: flex-start; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--line); cursor: pointer; }
 .notif-channel:last-of-type { border-bottom: none; }
-.notif-checkbox { margin-top: 4px; flex-shrink: 0; width: 18px; height: 18px; accent-color: var(--gold); cursor: pointer; }
+.notif-checkbox { margin-top: 3px; flex-shrink: 0; width: 18px; height: 18px; accent-color: var(--navy); cursor: pointer; }
 .notif-content { flex: 1; }
-.notif-title { font-family: var(--serif); font-weight: 300; font-size: 20px; color: var(--text1); margin-bottom: 4px; font-variation-settings: "opsz" 80, "SOFT" 50; }
+.notif-title { font-weight: 700; font-size: 15.5px; color: var(--text1); margin-bottom: 4px; }
 .notif-desc { font-size: 13px; color: var(--text3); line-height: 1.6; }
 
-.sector-group { margin-bottom: 28px; }
-.sector-group-title { font-family: var(--mono); font-size: 9px; color: var(--gold); letter-spacing: .25em; text-transform: uppercase; margin-bottom: 14px; }
+.sector-group { margin-bottom: 20px; }
+.sector-group-title { font-size: 12px; font-weight: 700; color: var(--navy); letter-spacing: .05em; text-transform: uppercase; margin-bottom: 12px; }
 .sector-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.sector-chip { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; background: transparent; border: 1px solid var(--bdr2); cursor: pointer; font-family: var(--sans); font-size: 12px; color: var(--text3); transition: all .25s; user-select: none; border-radius: var(--r2); }
-.sector-chip:hover { border-color: var(--gold); color: var(--gold); }
+.sector-chip { display: inline-flex; align-items: center; gap: 6px; padding: 8px 13px; background: var(--surface2); border: 1.5px solid transparent; cursor: pointer; font-size: 13px; color: var(--text2); transition: all .15s; user-select: none; border-radius: var(--r2); }
+.sector-chip:hover { border-color: var(--line2); }
 .sector-chip input { display: none; }
-.sector-chip:has(input:checked) { border-color: var(--gold); color: var(--gold); background: var(--goldb); }
-.sector-chip-code { font-family: var(--mono); font-size: 9px; opacity: .7; letter-spacing: .1em; }
+.sector-chip:has(input:checked) { border-color: var(--navy); color: var(--navy); background: rgba(20,40,80,.06); font-weight: 600; }
+.sector-chip-code { font-family: var(--mono); font-size: 10px; opacity: .65; }
 
-.tg-hint { background: var(--goldb); border: 1px solid rgba(212,165,116,.2); padding: 16px 20px; border-radius: var(--r2); font-size: 13px; color: var(--text3); line-height: 1.6; margin-top: 16px; }
-.tg-hint code { background: var(--bg3); padding: 2px 8px; color: var(--gold); font-family: var(--mono); font-size: 12px; border-radius: 2px; }
+.tg-hint { background: var(--ambera); border: 1px solid rgba(242,169,59,.28); padding: 14px 18px; border-radius: var(--r2); font-size: 13px; color: var(--text2); line-height: 1.6; margin-top: 14px; }
+.tg-hint code { background: var(--surface2); padding: 2px 8px; color: var(--amberd); font-family: var(--mono); font-size: 12px; border-radius: 4px; }
 
-.save-bar { position: sticky; bottom: 24px; background: var(--bg2); border: 1px solid var(--gold); padding: 16px 24px; margin-top: 56px; display: flex; gap: 16px; align-items: center; backdrop-filter: blur(20px); border-radius: var(--r2); box-shadow: var(--sh); }
-.save-bar-text { font-family: var(--mono); font-size: 11px; color: var(--text3); letter-spacing: .15em; text-transform: uppercase; flex: 1; }
+.save-bar { position: sticky; bottom: 20px; background: var(--navy); padding: 14px 22px; margin-top: 24px; display: flex; gap: 16px; align-items: center; border-radius: var(--r3); box-shadow: var(--sh3); }
+.save-bar-text { font-size: 13px; color: rgba(255,255,255,.7); font-weight: 600; flex: 1; }
 </style>
 
 <div class="set-wrap">
   <div class="set-hero">
     <div class="section-label">Paramètres</div>
-    <h1 class="display-l">Mes <em>alertes.</em></h1>
+    <h1 class="display-l">Mes <em>alertes</em></h1>
   </div>
 
   <form method="post">
     <section class="set-block">
       <div class="set-block-h">Profil</div>
       <div class="set-block-sub">Vos informations de contact.</div>
-      <div class="grid-2" style="gap: 32px;">
-        <div class="field"><label>Nom</label><input name="nom" value="{{ member.nom }}" class="inp"></div>
-        <div class="field"><label>Téléphone</label><input name="phone" value="{{ member.phone }}" class="inp"></div>
-        <div class="field" style="grid-column: 1/-1;"><label>Entreprise</label><input name="company" value="{{ member.company }}" class="inp"></div>
+      <div class="grid-2" style="gap: 20px;">
+        <div class="field"><label for="nom">Nom</label><input id="nom" name="nom" value="{{ member.nom }}" class="inp"></div>
+        <div class="field"><label for="phone">Téléphone</label><input id="phone" name="phone" value="{{ member.phone }}" class="inp"></div>
+        <div class="field" style="grid-column: 1/-1;"><label for="company">Entreprise</label><input id="company" name="company" value="{{ member.company }}" class="inp"></div>
       </div>
     </section>
 
     <section class="set-block">
       <div class="set-block-h"><em>Telegram</em></div>
       <div class="set-block-sub">Recevez les alertes instantanément sur votre mobile.</div>
-      <div class="field"><label>Chat ID Telegram</label><input name="telegram" value="{{ member.telegram }}" class="inp" placeholder="ex: 123456789"></div>
+      <div class="field"><label for="telegram">Chat ID Telegram</label><input id="telegram" name="telegram" value="{{ member.telegram }}" class="inp" placeholder="ex: 123456789"></div>
       <div class="tg-hint">
         <strong>Comment obtenir votre Chat ID :</strong> Ouvrez Telegram, cherchez votre bot Atlas Pro, envoyez la commande <code>/start</code>, et le bot vous répondra avec votre ID.
+      </div>
+    </section>
+
+    <section class="set-block">
+      <div class="set-block-h"><em>WhatsApp</em></div>
+      <div class="set-block-sub">Recevez les alertes directement sur WhatsApp.</div>
+      <div class="field"><label for="whatsapp">Numéro WhatsApp</label><input id="whatsapp" name="whatsapp" value="{{ member.whatsapp }}" class="inp" placeholder="ex: 06 12 34 56 78"></div>
+      <div class="tg-hint">
+        Saisissez votre numéro au format marocain (ex: <code>0612345678</code> ou <code>+212612345678</code>).
       </div>
     </section>
 
@@ -65,6 +73,7 @@
       {% for fn, label, desc in [
         ('notif_email', 'Email', 'Alerte HTML détaillée envoyée à votre adresse email — idéal pour le bureau.'),
         ('notif_tg', 'Telegram', 'Notification instantanée sur votre mobile — idéal en déplacement.'),
+        ('notif_wa', 'WhatsApp', 'Message envoyé directement sur votre WhatsApp — nécessite un numéro renseigné ci-dessus.'),
         ('notif_digest', 'Digest hebdomadaire', 'Résumé des marchés de la semaine, chaque lundi matin.')
       ] %}
       <label class="notif-channel">
@@ -79,7 +88,7 @@
 
     <section class="set-block">
       <div class="set-block-h">Mes <em>secteurs</em></div>
-      <div class="set-block-sub">Sélectionnez vos secteurs pour ne recevoir que les marchés pertinents. Laissez vide pour tout recevoir.</div>
+      <div class="set-block-sub">Sélectionnez vos secteurs pour ne recevoir que les marchés pertinents (publics et privés). Laissez vide pour tout recevoir.</div>
       {% for group_name, group_sectors in sector_groups.items() %}
       <div class="sector-group">
         <div class="sector-group-title">{{ group_name }}</div>
@@ -99,8 +108,8 @@
     </section>
 
     <div class="save-bar">
-      <div class="save-bar-text">Modifications en attente</div>
-      <button type="submit" class="btn btn-primary">Enregistrer →</button>
+      <div class="save-bar-text">Vos préférences sont propres à votre compte</div>
+      <button type="submit" class="btn btn-accent">Enregistrer →</button>
     </div>
   </form>
 </div>

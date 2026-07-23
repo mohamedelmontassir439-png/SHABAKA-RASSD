@@ -2,48 +2,46 @@
 {% block title %}Votre avis — Atlas Pro{% endblock %}
 {% block body %}
 <style>
-.fb-wrap { max-width: 720px; margin: 0 auto; padding: 80px 32px; }
-.fb-hero { text-align: center; margin-bottom: 56px; }
-.fb-title { font-family: var(--serif); font-weight: 300; font-size: clamp(40px, 6vw, 72px); line-height: 1; letter-spacing: -.02em; color: var(--text1); margin: 16px 0; font-variation-settings: "opsz" 144, "SOFT" 50, "WONK" 1; }
-.fb-title em { font-style: italic; color: var(--gold); font-variation-settings: "opsz" 144, "SOFT" 100, "WONK" 1; }
-.fb-sub { font-family: var(--serif); font-style: italic; font-size: 18px; color: var(--text3); line-height: 1.5; margin: 0 auto; max-width: 540px; font-variation-settings: "opsz" 80, "SOFT" 100, "WONK" 1; }
+.fb-wrap { max-width: 700px; margin: 0 auto; padding: 56px 24px 80px; }
+.fb-hero { text-align: center; margin-bottom: 40px; }
+.fb-title { font-weight: 800; font-size: clamp(28px, 4.5vw, 40px); line-height: 1.15; letter-spacing: -.02em; color: var(--text1); margin: 14px 0; }
+.fb-title em { font-style: normal; color: var(--navy); }
+.fb-sub { font-size: 16px; color: var(--text3); line-height: 1.6; margin: 0 auto; max-width: 520px; }
 
-.fb-block { padding: 40px 0; border-top: 1px solid var(--line); }
-.fb-block:first-of-type { border-top: none; }
-.fb-block-label { font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: .3em; text-transform: uppercase; margin-bottom: 24px; }
+.fb-block { padding: 24px; border: 1px solid var(--line); border-radius: var(--r3); background: var(--surface); margin-bottom: 16px; box-shadow: var(--sh); }
+.fb-block-label { font-size: 13px; font-weight: 700; color: var(--amberd); letter-spacing: .05em; text-transform: uppercase; margin-bottom: 18px; }
 
 .stars-row { display: flex; gap: 8px; }
-.star { font-size: 36px; cursor: pointer; transition: all .3s; opacity: .25; color: var(--gold); }
+.star { font-size: 32px; cursor: pointer; transition: all .2s; opacity: .25; color: var(--amber); }
 .star.active, .star:hover { opacity: 1; transform: scale(1.05); }
 
-.fb-textarea { width: 100%; background: transparent; border: 1px solid var(--bdr2); padding: 16px; color: var(--text1); font-family: var(--sans); font-size: 15px; min-height: 180px; resize: vertical; outline: none; transition: border-color .3s; border-radius: var(--r2); }
-.fb-textarea:focus { border-color: var(--gold); }
-.fb-textarea::placeholder { color: var(--text4); font-style: italic; }
+.fb-textarea { width: 100%; background: var(--bg); border: 1.5px solid var(--line2); padding: 14px; color: var(--text1); font-family: var(--sans); font-size: 15px; min-height: 160px; resize: vertical; outline: none; transition: border-color .15s; border-radius: var(--r2); }
+.fb-textarea:focus { border-color: var(--navy); }
 
-.feature-grid { display: flex; flex-wrap: wrap; gap: 10px; }
-.feature-chip { display: inline-flex; align-items: center; padding: 10px 16px; background: transparent; border: 1px solid var(--bdr2); font-family: var(--mono); font-size: 11px; color: var(--text3); cursor: pointer; transition: all .25s; user-select: none; letter-spacing: .1em; border-radius: var(--r2); }
-.feature-chip:hover { border-color: var(--gold); color: var(--gold); }
-.feature-chip.active { border-color: var(--gold); color: var(--gold); background: var(--goldb); }
+.feature-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.feature-chip { display: inline-flex; align-items: center; padding: 9px 15px; background: var(--surface2); border: 1.5px solid transparent; font-size: 13px; color: var(--text2); cursor: pointer; transition: all .15s; user-select: none; border-radius: var(--r2); }
+.feature-chip:hover { border-color: var(--line2); }
+.feature-chip.active { border-color: var(--navy); color: var(--navy); background: rgba(20,40,80,.06); font-weight: 600; }
 .feature-chip input { display: none; }
 
-.fb-success { text-align: center; padding: 80px 24px; border: 1px solid rgba(125,200,154,.25); background: rgba(125,200,154,.04); border-radius: var(--r2); }
-.fb-success-glyph { font-family: var(--serif); font-style: italic; font-size: 96px; color: var(--grn); line-height: 1; font-variation-settings: "opsz" 144, "SOFT" 100, "WONK" 1; }
-.fb-success-h { font-family: var(--serif); font-weight: 300; font-size: 36px; color: var(--text1); margin: 24px 0 12px; font-variation-settings: "opsz" 80, "SOFT" 50; }
-.fb-success-h em { font-style: italic; color: var(--grn); }
-.fb-success-p { font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--text3); margin-bottom: 32px; max-width: 460px; margin-left: auto; margin-right: auto; line-height: 1.6; font-variation-settings: "opsz" 80, "SOFT" 100; }
+.fb-success { text-align: center; padding: 64px 24px; border: 1px solid rgba(29,154,108,.25); background: var(--grna); border-radius: var(--r3); }
+.fb-success-glyph { font-size: 56px; color: var(--grn); line-height: 1; }
+.fb-success-h { font-weight: 800; font-size: 28px; color: var(--text1); margin: 20px 0 10px; }
+.fb-success-h em { font-style: normal; color: var(--grn); }
+.fb-success-p { font-size: 15px; color: var(--text3); margin-bottom: 28px; max-width: 440px; margin-left: auto; margin-right: auto; line-height: 1.6; }
 </style>
 
 <div class="fb-wrap">
   <div class="fb-hero">
     <div class="section-label" style="justify-content: center; display: inline-flex;">Votre avis compte</div>
-    <h1 class="fb-title">Aidez-nous à <em>construire.</em></h1>
+    <h1 class="fb-title">Aidez-nous à <em>construire</em></h1>
     <p class="fb-sub">Vos retours façonnent directement les prochaines fonctionnalités d'Atlas Pro.</p>
   </div>
 
   {% if request.query_params.get('ok') %}
   <div class="fb-success">
     <div class="fb-success-glyph">✓</div>
-    <div class="fb-success-h">Merci pour votre <em>retour.</em></div>
+    <div class="fb-success-h">Merci pour votre <em>retour</em></div>
     <div class="fb-success-p">Votre avis a été transmis à notre équipe. Nous le lirons avec attention.</div>
     <a href="/dashboard" class="btn btn-primary btn-lg">Retour au tableau de bord →</a>
   </div>
@@ -81,14 +79,15 @@
       </div>
     </section>
 
-    <div style="display: flex; gap: 16px; margin-top: 32px; align-items: center;">
+    <div style="display: flex; gap: 16px; margin-top: 24px; align-items: center; flex-wrap: wrap;">
       <button type="submit" class="btn btn-primary btn-xl">Envoyer mon retour →</button>
-      <a href="/dashboard" style="font-family: var(--mono); font-size: 11px; color: var(--text4); letter-spacing: .15em; text-transform: uppercase;">Passer pour l'instant</a>
+      <a href="/dashboard" style="font-size: 13px; color: var(--text3); font-weight: 600;">Passer pour l'instant</a>
     </div>
   </form>
   {% endif %}
 </div>
-
+{% endblock %}
+{% block scripts %}
 <script>
 function setRating(n) {
   document.getElementById('rating-input').value = n;

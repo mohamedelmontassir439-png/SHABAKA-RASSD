@@ -1,6 +1,12 @@
 from app.core.sectors import SECTORS, GROUPS
 import os, secrets
 from dataclasses import dataclass, field
+from dotenv import load_dotenv
+
+# Charge .env en local (dev). Sans effet sur Railway: les variables y sont
+# injectées directement dans l'environnement réel, load_dotenv() ne les
+# écrase jamais (override=False par défaut) et ne fait rien si .env est absent.
+load_dotenv()
 
 @dataclass
 class Settings:
@@ -19,6 +25,10 @@ class Settings:
     SCAN_INTERVAL_MIN: int = int(os.getenv("SCAN_INTERVAL_MIN", "60"))
     SCRAPER_TIMEOUT:   int = 20
     SCRAPER_UA_ROTATE: int = 80
+    # Global Marches (appels d'offres privés)
+    GM_USERNAME: str = os.getenv("GM_USERNAME", "")
+    GM_PASSWORD: str = os.getenv("GM_PASSWORD", "")
+    GM_SCAN_INTERVAL_MIN: int = int(os.getenv("GM_SCAN_INTERVAL_MIN", "60"))
     # Notifications
     TELEGRAM_BOT:  str = os.getenv("TELEGRAM_BOT", "")
     ADMIN_CHAT_ID: str = os.getenv("ADMIN_CHAT_ID", "")
@@ -27,6 +37,9 @@ class Settings:
     GMAIL_PASS:    str = os.getenv("GMAIL_PASS", "")
     FROM_EMAIL:    str = os.getenv("FROM_EMAIL", "alerts@atlas.ma")
     FROM_NAME:     str = "ATLAS PRO"
+    # WhatsApp (service Baileys séparé)
+    WA_SERVICE_URL: str = os.getenv("WA_SERVICE_URL", "http://localhost:3001")
+    WA_SECRET:      str = os.getenv("WA_SECRET", "atlas_wa_secret_2024")
     # Plans
     PLANS: dict = field(default_factory=lambda: {
         "free":    {"name":"Gratuit","price":0,  "tenders_day":15,"email":True, "telegram":False,"api":False},

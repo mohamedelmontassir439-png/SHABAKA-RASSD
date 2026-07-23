@@ -1,98 +1,100 @@
 {% extends "base.html" %}
-{% block title %}Marchés Publics — Atlas Pro{% endblock %}
+{% block title %}Marchés Publics & Privés — Atlas Pro{% endblock %}
 {% block body %}
 <style>
-.tenders-hero { padding: 80px 0 48px; border-bottom: 1px solid var(--line); }
-.tenders-hero-grid { display: grid; grid-template-columns: 1fr auto; gap: 32px; align-items: end; }
-.tenders-meta { display: flex; gap: 24px; align-items: center; margin-top: 12px; }
-.tenders-meta-item { font-family: var(--mono); font-size: 11px; color: var(--text3); letter-spacing: .15em; text-transform: uppercase; }
-.tenders-meta-item span { color: var(--gold); }
+.tenders-hero { padding: 44px 0 32px; border-bottom: 1px solid var(--line); background: var(--surface); }
+.tenders-hero-grid { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: end; }
+.tenders-meta { display: flex; gap: 20px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+.tenders-meta-item { font-size: 13px; color: var(--text3); font-weight: 500; }
+.tenders-meta-item span { color: var(--navy); font-weight: 700; }
 
-.filters-bar { display: flex; gap: 12px; padding: 24px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; align-items: center; }
-.search-input { flex: 1; min-width: 240px; max-width: 400px; }
-.search-input .inp { font-family: var(--serif); font-style: italic; font-size: 18px; padding: 8px 4px; font-variation-settings: "opsz" 80, "SOFT" 100, "WONK" 1; }
-.sort-tabs { display: flex; gap: 0; border: 1px solid var(--bdr2); border-radius: var(--r2); overflow: hidden; }
-.sort-tab { padding: 9px 18px; font-family: var(--mono); font-size: 10px; font-weight: 400; letter-spacing: .15em; text-transform: uppercase; color: var(--text3); background: transparent; border: none; cursor: pointer; transition: all .25s; text-decoration: none; }
-.sort-tab + .sort-tab { border-left: 1px solid var(--bdr); }
-.sort-tab:hover { color: var(--text1); background: var(--bg2); }
-.sort-tab.on { background: var(--gold); color: var(--bg); }
+.filters-bar { display: flex; gap: 10px; padding: 20px 0; flex-wrap: wrap; align-items: center; }
+.search-input { flex: 1; min-width: 220px; max-width: 380px; }
+.sort-tabs { display: flex; gap: 0; border: 1px solid var(--line2); border-radius: var(--r2); overflow: hidden; }
+.sort-tab { padding: 9px 16px; font-size: 13px; font-weight: 600; color: var(--text3); background: var(--surface); border: none; cursor: pointer; transition: all .15s; text-decoration: none; }
+.sort-tab + .sort-tab { border-left: 1px solid var(--line2); }
+.sort-tab:hover { color: var(--text1); background: var(--surface2); }
+.sort-tab.on { background: var(--navy); color: #fff; }
 
-.tenders-table { margin-top: 32px; }
+.tenders-table { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
 .tender-row {
   display: grid;
-  grid-template-columns: 80px 1fr 200px 140px 80px 32px;
-  gap: 24px;
+  grid-template-columns: 1fr 200px 140px 32px;
+  gap: 20px;
   align-items: center;
-  padding: 28px 16px;
-  border-bottom: 1px solid var(--line);
-  transition: all .35s cubic-bezier(.4,0,.2,1);
-  position: relative;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--r3);
+  background: var(--surface);
+  transition: all .15s;
   text-decoration: none;
   color: inherit;
 }
-.tender-row:hover { background: rgba(212,165,116,.04); padding-left: 28px; }
-.tender-row:hover .row-arrow { transform: translateX(8px); color: var(--gold); }
-.tender-row::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: transparent; transition: background .3s; }
-.tender-row:hover::before { background: var(--gold); }
+.tender-row:hover { border-color: var(--navy); box-shadow: var(--sh2); }
 
-.row-num { font-family: var(--mono); font-size: 11px; color: var(--gold); letter-spacing: .12em; }
-.row-title { font-family: var(--serif); font-weight: 300; font-size: 19px; color: var(--text1); line-height: 1.3; letter-spacing: -.005em; font-variation-settings: "opsz" 80, "SOFT" 50; margin-bottom: 8px; }
+.row-title { font-weight: 600; font-size: 16px; color: var(--text1); line-height: 1.35; margin-bottom: 8px; }
 .row-tags { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-.row-buyer { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: .12em; text-transform: uppercase; }
-.row-deadline { font-family: var(--mono); font-size: 11px; letter-spacing: .12em; }
-.row-date-pub { font-family: var(--mono); font-size: 10px; color: var(--text4); letter-spacing: .12em; }
-.row-arrow { font-family: var(--mono); font-size: 14px; color: var(--text4); transition: all .35s; text-align: right; }
+.row-buyer { font-size: 13px; color: var(--text3); font-weight: 500; }
+.row-deadline { font-size: 13px; font-weight: 700; }
+.row-date-pub { font-size: 12px; color: var(--text4); }
+.row-arrow { color: var(--text4); transition: all .15s; text-align: right; }
+.tender-row:hover .row-arrow { transform: translateX(4px); color: var(--navy); }
 
-.fav-btn { background: transparent; border: 1px solid var(--bdr2); cursor: pointer; padding: 6px 9px; border-radius: 50%; font-size: 12px; color: var(--text3); transition: all .3s; }
-.fav-btn:hover { border-color: var(--gold); color: var(--gold); transform: scale(1.1); }
-.fav-btn.active { color: var(--gold); border-color: var(--gold); background: var(--goldb); }
+.fav-btn { background: var(--surface); border: 1px solid var(--line2); cursor: pointer; padding: 6px 9px; border-radius: 50%; font-size: 13px; color: var(--text3); transition: all .15s; }
+.fav-btn:hover { border-color: var(--amber); color: var(--amberd); }
+.fav-btn.active { color: var(--amberd); border-color: var(--amber); background: var(--ambera); }
 
-.pagination { display: flex; gap: 8px; justify-content: center; margin-top: 56px; flex-wrap: wrap; align-items: center; padding-bottom: 60px; }
-.pag-btn { padding: 10px 16px; border: 1px solid var(--bdr2); font-family: var(--mono); font-size: 11px; letter-spacing: .15em; color: var(--text3); transition: all .25s; text-decoration: none; border-radius: var(--r2); }
-.pag-btn:hover { border-color: var(--gold); color: var(--gold); }
-.pag-btn.current { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+.pagination { display: flex; gap: 8px; justify-content: center; margin-top: 40px; flex-wrap: wrap; align-items: center; padding-bottom: 48px; }
+.pag-btn { padding: 9px 14px; border: 1px solid var(--line2); font-size: 13px; font-weight: 600; color: var(--text3); transition: all .15s; text-decoration: none; border-radius: var(--r2); background: var(--surface); }
+.pag-btn:hover { border-color: var(--navy); color: var(--navy); }
+.pag-btn.current { background: var(--navy); color: #fff; border-color: var(--navy); }
 
-.empty-state { text-align: center; padding: 120px 24px; }
-.empty-icon { font-family: var(--serif); font-style: italic; font-size: 96px; color: var(--gold); opacity: .3; line-height: 1; font-variation-settings: "opsz" 144, "SOFT" 100, "WONK" 1; }
-.empty-title { font-family: var(--serif); font-weight: 300; font-size: 36px; color: var(--text1); margin-top: 24px; font-variation-settings: "opsz" 80, "SOFT" 50; }
-.empty-title em { font-style: italic; color: var(--gold); }
-.empty-text { font-size: 15px; color: var(--text3); margin-top: 16px; }
+.empty-state { text-align: center; padding: 96px 24px; }
+.empty-icon { font-size: 56px; opacity: .3; line-height: 1; }
+.empty-title { font-weight: 800; font-size: 26px; color: var(--text1); margin-top: 20px; }
+.empty-title em { font-style: normal; color: var(--navy); }
+.empty-text { font-size: 15px; color: var(--text3); margin-top: 12px; }
 
 @media (max-width: 900px) {
   .tenders-hero-grid { grid-template-columns: 1fr; }
-  .tender-row { grid-template-columns: 1fr; gap: 12px; padding: 24px 0; }
-  .row-num, .row-arrow { display: none; }
-  .tender-row > .row-buyer, .tender-row > .row-deadline, .tender-row > .row-date-pub { font-size: 9px; }
-  .row-title { font-size: 17px; }
+  .tender-row { grid-template-columns: 1fr; gap: 10px; }
+  .row-arrow { display: none; }
 }
 </style>
 
-<div class="container">
-  <section class="tenders-hero">
+<div class="tenders-hero">
+  <div class="container">
     <div class="tenders-hero-grid">
       <div>
-        <div class="section-label" style="margin-bottom: 16px;">Marchés actifs · Maroc</div>
-        <h1 class="display-l">{{ total }} marchés <em>disponibles.</em></h1>
+        <div class="section-label" style="margin-bottom: 10px;">Marchés actifs · Maroc</div>
+        <h1 class="display-l">{{ total }} marchés <em>disponibles</em></h1>
         <div class="tenders-meta">
           <div class="tenders-meta-item">Mise à jour <span>continue</span></div>
-          <div class="tenders-meta-item">Sources <span>11+</span></div>
+          <div class="tenders-meta-item">Sources <span>Public + Privé</span></div>
           {% if member %}<div class="tenders-meta-item">Plan <span>{{ member.plan|upper }}</span></div>{% endif %}
         </div>
       </div>
       <div style="display: flex; gap: 8px; align-items: center;">
         <div class="sort-tabs">
-          <a href="?q={{ q }}&s={{ sf }}&sort=recent&page=1" class="sort-tab {% if sort=='recent' %}on{% endif %}">Récents</a>
-          <a href="?q={{ q }}&s={{ sf }}&sort=deadline&page=1" class="sort-tab {% if sort=='deadline' %}on{% endif %}">Deadline</a>
+          <a href="?q={{ q }}&s={{ sf }}&t={{ tf }}&sort=recent&page=1" class="sort-tab {% if sort=='recent' %}on{% endif %}">Récents</a>
+          <a href="?q={{ q }}&s={{ sf }}&t={{ tf }}&sort=deadline&page=1" class="sort-tab {% if sort=='deadline' %}on{% endif %}">Deadline</a>
         </div>
-        {% if not member %}<a href="/register" class="btn btn-primary btn-sm">Activer alertes</a>{% endif %}
+        {% if not member %}<a href="/register" class="btn btn-accent btn-sm">Activer alertes</a>{% endif %}
       </div>
     </div>
-  </section>
+  </div>
+</div>
 
+<div class="container">
   <form method="get" class="filters-bar">
     <div class="search-input">
       <input name="q" value="{{ q }}" class="inp" placeholder="Rechercher un marché…">
     </div>
+    <select name="t" class="sel" style="width: 160px;" onchange="this.form.submit()">
+      <option value="">Public + Privé</option>
+      <option value="Public" {% if tf=='Public' %}selected{% endif %}>Public</option>
+      <option value="Privé" {% if tf=='Privé' %}selected{% endif %}>Privé</option>
+    </select>
     <select name="s" class="sel" style="width: 240px;" onchange="this.form.submit()">
       <option value="">Tous les secteurs ({{ total }})</option>
       {% for group_name, group_sectors in sector_groups.items() %}
@@ -104,7 +106,7 @@
       {% endfor %}
     </select>
     <button type="submit" class="btn btn-outline btn-sm">Filtrer</button>
-    {% if q or sf %}<a href="/tenders" class="btn btn-ghost btn-sm">✕ Effacer</a>{% endif %}
+    {% if q or sf or tf %}<a href="/tenders" class="btn btn-ghost btn-sm">✕ Effacer</a>{% endif %}
     <input type="hidden" name="sort" value="{{ sort }}">
   </form>
 
@@ -113,28 +115,22 @@
     {% for t in tenders %}
     {% set dl_n, dl_l = (days_left if days_left is defined else dl)(t.date_limite) %}
     <a href="/tenders/{{ t.id }}" class="tender-row">
-      <div class="row-num">№ {{ '%03d' % loop.index }}</div>
       <div>
         <div class="row-title">{{ t.objet[:140] }}{% if t.objet|length > 140 %}…{% endif %}</div>
         <div class="row-tags">
-          <span class="badge badge-gold">{{ t.secteur[:24] }}</span>
+          {% if t.type_offre=='Privé' %}<span class="badge badge-blue">Privé</span>{% endif %}
+          <span class="badge badge-gold">{{ get_label(t.secteur)[:24] }}</span>
           {% if t.montant %}<span class="badge badge-grn">{{ t.montant[:30] }}</span>{% endif %}
           {% if dl_l and dl_n <= 7 and dl_n >= 0 %}
           <span class="badge {% if dl_n <= 2 %}badge-red{% elif dl_n <= 5 %}badge-gold{% else %}badge-blue{% endif %}">{{ dl_l }}</span>
           {% endif %}
           {% if t.region %}<span class="badge badge-gray">{{ t.region[:18] }}</span>{% endif %}
-          {% if t.description and 'Source:' in t.description %}
-          {% set src_name = t.description.split('Source:')[1].split('|')[0].strip()[:18] %}
-          {% if src_name != 'marchespublics.gov.ma' %}
-          <span class="badge badge-blue">{{ src_name }}</span>
-          {% endif %}{% endif %}
         </div>
       </div>
       <div class="row-buyer">{{ (t.acheteur or '—')[:40] }}</div>
-      <div class="row-deadline" style="color: {% if dl_n is defined and dl_n < 0 %}var(--text4){% elif dl_n is defined and dl_n <= 3 %}var(--red){% elif dl_n is defined and dl_n <= 7 %}var(--gold){% else %}var(--text2){% endif %};">
+      <div class="row-deadline" style="color: {% if dl_n is defined and dl_n < 0 %}var(--text4){% elif dl_n is defined and dl_n <= 3 %}var(--red){% elif dl_n is defined and dl_n <= 7 %}var(--amberd){% else %}var(--text2){% endif %};">
         {% if t.date_limite %}⏰ {{ t.date_limite }}{% else %}—{% endif %}
       </div>
-      <div class="row-date-pub">{{ t.scraped_at[:10] if t.scraped_at else '' }}</div>
       <div style="display: flex; align-items: center; gap: 8px;">
         {% if member %}
         <button class="fav-btn {% if t.id in favs %}active{% endif %}" onclick="event.preventDefault();event.stopPropagation();toggleFav(this,'{{ t.id }}')" title="Favori">{% if t.id in favs %}★{% else %}☆{% endif %}</button>
@@ -147,26 +143,28 @@
 
   {% if pages > 1 %}
   <div class="pagination">
-    {% if page > 1 %}<a href="?q={{ q }}&s={{ sf }}&sort={{ sort }}&page={{ page-1 }}" class="pag-btn">← Préc.</a>{% endif %}
+    {% if page > 1 %}<a href="?q={{ q }}&s={{ sf }}&t={{ tf }}&sort={{ sort }}&page={{ page-1 }}" class="pag-btn">← Préc.</a>{% endif %}
     {% for pp in range(1, pages+1) %}
       {% if pp == page %}<span class="pag-btn current">{{ pp }}</span>
-      {% elif pp == 1 or pp == pages or (pp >= page-2 and pp <= page+2) %}<a href="?q={{ q }}&s={{ sf }}&sort={{ sort }}&page={{ pp }}" class="pag-btn">{{ pp }}</a>
-      {% elif pp == page-3 or pp == page+3 %}<span style="color:var(--text4);padding:10px 4px;font-family:var(--mono);font-size:11px;">…</span>{% endif %}
+      {% elif pp == 1 or pp == pages or (pp >= page-2 and pp <= page+2) %}<a href="?q={{ q }}&s={{ sf }}&t={{ tf }}&sort={{ sort }}&page={{ pp }}" class="pag-btn">{{ pp }}</a>
+      {% elif pp == page-3 or pp == page+3 %}<span style="color:var(--text4);padding:9px 4px;font-size:13px;">…</span>{% endif %}
     {% endfor %}
-    {% if page < pages %}<a href="?q={{ q }}&s={{ sf }}&sort={{ sort }}&page={{ page+1 }}" class="pag-btn">Suiv. →</a>{% endif %}
+    {% if page < pages %}<a href="?q={{ q }}&s={{ sf }}&t={{ tf }}&sort={{ sort }}&page={{ page+1 }}" class="pag-btn">Suiv. →</a>{% endif %}
   </div>
   {% endif %}
 
   {% else %}
   <div class="empty-state">
     <div class="empty-icon">∅</div>
-    <div class="empty-title">Aucun marché <em>trouvé.</em></div>
-    <div class="empty-text">{% if q or sf %}Modifiez vos filtres ou élargissez votre recherche.{% else %}La veille est en cours. Revenez dans quelques instants.{% endif %}</div>
-    {% if q or sf %}<div style="margin-top: 32px;"><a href="/tenders" class="btn btn-outline btn-lg">Voir tous les marchés</a></div>{% endif %}
+    <div class="empty-title">Aucun marché <em>trouvé</em></div>
+    <div class="empty-text">{% if q or sf or tf %}Modifiez vos filtres ou élargissez votre recherche.{% else %}La veille est en cours. Revenez dans quelques instants.{% endif %}</div>
+    {% if q or sf or tf %}<div style="margin-top: 28px;"><a href="/tenders" class="btn btn-outline btn-lg">Voir tous les marchés</a></div>{% endif %}
   </div>
   {% endif %}
 </div>
 
+{% endblock %}
+{% block scripts %}
 <script>
 async function toggleFav(btn, tid) {
   try {

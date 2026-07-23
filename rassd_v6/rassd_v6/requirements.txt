@@ -1,8 +1,0 @@
-fastapi
-uvicorn[standard]
-jinja2
-python-multipart
-httpx
-requests
-beautifulsoup4
-urllib3

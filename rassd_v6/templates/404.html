@@ -2,20 +2,19 @@
 {% block title %}Page introuvable — Atlas Pro{% endblock %}
 {% block body %}
 <style>
-.err-wrap { min-height: calc(100vh - 200px); display: flex; align-items: center; justify-content: center; padding: 60px 24px; position: relative; overflow: hidden; text-align: center; }
-.err-wrap::before { content: ""; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 800px; height: 800px; border-radius: 50%; background: radial-gradient(circle, rgba(212,165,116,.5) 0%, transparent 60%); opacity: .08; filter: blur(100px); }
-.err-content { position: relative; z-index: 2; max-width: 600px; }
-.err-num { font-family: var(--serif); font-style: italic; font-weight: 300; font-size: clamp(160px, 28vw, 360px); line-height: .8; color: var(--gold); font-variation-settings: "opsz" 144, "SOFT" 100, "WONK" 1; opacity: .9; letter-spacing: -.05em; }
-.err-title { font-family: var(--serif); font-weight: 300; font-size: clamp(36px, 5vw, 64px); line-height: 1; letter-spacing: -.02em; color: var(--text1); margin: 24px 0; font-variation-settings: "opsz" 144, "SOFT" 50, "WONK" 1; }
-.err-title em { font-style: italic; color: var(--gold); }
-.err-sub { font-family: var(--serif); font-style: italic; font-size: 19px; color: var(--text3); line-height: 1.6; margin-bottom: 48px; font-variation-settings: "opsz" 80, "SOFT" 100, "WONK" 1; }
-.err-cta { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+.err-wrap { min-height: calc(100vh - 260px); display: flex; align-items: center; justify-content: center; padding: 56px 24px; text-align: center; }
+.err-content { max-width: 560px; }
+.err-num { font-weight: 800; font-size: clamp(96px, 16vw, 180px); line-height: .85; color: var(--amber); letter-spacing: -.03em; }
+.err-title { font-weight: 800; font-size: clamp(26px, 4vw, 38px); line-height: 1.15; letter-spacing: -.02em; color: var(--text1); margin: 16px 0; }
+.err-title em { font-style: normal; color: var(--navy); }
+.err-sub { font-size: 16px; color: var(--text3); line-height: 1.6; margin-bottom: 36px; }
+.err-cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
 </style>
 
 <div class="err-wrap">
   <div class="err-content">
     <div class="err-num">404</div>
-    <h1 class="err-title">Page <em>introuvable.</em></h1>
+    <h1 class="err-title">Page <em>introuvable</em></h1>
     <p class="err-sub">La page que vous cherchez n'existe plus, ou n'a peut-être jamais existé. Le marché a peut-être expiré.</p>
     <div class="err-cta">
       <a href="/" class="btn btn-primary btn-lg">Retour à l'accueil →</a>

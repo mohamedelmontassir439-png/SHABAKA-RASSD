@@ -2,31 +2,34 @@
 {% block title %}Mot de passe oublié — Atlas Pro{% endblock %}
 {% block body %}
 <style>
-.auth-wrap { min-height: calc(100vh - 200px); display: flex; align-items: center; justify-content: center; padding: 60px 24px; position: relative; overflow: hidden; }
-.auth-wrap::before { content: ""; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 700px; height: 700px; border-radius: 50%; background: radial-gradient(circle, rgba(212,165,116,.5) 0%, transparent 60%); opacity: .08; filter: blur(100px); pointer-events: none; }
-.auth-card { width: 100%; max-width: 460px; position: relative; z-index: 2; }
-.auth-eyebrow { font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: .35em; text-transform: uppercase; margin-bottom: 20px; text-align: center; }
-.auth-title { font-family: var(--serif); font-weight: 300; font-size: 56px; color: var(--text1); line-height: 1; letter-spacing: -.025em; text-align: center; margin-bottom: 12px; font-variation-settings: "opsz" 144, "SOFT" 50, "WONK" 1; }
-.auth-title em { font-style: italic; color: var(--gold); }
-.auth-sub { font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--text3); text-align: center; margin-bottom: 56px; line-height: 1.5; font-variation-settings: "opsz" 80, "SOFT" 100, "WONK" 1; }
-.auth-form { display: flex; flex-direction: column; gap: 28px; }
-.auth-foot { text-align: center; margin-top: 40px; padding-top: 32px; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 11px; color: var(--text4); letter-spacing: .1em; }
-.auth-foot a { color: var(--gold); }
+.auth-wrap { min-height: calc(100vh - 260px); display: flex; align-items: center; justify-content: center; padding: 56px 20px; }
+.auth-card { width: 100%; max-width: 440px; }
+.auth-mark { width: 52px; height: 52px; border-radius: 14px; background: var(--navy); color: var(--amber); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 24px; margin: 0 auto 24px; }
+.auth-title { font-weight: 800; font-size: 28px; color: var(--text1); line-height: 1.2; letter-spacing: -.02em; text-align: center; margin-bottom: 10px; }
+.auth-title em { font-style: normal; color: var(--navy); }
+.auth-sub { font-size: 15px; color: var(--text3); text-align: center; margin-bottom: 36px; line-height: 1.6; }
+.auth-panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); box-shadow: var(--sh2); padding: 32px; }
+.auth-form { display: flex; flex-direction: column; gap: 20px; }
+.auth-foot { text-align: center; margin-top: 28px; font-size: 14px; }
+.auth-foot a { color: var(--navy); font-weight: 600; }
+.auth-foot a:hover { text-decoration: underline; }
 </style>
 
 <div class="auth-wrap">
   <div class="auth-card">
-    <div class="auth-eyebrow">Récupération</div>
+    <div class="auth-mark">A</div>
     <h1 class="auth-title">Mot de passe <em>oublié ?</em></h1>
     <p class="auth-sub">Saisissez votre email — nous vous enverrons un lien de réinitialisation.</p>
 
-    {% if msg %}<div class="alert alert-ok" style="margin-bottom: 24px;">{{ msg }}</div>{% endif %}
-    {% if err %}<div class="alert alert-err" style="margin-bottom: 24px;">{{ err }}</div>{% endif %}
+    <div class="auth-panel">
+      {% if sent %}<div class="alert alert-ok" style="margin-bottom: 20px;">✓ Si cette adresse existe, un lien de réinitialisation vient d'être envoyé.</div>{% endif %}
+      {% if err %}<div class="alert alert-err" style="margin-bottom: 20px;">{{ err }}</div>{% endif %}
 
-    <form method="post" class="auth-form">
-      <div class="field"><label>Email</label><input name="email" type="email" class="inp" required autofocus></div>
-      <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top: 16px;">Envoyer le lien →</button>
-    </form>
+      <form method="post" class="auth-form">
+        <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" class="inp" required autofocus></div>
+        <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top: 4px;">Envoyer le lien →</button>
+      </form>
+    </div>
 
     <div class="auth-foot">
       <a href="/login">← Retour à la connexion</a>

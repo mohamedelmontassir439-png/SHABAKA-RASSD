@@ -2,80 +2,80 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Admin — Atlas Pro</title>
+<title>Administration — Atlas Pro</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=JetBrains+Mono:wght@300;400;500&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #0a0a0e; --bg2: #12121a; --bg3: #1a1a26;
-  --bdr: rgba(244,236,224,.08); --bdr2: rgba(244,236,224,.18);
-  --gold: #d4a574; --gold2: #e8bf8f;
-  --t1: #f4ece0; --t2: #d4ccbe; --t3: #9a9388; --t4: #5a544c;
-  --grn: #7dc89a; --red: #d27866; --blue: #8aa8d4;
-  --serif: 'Fraunces', Georgia, serif;
-  --sans: 'Manrope', system-ui, sans-serif;
+  --bg: #f6f7fb; --surface: #ffffff; --surface2: #eef1f7;
+  --line: #e3e7ef; --line2: #d3d9e5;
+  --navy: #142850; --navy3: #0c1a33;
+  --amber: #f2a93b; --amberd: #b9791a; --ambera: rgba(242,169,59,.12);
+  --t1: #101828; --t2: #3b4457; --t3: #6b7488; --t4: #98a1b3;
+  --grn: #1d9a6c; --red: #d64545; --blue: #2563cf;
+  --sans: 'Inter', system-ui, sans-serif;
   --mono: 'JetBrains Mono', monospace;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { background: var(--bg); color: var(--t2); font-family: var(--sans); font-weight: 300; font-size: 13px; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+body { background: var(--bg); color: var(--t2); font-family: var(--sans); font-size: 14px; min-height: 100vh; -webkit-font-smoothing: antialiased; }
 a { color: inherit; text-decoration: none; }
 
-.topbar { background: rgba(10,10,14,.85); backdrop-filter: blur(20px); border-bottom: 1px solid var(--bdr); height: 64px; display: flex; align-items: center; padding: 0 32px; gap: 24px; position: sticky; top: 0; z-index: 100; }
-.brand { font-family: var(--serif); font-style: italic; font-weight: 300; font-size: 26px; color: var(--t1); letter-spacing: -.01em; }
-.brand em { color: var(--gold); }
-.brand-meta { font-family: var(--mono); font-size: 9px; color: var(--t4); letter-spacing: .25em; text-transform: uppercase; }
+.topbar { background: var(--navy3); height: 60px; display: flex; align-items: center; padding: 0 28px; gap: 20px; position: sticky; top: 0; z-index: 100; }
+.brand { font-weight: 800; font-size: 18px; color: #fff; }
+.brand em { font-style: normal; color: var(--amber); }
+.brand-meta { font-size: 12px; color: rgba(255,255,255,.45); font-weight: 500; }
 
-.btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; font-family: var(--mono); font-size: 10px; font-weight: 400; letter-spacing: .15em; text-transform: uppercase; cursor: pointer; border: 1px solid transparent; transition: all .25s; border-radius: 4px; }
-.btn-p { background: var(--gold); color: var(--bg); border-color: var(--gold); }
-.btn-p:hover { background: var(--gold2); }
-.btn-o { background: transparent; border-color: var(--bdr2); color: var(--t2); }
-.btn-o:hover { border-color: var(--gold); color: var(--gold); }
-.btn-d { background: rgba(210,120,102,.08); border-color: rgba(210,120,102,.25); color: var(--red); }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 14px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid transparent; transition: all .15s; border-radius: 8px; }
+.btn-p { background: var(--amber); color: var(--navy3); border-color: var(--amber); }
+.btn-p:hover { background: #ffbf5c; }
+.btn-o { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.16); color: #fff; }
+.btn-o:hover { border-color: var(--amber); color: var(--amber); }
+.btn-d { background: rgba(214,69,69,.14); border-color: rgba(214,69,69,.35); color: #ff9d9d; }
 
-.page { max-width: 1280px; margin: 0 auto; padding: 40px 32px; }
-.page-h { display: flex; align-items: end; justify-content: space-between; margin-bottom: 48px; padding-bottom: 24px; border-bottom: 1px solid var(--bdr); }
-.page-h-title { font-family: var(--serif); font-weight: 300; font-size: 56px; color: var(--t1); line-height: 1; letter-spacing: -.02em; }
-.page-h-title em { font-style: italic; color: var(--gold); }
-.page-h-sub { font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: .3em; text-transform: uppercase; margin-bottom: 12px; }
+.page { max-width: 1280px; margin: 0 auto; padding: 32px 28px; }
+.page-h { display: flex; align-items: end; justify-content: space-between; margin-bottom: 32px; }
+.page-h-title { font-weight: 800; font-size: 32px; color: var(--t1); line-height: 1.1; letter-spacing: -.02em; }
+.page-h-title em { font-style: normal; color: var(--navy); }
+.page-h-sub { font-size: 13px; font-weight: 700; color: var(--amberd); letter-spacing: .05em; text-transform: uppercase; margin-bottom: 8px; }
 
-.stats-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 1px; background: var(--bdr); border: 1px solid var(--bdr); margin-bottom: 32px; }
-.stat { background: var(--bg); padding: 24px 18px; }
-.stat-n { font-family: var(--serif); font-style: italic; font-weight: 300; font-size: 36px; color: var(--gold); line-height: 1; }
-.stat-l { font-family: var(--mono); font-size: 9px; color: var(--t4); margin-top: 12px; letter-spacing: .25em; text-transform: uppercase; }
+.stats-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 24px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; box-shadow: 0 1px 2px rgba(16,24,40,.04); }
+.stat-n { font-weight: 800; font-size: 26px; color: var(--navy); line-height: 1; }
+.stat-l { font-size: 12px; color: var(--t3); margin-top: 8px; font-weight: 600; }
 
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-.card { background: var(--bg2); border: 1px solid var(--bdr); margin-bottom: 24px; border-radius: 4px; }
-.card-h { padding: 18px 24px; border-bottom: 1px solid var(--bdr); display: flex; align-items: center; justify-content: space-between; }
-.card-ht { font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: .25em; text-transform: uppercase; }
-.card-b { padding: 24px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.card { background: var(--surface); border: 1px solid var(--line); margin-bottom: 20px; border-radius: 12px; box-shadow: 0 1px 2px rgba(16,24,40,.04); overflow: hidden; }
+.card-h { padding: 16px 20px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; }
+.card-ht { font-size: 13px; font-weight: 700; color: var(--amberd); letter-spacing: .04em; text-transform: uppercase; }
+.card-b { padding: 20px; }
 
-.terminal { background: #050508; padding: 20px 24px; font-family: var(--mono); font-size: 11px; height: 360px; overflow-y: auto; line-height: 1.85; border-top: 1px solid var(--bdr); }
-.log-ok { color: var(--grn); }
-.log-err { color: var(--red); }
-.log-hdr { color: var(--gold); }
-.log-n { color: var(--t4); }
+.terminal { background: #0c1120; color: #d7e0f5; padding: 18px 20px; font-family: var(--mono); font-size: 12.5px; height: 340px; overflow-y: auto; line-height: 1.8; }
+.log-ok { color: #6ee7b7; }
+.log-err { color: #ff9d9d; }
+.log-hdr { color: var(--amber); }
+.log-n { color: #8b96ac; }
 
-.badge { display: inline-flex; padding: 3px 10px; font-family: var(--mono); font-size: 9px; font-weight: 500; letter-spacing: .15em; text-transform: uppercase; border-radius: 2px; }
-.b-g { background: rgba(212,165,116,.12); color: var(--gold); border: 1px solid rgba(212,165,116,.25); }
-.b-r { background: rgba(210,120,102,.08); color: var(--red); }
-.b-grn { background: rgba(125,200,154,.08); color: var(--grn); }
+.badge { display: inline-flex; padding: 4px 10px; font-size: 11.5px; font-weight: 700; border-radius: 999px; }
+.b-g { background: var(--ambera); color: var(--amberd); }
+.b-r { background: rgba(214,69,69,.1); color: var(--red); }
+.b-grn { background: rgba(29,154,108,.1); color: var(--grn); }
 
-.inp, .sel { background: transparent; border: 1px solid var(--bdr2); padding: 7px 10px; color: var(--t1); font-family: var(--mono); font-size: 11px; outline: none; border-radius: 3px; }
-.inp:focus, .sel:focus { border-color: var(--gold); }
+.inp, .sel { background: var(--surface); border: 1px solid var(--line2); padding: 7px 10px; color: var(--t1); font-family: var(--sans); font-size: 13px; outline: none; border-radius: 6px; }
+.inp:focus, .sel:focus { border-color: var(--navy); }
 
 table { width: 100%; border-collapse: collapse; }
-th { font-family: var(--mono); font-size: 9px; font-weight: 500; color: var(--t4); letter-spacing: .25em; text-transform: uppercase; padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--bdr); }
-td { padding: 14px 16px; border-bottom: 1px solid var(--bdr); font-size: 12px; color: var(--t2); }
+th { font-size: 11.5px; font-weight: 700; color: var(--t3); letter-spacing: .04em; text-transform: uppercase; padding: 12px 20px; text-align: left; border-bottom: 1px solid var(--line); }
+td { padding: 14px 20px; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--t2); }
 tr:last-child td { border-bottom: none; }
-tr:hover td { background: rgba(212,165,116,.03); }
+tr:hover td { background: var(--surface2); }
 
 .sectors-grid { display: flex; flex-wrap: wrap; gap: 8px; }
-.sector-tag { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; background: var(--bg3); border: 1px solid var(--bdr); font-family: var(--mono); font-size: 10px; letter-spacing: .1em; border-radius: 99px; }
+.sector-tag { display: inline-flex; align-items: center; gap: 8px; padding: 6px 13px; background: var(--surface2); border: 1px solid var(--line); font-size: 12.5px; border-radius: 999px; }
 .sector-tag span { color: var(--t2); }
-.sector-tag b { color: var(--gold); font-weight: 500; }
+.sector-tag b { color: var(--navy); font-weight: 700; }
 
-.run-status { font-family: var(--mono); font-size: 10px; letter-spacing: .15em; }
+.run-status { font-size: 12px; font-weight: 700; }
 
 @media (max-width: 1100px) { .stats-grid { grid-template-columns: repeat(3, 1fr); } .grid2 { grid-template-columns: 1fr; } }
 </style>
@@ -83,8 +83,8 @@ tr:hover td { background: rgba(212,165,116,.03); }
 <body>
 
 <div class="topbar">
-  <span class="brand">Atlas<em>°</em></span>
-  <span class="brand-meta">Administration · v3.0</span>
+  <span class="brand">Atlas<em>Pro</em></span>
+  <span class="brand-meta">Administration · v{{ cfg.APP_VERSION }}</span>
   <div style="margin-left: auto; display: flex; gap: 8px;">
     <a href="/" class="btn btn-o">← Site public</a>
     <a href="/admin/expire" class="btn btn-o" onclick="return confirm('Expirer les marchés passés ?')">Expirer</a>
@@ -96,7 +96,7 @@ tr:hover td { background: rgba(212,165,116,.03); }
   <div class="page-h">
     <div>
       <div class="page-h-sub">Tableau de bord administrateur</div>
-      <div class="page-h-title">Vue <em>globale.</em></div>
+      <div class="page-h-title">Vue <em>globale</em></div>
     </div>
   </div>
 
@@ -115,13 +115,13 @@ tr:hover td { background: rgba(212,165,116,.03); }
         <div class="card-h">
           <span class="card-ht">Scraper en temps réel</span>
           <div style="display: flex; gap: 8px; align-items: center;">
-            <span id="st" class="run-status" style="color: {% if running %}var(--gold){% else %}var(--t4){% endif %};">{% if running %}● EN COURS{% else %}○ INACTIF{% endif %}</span>
+            <span id="st" class="run-status" style="color: {% if running %}var(--amberd){% else %}var(--t4){% endif %};">{% if running %}● EN COURS{% else %}○ INACTIF{% endif %}</span>
             <button onclick="launch()" id="btn" class="btn btn-p" {% if running %}disabled{% endif %}>▶ Lancer scan</button>
             <a href="/admin/scrape" class="btn btn-o" title="Fallback direct">⚡</a>
           </div>
         </div>
         {% if last_run %}
-        <div style="padding: 12px 24px; font-family: var(--mono); font-size: 10px; color: var(--t4); border-bottom: 1px solid var(--bdr); letter-spacing: .15em;">Dernier scan : {{ last_run[:16] }}</div>
+        <div style="padding: 10px 20px; font-size: 12px; color: var(--t3); border-bottom: 1px solid var(--line);">Dernier scan : {{ last_run[:16] }}</div>
         {% endif %}
         <div class="terminal" id="trm">
           {% for l in logs %}
@@ -137,10 +137,10 @@ tr:hover td { background: rgba(212,165,116,.03); }
           <tr><th>Date</th><th>Trouvés</th><th>Sauvés</th><th>Erreurs</th></tr>
           {% for s in scrapes %}
           <tr>
-            <td style="font-family: var(--mono); font-size: 10px; color: var(--t4); letter-spacing: .1em;">{{ s.run_at[:16] }}</td>
-            <td style="color: var(--blue);">{{ s.found }}</td>
-            <td style="color: var(--grn);">{{ s.saved }}</td>
-            <td style="color: {{ 'var(--red)' if s.errors > 0 else 'var(--t4)' }};">{{ s.errors }}</td>
+            <td style="color: var(--t3);">{{ s.run_at[:16] }}</td>
+            <td style="color: var(--blue); font-weight: 700;">{{ s.found }}</td>
+            <td style="color: var(--grn); font-weight: 700;">{{ s.saved }}</td>
+            <td style="color: {{ 'var(--red)' if s.errors > 0 else 'var(--t4)' }}; font-weight: 700;">{{ s.errors }}</td>
           </tr>
           {% endfor %}
         </table>
@@ -150,12 +150,34 @@ tr:hover td { background: rgba(212,165,116,.03); }
 
     <div>
       <div class="card">
+        <div class="card-h"><span class="card-ht">Canaux de notification</span></div>
+        <div class="card-b" style="display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span>📧 Email (Brevo/Gmail)</span>
+            <span class="badge {{ 'b-grn' if (cfg.BREVO_KEY or (cfg.GMAIL_USER and cfg.GMAIL_PASS)) else 'b-r' }}">{{ 'Configuré' if (cfg.BREVO_KEY or (cfg.GMAIL_USER and cfg.GMAIL_PASS)) else 'Non configuré' }}</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span>📱 Telegram</span>
+            <span class="badge {{ 'b-grn' if cfg.TELEGRAM_BOT else 'b-r' }}">{{ 'Configuré' if cfg.TELEGRAM_BOT else 'Non configuré' }}</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span>💬 WhatsApp</span>
+            <span class="badge b-r" id="wa-badge">Vérification…</span>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:6px;">
+            <a href="{{ cfg.WA_SERVICE_URL }}/qr" target="_blank" class="btn btn-o" style="flex:1;justify-content:center;">📷 Scanner le QR</a>
+            <button onclick="checkWA()" class="btn btn-o">↻</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
         <div class="card-h"><span class="card-ht">Répartition par secteur</span></div>
         <div class="card-b">
           <div class="sectors-grid">
             {% for s in sectors %}
             <div class="sector-tag">
-              <span>{{ s.secteur[:24] }}</span>
+              <span>{{ get_label(s.secteur)[:24] }}</span>
               <b>{{ s.cnt }}</b>
             </div>
             {% endfor %}
@@ -166,15 +188,15 @@ tr:hover td { background: rgba(212,165,116,.03); }
       <div class="card">
         <div class="card-h">
           <span class="card-ht">Derniers membres</span>
-          <span style="font-family: var(--mono); font-size: 10px; color: var(--t4); letter-spacing: .15em;">{{ stats.members }} total</span>
+          <span style="font-size: 12px; color: var(--t3);">{{ stats.members }} total</span>
         </div>
         <table>
           <tr><th>Membre</th><th>Plan</th><th>Inscrit</th></tr>
           {% for m in members %}
           <tr>
             <td>
-              <div style="color: var(--t1); font-size: 13px;">{{ m.nom or '—' }}</div>
-              <div style="color: var(--t4); font-size: 10px; font-family: var(--mono); letter-spacing: .1em;">{{ m.email[:30] }}</div>
+              <div style="color: var(--t1); font-size: 13.5px; font-weight: 600;">{{ m.nom or '—' }}</div>
+              <div style="color: var(--t4); font-size: 12px;">{{ m.email[:30] }}</div>
             </td>
             <td>
               <form method="post" action="/admin/member/{{ m.id }}/plan">
@@ -185,7 +207,7 @@ tr:hover td { background: rgba(212,165,116,.03); }
                 </select>
               </form>
             </td>
-            <td style="font-family: var(--mono); font-size: 10px; color: var(--t4); letter-spacing: .1em;">{{ m.created_at[:10] }}</td>
+            <td style="color: var(--t3);">{{ m.created_at[:10] }}</td>
           </tr>
           {% endfor %}
         </table>
@@ -199,13 +221,13 @@ let sse = null;
 async function launch() {
   const btn = document.getElementById('btn'), trm = document.getElementById('trm'), st = document.getElementById('st');
   btn.disabled = true; btn.textContent = '⏳ En cours…';
-  st.textContent = '● EN COURS'; st.style.color = 'var(--gold)';
+  st.textContent = '● EN COURS'; st.style.color = '#f2a93b';
   trm.innerHTML = '<div class="log-hdr">═══ Lancement scraper temps réel ═══</div>';
   const r = await fetch('/admin/scrape', { credentials: 'include' });
   const d = await r.json();
   if (!d.ok) {
     trm.innerHTML += `<div class="log-err">❌ ${d.msg || 'Erreur: non autorisé'}</div>`;
-    trm.innerHTML += `<div class="log-n">→ <a href="/admin/scrape" style="color:var(--gold)" target="_blank">Cliquez ici pour lancer manuellement</a></div>`;
+    trm.innerHTML += `<div class="log-n">→ <a href="/admin/scrape" style="color:#f2a93b" target="_blank">Cliquez ici pour lancer manuellement</a></div>`;
     btn.disabled = false; btn.textContent = '▶ Lancer scan'; return;
   }
   if (sse) sse.close();
@@ -222,7 +244,7 @@ async function launch() {
     if (data.done) {
       sse.close();
       btn.disabled = false; btn.textContent = '▶ Lancer scan';
-      st.textContent = '○ INACTIF'; st.style.color = 'var(--t4)';
+      st.textContent = '○ INACTIF'; st.style.color = '#98a1b3';
       const d2 = document.createElement('div'); d2.className = 'log-hdr';
       d2.textContent = `✅ ${data.saved || 0} nouveaux marchés sauvegardés (${data.found || 0} trouvés)`;
       trm.appendChild(d2); trm.scrollTop = trm.scrollHeight;
@@ -231,6 +253,23 @@ async function launch() {
   };
 }
 document.getElementById('trm').scrollTop = document.getElementById('trm').scrollHeight;
+
+async function checkWA() {
+  const badge = document.getElementById('wa-badge');
+  badge.textContent = 'Vérification…'; badge.className = 'badge';
+  try {
+    const r = await fetch('/admin/wa_status', { credentials: 'include' });
+    const d = await r.json();
+    if (d.ok && d.connected) {
+      badge.textContent = 'Connecté'; badge.className = 'badge b-grn';
+    } else {
+      badge.textContent = 'Non connecté'; badge.className = 'badge b-r';
+    }
+  } catch (e) {
+    badge.textContent = 'Indisponible'; badge.className = 'badge b-r';
+  }
+}
+checkWA();
 </script>
 </body>
 </html>

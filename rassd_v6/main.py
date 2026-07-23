@@ -18,24 +18,10 @@ from app.core.database import get_db, init_db
 from app.core.security import (hash_pw, verify_pw, make_token, make_session_token,
                                 get_member, validate_email,
                                 validate_password, days_left)
+from app.core.sectors import get_label
 from app.services.notifications import dispatch_notifications, tg_admin, test_notifications
 
-# Try to import multi_scraper
-try:
-    from app.services.multi_scraper import run_all as multi_run
-    MULTI_OK = True
-except Exception as _e:
-    MULTI_OK = False
-    multi_run = None
-
-# Try to import playwright scraper
-try:
-    from app.services.playwright_scraper import run_playwright
-    PW_OK = True
-except Exception as _e:
-    PW_OK = False
-
-SUPA_OK = False
+MULTI_OK = False
 
 logging.basicConfig(
     level=logging.INFO,
@@ -89,13 +75,14 @@ def _save_tenders(tenders: list, new_list: list) -> int:
             db.execute("""INSERT OR IGNORE INTO tenders
                 (id,objet,acheteur,secteur,region,montant,
                  date_publication,date_limite,description,
-                 url,statut,scraped_at,updated_at)
-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                 url,statut,scraped_at,updated_at,type_offre,source)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (t["id"], t["objet"], t["acheteur"],
                  t.get("secteur",""), t.get("region",""),
                  t.get("montant",""), t.get("date_publication",""),
                  t.get("date_limite",""), t.get("description",""),
-                 t["url"], t["statut"], t["scraped_at"], t["scraped_at"]))
+                 t["url"], t["statut"], t["scraped_at"], t["scraped_at"],
+                 t.get("type_offre","Public"), t.get("source","marchespublics")))
             if db.execute("SELECT changes()").fetchone()[0]:
                 saved += 1
                 new_list.append(t)
@@ -138,16 +125,33 @@ async def do_scrape():
             try:
                 State.log("─" * 48)
                 State.log("  Sources secondaires: ONDA, ONEE, ONCF, IAM...")
+                from app.services.multi_scraper import run_all
                 db     = get_db()
                 known2 = {r[0] for r in db.execute("SELECT id FROM tenders").fetchall()}
                 db.close()
-                multi = await loop.run_in_executor(None, lambda: multi_run(known2, State.log)) if multi_run else []
+                multi = await loop.run_in_executor(None, lambda: run_all(known2, State.log))
                 State.found += len(multi)
                 saved2 = _save_tenders(multi, new_tenders)
                 State.saved += saved2
                 State.log(f"✅ Multi-sources: {saved2} nouveaux")
             except Exception as e:
                 State.log(f"⚠ Multi: {e}")
+
+        # ── Global Marches (appels d'offres privés) ───────
+        try:
+            State.log("─" * 48)
+            from app.services.private_scraper import run as gm_run
+            db    = get_db()
+            known3 = {r[0] for r in db.execute("SELECT id FROM tenders").fetchall()}
+            db.close()
+            gm_results = await loop.run_in_executor(None, lambda: gm_run(known3, State.log))
+            State.found += len(gm_results)
+            saved3 = _save_tenders(gm_results, new_tenders)
+            State.saved += saved3
+            State.log(f"✅ Global Marches: {saved3} nouveaux")
+        except Exception as e:
+            State.log(f"❌ Global Marches: {e}")
+            logger.error(f"[gm scraper] {e}", exc_info=True)
 
         # ── Log run ───────────────────────────────────────
         db = get_db()
@@ -215,13 +219,29 @@ app.add_middleware(SecurityMiddleware)
 
 @app.exception_handler(404)
 async def not_found(req: Request, exc):
-    return render(req, "404.html", {})
+    return render(req, "404.html", {}, status_code=404)
 
 @app.exception_handler(500)
 async def server_error(req: Request, exc):
     logger.error(f"[500] {req.url}: {exc}")
-    return HTMLResponse("<h1>Erreur serveur</h1><a href='/'>Retour</a>", 500)
+    return HTMLResponse("""<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Erreur serveur — Atlas Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f6f7fb;color:#3b4457;font-family:'Inter',system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px}
+.num{font-weight:800;font-size:96px;color:#f2a93b;line-height:.85}
+h1{font-weight:800;font-size:28px;color:#101828;margin:16px 0}
+p{font-size:16px;color:#6b7488;margin-bottom:32px}
+a{display:inline-flex;align-items:center;justify-content:center;padding:13px 26px;background:#142850;color:#fff;font-weight:600;font-size:14px;border-radius:10px;text-decoration:none}
+</style></head><body><div>
+<div class="num">500</div>
+<h1>Une erreur est survenue</h1>
+<p>Notre équipe a été notifiée. Merci de réessayer dans un instant.</p>
+<a href="/">Retour à l'accueil →</a>
+</div></body></html>""", 500)
 templates = Jinja2Templates(directory="templates")
+templates.env.globals["get_label"] = get_label
 try:
     os.makedirs("static", exist_ok=True)
     app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -231,7 +251,7 @@ except OSError as e:
 # ══════════════════════════════════════════════════════════
 # HELPERS
 # ══════════════════════════════════════════════════════════
-def render(req: Request, tpl: str, ctx: dict = None):
+def render(req: Request, tpl: str, ctx: dict = None, status_code: int = 200):
     m   = get_member(req)
     ctx = ctx or {}
     return templates.TemplateResponse(tpl, {
@@ -244,7 +264,7 @@ def render(req: Request, tpl: str, ctx: dict = None):
         "days_left":    days_left,
         "now":          datetime.now(),
         **ctx
-    })
+    }, status_code=status_code)
 
 def get_stats() -> dict:
     db = get_db()
@@ -301,7 +321,7 @@ async def home(req: Request):
     return render(req, "landing.html", {"stats":stats,"recent":recent,"sectors":sectors})
 
 @app.get("/tenders", response_class=HTMLResponse)
-async def tenders_page(req: Request, q:str="", s:str="", r:str="",
+async def tenders_page(req: Request, q:str="", s:str="", r:str="", t:str="",
                         page:int=1, sort:str="recent"):
     if not get_member(req):
         return RedirectResponse("/login?next=/tenders", 302)
@@ -310,8 +330,9 @@ async def tenders_page(req: Request, q:str="", s:str="", r:str="",
     if q:
         where.append("(objet LIKE ? OR acheteur LIKE ? OR description LIKE ?)")
         params += [f"%{q}%"]*3
-    if s: where.append("secteur=?"); params.append(s)
-    if r: where.append("region=?");  params.append(r)
+    if s: where.append("secteur=?");    params.append(s)
+    if r: where.append("region=?");     params.append(r)
+    if t: where.append("type_offre=?"); params.append(t)
     wh    = " AND ".join(where)
     order = "scraped_at DESC" if sort=="recent" else "date_limite ASC"
     total = db.execute(f"SELECT COUNT(*) FROM tenders WHERE {wh}", params).fetchone()[0]
@@ -327,7 +348,7 @@ async def tenders_page(req: Request, q:str="", s:str="", r:str="",
     pages = max(1,(total+per-1)//per)
     return render(req, "tenders.html", {
         "tenders":rows,"total":total,"page":page,"pages":pages,
-        "q":q,"sf":s,"rf":r,"sort":sort,"favs":favs})
+        "q":q,"sf":s,"rf":r,"tf":t,"sort":sort,"favs":favs})
 
 @app.get("/tenders/{tid}", response_class=HTMLResponse)
 async def tender_detail(req: Request, tid: str):
@@ -637,13 +658,14 @@ async def admin_clear(req: Request, confirm:str=""):
     return JSONResponse({"ok":True,"deleted":n})
 
 @app.get("/admin/test_notif")
-async def admin_test_notif(req: Request, email:str="", tg:str=""):
+async def admin_test_notif(req: Request, email:str="", tg:str="", wa:str=""):
     if not _is_admin(req): return JSONResponse({"ok":False},401)
     member    = get_member(req)
     test_email = email or (member["email"] if member else "")
     test_tg    = tg or cfg.ADMIN_CHAT_ID or ""
-    results    = test_notifications(test_email, test_tg)
-    return JSONResponse({"ok":True,"results":results,"email_tested":test_email,"tg_tested":test_tg})
+    test_wa    = wa or (member["whatsapp"] if member else "")
+    results    = test_notifications(test_email, test_tg, test_wa)
+    return JSONResponse({"ok":True,"results":results,"email_tested":test_email,"tg_tested":test_tg,"wa_tested":test_wa})
 
 @app.get("/admin/reset_state")
 async def admin_reset(req: Request):
@@ -655,20 +677,21 @@ async def admin_reset(req: Request):
 # API v1
 # ══════════════════════════════════════════════════════════
 @app.get("/api/v1/tenders")
-async def api_tenders(req:Request, secteur:str="", region:str="", q:str="",
+async def api_tenders(req:Request, secteur:str="", region:str="", q:str="", type_offre:str="",
                        limit:int=20, offset:int=0, page:int=0):
     if page > 0: offset = (page-1)*limit
     db = get_db()
     where, params = ["statut='actif'"], []
-    if secteur: where.append("secteur=?");  params.append(secteur)
-    if region:  where.append("region=?");   params.append(region)
+    if secteur:    where.append("secteur=?");    params.append(secteur)
+    if region:     where.append("region=?");     params.append(region)
+    if type_offre: where.append("type_offre=?"); params.append(type_offre)
     if q:
         where.append("(objet LIKE ? OR acheteur LIKE ?)")
         params += [f"%{q}%"]*2
     wh    = " AND ".join(where)
     total = db.execute(f"SELECT COUNT(*) FROM tenders WHERE {wh}", params).fetchone()[0]
     rows  = [dict(r) for r in db.execute(
-        f"SELECT id,objet,acheteur,secteur,region,montant,date_limite,url,scraped_at FROM tenders WHERE {wh} ORDER BY scraped_at DESC LIMIT ? OFFSET ?",
+        f"SELECT id,objet,acheteur,secteur,region,montant,date_limite,url,scraped_at,type_offre,source FROM tenders WHERE {wh} ORDER BY scraped_at DESC LIMIT ? OFFSET ?",
         params+[min(limit,100),offset]).fetchall()]
     db.close()
     return {"ok":True,"total":total,"page":page or (offset//limit+1),"results":rows}
@@ -696,6 +719,7 @@ async def api_secteurs():
 async def api_sources():
     sources = [
         {"name":"marchespublics.gov.ma","type":"public",      "status":"active"},
+        {"name":"global-marches.com",   "type":"private",      "status":"active" if (cfg.GM_USERNAME and cfg.GM_PASSWORD) else "disabled"},
         {"name":"ONDA",                 "type":"semi-public", "status":"active" if MULTI_OK else "disabled"},
         {"name":"ONEE",                 "type":"semi-public", "status":"active" if MULTI_OK else "disabled"},
         {"name":"ONCF",                 "type":"semi-public", "status":"active" if MULTI_OK else "disabled"},
@@ -727,11 +751,11 @@ async def forgot_post(req: Request, email: str = Form("")):
         reset_url = f"{cfg.SITE_URL}/reset?token={token}"
         # Send reset email
         try:
-            from app.services.notifications import send_email
-            send_email(email, "Réinitialisation de votre mot de passe — ATLAS PRO",
+            from app.services.notifications import email_send
+            email_send(email, "Réinitialisation de votre mot de passe — ATLAS PRO",
                 f"""<h2>Réinitialisation de mot de passe</h2>
                 <p>Cliquez sur le lien ci-dessous pour réinitialiser votre mot de passe:</p>
-                <a href="{reset_url}" style="display:inline-block;padding:12px 24px;background:#d4a843;color:#000;border-radius:8px;text-decoration:none;font-weight:600">
+                <a href="{reset_url}" style="display:inline-block;padding:12px 24px;background:#f2a93b;color:#142850;border-radius:8px;text-decoration:none;font-weight:600">
                   Réinitialiser mon mot de passe →
                 </a>
                 <p style="color:#666;font-size:12px;margin-top:16px">Ce lien expire dans 2 heures.</p>""")
@@ -822,15 +846,9 @@ async def health():
     db  = get_db()
     act = db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif'").fetchone()[0]
     db.close()
-    supa_ok = False
-    try:
-        from app.core.database import get_supabase
-        supa_ok = bool(get_supabase())
-    except Exception as e:
-        logger.debug(f"[health] Supabase check: {e}")
     return {"status":"ok","version":cfg.APP_VERSION,"brand":cfg.APP_NAME,
             "active":act,"running":State.running,"last_run":State.last_run,
-            "multi_scraper":False,"supabase":supa_ok}
+            "multi_scraper":False}
 
 @app.get("/sitemap.xml")
 async def sitemap():

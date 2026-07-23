@@ -2,44 +2,43 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Admin — Atlas Pro</title>
+<title>Administration — Atlas Pro</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..600;1,9..144,300..600&family=JetBrains+Mono:wght@300;400;500&family=Manrope:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-:root { --bg: #0a0a0e; --bg2: #12121a; --bdr: rgba(244,236,224,.18); --gold: #d4a574; --t1: #f4ece0; --t3: #9a9388; --t4: #5a544c; --red: #d27866; }
-body { background: var(--bg); color: var(--t1); font-family: 'Manrope', system-ui, sans-serif; font-weight: 300; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; position: relative; overflow: hidden; }
-body::before { content: ""; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 700px; height: 700px; border-radius: 50%; background: radial-gradient(circle, rgba(212,165,116,.5) 0%, transparent 60%); opacity: .08; filter: blur(100px); }
-.card { background: var(--bg2); border: 1px solid var(--bdr); padding: 56px 48px; max-width: 400px; width: 100%; position: relative; z-index: 2; border-radius: 4px; }
-.eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--gold); letter-spacing: .35em; text-transform: uppercase; text-align: center; margin-bottom: 16px; }
-h1 { font-family: 'Fraunces', serif; font-weight: 300; font-size: 44px; line-height: 1; letter-spacing: -.02em; text-align: center; margin-bottom: 8px; font-variation-settings: "opsz" 144, "SOFT" 50, "WONK" 1; }
-h1 em { font-style: italic; color: var(--gold); }
-.sub { font-family: 'Fraunces', serif; font-style: italic; font-size: 15px; color: var(--t3); text-align: center; margin-bottom: 40px; font-variation-settings: "opsz" 80, "SOFT" 100; }
-.field { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
-.field label { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--t3); letter-spacing: .2em; text-transform: uppercase; }
-.inp { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--bdr); padding: 12px 4px; color: var(--t1); font-family: inherit; font-size: 16px; outline: none; transition: border-color .3s; }
-.inp:focus { border-bottom-color: var(--gold); }
-.btn { width: 100%; background: var(--gold); color: var(--bg); border: none; padding: 14px; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 400; letter-spacing: .15em; text-transform: uppercase; cursor: pointer; transition: background .25s; border-radius: 4px; margin-top: 16px; }
-.btn:hover { background: #e8bf8f; }
-.err { background: rgba(210,120,102,.06); border: 1px solid rgba(210,120,102,.22); color: var(--red); padding: 12px 16px; font-size: 14px; margin-bottom: 24px; border-radius: 4px; }
-.foot { text-align: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid rgba(244,236,224,.08); font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--t4); letter-spacing: .15em; text-transform: uppercase; }
-.foot a { color: var(--gold); }
+:root { --bg: #0b1120; --surface: #121a2e; --line: #232f47; --navy: #142850; --amber: #f2a93b; --t1: #f0f3f9; --t3: #8b96ac; --t4: #5c6883; --red: #ff8080; }
+body { background: var(--bg); color: var(--t1); font-family: 'Inter', system-ui, sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.card { background: var(--surface); border: 1px solid var(--line); padding: 44px 40px; max-width: 400px; width: 100%; border-radius: 16px; box-shadow: 0 20px 48px rgba(0,0,0,.4); }
+.mark { width: 48px; height: 48px; border-radius: 12px; background: var(--amber); color: var(--bg); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 22px; margin: 0 auto 20px; }
+h1 { font-weight: 800; font-size: 26px; line-height: 1.2; letter-spacing: -.02em; text-align: center; margin-bottom: 6px; }
+h1 em { font-style: normal; color: var(--amber); }
+.sub { font-size: 14px; color: var(--t3); text-align: center; margin-bottom: 32px; }
+.field { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+.field label { font-size: 13px; font-weight: 600; color: var(--t3); }
+.inp { width: 100%; background: var(--bg); border: 1.5px solid var(--line); padding: 11px 14px; color: var(--t1); font: inherit; font-size: 15px; outline: none; transition: border-color .15s; border-radius: 10px; }
+.inp:focus { border-color: var(--amber); }
+.btn { width: 100%; background: var(--amber); color: var(--bg); border: none; padding: 13px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background .15s; border-radius: 10px; margin-top: 8px; }
+.btn:hover { background: #ffbf5c; }
+.err { background: rgba(255,128,128,.1); border: 1px solid rgba(255,128,128,.28); color: var(--red); padding: 12px 16px; font-size: 14px; margin-bottom: 20px; border-radius: 10px; }
+.foot { text-align: center; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 13px; color: var(--t4); }
+.foot a { color: var(--amber); font-weight: 600; }
 </style>
 </head>
 <body>
 
 <div class="card">
-  <div class="eyebrow">Administration</div>
-  <h1>Accès <em>privé.</em></h1>
-  <p class="sub">Espace réservé aux administrateurs.</p>
+  <div class="mark">A</div>
+  <h1>Accès <em>administrateur</em></h1>
+  <p class="sub">Espace réservé — accès restreint.</p>
 
   {% if err %}<div class="err">{{ err }}</div>{% endif %}
 
   <form method="post">
     <div class="field">
-      <label>Mot de passe administrateur</label>
-      <input type="password" name="pw" class="inp" required autofocus>
+      <label for="pw">Mot de passe administrateur</label>
+      <input id="pw" type="password" name="pw" class="inp" required autofocus>
     </div>
     <button type="submit" class="btn">Se connecter →</button>
   </form>

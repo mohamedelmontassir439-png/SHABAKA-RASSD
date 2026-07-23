@@ -2,30 +2,32 @@
 {% block title %}Réinitialiser le mot de passe — Atlas Pro{% endblock %}
 {% block body %}
 <style>
-.auth-wrap { min-height: calc(100vh - 200px); display: flex; align-items: center; justify-content: center; padding: 60px 24px; position: relative; overflow: hidden; }
-.auth-wrap::before { content: ""; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 700px; height: 700px; border-radius: 50%; background: radial-gradient(circle, rgba(212,165,116,.5) 0%, transparent 60%); opacity: .08; filter: blur(100px); pointer-events: none; }
-.auth-card { width: 100%; max-width: 460px; position: relative; z-index: 2; }
-.auth-eyebrow { font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: .35em; text-transform: uppercase; margin-bottom: 20px; text-align: center; }
-.auth-title { font-family: var(--serif); font-weight: 300; font-size: 56px; color: var(--text1); line-height: 1; letter-spacing: -.025em; text-align: center; margin-bottom: 12px; font-variation-settings: "opsz" 144, "SOFT" 50, "WONK" 1; }
-.auth-title em { font-style: italic; color: var(--gold); }
-.auth-sub { font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--text3); text-align: center; margin-bottom: 56px; line-height: 1.5; font-variation-settings: "opsz" 80, "SOFT" 100, "WONK" 1; }
-.auth-form { display: flex; flex-direction: column; gap: 28px; }
+.auth-wrap { min-height: calc(100vh - 260px); display: flex; align-items: center; justify-content: center; padding: 56px 20px; }
+.auth-card { width: 100%; max-width: 440px; }
+.auth-mark { width: 52px; height: 52px; border-radius: 14px; background: var(--navy); color: var(--amber); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 24px; margin: 0 auto 24px; }
+.auth-title { font-weight: 800; font-size: 28px; color: var(--text1); line-height: 1.2; letter-spacing: -.02em; text-align: center; margin-bottom: 10px; }
+.auth-title em { font-style: normal; color: var(--navy); }
+.auth-sub { font-size: 15px; color: var(--text3); text-align: center; margin-bottom: 36px; line-height: 1.6; }
+.auth-panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); box-shadow: var(--sh2); padding: 32px; }
+.auth-form { display: flex; flex-direction: column; gap: 20px; }
 </style>
 
 <div class="auth-wrap">
   <div class="auth-card">
-    <div class="auth-eyebrow">Nouveau mot de passe</div>
-    <h1 class="auth-title">Choisir un<br><em>nouveau.</em></h1>
-    <p class="auth-sub">Saisissez votre nouveau mot de passe — il doit contenir au moins 8 caractères.</p>
+    <div class="auth-mark">A</div>
+    <h1 class="auth-title">Choisir un <em>nouveau mot de passe</em></h1>
+    <p class="auth-sub">Il doit contenir au moins 8 caractères.</p>
 
-    {% if err %}<div class="alert alert-err" style="margin-bottom: 24px;">{{ err }}</div>{% endif %}
+    <div class="auth-panel">
+      {% if err %}<div class="alert alert-err" style="margin-bottom: 20px;">{{ err }}</div>{% endif %}
 
-    <form method="post" class="auth-form">
-      <input type="hidden" name="token" value="{{ token }}">
-      <div class="field"><label>Nouveau mot de passe</label><input name="pw" type="password" class="inp" required minlength="8" autofocus placeholder="Min. 8 caractères"></div>
-      <div class="field"><label>Confirmer</label><input name="pw2" type="password" class="inp" required placeholder="Répéter"></div>
-      <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top: 16px;">Réinitialiser →</button>
-    </form>
+      <form method="post" class="auth-form">
+        <input type="hidden" name="token" value="{{ token }}">
+        <div class="field"><label for="pw">Nouveau mot de passe</label><input id="pw" name="pw" type="password" class="inp" required minlength="8" autofocus placeholder="Min. 8 caractères"></div>
+        <div class="field"><label for="pw2">Confirmer</label><input id="pw2" name="pw2" type="password" class="inp" required placeholder="Répéter"></div>
+        <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top: 4px;">Réinitialiser →</button>
+      </form>
+    </div>
   </div>
 </div>
 {% endblock %}

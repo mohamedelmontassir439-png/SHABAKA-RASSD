@@ -45,17 +45,11 @@ python -c "import secrets; print(secrets.token_urlsafe(24))"
 
 **الحلول المُرتّبة من الأسهل للأفضل:**
 
-#### الحل السريع: Railway Volumes
+#### الحل: Railway Volumes
 1. في Railway Dashboard → Settings → Volumes
 2. أضف Volume جديد mounted على `/app/data`
 3. عدّل `DB_PATH=/app/data/atlas.db`
 4. البيانات ستبقى بين redeployments
-
-#### الحل الأفضل: Supabase (PostgreSQL مجاني)
-1. أنشئ حساباً على [supabase.com](https://supabase.com)
-2. أنشئ مشروعاً جديداً
-3. انسخ `SUPABASE_URL` و `SUPABASE_KEY` إلى `.env`
-4. الكود سيُزامن تلقائياً
 
 ---
 
@@ -132,16 +126,25 @@ curl -I https://www.marchespublics.gov.ma
 
 ### 8. WhatsApp لا يعمل
 
-WhatsApp يتطلّب تشغيل خدمة Node.js منفصلة (`whatsapp_service/`). إذا فشلت:
+WhatsApp يتطلّب تشغيل خدمة Node.js منفصلة (`whatsapp_service/`) — تطبيق Python الرئيسي لا يشغّلها تلقائياً.
 
+**محلياً:**
 ```bash
 cd whatsapp_service
 npm install
 npm start
-# مسح QR code من هاتفك (WhatsApp → Linked Devices)
+# افتح http://localhost:3001/qr وامسح الـ QR من هاتفك (WhatsApp → الأجهزة المرتبطة)
 ```
 
-**مهم:** هذه الخدمة تحتاج تشغيل محلي أو على خادم دائم. Railway لا يدعمها بسهولة.
+**على Railway (كخدمة ثانية منفصلة في نفس المشروع):**
+1. فـ Railway Dashboard → مشروع ATLAS PRO → **+ New** → **GitHub Repo** (نفس المستودع)
+2. فـ إعدادات الخدمة الجديدة → **Settings → Root Directory** → `whatsapp_service`
+3. زيد Volume مربوط بـ `/app/auth_info` (باش الجلسة ماتضيعش عند كل redeploy — بحال ما ديرنا مع SQLite)
+4. زيد المتغيرات: `WA_SECRET` (نفس القيمة اللي حطيتيها فخدمة Python)، و`WA_PORT` اختياري
+5. بعد أول deploy، افتح `<url-diال-khidma>/qr` وامسح الـ QR من هاتفك — مرة وحدة فقط، الجلسة كتبقى محفوظة فـ Volume
+6. فخدمة Python الرئيسية، زيد المتغير `WA_SERVICE_URL` بعنوان الخدمة الثانية الداخلي (Railway كيعطيك رابط `.railway.internal` بين الخدمات فنفس المشروع)
+
+**مهم:** الحساب اللي كتربطو بـ QR هو حساب WhatsApp حقيقي (رقم هاتف) خاص يبقى مفتوح/متصل بالأنترنت من وقت لآخر — بحال أي "WhatsApp Web" آخر.
 
 ---
 
@@ -190,14 +193,6 @@ pip install -r requirements.txt
 # في app/core/database.py، زد timeout
 db = sqlite3.connect(cfg.DB_PATH, timeout=30.0, check_same_thread=False)
 ```
-
-### 13. `ImportError: cannot import name 'create_client' from 'supabase'`
-
-Supabase اختياري. إذا لم تحتاجه:
-```bash
-pip install supabase  # لتفعيله
-```
-أو اترك `SUPABASE_URL` و `SUPABASE_KEY` فارغين في `.env`.
 
 ---
 

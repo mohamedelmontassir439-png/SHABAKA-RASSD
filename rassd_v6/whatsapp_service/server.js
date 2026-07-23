@@ -53,7 +53,6 @@ async function startSock() {
     version,
     logger,
     auth: state,
-    printQRInTerminal: true,
     browser: ['ATLAS PRO', 'Chrome', '120.0'],
   })
 

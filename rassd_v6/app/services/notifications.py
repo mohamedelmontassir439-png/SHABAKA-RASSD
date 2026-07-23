@@ -5,6 +5,7 @@ from email.mime.text import MIMEText
 from app.core.config   import cfg
 from app.core.database import get_db
 from app.core.security import days_left
+from app.core.sectors   import get_label
 
 logger = logging.getLogger("atlas.notif")
 
@@ -50,27 +51,29 @@ def tg_admin(msg: str):
 
 def build_tg_message(t: dict) -> str:
     _n, dl_label = days_left(t.get("date_limite", ""))
+    type_offre = t.get("type_offre", "Public")
     lines = [
-        "🏛 <b>Nouveau Marché Public</b>",
+        f"🏛 <b>Nouveau Marché {type_offre}</b>",
         "━" * 28,
         "",
         f"📋 <b>{t['objet'][:120]}</b>",
         "",
     ]
     if t.get("acheteur"): lines.append(f"🏢 {t['acheteur'][:70]}")
-    if t.get("secteur"):  lines.append(f"🏷 {t['secteur']}")
+    if t.get("secteur"):  lines.append(f"🏷 {get_label(t['secteur'])}")
     if t.get("region"):   lines.append(f"📍 {t['region']}")
     if t.get("montant"):  lines.append(f"💰 {t['montant']}")
     dl = t.get("date_limite", "")
     if dl:
         badge = f" — <b>{dl_label}</b>" if dl_label else ""
         lines.append(f"⏰ <b>{dl}{badge}</b>")
+    source_name = t.get("source", "marchespublics") or "marchespublics"
     lines += [
         "",
-        f"🔗 <a href='{t['url']}'>Voir sur marchespublics.gov.ma</a>",
+        f"🔗 <a href='{t['url']}'>Voir sur {source_name}</a>",
         f"📱 <a href='{cfg.SITE_URL}/tenders/{t['id']}'>Voir sur ATLAS PRO</a>",
         "",
-        "<i>ATLAS PRO · Veille Marchés Publics Maroc</i>",
+        "<i>ATLAS PRO · Veille Marchés Publics & Privés Maroc</i>",
     ]
     return "\n".join(lines)
 
@@ -122,6 +125,8 @@ def build_email(t: dict, nom: str = "") -> str:
     dl              = t.get("date_limite", "—") or "—"
     _n, dl_label    = days_left(t.get("date_limite", ""))
     site            = cfg.SITE_URL
+    type_offre      = t.get("type_offre", "Public")
+    source_name     = t.get("source", "marchespublics") or "marchespublics"
     badge_html      = f'''<div class="dl-badge">⏰ {dl_label}</div>''' if dl_label else ""
     region_row      = f'<tr><td class="lbl">📍 Région</td><td class="val">{t.get("region","")}</td></tr>' if t.get("region") else ""
     montant_row     = f'<tr><td class="lbl">💰 Montant</td><td class="val">{t.get("montant","")}</td></tr>' if t.get("montant") else ""
@@ -129,40 +134,41 @@ def build_email(t: dict, nom: str = "") -> str:
 <html lang="fr"><head><meta charset="UTF-8">
 <style>
 *{{box-sizing:border-box;margin:0;padding:0}}
-body{{background:#07070e;font-family:Georgia,serif;padding:20px}}
-.wrap{{max-width:600px;margin:0 auto;background:#0d0d15;border:1px solid #1e1e2c;border-radius:12px;overflow:hidden}}
-.hdr{{padding:28px 32px;border-bottom:1px solid #1e1e2c}}
-.logo{{font-size:22px;font-weight:900;color:#c8a850;letter-spacing:3px;font-style:italic}}
+body{{background:#f6f7fb;font-family:Arial,Helvetica,sans-serif;padding:20px}}
+.wrap{{max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e3e7ef;border-radius:12px;overflow:hidden}}
+.hdr{{padding:24px 32px;background:#142850;border-bottom:1px solid #e3e7ef}}
+.logo{{font-size:20px;font-weight:800;color:#ffffff}}
+.logo em{{font-style:normal;color:#f2a93b}}
 .body{{padding:32px}}
-.title{{font-size:17px;font-weight:700;color:#f0ede6;line-height:1.5;margin-bottom:20px}}
+.title{{font-size:17px;font-weight:700;color:#101828;line-height:1.5;margin-bottom:20px}}
 table{{width:100%;border-collapse:collapse;margin-bottom:24px}}
-td{{padding:10px 0;border-bottom:1px solid #1a1a26;vertical-align:top;font-size:13px}}
-.lbl{{color:#666;letter-spacing:1px;text-transform:uppercase;font-family:monospace;width:110px;font-size:10px}}
-.val{{color:#c8c4bc}}.val-g{{color:#c8a850;font-weight:700}}.val-r{{color:#e05c5c;font-weight:700}}
-.cta{{display:inline-block;margin:6px 6px 0 0;padding:12px 22px;background:#c8a850;color:#000;border-radius:6px;font-weight:700;text-decoration:none;font-size:13px}}
-.cta2{{display:inline-block;margin:6px 6px 0 0;padding:12px 22px;border:1px solid #c8a850;color:#c8a850;border-radius:6px;font-weight:700;text-decoration:none;font-size:13px}}
-.ftr{{padding:20px 32px;background:#070710;border-top:1px solid #1e1e2c;text-align:center}}
-.dl-badge{{display:inline-block;padding:6px 14px;background:rgba(200,168,80,.1);border:1px solid rgba(200,168,80,.3);border-radius:99px;font-size:12px;color:#c8a850;margin-bottom:20px}}
+td{{padding:10px 0;border-bottom:1px solid #e3e7ef;vertical-align:top;font-size:13px}}
+.lbl{{color:#98a1b3;letter-spacing:.5px;text-transform:uppercase;width:110px;font-size:11px}}
+.val{{color:#3b4457}}.val-g{{color:#b9791a;font-weight:700}}.val-r{{color:#d64545;font-weight:700}}
+.cta{{display:inline-block;margin:6px 6px 0 0;padding:12px 22px;background:#f2a93b;color:#142850;border-radius:8px;font-weight:700;text-decoration:none;font-size:13px}}
+.cta2{{display:inline-block;margin:6px 6px 0 0;padding:12px 22px;border:1px solid #142850;color:#142850;border-radius:8px;font-weight:700;text-decoration:none;font-size:13px}}
+.ftr{{padding:20px 32px;background:#f6f7fb;border-top:1px solid #e3e7ef;text-align:center}}
+.dl-badge{{display:inline-block;padding:6px 14px;background:rgba(242,169,59,.12);border:1px solid rgba(242,169,59,.3);border-radius:99px;font-size:12px;color:#b9791a;margin-bottom:20px}}
 </style></head>
 <body><div class="wrap">
-<div class="hdr"><div class="logo">ATLAS PRO</div><div style="font-size:10px;color:#555;letter-spacing:2px;font-family:monospace;margin-top:3px">MARCHÉS PUBLICS MAROC</div></div>
+<div class="hdr"><div class="logo">Atlas<em>Pro</em></div><div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:3px">MARCHÉS {type_offre.upper()}S · MAROC</div></div>
 <div class="body">
-<p style="color:#888;font-size:13px;margin-bottom:16px">Bonjour {nom or "Madame/Monsieur"},</p>
-<p style="color:#aaa;font-size:13px;margin-bottom:20px">Un nouveau marché correspondant à votre profil vient d'être publié :</p>
+<p style="color:#6b7488;font-size:13px;margin-bottom:16px">Bonjour {nom or "Madame/Monsieur"},</p>
+<p style="color:#6b7488;font-size:13px;margin-bottom:20px">Un nouveau marché correspondant à votre profil vient d'être publié :</p>
 {badge_html}
 <div class="title">{t["objet"][:200]}</div>
 <table>
 <tr><td class="lbl">🏢 Acheteur</td><td class="val">{t.get("acheteur","—")[:100]}</td></tr>
-<tr><td class="lbl">🏷 Secteur</td><td class="val val-g">{t.get("secteur","—")}</td></tr>
+<tr><td class="lbl">🏷 Secteur</td><td class="val val-g">{get_label(t.get("secteur",""))}</td></tr>
 {region_row}
 {montant_row}
 <tr><td class="lbl">⏰ Date limite</td><td class="val val-r">{dl}</td></tr>
 <tr><td class="lbl">📅 Publication</td><td class="val">{t.get("date_publication","—")}</td></tr>
 </table>
-<a href="{t["url"]}" class="cta">Voir sur marchespublics ↗</a>
+<a href="{t["url"]}" class="cta">Voir sur {source_name} ↗</a>
 <a href="{site}/tenders/{t["id"]}" class="cta2">Détails ATLAS PRO</a>
 </div>
-<div class="ftr"><p style="color:#444;font-size:11px">ATLAS PRO · <a href="{site}" style="color:#666">atlas.ma</a> · <a href="{site}/settings" style="color:#666">Gérer mes alertes</a></p></div>
+<div class="ftr"><p style="color:#98a1b3;font-size:11px">ATLAS PRO · <a href="{site}" style="color:#6b7488">atlaspro.ma</a> · <a href="{site}/settings" style="color:#6b7488">Gérer mes alertes</a></p></div>
 </div></body></html>"""
 
 # ── Dispatch principal ────────────────────────────────────
@@ -175,7 +181,7 @@ def dispatch_notifications(tenders: list):
         members = db.execute(
             "SELECT * FROM members WHERE actif=1"
         ).fetchall()
-        total_tg = total_email = total_skip = 0
+        total_tg = total_email = total_wa = total_skip = 0
 
         for m in members:
             member          = dict(m)
@@ -222,15 +228,27 @@ def dispatch_notifications(tenders: list):
                         )
                         total_email += 1
 
+                # WhatsApp
+                if member.get("notif_wa") and member.get("whatsapp"):
+                    ok = send_wa(member["whatsapp"], format_tender_wa(t))
+                    if ok:
+                        db.execute(
+                            "INSERT INTO notif_log(member_id,tender_id,channel,sent_at) VALUES(?,?,?,?)",
+                            (member["id"], t["id"], "whatsapp", now)
+                        )
+                        total_wa += 1
+                    else:
+                        logger.warning(f"[Notif] WA failed pour {member['email']}")
+
         db.commit()
         logger.info(
-            f"[Notif] ✅ {total_tg} TG + {total_email} Email "
+            f"[Notif] ✅ {total_tg} TG + {total_email} Email + {total_wa} WhatsApp "
             f"pour {len(tenders)} marchés ({total_skip} filtrés)"
         )
-        if total_tg + total_email > 0:
+        if total_tg + total_email + total_wa > 0:
             tg_admin(
                 f"✅ <b>{len(tenders)} nouveaux marchés</b>\n"
-                f"📱 {total_tg} Telegram · 📧 {total_email} Email"
+                f"📱 {total_tg} Telegram · 📧 {total_email} Email · 💬 {total_wa} WhatsApp"
             )
     except Exception as e:
         logger.error(f"[Notif] Exception: {e}", exc_info=True)
@@ -238,14 +256,14 @@ def dispatch_notifications(tenders: list):
         db.close()
 
 
-def test_notifications(email: str = "", telegram_id: str = "") -> dict:
+def test_notifications(email: str = "", telegram_id: str = "", whatsapp: str = "") -> dict:
     """Test les notifications — appelé depuis /admin/test_notif"""
-    results = {"telegram": False, "email": False}
+    results = {"telegram": False, "email": False, "whatsapp": False}
     fake_tender = {
         "id":               "bdc_test",
         "objet":            "TEST — Marché de test ATLAS PRO",
         "acheteur":         "Administration Marocaine",
-        "secteur":          "IT & Télécoms",
+        "secteur":          "S901",
         "region":           "Rabat-Salé-Kénitra",
         "montant":          "100 000 MAD",
         "date_limite":      "30/12/2026",
@@ -257,4 +275,6 @@ def test_notifications(email: str = "", telegram_id: str = "") -> dict:
     if email:
         html = build_email(fake_tender, "Administrateur")
         results["email"] = email_send(email, "🧪 Test ATLAS PRO — Notifications", html)
+    if whatsapp:
+        results["whatsapp"] = send_wa(whatsapp, format_tender_wa(fake_tender))
     return results

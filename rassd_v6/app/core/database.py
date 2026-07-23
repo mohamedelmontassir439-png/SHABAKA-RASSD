@@ -1,6 +1,5 @@
 """
-ATLAS PRO — Database Layer
-Supports: SQLite (local) + Supabase (cloud PostgreSQL)
+ATLAS PRO — Database Layer (SQLite)
 """
 import os, sqlite3, logging
 from app.core.config import cfg
@@ -18,68 +17,6 @@ def get_db() -> sqlite3.Connection:
     db.execute("PRAGMA cache_size=-32000")  # 32MB cache
     return db
 
-# ── Supabase (cloud) ─────────────────────────────────────
-_supa = None
-def get_supabase():
-    global _supa
-    if _supa: return _supa
-    url = cfg.SUPABASE_URL
-    key = cfg.SUPABASE_KEY
-    if not url or not key: return None
-    try:
-        from supabase import create_client
-        _supa = create_client(url, key)
-        logger.info("✅ Supabase connecté")
-        return _supa
-    except Exception as e:
-        logger.error(f"[Supabase] {e}")
-        return None
-
-def supabase_sync_tender(t: dict) -> bool:
-    """Sync un tender vers Supabase (upsert)"""
-    supa = get_supabase()
-    if not supa: return False
-    try:
-        supa.table("tenders").upsert({
-            "id":               t["id"],
-            "objet":            t["objet"],
-            "acheteur":         t.get("acheteur",""),
-            "secteur":          t.get("secteur",""),
-            "region":           t.get("region",""),
-            "montant":          t.get("montant",""),
-            "date_publication": t.get("date_publication",""),
-            "date_limite":      t.get("date_limite",""),
-            "url":              t.get("url",""),
-            "statut":           t.get("statut","actif"),
-            "scraped_at":       t.get("scraped_at",""),
-        }).execute()
-        return True
-    except Exception as e:
-        logger.error(f"[Supabase sync] {e}")
-        return False
-
-def supabase_sync_batch(tenders: list) -> int:
-    """Sync batch vers Supabase"""
-    supa = get_supabase()
-    if not supa or not tenders: return 0
-    try:
-        rows = [{
-            "id": t["id"], "objet": t["objet"],
-            "acheteur": t.get("acheteur",""),
-            "secteur": t.get("secteur",""),
-            "region": t.get("region",""),
-            "date_limite": t.get("date_limite",""),
-            "url": t.get("url",""),
-            "statut": "actif",
-            "scraped_at": t.get("scraped_at",""),
-        } for t in tenders]
-        supa.table("tenders").upsert(rows).execute()
-        logger.info(f"[Supabase] {len(rows)} marchés synchronisés")
-        return len(rows)
-    except Exception as e:
-        logger.error(f"[Supabase batch] {e}")
-        return 0
-
 # ── Schema SQLite ─────────────────────────────────────────
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS tenders (
@@ -96,7 +33,9 @@ CREATE TABLE IF NOT EXISTS tenders (
     statut           TEXT DEFAULT 'actif',
     views            INTEGER DEFAULT 0,
     scraped_at       TEXT DEFAULT '',
-    updated_at       TEXT DEFAULT ''
+    updated_at       TEXT DEFAULT '',
+    type_offre       TEXT DEFAULT 'Public',
+    source           TEXT DEFAULT 'marchespublics'
 );
 CREATE TABLE IF NOT EXISTS members (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -159,6 +98,7 @@ CREATE INDEX IF NOT EXISTS idx_t_statut   ON tenders(statut);
 CREATE INDEX IF NOT EXISTS idx_t_scraped  ON tenders(scraped_at DESC);
 CREATE INDEX IF NOT EXISTS idx_t_secteur  ON tenders(secteur);
 CREATE INDEX IF NOT EXISTS idx_t_deadline ON tenders(date_limite);
+CREATE INDEX IF NOT EXISTS idx_t_type     ON tenders(type_offre);
 CREATE INDEX IF NOT EXISTS idx_m_email    ON members(email);
 CREATE INDEX IF NOT EXISTS idx_fav_member ON favorites(member_id);
 """
@@ -177,6 +117,8 @@ def migrate_db():
         "ALTER TABLE members ADD COLUMN reset_token TEXT DEFAULT ''",
         "ALTER TABLE members ADD COLUMN reset_expires TEXT DEFAULT ''",
         "ALTER TABLE members ADD COLUMN onboarded INTEGER DEFAULT 0",
+        "ALTER TABLE tenders ADD COLUMN type_offre TEXT DEFAULT 'Public'",
+        "ALTER TABLE tenders ADD COLUMN source TEXT DEFAULT 'marchespublics'",
     ]
     for col in cols:
         try:
@@ -189,6 +131,32 @@ def migrate_db():
         except Exception as e:
             logger.error(f"[migrate] Erreur inattendue: {e}")
     db.close()
+
+def migrate_secteurs():
+    """Reclassifie les marchés scrapés avant le passage aux codes officiels MB SA
+    (l'ancien scraper stockait des libellés libres du type "Travaux BTP" qui ne
+    correspondent à aucun code choisi par les membres — les alertes ne
+    partaient donc jamais pour eux). Ne retouche que les lignes invalides,
+    donc ne coûte rien une fois toutes les lignes migrées.
+    """
+    from app.core.sectors import SECTORS, classify
+    db = get_db()
+    try:
+        rows = db.execute(
+            "SELECT id, objet, description FROM tenders WHERE secteur NOT IN ({})".format(
+                ",".join("?" * len(SECTORS))),
+            list(SECTORS.keys())
+        ).fetchall()
+        for row in rows:
+            code = classify(f"{row['objet']} {row['description'][:400]}")
+            db.execute("UPDATE tenders SET secteur=? WHERE id=?", (code, row["id"]))
+        if rows:
+            db.commit()
+            logger.info(f"✅ {len(rows)} marchés reclassifiés vers les codes officiels")
+    except Exception as e:
+        logger.error(f"[migrate_secteurs] {e}")
+    finally:
+        db.close()
 
 def init_db():
     """Initialise le schéma de la base de données.
@@ -215,3 +183,7 @@ def init_db():
         migrate_db()
     except Exception as e:
         logger.error(f"[init_db] Erreur migration: {e}")
+    try:
+        migrate_secteurs()
+    except Exception as e:
+        logger.error(f"[init_db] Erreur migration secteurs: {e}")

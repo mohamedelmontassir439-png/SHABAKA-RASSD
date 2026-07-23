@@ -49,6 +49,7 @@ atlas.log
 Thumbs.db
 
 # --- WhatsApp sessions (contiennent tokens) ---
+whatsapp_service/auth_info/
 whatsapp_service/auth/
 whatsapp_service/node_modules/
 whatsapp_service/sessions/

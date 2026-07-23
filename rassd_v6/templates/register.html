@@ -2,67 +2,71 @@
 {% block title %}Inscription — Atlas Pro{% endblock %}
 {% block body %}
 <style>
-.reg-wrap { max-width: 720px; margin: 0 auto; padding: 80px 32px; position: relative; }
-.reg-eyebrow { font-family: var(--mono); font-size: 10px; color: var(--gold); letter-spacing: .35em; text-transform: uppercase; text-align: center; margin-bottom: 20px; }
-.reg-title { font-family: var(--serif); font-weight: 300; font-size: clamp(48px, 7vw, 84px); color: var(--text1); line-height: .95; letter-spacing: -.025em; text-align: center; margin-bottom: 16px; font-variation-settings: "opsz" 144, "SOFT" 50, "WONK" 1; }
-.reg-title em { font-style: italic; color: var(--gold); font-variation-settings: "opsz" 144, "SOFT" 100, "WONK" 1; }
-.reg-sub { font-family: var(--serif); font-style: italic; font-size: 19px; color: var(--text3); text-align: center; margin-bottom: 56px; font-variation-settings: "opsz" 80, "SOFT" 100, "WONK" 1; }
-.reg-form { display: flex; flex-direction: column; gap: 32px; }
-.sector-group { margin-bottom: 24px; }
-.sector-group-title { font-family: var(--mono); font-size: 9px; color: var(--gold); letter-spacing: .25em; text-transform: uppercase; margin-bottom: 14px; }
+.reg-wrap { max-width: 720px; margin: 0 auto; padding: 56px 24px 80px; }
+.reg-eyebrow { font-size: 13px; font-weight: 700; color: var(--amberd); letter-spacing: .08em; text-transform: uppercase; text-align: center; margin-bottom: 14px; }
+.reg-title { font-weight: 800; font-size: clamp(30px, 5vw, 44px); color: var(--text1); line-height: 1.1; letter-spacing: -.02em; text-align: center; margin-bottom: 10px; }
+.reg-title em { font-style: normal; color: var(--navy); }
+.reg-sub { font-size: 16px; color: var(--text3); text-align: center; margin-bottom: 40px; }
+.reg-panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); box-shadow: var(--sh2); padding: 36px; }
+.reg-form { display: flex; flex-direction: column; gap: 24px; }
+.sector-group { margin-bottom: 8px; }
+.sector-group-title { font-size: 12px; font-weight: 700; color: var(--navy); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 12px; }
 .sector-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.sector-chip { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; background: transparent; border: 1px solid var(--bdr2); cursor: pointer; font-family: var(--sans); font-size: 12px; color: var(--text3); transition: all .25s; user-select: none; border-radius: var(--r2); }
-.sector-chip:hover { border-color: var(--gold); color: var(--gold); }
+.sector-chip { display: inline-flex; align-items: center; gap: 6px; padding: 8px 13px; background: var(--surface2); border: 1.5px solid transparent; cursor: pointer; font-size: 13px; color: var(--text2); transition: all .15s; user-select: none; border-radius: var(--r2); }
+.sector-chip:hover { border-color: var(--line2); }
 .sector-chip input { display: none; }
-.sector-chip input:checked + span { color: var(--gold); }
-.sector-chip:has(input:checked) { border-color: var(--gold); color: var(--gold); background: var(--goldb); }
-.sector-chip-code { font-family: var(--mono); font-size: 9px; opacity: .7; letter-spacing: .1em; }
-.reg-foot { text-align: center; margin-top: 32px; padding-top: 32px; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 11px; color: var(--text4); letter-spacing: .1em; }
-.reg-foot a { color: var(--gold); }
+.sector-chip:has(input:checked) { border-color: var(--navy); color: var(--navy); background: rgba(20,40,80,.06); font-weight: 600; }
+.sector-chip-code { font-family: var(--mono); font-size: 10px; opacity: .65; letter-spacing: .05em; }
+.reg-hint { font-size: 14px; color: var(--text3); margin-bottom: 20px; margin-top: 6px; }
+.reg-foot { text-align: center; margin-top: 28px; font-size: 14px; color: var(--text3); }
+.reg-foot a { color: var(--navy); font-weight: 600; }
+.reg-foot a:hover { text-decoration: underline; }
 </style>
 
 <div class="reg-wrap">
   <div class="reg-eyebrow">Créer un compte</div>
-  <h1 class="reg-title">Commencer <em>gratuitement.</em></h1>
+  <h1 class="reg-title">Commencer <em>gratuitement</em></h1>
   <p class="reg-sub">14 jours d'essai · Aucune carte requise.</p>
 
-  {% if err %}<div class="alert alert-err" style="margin-bottom: 24px;">{{ err }}</div>{% endif %}
+  <div class="reg-panel">
+    {% if err %}<div class="alert alert-err" style="margin-bottom: 20px;">{{ err }}</div>{% endif %}
 
-  <form method="post" class="reg-form">
-    <div class="grid-2">
-      <div class="field"><label>Nom complet</label><input name="nom" class="inp" placeholder="Mohamed Alaoui" value="{{ (vals or {}).get('nom','') }}"></div>
-      <div class="field"><label>Email *</label><input name="email" type="email" class="inp" placeholder="email@entreprise.ma" required value="{{ (vals or {}).get('email','') }}"></div>
-    </div>
-    <div class="grid-2">
-      <div class="field"><label>Téléphone</label><input name="phone" class="inp" placeholder="+212 6xx xxxxxx" value="{{ (vals or {}).get('phone','') }}"></div>
-      <div class="field"><label>Entreprise</label><input name="company" class="inp" placeholder="Nom de votre société" value="{{ (vals or {}).get('company','') }}"></div>
-    </div>
-    <div class="grid-2">
-      <div class="field"><label>Mot de passe *</label><input name="pw" type="password" class="inp" required minlength="8" placeholder="Min. 8 caractères"></div>
-      <div class="field"><label>Confirmer *</label><input name="pw2" type="password" class="inp" required placeholder="Répéter"></div>
-    </div>
-
-    <div>
-      <div class="field"><label>Secteurs d'activité (optionnel)</label></div>
-      <p style="font-family: var(--serif); font-style: italic; font-size: 14px; color: var(--text4); margin-bottom: 24px; margin-top: 8px;">Laissez vide pour recevoir tous les marchés.</p>
-      {% for group_name, group_sectors in sector_groups.items() %}
-      <div class="sector-group">
-        <div class="sector-group-title">{{ group_name }}</div>
-        <div class="sector-chips">
-          {% for code, label in group_sectors.items() %}
-          <label class="sector-chip">
-            <input type="checkbox" name="secteurs_sel" value="{{ code }}">
-            <span class="sector-chip-code">{{ code }}</span>
-            <span>{{ label[:30] }}</span>
-          </label>
-          {% endfor %}
-        </div>
+    <form method="post" class="reg-form">
+      <div class="grid-2">
+        <div class="field"><label for="nom">Nom complet</label><input id="nom" name="nom" class="inp" placeholder="Mohamed Alaoui" value="{{ (vals or {}).get('nom','') }}"></div>
+        <div class="field"><label for="email">Email *</label><input id="email" name="email" type="email" class="inp" placeholder="email@entreprise.ma" required value="{{ (vals or {}).get('email','') }}"></div>
       </div>
-      {% endfor %}
-    </div>
+      <div class="grid-2">
+        <div class="field"><label for="phone">Téléphone</label><input id="phone" name="phone" class="inp" placeholder="+212 6xx xxxxxx" value="{{ (vals or {}).get('phone','') }}"></div>
+        <div class="field"><label for="company">Entreprise</label><input id="company" name="company" class="inp" placeholder="Nom de votre société" value="{{ (vals or {}).get('company','') }}"></div>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label for="pw">Mot de passe *</label><input id="pw" name="pw" type="password" class="inp" required minlength="8" placeholder="Min. 8 caractères"></div>
+        <div class="field"><label for="pw2">Confirmer *</label><input id="pw2" name="pw2" type="password" class="inp" required placeholder="Répéter"></div>
+      </div>
 
-    <button type="submit" class="btn btn-primary btn-full btn-lg">Créer mon compte →</button>
-  </form>
+      <div>
+        <div class="field"><label>Secteurs d'activité (optionnel)</label></div>
+        <p class="reg-hint">Laissez vide pour recevoir tous les marchés, publics comme privés.</p>
+        {% for group_name, group_sectors in sector_groups.items() %}
+        <div class="sector-group">
+          <div class="sector-group-title">{{ group_name }}</div>
+          <div class="sector-chips" style="margin-bottom: 20px;">
+            {% for code, label in group_sectors.items() %}
+            <label class="sector-chip">
+              <input type="checkbox" name="secteurs_sel" value="{{ code }}">
+              <span class="sector-chip-code">{{ code }}</span>
+              <span>{{ label[:30] }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full btn-lg">Créer mon compte →</button>
+    </form>
+  </div>
 
   <div class="reg-foot">
     Déjà inscrit ? <a href="/login">Se connecter</a>

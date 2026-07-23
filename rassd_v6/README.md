@@ -73,7 +73,7 @@ atlas-pro/
 ├── app/
 │   ├── core/
 │   │   ├── config.py          # إعدادات التطبيق
-│   │   ├── database.py        # قاعدة البيانات (SQLite + Supabase)
+│   │   ├── database.py        # قاعدة البيانات (SQLite)
 │   │   ├── security.py        # المصادقة والتشفير
 │   │   └── sectors.py         # قائمة القطاعات الـ 16
 │   └── services/
@@ -117,7 +117,7 @@ atlas-pro/
 
 قاعدة البيانات الحالية SQLite في `data/atlas.db`. على Railway، هذا الملف **قد يُمحى** عند كل redeploy.
 
-**توصية:** فعّل Supabase (PostgreSQL مجاني) للاحتفاظ الدائم بالبيانات.
+**توصية:** أضف Railway Volume مربوط بـ `/app/data` (راجع `TROUBLESHOOTING.md`) للاحتفاظ الدائم بالبيانات.
 
 ---
 
