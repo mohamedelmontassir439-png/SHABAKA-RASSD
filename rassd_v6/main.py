@@ -598,11 +598,9 @@ async def login_post(req: Request, email:str=Form(""), pw:str=Form(""), next:str
     if not m or not verify_pw(pw, m["pw_hash"]):
         db.close()
         return render(req,"login.html",{"err":"Email ou mot de passe incorrect","vals":{"email":email},"next":next})
-    db.execute("UPDATE members SET last_login=? WHERE id=?",(datetime.now().isoformat(),m["id"]))
-    db.commit(); db.close()
-    # Generate stable session token stored in DB
     session_tok = make_session_token()
-    db.execute("UPDATE members SET session_token=? WHERE id=?", (session_tok, m["id"]))
+    db.execute("UPDATE members SET last_login=?, session_token=? WHERE id=?",
+               (datetime.now().isoformat(), session_tok, m["id"]))
     db.commit(); db.close()
     onboarded = m["onboarded"] if "onboarded" in m.keys() else 1
     logger.info(f"[Login] ✅ {email} connecté")
@@ -843,16 +841,19 @@ async def forgot_post(req: Request, email: str = Form("")):
                    (token, expires, m["id"]))
         db.commit()
         reset_url = f"{cfg.SITE_URL}/reset?token={token}"
-        # Send reset email
+        # Send reset email — hors du thread de la requête pour ne jamais
+        # bloquer le serveur si un provider (ex: SMTP filtré par l'hébergeur) est lent.
         try:
             from app.services.notifications import email_send
-            email_send(email, "Réinitialisation de votre mot de passe — ATLAS PRO",
+            loop = asyncio.get_event_loop()
+            loop.run_in_executor(None, lambda: email_send(
+                email, "Réinitialisation de votre mot de passe — ATLAS PRO",
                 f"""<h2>Réinitialisation de mot de passe</h2>
                 <p>Cliquez sur le lien ci-dessous pour réinitialiser votre mot de passe:</p>
                 <a href="{reset_url}" style="display:inline-block;padding:12px 24px;background:#f2a93b;color:#142850;border-radius:8px;text-decoration:none;font-weight:600">
                   Réinitialiser mon mot de passe →
                 </a>
-                <p style="color:#666;font-size:12px;margin-top:16px">Ce lien expire dans 2 heures.</p>""")
+                <p style="color:#666;font-size:12px;margin-top:16px">Ce lien expire dans 2 heures.</p>"""))
         except Exception as e:
             logger.error(f"[reset email] {e}")
         db.close()

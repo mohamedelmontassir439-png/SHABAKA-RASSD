@@ -115,7 +115,10 @@ def email_send(to: str, subject: str, html: str) -> bool:
             msg["From"]     = f"{cfg.FROM_NAME} <{cfg.GMAIL_USER}>"
             msg["To"]       = to
             msg.attach(MIMEText(html, "html", "utf-8"))
-            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as srv:
+            # timeout explicite: sans lui smtplib bloque indéfiniment si le
+            # port SMTP est filtré par l'hébergeur (cas de Railway) au lieu
+            # d'échouer immédiatement — ça gelait toute la requête /forgot.
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=10) as srv:
                 srv.login(cfg.GMAIL_USER, cfg.GMAIL_PASS)
                 srv.send_message(msg)
             logger.info(f"[Gmail] ✅ Email envoyé à {to}")
