@@ -4,7 +4,7 @@ Se connecte à global-marches.com avec le compte abonné (GM_USERNAME/GM_PASSWOR
 et récupère les nouveaux appels d'offres privés.
 """
 import re, logging
-from datetime import datetime, timedelta
+from datetime import datetime
 import requests
 
 from app.core.config import cfg
@@ -18,13 +18,19 @@ UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0 
 # Paramètres fixes du formulaire de recherche "/aopriverecherche" — reproduits
 # exactement (y compris NULL_INCLU_*/MOT_CLE_CRET_*) car le backend PHP renvoie
 # une erreur 500 si l'un de ces champs est absent de la requête.
+#
+# Le site a retiré les filtres de date (DATE_PARUTION_*/DATE_LIMIT_*) de ce
+# formulaire à un moment donné — les envoyer fait maintenant planter le
+# backend (500 sur toute requête qui les contient, même vides). On ne filtre
+# donc plus par date ici : le tri par défaut est décroissant sur la date de
+# parution, et le dédoublonnage via known_ids couvre le reste (même principe
+# que run_results() ci-dessous, qui n'a jamais utilisé de filtre de date).
 SEARCH_PARAMS = [
     ("CAT_OFFRE", "Prive"),
     ("CLASSES[]", "%"), ("VILLE[]", "%"), ("ORG[]", "%"), ("Domaine[]", "%"),
     ("Secteur[]", "%"), ("Qualification[]", "%"), ("Classe[]", "%"),
     ("MOT_CLE_1", ""), ("MOT_CLE_CRET_1", "AND"),
     ("MOT_CLE_2", ""), ("MOT_CLE_CRET_2", "AND"), ("MOT_CLE_3", ""),
-    ("DATE_LIMIT_1", ""), ("DATE_LIMIT_2", ""),
     ("CAUTION_1", ""), ("CAUTION_2", ""),
     ("NULL_INCLU_1", "1"), ("BUDJET_1", ""), ("BUDJET_2", ""), ("NULL_INCLU_2", "1"),
     ("ORDRE", ""), ("REFERENCE", ""), ("type_oa", ""), ("SAVE", ""),
@@ -54,9 +60,8 @@ def _login(s: requests.Session) -> bool:
     return "PASSWORD_INPUT" not in r.text or "/homecompte" in r.url
 
 
-def _search(s: requests.Session, date_from: str, date_to: str) -> str:
-    params = [("DATE_PARUTION_1", date_from), ("DATE_PARUTION_2", date_to)] + SEARCH_PARAMS
-    r = s.get(BASE + "/listresultatao", params=params, timeout=30)
+def _search(s: requests.Session) -> str:
+    r = s.get(BASE + "/listresultatao", params=SEARCH_PARAMS, timeout=30)
     r.raise_for_status()
     return r.text
 
@@ -125,13 +130,8 @@ def run(known_ids: set, log_fn=print) -> list:
         logger.error(f"[gm login] {e}", exc_info=True)
         return []
 
-    # Fenêtre de quelques jours en arrière pour couvrir tout intervalle de scan
-    # manqué (redéploiement, panne...), le dédoublonnage se fait via known_ids.
-    date_to   = datetime.now().strftime("%d/%m/%Y")
-    date_from = (datetime.now() - timedelta(days=3)).strftime("%d/%m/%Y")
-
     try:
-        html = _search(s, date_from, date_to)
+        html = _search(s)
     except Exception as e:
         log_fn(f"❌ Marchés privés: erreur recherche — {e}")
         logger.error(f"[gm search] {e}", exc_info=True)
