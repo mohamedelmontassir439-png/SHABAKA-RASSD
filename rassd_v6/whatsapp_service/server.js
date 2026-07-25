@@ -18,7 +18,7 @@ const path   = require('path')
 const fs     = require('fs')
 
 const app  = express()
-const PORT = process.env.WA_PORT || 3001
+const PORT = process.env.PORT || process.env.WA_PORT || 3001
 const TOKEN = process.env.WA_SECRET || 'atlas_wa_secret_2024'
 const AUTH_DIR = path.join(__dirname, 'auth_info')
 
