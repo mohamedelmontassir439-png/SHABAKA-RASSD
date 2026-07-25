@@ -40,6 +40,9 @@ class Settings:
     # WhatsApp (service Baileys séparé)
     WA_SERVICE_URL: str = os.getenv("WA_SERVICE_URL", "http://localhost:3001")
     WA_SECRET:      str = os.getenv("WA_SECRET", "atlas_wa_secret_2024")
+    # Abonnement (mise à niveau manuelle via WhatsApp)
+    PAYMENT_PHONE: str = os.getenv("PAYMENT_PHONE", "")
+    PAYMENT_MSG:   str = os.getenv("PAYMENT_MSG", "Bonjour, je souhaite m'abonner à ATLAS PRO")
     # Plans
     PLANS: dict = field(default_factory=lambda: {
         "free":    {"name":"Gratuit","price":0,  "tenders_day":15,"email":True, "telegram":False,"api":False},

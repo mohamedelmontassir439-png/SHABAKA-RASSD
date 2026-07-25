@@ -5,25 +5,25 @@
 <title>Administration — Atlas Pro</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-:root { --bg: #0b1120; --surface: #121a2e; --line: #232f47; --navy: #142850; --amber: #f2a93b; --t1: #f0f3f9; --t3: #8b96ac; --t4: #5c6883; --red: #ff8080; }
-body { background: var(--bg); color: var(--t1); font-family: 'Inter', system-ui, sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
-.card { background: var(--surface); border: 1px solid var(--line); padding: 44px 40px; max-width: 400px; width: 100%; border-radius: 16px; box-shadow: 0 20px 48px rgba(0,0,0,.4); }
-.mark { width: 48px; height: 48px; border-radius: 12px; background: var(--amber); color: var(--bg); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 22px; margin: 0 auto 20px; }
-h1 { font-weight: 800; font-size: 26px; line-height: 1.2; letter-spacing: -.02em; text-align: center; margin-bottom: 6px; }
-h1 em { font-style: normal; color: var(--amber); }
+:root { --bg: #0a1220; --surface: #101b30; --line: #202e4a; --ink: #0f1b33; --gold: #c9903f; --gold2: #e2ac5f; --t1: #eef1f8; --t3: #8792ab; --t4: #56617e; --red: #ff9c94; --serif: 'Fraunces', Georgia, serif; }
+body { background: var(--bg); color: var(--t1); font-family: 'Inter', system-ui, sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='84'%3E%3Cg fill='none' stroke='%23c9903f' stroke-opacity='.07' stroke-width='1'%3E%3Cpath d='M42 2 80 42 42 82 4 42Z'/%3E%3Cpath d='M42 18 66 42 42 66 18 42Z'/%3E%3Cpath d='M42 2V82M4 42H80'/%3E%3C/g%3E%3C/svg%3E"); background-size: 84px 84px; }
+.card { background: var(--surface); border: 1px solid var(--line); padding: 44px 40px; max-width: 400px; width: 100%; border-radius: 18px; box-shadow: 0 26px 60px rgba(0,0,0,.45); }
+.mark { width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(180deg, var(--gold2), var(--gold)); color: #221304; display: flex; align-items: center; justify-content: center; font-weight: 700; font-family: var(--serif); font-size: 22px; margin: 0 auto 20px; }
+h1 { font-family: var(--serif); font-weight: 700; font-size: 27px; line-height: 1.2; letter-spacing: -.01em; text-align: center; margin-bottom: 6px; }
+h1 em { font-style: italic; color: var(--gold2); font-weight: 600; }
 .sub { font-size: 14px; color: var(--t3); text-align: center; margin-bottom: 32px; }
 .field { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
 .field label { font-size: 13px; font-weight: 600; color: var(--t3); }
 .inp { width: 100%; background: var(--bg); border: 1.5px solid var(--line); padding: 11px 14px; color: var(--t1); font: inherit; font-size: 15px; outline: none; transition: border-color .15s; border-radius: 10px; }
-.inp:focus { border-color: var(--amber); }
-.btn { width: 100%; background: var(--amber); color: var(--bg); border: none; padding: 13px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background .15s; border-radius: 10px; margin-top: 8px; }
-.btn:hover { background: #ffbf5c; }
-.err { background: rgba(255,128,128,.1); border: 1px solid rgba(255,128,128,.28); color: var(--red); padding: 12px 16px; font-size: 14px; margin-bottom: 20px; border-radius: 10px; }
+.inp:focus { border-color: var(--gold); }
+.btn { width: 100%; background: linear-gradient(180deg, var(--gold2), var(--gold)); color: #221304; border: none; padding: 13px; font-size: 14px; font-weight: 700; cursor: pointer; transition: filter .15s; border-radius: 10px; margin-top: 8px; }
+.btn:hover { filter: brightness(1.06); }
+.err { background: rgba(255,156,148,.1); border: 1px solid rgba(255,156,148,.28); color: var(--red); padding: 12px 16px; font-size: 14px; margin-bottom: 20px; border-radius: 10px; }
 .foot { text-align: center; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 13px; color: var(--t4); }
-.foot a { color: var(--amber); font-weight: 600; }
+.foot a { color: var(--gold2); font-weight: 600; }
 </style>
 </head>
 <body>

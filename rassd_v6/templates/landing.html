@@ -3,12 +3,13 @@
 {% block head %}
 <style>
 /* ── HERO ─────────────────────────────────────── */
-.hero { position: relative; overflow: hidden; padding: 84px 24px 96px; background: linear-gradient(160deg, var(--navy3) 0%, var(--navy) 100%); }
-.hero-grid { max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: 1.1fr .9fr; gap: 56px; align-items: center; }
-.hero-eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--amber); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 22px; background: rgba(242,169,59,.12); border: 1px solid rgba(242,169,59,.28); padding: 7px 14px; border-radius: 999px; }
-.hero-title { font-weight: 800; font-size: clamp(36px, 5vw, 58px); line-height: 1.08; letter-spacing: -.03em; color: #fff; margin-bottom: 20px; }
-.hero-title em { font-style: normal; color: var(--amber); }
-.hero-sub { font-size: 18px; color: rgba(255,255,255,.72); max-width: 560px; margin-bottom: 36px; line-height: 1.6; }
+.hero { position: relative; overflow: hidden; padding: 92px 24px 100px; background: linear-gradient(160deg, var(--ink3) 0%, var(--ink) 100%); }
+.hero::before { content: ""; position: absolute; inset: 0; background-image: var(--zellige); background-size: 84px 84px; opacity: .5; mask-image: linear-gradient(160deg, rgba(0,0,0,.9) 0%, transparent 65%); -webkit-mask-image: linear-gradient(160deg, rgba(0,0,0,.9) 0%, transparent 65%); pointer-events: none; }
+.hero-grid { position: relative; max-width: 1280px; margin: 0 auto; display: grid; grid-template-columns: 1.1fr .9fr; gap: 56px; align-items: center; }
+.hero-eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--gold2); letter-spacing: .07em; text-transform: uppercase; margin-bottom: 24px; background: rgba(201,144,63,.13); border: 1px solid rgba(201,144,63,.3); padding: 7px 14px; border-radius: 999px; }
+.hero-title { font-family: var(--serif); font-weight: 700; font-size: clamp(38px, 5vw, 60px); line-height: 1.06; letter-spacing: -.01em; color: #fff; margin-bottom: 22px; }
+.hero-title em { font-style: italic; color: var(--gold2); font-weight: 600; }
+.hero-sub { font-size: 18px; color: rgba(255,255,255,.72); max-width: 560px; margin-bottom: 36px; line-height: 1.65; }
 .hero-cta { display: flex; gap: 14px; flex-wrap: wrap; }
 .hero-cta .btn-outline { background: transparent; border-color: rgba(255,255,255,.3); color: #fff; }
 .hero-cta .btn-outline:hover { border-color: #fff; background: rgba(255,255,255,.08); }
@@ -23,58 +24,60 @@
 .live-bar { background: var(--surface); border-bottom: 1px solid var(--line); padding: 36px 0; }
 .live-inner { display: flex; gap: 0; justify-content: center; align-items: center; flex-wrap: wrap; }
 .live-item { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 0 44px; }
-.live-n { font-weight: 800; font-size: 40px; color: var(--navy); line-height: 1; }
+.live-n { font-family: var(--serif); font-weight: 700; font-size: 40px; color: var(--ink); line-height: 1; }
 .live-l { font-size: 13px; color: var(--text3); font-weight: 600; }
 .live-sep { width: 1px; height: 44px; background: var(--line); }
 
 /* ── PAIN ─────────────────────────────────────── */
 .pain { padding: 96px 0; }
 .pain-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 44px; }
-.pain-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 32px 28px; box-shadow: var(--sh); }
-.pain-num { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: var(--ambera); color: var(--amberd); font-weight: 800; font-size: 14px; margin-bottom: 20px; }
-.pain-title { font-weight: 700; font-size: 19px; color: var(--text1); margin-bottom: 12px; line-height: 1.3; }
-.pain-title em { font-style: normal; color: var(--navy); }
+.pain-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 32px 28px; box-shadow: var(--sh); transition: all .22s cubic-bezier(.2,.7,.3,1); }
+.pain-card:hover { transform: translateY(-3px); box-shadow: var(--sh2); border-color: var(--line2); }
+.pain-num { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: var(--golda); color: var(--goldd); font-weight: 700; font-family: var(--serif); font-size: 15px; margin-bottom: 20px; }
+.pain-title { font-family: var(--serif); font-weight: 700; font-size: 20px; color: var(--text1); margin-bottom: 12px; line-height: 1.3; }
+.pain-title em { font-style: italic; color: var(--ink); font-weight: 600; }
 .pain-text { font-size: 14.5px; color: var(--text3); line-height: 1.7; }
 
 /* ── VALUE ────────────────────────────────────── */
 .value { padding: 96px 0; background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .value-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 44px; }
 .value-item { padding: 32px; border: 1px solid var(--line); border-radius: var(--r3); background: var(--bg); }
-.value-num { font-size: 13px; font-weight: 700; color: var(--amberd); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 16px; }
-.value-title { font-weight: 700; font-size: 21px; color: var(--text1); margin-bottom: 14px; line-height: 1.3; }
-.value-title em { font-style: normal; color: var(--navy); }
+.value-num { font-size: 13px; font-weight: 700; color: var(--goldd); letter-spacing: .07em; text-transform: uppercase; margin-bottom: 16px; }
+.value-title { font-family: var(--serif); font-weight: 700; font-size: 22px; color: var(--text1); margin-bottom: 14px; line-height: 1.3; }
+.value-title em { font-style: italic; color: var(--ink); font-weight: 600; }
 .value-text { font-size: 14.5px; color: var(--text3); line-height: 1.75; margin-bottom: 16px; }
 .value-result { font-size: 13px; font-weight: 700; color: var(--grn); padding-top: 16px; border-top: 1px solid var(--line); }
 
 /* ── LATEST TENDERS ───────────────────────────── */
 .latest { padding: 96px 0; }
 .latest-list { margin-top: 44px; display: flex; flex-direction: column; gap: 12px; }
-.latest-row { display: grid; grid-template-columns: 1fr 180px 130px 24px; gap: 24px; align-items: center; padding: 20px 22px; border: 1px solid var(--line); border-radius: var(--r3); background: var(--surface); transition: all .15s; text-decoration: none; color: inherit; }
-.latest-row:hover { border-color: var(--navy); box-shadow: var(--sh2); }
+.latest-row { display: grid; grid-template-columns: 1fr 180px 130px 24px; gap: 24px; align-items: center; padding: 20px 22px; border: 1px solid var(--line); border-radius: var(--r3); background: var(--surface); transition: all .18s cubic-bezier(.2,.7,.3,1); text-decoration: none; color: inherit; }
+.latest-row:hover { border-color: var(--ink); box-shadow: var(--sh2); transform: translateY(-2px); }
 .latest-title { font-weight: 600; font-size: 15.5px; color: var(--text1); line-height: 1.35; }
 .latest-meta { font-size: 13px; color: var(--text3); }
 .latest-arrow { color: var(--text4); transition: transform .15s; }
-.latest-row:hover .latest-arrow { transform: translateX(4px); color: var(--navy); }
+.latest-row:hover .latest-arrow { transform: translateX(4px); color: var(--ink); }
 
 /* ── SOCIAL PROOF ─────────────────────────────── */
 .proof { padding: 96px 0; background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .proof-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 44px; }
 .proof-card { background: var(--bg); border: 1px solid var(--line); border-radius: var(--r3); padding: 28px; }
-.proof-stars { color: var(--amber); font-size: 15px; margin-bottom: 18px; }
+.proof-stars { color: var(--gold); font-size: 15px; margin-bottom: 18px; }
 .proof-text { font-size: 15px; color: var(--text2); line-height: 1.6; margin-bottom: 20px; }
 .proof-author { font-size: 13.5px; font-weight: 700; color: var(--text1); }
-.proof-sector { font-size: 12.5px; color: var(--amberd); margin-top: 3px; font-weight: 600; }
+.proof-sector { font-size: 12.5px; color: var(--goldd); margin-top: 3px; font-weight: 600; }
 
-/* ── BETA CTA ─────────────────────────────────── */
-.beta { padding: 100px 24px; text-align: center; background: linear-gradient(160deg, var(--navy3) 0%, var(--navy) 100%); }
-.beta-content { max-width: 720px; margin: 0 auto; }
-.beta-pill { display: inline-flex; align-items: center; gap: 8px; padding: 7px 16px; background: rgba(242,169,59,.12); border: 1px solid rgba(242,169,59,.3); font-size: 13px; font-weight: 700; color: var(--amber); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 24px; border-radius: 999px; }
-.beta-title { font-weight: 800; font-size: clamp(30px, 5vw, 46px); line-height: 1.15; letter-spacing: -.025em; color: #fff; margin-bottom: 20px; }
-.beta-title em { font-style: normal; color: var(--amber); }
-.beta-text { font-size: 16px; color: rgba(255,255,255,.7); margin: 0 auto 36px; line-height: 1.7; }
-.beta-note { display: flex; gap: 28px; justify-content: center; flex-wrap: wrap; margin-top: 28px; font-size: 13px; color: rgba(255,255,255,.6); font-weight: 600; }
-.beta-note span { display: flex; align-items: center; gap: 7px; }
-.beta-note span::before { content: "✓"; color: var(--amber); }
+/* ── FINAL CTA ─────────────────────────────────── */
+.final-cta { position: relative; overflow: hidden; padding: 108px 24px; text-align: center; background: linear-gradient(160deg, var(--ink3) 0%, var(--ink) 100%); }
+.final-cta::before { content: ""; position: absolute; inset: 0; background-image: var(--zellige); background-size: 84px 84px; opacity: .45; mask-image: radial-gradient(ellipse at center, rgba(0,0,0,.9) 0%, transparent 68%); -webkit-mask-image: radial-gradient(ellipse at center, rgba(0,0,0,.9) 0%, transparent 68%); pointer-events: none; }
+.final-cta-content { position: relative; max-width: 720px; margin: 0 auto; }
+.final-cta-eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 7px 16px; background: rgba(201,144,63,.13); border: 1px solid rgba(201,144,63,.3); font-size: 13px; font-weight: 700; color: var(--gold2); letter-spacing: .05em; text-transform: uppercase; margin-bottom: 26px; border-radius: 999px; }
+.final-cta-title { font-family: var(--serif); font-weight: 700; font-size: clamp(32px, 5vw, 48px); line-height: 1.12; letter-spacing: -.01em; color: #fff; margin-bottom: 20px; }
+.final-cta-title em { font-style: italic; color: var(--gold2); font-weight: 600; }
+.final-cta-text { font-size: 16.5px; color: rgba(255,255,255,.7); margin: 0 auto 38px; line-height: 1.7; }
+.final-cta-note { display: flex; gap: 28px; justify-content: center; flex-wrap: wrap; margin-top: 30px; font-size: 13px; color: rgba(255,255,255,.62); font-weight: 600; }
+.final-cta-note span { display: flex; align-items: center; gap: 7px; }
+.final-cta-note span::before { content: "✓"; color: var(--gold2); }
 
 @media(max-width: 900px) {
   .hero-grid { grid-template-columns: 1fr; }
@@ -98,7 +101,7 @@
     <div>
       <div class="hero-eyebrow">✦ Marchés publics & privés du Maroc</div>
       <h1 class="hero-title">La veille qui trouve <em>les marchés avant vous.</em></h1>
-      <p class="hero-sub">Atlas Pro surveille en continu les marchés publics et privés au Maroc et vous alerte dès qu'une opportunité correspond à votre secteur — par Email et Telegram.</p>
+      <p class="hero-sub">Atlas Pro surveille en continu les marchés publics et privés au Maroc et vous alerte dès qu'une opportunité correspond à votre secteur — par Email, Telegram et WhatsApp.</p>
       <div class="hero-cta">
         <a href="/register" class="btn btn-accent btn-xl">Accéder gratuitement →</a>
         <a href="/tenders" class="btn btn-outline btn-xl">Voir les marchés</a>
@@ -238,8 +241,8 @@
 <section class="proof">
   <div class="container">
     <div class="section-label">Témoignages</div>
-    <div class="section-title" style="max-width: 720px;">Ils ont rejoint la <em>bêta</em></div>
-    <p class="section-sub" style="font-size: 15.5px;">Nos premiers utilisateurs partagent leur retour pendant la phase de test.</p>
+    <div class="section-title" style="max-width: 720px;">Ils nous font <em>confiance</em></div>
+    <p class="section-sub" style="font-size: 15.5px;">Des entreprises de plusieurs secteurs utilisent Atlas Pro au quotidien pour ne plus rater une opportunité.</p>
     <div class="proof-grid">
       <div class="proof-card">
         <div class="proof-stars">★★★★★</div>
@@ -263,17 +266,17 @@
   </div>
 </section>
 
-<!-- BETA CTA -->
-<section class="beta">
-  <div class="beta-content">
-    <div class="beta-pill">✦ Accès bêta · Places limitées</div>
-    <h2 class="beta-title">Construisons l'<em>infrastructure</em> ensemble</h2>
-    <p class="beta-text">Atlas Pro est en phase bêta. Votre retour façonne le produit. Inscrivez-vous gratuitement et bénéficiez d'un accès prioritaire — et de conditions préférentielles — au lancement officiel.</p>
-    <a href="/register" class="btn btn-accent btn-xl">Rejoindre la bêta gratuite →</a>
-    <div class="beta-note">
-      <span>100% gratuit en bêta</span>
-      <span>Avis pris en compte</span>
-      <span>Conditions préférentielles</span>
+<!-- FINAL CTA -->
+<section class="final-cta">
+  <div class="final-cta-content">
+    <div class="final-cta-eyebrow">✦ Atlas Pro</div>
+    <h2 class="final-cta-title">Ne laissez plus <em>aucune</em> opportunité vous échapper</h2>
+    <p class="final-cta-text">Créez votre compte, définissez vos secteurs d'activité, et laissez la veille travailler pour vous — 24h/24, sur les marchés publics comme privés, partout au Maroc.</p>
+    <a href="/register" class="btn btn-accent btn-xl">Créer mon compte gratuitement →</a>
+    <div class="final-cta-note">
+      <span>Sans carte bancaire</span>
+      <span>Configuration en 2 minutes</span>
+      <span>Alertes Email, Telegram & WhatsApp</span>
     </div>
   </div>
 </section>
