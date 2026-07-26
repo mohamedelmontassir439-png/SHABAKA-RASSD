@@ -656,6 +656,13 @@ async def admin_login_post(req: Request, pwd:str=Form("")):
     if not check_rate_limit(f"admin_{ip}", 5, 600):
         return render(req,"admin_login.html",{"err":"Trop de tentatives."})
     if pwd != cfg.ADMIN_PASS:
+        # DEBUG TEMPORAIRE — jamais le mot de passe en clair, juste de quoi
+        # diagnostiquer un mismatch (longueur, 1er/dernier char, espaces).
+        logger.warning(
+            f"[admin_login DEBUG] mismatch ip={ip} received_len={len(pwd)} "
+            f"expected_len={len(cfg.ADMIN_PASS)} received_repr={pwd[:2]!r}...{pwd[-2:]!r} "
+            f"has_leading_ws={pwd != pwd.lstrip()!r} has_trailing_ws={pwd != pwd.rstrip()!r}"
+        )
         return render(req,"admin_login.html",{"err":"Mot de passe incorrect"})
     r = RedirectResponse("/admin",302)
     r.set_cookie("_admin",make_token("admin",cfg.ADMIN_PASS),
