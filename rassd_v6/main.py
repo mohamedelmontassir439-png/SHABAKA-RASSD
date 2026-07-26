@@ -568,19 +568,18 @@ async def register_post(req: Request,
     try:
         if db.execute("SELECT id FROM members WHERE email=?",(email,)).fetchone():
             return render(req,"register.html",{"err":"Email déjà utilisé","vals":vals})
-        sects      = clean_secteurs(secteurs_sel)
-        trial_ends = (datetime.now()+timedelta(days=14)).strftime("%Y-%m-%d")
-        created_at = datetime.now().isoformat()
+        sects       = clean_secteurs(secteurs_sel)
+        trial_ends  = (datetime.now()+timedelta(days=14)).strftime("%Y-%m-%d")
+        created_at  = datetime.now().isoformat()
+        session_tok = make_session_token()
         db.execute(
-            "INSERT INTO members(nom,email,phone,company,pw_hash,secteurs,plan,created_at,trial_ends) VALUES(?,?,?,?,?,?,?,?,?)",
-            (nom,email,phone,company,hash_pw(pw),json.dumps(sects),"free",created_at,trial_ends))
+            "INSERT INTO members(nom,email,phone,company,pw_hash,secteurs,plan,created_at,trial_ends,session_token) VALUES(?,?,?,?,?,?,?,?,?,?)",
+            (nom,email,phone,company,hash_pw(pw),json.dumps(sects),"free",created_at,trial_ends,session_tok))
         db.commit()
-        m = db.execute("SELECT * FROM members WHERE email=?",(email,)).fetchone()
     finally: db.close()
     resp = RedirectResponse("/dashboard?welcome=1",302)
-    resp.set_cookie("_session", make_token(m["email"], m["created_at"]),
-                    max_age=86400*30, httponly=True, samesite="lax",
-                    secure=False)  # False = works on HTTP + HTTPS
+    resp.set_cookie("_session", session_tok,
+                    max_age=86400*30, httponly=True, samesite="lax")
     return resp
 
 @app.get("/login", response_class=HTMLResponse)
@@ -879,9 +878,13 @@ async def reset_post(req: Request, token: str = Form(""),
         return render(req, "reset.html", {"token": token, "err": "Minimum 8 caractères"})
     db = get_db()
     m  = db.execute("SELECT * FROM members WHERE reset_token=?", (token,)).fetchone()
-    if not m:
+    if not m or not m["reset_token"]:
+        db.close()
         return render(req, "reset.html", {"err": "Lien invalide"})
-    db.execute("UPDATE members SET pw_hash=?, reset_token='', reset_expires='' WHERE id=?",
+    if datetime.fromisoformat(m["reset_expires"] or "2000-01-01") < datetime.now():
+        db.close()
+        return render(req, "reset.html", {"err": "Ce lien a expiré. Faites une nouvelle demande."})
+    db.execute("UPDATE members SET pw_hash=?, reset_token='', reset_expires='', session_token='' WHERE id=?",
                (hash_pw(pw), m["id"]))
     db.commit(); db.close()
     return RedirectResponse("/login?reset=1", 302)
