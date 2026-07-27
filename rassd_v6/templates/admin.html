@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Administration — Atlas Pro</title>
+<title>Administration — Maroc Entrepreneuriat</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,800&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -84,7 +84,7 @@ tr:hover td { background: var(--surface2); }
 <body>
 
 <div class="topbar">
-  <span class="brand">Atlas<em>Pro</em></span>
+  <span class="brand">Maroc<em>Entrepreneuriat</em></span>
   <span class="brand-meta">Administration · v{{ cfg.APP_VERSION }}</span>
   <div style="margin-left: auto; display: flex; gap: 8px;">
     <a href="/" class="btn btn-o">← Site public</a>
@@ -202,7 +202,7 @@ tr:hover td { background: var(--surface2); }
             <td>
               <form method="post" action="/admin/member/{{ m.id }}/plan">
                 <select name="plan" class="sel" onchange="this.form.submit()">
-                  <option value="free" {% if m.plan=='free' %}selected{% endif %}>Gratuit</option>
+                  <option value="free" {% if m.plan=='free' %}selected{% endif %}>Inactif (non abonné)</option>
                   <option value="pro" {% if m.plan=='pro' %}selected{% endif %}>Annuel (3999/an)</option>
                   <option value="business" {% if m.plan=='business' %}selected{% endif %}>Biennal (6999/2ans)</option>
                 </select>

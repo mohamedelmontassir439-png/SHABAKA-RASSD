@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="ATLAS PRO — La référence des marchés publics et privés au Maroc. Veille en temps réel, alertes Email, Telegram & WhatsApp.">
-<title>{% block title %}ATLAS PRO — Marchés Publics & Privés du Maroc{% endblock %}</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230f1b33'/%3E%3Ctext x='50%25' y='58%25' dominant-baseline='middle' text-anchor='middle' font-family='Georgia, serif' font-weight='700' font-size='17' fill='%23c98a3e'%3EA%3C/text%3E%3C/svg%3E">
+<meta name="description" content="MAROC ENTREPRENEURIAT — La référence des marchés publics et privés au Maroc. Veille en temps réel, alertes Email, Telegram & WhatsApp.">
+<title>{% block title %}MAROC ENTREPRENEURIAT — Marchés Publics & Privés du Maroc{% endblock %}</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230f1b33'/%3E%3Ctext x='50%25' y='58%25' dominant-baseline='middle' text-anchor='middle' font-family='Georgia, serif' font-weight='700' font-size='13' fill='%23c98a3e'%3EME%3C/text%3E%3C/svg%3E">
 <meta name="theme-color" content="#0f1b33">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,6 +39,10 @@
   --reda:    rgba(200,67,63,.11);
   --blue:    var(--indigo);
   --bluea:   var(--indigoa);
+  --purple:  #7c5cd6;
+  --purplea: rgba(124,92,214,.11);
+  --orange:  #e08a3c;
+  --orangea: rgba(224,138,60,.12);
   --serif:   'Fraunces', Georgia, serif;
   --sans:    'Inter', system-ui, -apple-system, sans-serif;
   --mono:    'JetBrains Mono', monospace;
@@ -46,6 +50,7 @@
   --sh:  0 1px 2px rgba(13,23,44,.05), 0 1px 3px rgba(13,23,44,.06);
   --sh2: 0 10px 30px rgba(13,23,44,.11), 0 2px 8px rgba(13,23,44,.06);
   --sh3: 0 26px 60px rgba(13,23,44,.20);
+  --sidebar-w: 272px;
   --zellige: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='84'%3E%3Cg fill='none' stroke='%23c9903f' stroke-opacity='.16' stroke-width='1'%3E%3Cpath d='M42 2 80 42 42 82 4 42Z'/%3E%3Cpath d='M42 18 66 42 42 66 18 42Z'/%3E%3Cpath d='M42 2V82M4 42H80'/%3E%3C/g%3E%3C/svg%3E");
   /* alias legacy tokens (kept so every page's inline <style> block stays valid) */
   --navy:   var(--ink);
@@ -82,6 +87,7 @@ a { color: inherit; text-decoration: none; }
 img { max-width: 100%; }
 ::selection { background: var(--gold); color: #fff; }
 h1,h2,h3,h4 { color: var(--text1); font-weight: 700; letter-spacing: -.02em; text-wrap: balance; }
+svg { display: block; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; } }
 
 /* ── Buttons ─────────────────────────────────────────── */
@@ -113,9 +119,10 @@ h1,h2,h3,h4 { color: var(--text1); font-weight: 700; letter-spacing: -.02em; tex
 .inp::placeholder, .textarea::placeholder { color: var(--text4); }
 .textarea { resize: vertical; min-height: 110px; }
 .sel { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%2369738b'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 32px; cursor: pointer; }
+html[dir="rtl"] .sel { background-position: left 14px center; padding-right: 14px; padding-left: 32px; }
 
 .container { max-width: 1280px; margin: 0 auto; padding: 0 32px; }
-.page { max-width: 1280px; margin: 0 auto; padding: 48px 32px; }
+.page { max-width: 1280px; margin: 0 auto; padding: 40px 32px; }
 .page-narrow { max-width: 460px; margin: 0 auto; padding: 64px 32px; }
 
 .grid-2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 20px; }
@@ -160,54 +167,72 @@ h1,h2,h3,h4 { color: var(--text1); font-weight: 700; letter-spacing: -.02em; tex
 .display-m { font-family: var(--serif); font-weight: 700; font-size: clamp(22px, 3vw, 30px); line-height: 1.22; letter-spacing: -.008em; color: var(--text1); }
 .display-m em { font-style: italic; color: var(--ink); font-weight: 600; }
 
-/* ── Top utility bar ─────────────────────────────────── */
-.topbar { background: var(--ink3); padding: 0 32px; height: 34px; display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: rgba(255,255,255,.6); }
-.topbar-left { display: flex; gap: 18px; align-items: center; }
-.topbar-right { display: flex; gap: 18px; align-items: center; }
-.topbar a { color: rgba(255,255,255,.72); transition: color .15s; }
-.topbar a:hover { color: var(--gold2); }
-.topbar-sep { color: rgba(255,255,255,.2); }
-.dot-live { display: inline-block; width: 6px; height: 6px; background: #3ddc9b; border-radius: 50%; margin-right: 6px; animation: pulse 2s infinite; }
-@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+/* ══════════════════════════════════════════════════════
+   APP SHELL — sidebar + main
+   ══════════════════════════════════════════════════════ */
+.app-shell { display: flex; align-items: stretch; min-height: 100vh; }
 
-/* ── Nav ─────────────────────────────────────────────── */
-.nav { position: sticky; top: 0; z-index: 200; background: rgba(255,255,255,.86); backdrop-filter: saturate(180%) blur(14px); -webkit-backdrop-filter: saturate(180%) blur(14px); border-bottom: 1px solid var(--line); height: 68px; display: flex; align-items: center; padding: 0 32px; }
-@media (prefers-color-scheme: dark) { .nav { background: rgba(10,18,32,.82); } }
-.nav-logo-wrap { display: flex; align-items: center; gap: 11px; margin-right: 40px; }
-.nav-mark { width: 34px; height: 34px; border-radius: 9px; background: var(--ink); color: var(--gold2); display: flex; align-items: center; justify-content: center; font-weight: 700; font-family: var(--serif); font-size: 17px; flex-shrink: 0; }
-.nav-logo { font-family: var(--serif); font-weight: 700; font-size: 20px; color: var(--text1); letter-spacing: -.01em; line-height: 1; }
-.nav-logo em { font-style: italic; color: var(--ink); font-weight: 600; }
-.nav-links { display: flex; gap: 2px; flex: 1; }
-.nav-link { position: relative; padding: 10px 14px; font-size: 14px; font-weight: 600; color: var(--text3); transition: color .15s; white-space: nowrap; border-radius: var(--r); }
-.nav-link:hover { color: var(--text1); background: var(--surface2); }
-.nav-link.active { color: var(--ink); background: rgba(15,27,51,.055); }
-.nav-right { display: flex; align-items: center; gap: 10px; }
-.nav-user-info { font-size: 13px; font-weight: 600; color: var(--text3); }
+.sidebar { width: var(--sidebar-w); flex-shrink: 0; background: var(--ink3); background-image: var(--zellige); background-size: 84px 84px; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.sidebar::-webkit-scrollbar { width: 5px; }
+.sidebar-inner { position: relative; background: linear-gradient(180deg, var(--ink3) 0%, rgba(7,13,26,.96) 100%); display: flex; flex-direction: column; flex: 1; min-height: 100%; }
 
-.btn, a { -webkit-tap-highlight-color: transparent; }
+.sidebar-brand { display: flex; align-items: center; gap: 12px; padding: 26px 22px; border-bottom: 1px solid rgba(255,255,255,.08); }
+.brand-mark { width: 42px; height: 42px; border-radius: 11px; background: linear-gradient(160deg, var(--gold2), var(--gold)); color: #221304; display: flex; align-items: center; justify-content: center; font-weight: 800; font-family: var(--serif); font-size: 15px; flex-shrink: 0; }
+.brand-text { min-width: 0; }
+.brand-name { font-family: var(--serif); font-weight: 700; font-size: 16.5px; color: #fff; line-height: 1.2; }
+.brand-tagline { font-size: 11px; color: rgba(255,255,255,.45); margin-top: 2px; font-weight: 500; }
 
-.footer { position: relative; background: var(--ink3); background-image: var(--zellige); background-size: 84px 84px; margin-top: 100px; color: rgba(255,255,255,.55); }
-.footer::before { content:""; position:absolute; inset:0; background: linear-gradient(180deg, var(--ink3) 0%, rgba(7,13,26,.94) 100%); pointer-events: none; }
-.footer > .container { position: relative; }
-.footer-top { padding: 64px 0 40px; }
-.footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 48px; }
-.footer-brand-row { display: flex; align-items: center; gap: 10px; }
-.footer-logo { font-family: var(--serif); font-weight: 700; font-size: 21px; color: #fff; }
-.footer-logo em { font-style: italic; color: var(--gold2); font-weight: 600; }
-.footer-desc { font-size: 14px; line-height: 1.8; margin-top: 16px; max-width: 320px; }
-.footer-contact { margin-top: 22px; display: flex; flex-direction: column; gap: 10px; }
-.footer-contact a { font-size: 13px; color: rgba(255,255,255,.6); transition: color .15s; }
-.footer-contact a:hover { color: var(--gold2); }
-.footer-col h4 { font-size: 12px; color: rgba(255,255,255,.9); letter-spacing: .09em; text-transform: uppercase; margin-bottom: 18px; font-weight: 700; }
-.footer-col ul { list-style: none; display: flex; flex-direction: column; gap: 11px; }
-.footer-col a { font-size: 14px; color: rgba(255,255,255,.55); transition: color .15s; }
-.footer-col a:hover { color: #fff; }
-.footer-bottom { padding: 20px 0; border-top: 1px solid rgba(255,255,255,.08); display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: rgba(255,255,255,.4); }
-.footer-social { display: flex; gap: 18px; }
-.footer-social a { color: rgba(255,255,255,.4); transition: color .15s; }
-.footer-social a:hover { color: var(--gold2); }
+.sidebar-nav { flex: 1; padding: 18px 14px; display: flex; flex-direction: column; gap: 2px; }
+.side-link { display: flex; align-items: center; gap: 13px; padding: 11px 14px; border-radius: var(--r2); font-size: 14px; font-weight: 600; color: rgba(255,255,255,.62); transition: all .15s; position: relative; }
+.side-link svg { width: 19px; height: 19px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.side-link:hover { color: #fff; background: rgba(255,255,255,.06); }
+.side-link.active { color: #fff; background: linear-gradient(90deg, rgba(201,144,63,.22), rgba(201,144,63,.05)); }
+.side-link.active svg { stroke: var(--gold2); }
+.side-link-badge { margin-inline-start: auto; background: var(--gold); color: #221304; font-size: 11px; font-weight: 800; padding: 1px 7px; border-radius: 999px; }
+.sidebar-sep { height: 1px; background: rgba(255,255,255,.08); margin: 10px 14px; }
 
-.toast { position: fixed; bottom: 28px; right: 28px; padding: 14px 22px; background: var(--ink); border-radius: var(--r2); color: #fff; font-size: 14px; font-weight: 600; z-index: 9000; display: none; box-shadow: var(--sh3); animation: toastIn .3s cubic-bezier(.2,.7,.3,1); }
+.sidebar-upsell { margin: 10px 14px 4px; padding: 18px 16px; border-radius: var(--r3); background: linear-gradient(160deg, rgba(201,144,63,.18), rgba(201,144,63,.05)); border: 1px solid rgba(201,144,63,.28); text-align: center; }
+.upsell-icon { font-size: 26px; margin-bottom: 8px; }
+.upsell-title { font-weight: 700; font-size: 13.5px; color: #fff; margin-bottom: 5px; }
+.upsell-text { font-size: 11.5px; color: rgba(255,255,255,.55); line-height: 1.5; margin-bottom: 13px; }
+
+.sidebar-foot { padding: 14px 22px 22px; border-top: 1px solid rgba(255,255,255,.08); }
+.side-exit { display: flex; align-items: center; gap: 11px; font-size: 13.5px; font-weight: 600; color: rgba(255,255,255,.5); padding: 9px 6px; transition: color .15s; }
+.side-exit:hover { color: #fff; }
+.side-exit svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+.app-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.app-topbar { display: flex; align-items: center; gap: 18px; padding: 16px 32px; background: var(--surface); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 100; }
+.topbar-user { display: flex; align-items: center; gap: 11px; }
+.topbar-avatar { width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(160deg, var(--indigo), var(--ink)); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+.topbar-user-info { min-width: 0; }
+.topbar-user-name { font-size: 13.5px; font-weight: 700; color: var(--text1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+.topbar-user-company { font-size: 11.5px; color: var(--text3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+.topbar-icons { display: flex; align-items: center; gap: 6px; }
+.icon-btn { position: relative; width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--text3); background: var(--surface2); transition: all .15s; flex-shrink: 0; }
+.icon-btn:hover { color: var(--ink); background: var(--line); }
+.icon-btn svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.icon-btn-badge { position: absolute; top: -2px; inset-inline-end: -2px; background: var(--red); color: #fff; font-size: 10px; font-weight: 800; min-width: 16px; height: 16px; border-radius: 999px; display: flex; align-items: center; justify-content: center; padding: 0 3px; border: 2px solid var(--surface); }
+.topbar-search { flex: 1; display: flex; align-items: center; gap: 10px; background: var(--surface2); border: 1px solid var(--line); border-radius: var(--r2); padding: 9px 14px; max-width: 460px; }
+.topbar-search svg { width: 16px; height: 16px; stroke: var(--text3); fill: none; stroke-width: 2; flex-shrink: 0; }
+.topbar-search input { flex: 1; border: none; background: transparent; outline: none; font-size: 13.5px; color: var(--text1); font-family: var(--sans); }
+.topbar-search input::placeholder { color: var(--text4); }
+.topbar-search kbd { font-size: 11px; color: var(--text4); background: var(--surface); border: 1px solid var(--line2); border-radius: 5px; padding: 2px 6px; font-family: var(--mono); }
+.topbar-spacer { flex: 1; }
+.topbar-lang { display: flex; gap: 2px; background: var(--surface2); border-radius: var(--r); padding: 3px; }
+.topbar-lang a { padding: 5px 10px; font-size: 12px; font-weight: 700; border-radius: 6px; color: var(--text3); }
+.topbar-lang a.active { background: var(--surface); color: var(--ink); box-shadow: var(--sh); }
+.topbar-cta { flex-shrink: 0; }
+
+.app-content { flex: 1; }
+
+.app-footer { padding: 22px 32px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; color: var(--text3); flex-wrap: wrap; gap: 10px; }
+.app-footer a { color: var(--text3); transition: color .15s; }
+.app-footer a:hover { color: var(--ink); }
+.app-footer-links { display: flex; gap: 18px; flex-wrap: wrap; }
+
+.toast { position: fixed; bottom: 28px; inset-inline-end: 28px; padding: 14px 22px; background: var(--ink); border-radius: var(--r2); color: #fff; font-size: 14px; font-weight: 600; z-index: 9000; display: none; box-shadow: var(--sh3); animation: toastIn .3s cubic-bezier(.2,.7,.3,1); }
 @keyframes toastIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:none} }
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -218,19 +243,13 @@ h1,h2,h3,h4 { color: var(--text1); font-weight: 700; letter-spacing: -.02em; tex
 .skip-link { position: absolute; left: -999px; top: 0; background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 0 0 8px 0; z-index: 9999; }
 .skip-link:focus { left: 0; }
 
-.lang-switch { display: flex; align-items: center; gap: 2px; }
-.lang-switch a { padding: 4px 8px; font-size: 11.5px; font-weight: 700; letter-spacing: .03em; border-radius: 5px; color: rgba(255,255,255,.5); transition: all .15s; }
-.lang-switch a:hover { color: #fff; }
-.lang-switch a.active { color: var(--ink3); background: rgba(255,255,255,.85); }
-
 /* ── RTL (arabe) ─────────────────────────────────────────── */
 html[dir="rtl"] body { font-family: 'Tajawal', system-ui, sans-serif; }
 html[dir="rtl"] .section-title, html[dir="rtl"] .display-xl, html[dir="rtl"] .display-l, html[dir="rtl"] .display-m,
-html[dir="rtl"] .nav-logo, html[dir="rtl"] .footer-logo, html[dir="rtl"] .nav-mark {
+html[dir="rtl"] .brand-name, html[dir="rtl"] .brand-mark {
   font-family: 'Amiri', 'Tajawal', serif;
 }
-html[dir="rtl"] .section-title em, html[dir="rtl"] .display-xl em, html[dir="rtl"] .display-l em, html[dir="rtl"] .display-m em,
-html[dir="rtl"] .nav-logo em, html[dir="rtl"] .footer-logo em { font-style: normal; }
+html[dir="rtl"] .section-title em, html[dir="rtl"] .display-xl em, html[dir="rtl"] .display-l em, html[dir="rtl"] .display-m em { font-style: normal; }
 html[dir="rtl"] .mono { direction: ltr; unicode-bidi: isolate; }
 html[dir="rtl"] .latest-row:hover .latest-arrow,
 html[dir="rtl"] .tender-row:hover .row-arrow,
@@ -239,19 +258,23 @@ html[dir="rtl"] .skip-link { left: auto; right: -999px; border-radius: 0 0 0 8px
 html[dir="rtl"] .skip-link:focus { right: 0; }
 html[dir="rtl"] .section-label::before { order: 2; }
 
+@media(max-width: 1080px) {
+  .topbar-search { display: none; }
+}
 @media(max-width: 900px) {
-  .topbar { display: none; }
-  .nav { padding: 0 18px; height: 60px; }
-  .nav-logo { font-size: 18px; }
-  .nav-links { display: none; }
-  .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
-  .grid-3, .grid-4 { grid-template-columns: 1fr; }
-  .grid-2 { grid-template-columns: 1fr; }
-  .page { padding: 32px 18px; }
+  .app-shell { flex-direction: column; }
+  .sidebar { width: 100%; height: auto; position: relative; }
+  .sidebar-nav { flex-direction: row; overflow-x: auto; padding: 10px 14px; }
+  .side-link span { display: none; }
+  .sidebar-upsell, .brand-tagline { display: none; }
+  .app-topbar { padding: 12px 18px; flex-wrap: wrap; }
+  .page { padding: 24px 18px; }
   .page-narrow { padding: 40px 18px; }
   .section { padding: 56px 0; }
   .container { padding: 0 18px; }
-  .footer-bottom { flex-direction: column; gap: 10px; text-align: center; }
+  .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  .grid-2 { grid-template-columns: 1fr; }
+  .app-footer { flex-direction: column; text-align: center; }
 }
 </style>
 {% block head %}{% endblock %}
@@ -259,116 +282,127 @@ html[dir="rtl"] .section-label::before { order: 2; }
 <body>
 <a href="#main" class="skip-link">{{ tr('skip_to_content') }}</a>
 
-<div class="topbar">
-  <div class="topbar-left">
-    <span><span class="dot-live"></span>{{ tr('topbar_live') }}</span>
-    <span class="topbar-sep">/</span>
-    <a href="mailto:contact@atlaspro.ma">contact@atlaspro.ma</a>
-  </div>
-  <div class="topbar-right">
-    {% if not member %}<a href="/register">{{ tr('topbar_free_trial') }}</a>{% endif %}
-    <a href="/admin">{{ tr('topbar_admin') }}</a>
-    <span class="lang-switch">
-      <a href="?lang=fr" class="{% if lang=='fr' %}active{% endif %}">FR</a>
-      <a href="?lang=ar" class="{% if lang=='ar' %}active{% endif %}">عربي</a>
-    </span>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+      <a href="/" class="sidebar-brand">
+        <span class="brand-mark">ME</span>
+        <div class="brand-text">
+          <div class="brand-name">Maroc Entrepreneuriat</div>
+          <div class="brand-tagline">{{ tr('brand_tagline') }}</div>
+        </div>
+      </a>
+
+      <nav class="sidebar-nav">
+        <a href="/" class="side-link {% if request.url.path == '/' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h5v-6h4v6h5V9.5"/></svg>
+          <span>{{ tr('nav_home') }}</span>
+        </a>
+        <a href="/tenders" class="side-link {% if request.url.path.startswith('/tenders') %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          <span>{{ tr('nav_tenders') }}</span>
+        </a>
+        {% if member %}
+        <a href="/resultats" class="side-link {% if request.url.path == '/resultats' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/></svg>
+          <span>{{ tr('nav_results') }}</span>
+        </a>
+        <a href="/dashboard" class="side-link {% if request.url.path == '/dashboard' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+          <span>{{ tr('nav_dashboard') }}</span>
+        </a>
+        <a href="/favorites" class="side-link {% if request.url.path == '/favorites' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><path d="M12 2.5l3.09 6.26L21.5 9.6l-4.75 4.63 1.12 6.53L12 17.7l-5.87 3.06 1.12-6.53L2.5 9.6l6.41-.84L12 2.5z"/></svg>
+          <span>{{ tr('nav_favorites') }}</span>
+        </a>
+        <a href="/settings" class="side-link {% if request.url.path == '/settings' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
+          <span>{{ tr('nav_alerts') }}</span>
+        </a>
+        <a href="/feedback" class="side-link {% if request.url.path == '/feedback' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.3 8.3 0 0 1-3.8-.9L3 21l1.9-5.7a8.3 8.3 0 0 1-.9-3.8A8.38 8.38 0 0 1 12.5 3h.09a8.4 8.4 0 0 1 8 8.4z"/></svg>
+          <span>{{ tr('nav_feedback') }}</span>
+        </a>
+        {% endif %}
+        <a href="/tarifs" class="side-link {% if request.url.path == '/tarifs' %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="M12 7v10"/><path d="M15 9.5c0-1.4-1.3-2.5-3-2.5s-3 1-3 2.3c0 3 6 1.4 6 4.4 0 1.4-1.3 2.5-3 2.5s-3-1.1-3-2.5"/></svg>
+          <span>{{ tr('nav_pricing') }}</span>
+        </a>
+      </nav>
+
+      {% if not member or member.plan == 'free' %}
+      <div class="sidebar-upsell">
+        <div class="upsell-icon">👑</div>
+        <div class="upsell-title">{{ tr('upsell_title') }}</div>
+        <div class="upsell-text">{{ tr('upsell_text') }}</div>
+        <a href="/tarifs" class="btn btn-accent btn-full btn-sm">{{ tr('upsell_cta') }}</a>
+      </div>
+      {% endif %}
+
+      <div class="sidebar-foot">
+        {% if member %}
+        <a href="/logout" class="side-exit">
+          <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+          <span>{{ tr('nav_logout') }}</span>
+        </a>
+        {% else %}
+        <a href="/login" class="side-exit">
+          <svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg>
+          <span>{{ tr('nav_login') }}</span>
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </aside>
+
+  <div class="app-main">
+    <header class="app-topbar">
+      {% if member %}
+      <div class="topbar-icons">
+        <div class="icon-btn" title="{{ tr('nav_alerts') }}">
+          <svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
+        </div>
+        <div class="icon-btn" title="{{ tr('nav_feedback') }}">
+          <svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 7l9.5 6.5L21.5 7"/></svg>
+        </div>
+      </div>
+      <div class="topbar-user">
+        <div class="topbar-avatar">{{ (member.nom or member.email)[0]|upper }}</div>
+        <div class="topbar-user-info">
+          <div class="topbar-user-name">{{ member.nom or member.email }}</div>
+          <div class="topbar-user-company">{{ member.company or '' }}</div>
+        </div>
+      </div>
+      {% endif %}
+      <div class="topbar-search">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7.5"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input type="text" placeholder="{{ tr('search_placeholder') }}" disabled>
+        <kbd>Ctrl+K</kbd>
+      </div>
+      <div class="topbar-spacer"></div>
+      {% if not member %}<a href="/tarifs" class="btn btn-accent btn-sm topbar-cta">{{ tr('nav_signup') }}</a>{% endif %}
+      <div class="topbar-lang">
+        <a href="?lang=fr" class="{% if lang=='fr' %}active{% endif %}">FR</a>
+        <a href="?lang=ar" class="{% if lang=='ar' %}active{% endif %}">ع</a>
+      </div>
+    </header>
+
+    <main id="main" class="app-content">
+    {% block body %}{% endblock %}
+    </main>
+
+    <footer class="app-footer">
+      <div>© {{ now.year if now else 2026 }} Maroc Entrepreneuriat · {{ tr('footer_rights') }}</div>
+      <div class="app-footer-links">
+        <a href="/tarifs">{{ tr('footer_pricing') }}</a>
+        <a href="/feedback">{{ tr('footer_feedback') }}</a>
+        <a href="#">{{ tr('footer_legal') }}</a>
+        <a href="#">{{ tr('footer_terms') }}</a>
+        <a href="mailto:contact@marocentrepreneuriat.ma">{{ tr('footer_contact') }}</a>
+      </div>
+    </footer>
   </div>
 </div>
-
-<nav class="nav">
-  <a href="/" class="nav-logo-wrap">
-    <span class="nav-mark">A</span>
-    <span class="nav-logo">Atlas<em>Pro</em></span>
-  </a>
-  <div class="nav-links">
-    <a href="/" class="nav-link {% if request.url.path == '/' %}active{% endif %}">{{ tr('nav_home') }}</a>
-    <a href="/tenders" class="nav-link {% if request.url.path.startswith('/tenders') %}active{% endif %}">{{ tr('nav_tenders') }}</a>
-    {% if member %}
-    <a href="/resultats" class="nav-link {% if request.url.path == '/resultats' %}active{% endif %}">{{ tr('nav_results') }}</a>
-    {% endif %}
-    <a href="/tarifs" class="nav-link {% if request.url.path == '/tarifs' %}active{% endif %}">{{ tr('nav_pricing') }}</a>
-    {% if member %}
-    <a href="/dashboard" class="nav-link {% if request.url.path == '/dashboard' %}active{% endif %}">{{ tr('nav_dashboard') }}</a>
-    <a href="/favorites" class="nav-link {% if request.url.path == '/favorites' %}active{% endif %}">{{ tr('nav_favorites') }}</a>
-    <a href="/settings"  class="nav-link {% if request.url.path == '/settings' %}active{% endif %}">{{ tr('nav_alerts') }}</a>
-    <a href="/feedback" class="nav-link {% if request.url.path == '/feedback' %}active{% endif %}">{{ tr('nav_feedback') }}</a>
-    {% endif %}
-  </div>
-  <div class="nav-right">
-    {% if member %}
-      <span class="nav-user-info">{{ (member.nom or member.email)[:20] }}</span>
-      <a href="/logout" class="btn btn-ghost btn-sm">{{ tr('nav_logout') }}</a>
-    {% else %}
-      <a href="/login" class="btn btn-outline btn-sm">{{ tr('nav_login') }}</a>
-      <a href="/register" class="btn btn-accent btn-sm">{{ tr('nav_signup') }}</a>
-    {% endif %}
-  </div>
-</nav>
-
-<main id="main">
-{% block body %}{% endblock %}
-</main>
-
-<footer class="footer">
-  <div class="container">
-    <div class="footer-top">
-      <div class="footer-grid">
-        <div class="footer-brand">
-          <div class="footer-brand-row">
-            <span class="nav-mark" style="background:rgba(255,255,255,.08);">A</span>
-            <span class="footer-logo">Atlas<em>Pro</em></span>
-          </div>
-          <div class="footer-desc">{{ tr('footer_desc') }}</div>
-          <div class="footer-contact">
-            <a href="mailto:contact@atlaspro.ma">{{ tr('footer_contact_email') }}</a>
-            <a href="/register">{{ tr('footer_contact_signup') }}</a>
-            <a href="tel:+212537629630">{{ tr('footer_contact_phone') }}</a>
-          </div>
-        </div>
-        <div class="footer-col">
-          <h4>{{ tr('footer_col_tenders') }}</h4>
-          <ul>
-            {% if sector_groups %}
-              {% set all_labels = sector_groups.values() | list %}
-              {% for code, label in (all_labels[0].items() | list)[:6] %}
-              <li><a href="/tenders?s={{ code|urlencode }}">{{ label[:30] }}</a></li>
-              {% endfor %}
-            {% else %}
-              <li><a href="/tenders">{{ tr('footer_tenders_all') }}</a></li>
-            {% endif %}
-          </ul>
-        </div>
-        <div class="footer-col">
-          <h4>{{ tr('footer_col_services') }}</h4>
-          <ul>
-            <li><a href="/tenders">{{ tr('footer_portal') }}</a></li>
-            <li><a href="/tarifs">{{ tr('footer_pricing') }}</a></li>
-            <li><a href="/register">{{ tr('footer_free_access') }}</a></li>
-            <li><a href="/settings">{{ tr('footer_alerts') }}</a></li>
-            <li><a href="/api/v1/stats">{{ tr('footer_api') }}</a></li>
-          </ul>
-        </div>
-        <div class="footer-col">
-          <h4>{{ tr('footer_col_about') }}</h4>
-          <ul>
-            <li><a href="/feedback">{{ tr('footer_feedback') }}</a></li>
-            <li><a href="/contact">{{ tr('footer_contact') }}</a></li>
-            <li><a href="#">{{ tr('footer_legal') }}</a></li>
-            <li><a href="#">{{ tr('footer_terms') }}</a></li>
-          </ul>
-        </div>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <div>© {{ now.year if now else 2026 }} Atlas Pro · {{ tr('footer_rights') }}</div>
-      <div class="footer-social">
-        <a href="#">LinkedIn</a>
-        <a href="#">Twitter</a>
-        <a href="#">Facebook</a>
-      </div>
-    </div>
-  </div>
-</footer>
 
 <div class="toast" id="toast"></div>
 
@@ -378,7 +412,7 @@ html[dir="rtl"] .section-label::before { order: 2; }
   const t = document.getElementById('toast');
   const show = (msg, dur=3500) => { t.textContent = msg; t.style.display = 'block'; setTimeout(()=>t.style.display='none', dur); history.replaceState({},'',' '+location.pathname); };
   if(p.get('ok'))      show('✓ Enregistré avec succès');
-  if(p.get('welcome')) show('🎉 Bienvenue sur Atlas Pro', 5000);
+  if(p.get('welcome')) show('🎉 Bienvenue sur Maroc Entrepreneuriat', 5000);
   if(p.get('saved'))   show('✓ Modifications sauvegardées');
 })();
 </script>

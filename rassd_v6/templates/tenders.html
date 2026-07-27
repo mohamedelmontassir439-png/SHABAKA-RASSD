@@ -1,28 +1,32 @@
 {% extends "base.html" %}
-{% block title %}Marchés Publics & Privés — Atlas Pro{% endblock %}
+{% block title %}Marchés Publics & Privés — Maroc Entrepreneuriat{% endblock %}
 {% block body %}
 <style>
-.tenders-hero { padding: 44px 0 32px; border-bottom: 1px solid var(--line); background: var(--surface); }
+.tenders-hero { padding: 24px 32px 0; }
 .tenders-hero-grid { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: end; }
-.tenders-meta { display: flex; gap: 20px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+.tenders-meta { display: flex; gap: 20px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
 .tenders-meta-item { font-size: 13px; color: var(--text3); font-weight: 500; }
-.tenders-meta-item span { color: var(--navy); font-weight: 700; }
+.tenders-meta-item span { color: var(--ink); font-weight: 700; }
 
-.filters-bar { display: flex; gap: 10px; padding: 20px 0; flex-wrap: wrap; align-items: center; }
-.search-input { flex: 1; min-width: 220px; max-width: 380px; }
 .sort-tabs { display: flex; gap: 0; border: 1px solid var(--line2); border-radius: var(--r2); overflow: hidden; }
 .sort-tab { padding: 9px 16px; font-size: 13px; font-weight: 600; color: var(--text3); background: var(--surface); border: none; cursor: pointer; transition: all .15s; text-decoration: none; }
-.sort-tab + .sort-tab { border-left: 1px solid var(--line2); }
+.sort-tab + .sort-tab { border-inline-start: 1px solid var(--line2); }
 .sort-tab:hover { color: var(--text1); background: var(--surface2); }
-.sort-tab.on { background: var(--navy); color: #fff; }
+.sort-tab.on { background: var(--ink); color: #fff; }
 
-.tenders-table { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+.tenders-layout { display: grid; grid-template-columns: 280px 1fr; gap: 20px; padding: 20px 32px 40px; align-items: start; }
+.filter-panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); box-shadow: var(--sh); padding: 20px; position: sticky; top: 84px; display: flex; flex-direction: column; gap: 18px; }
+.filter-panel-title { font-size: 13.5px; font-weight: 700; color: var(--text1); display: flex; align-items: center; gap: 8px; }
+.filter-panel-title svg { width: 16px; height: 16px; stroke: var(--goldd); fill: none; stroke-width: 2; }
+.filter-group label { display: block; font-size: 12.5px; font-weight: 700; color: var(--text3); margin-bottom: 7px; }
+
+.tenders-table { display: flex; flex-direction: column; gap: 10px; }
 .tender-row {
   display: grid;
   grid-template-columns: 1fr 200px 140px 32px;
   gap: 20px;
   align-items: center;
-  padding: 20px;
+  padding: 18px 20px;
   border: 1px solid var(--line);
   border-radius: var(--r3);
   background: var(--surface);
@@ -30,32 +34,34 @@
   text-decoration: none;
   color: inherit;
 }
-.tender-row:hover { border-color: var(--navy); box-shadow: var(--sh2); }
+.tender-row:hover { border-color: var(--ink); box-shadow: var(--sh2); }
 
-.row-title { font-weight: 600; font-size: 16px; color: var(--text1); line-height: 1.35; margin-bottom: 8px; }
+.row-title { font-weight: 600; font-size: 15.5px; color: var(--text1); line-height: 1.35; margin-bottom: 8px; }
 .row-tags { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .row-buyer { font-size: 13px; color: var(--text3); font-weight: 500; }
 .row-deadline { font-size: 13px; font-weight: 700; }
-.row-date-pub { font-size: 12px; color: var(--text4); }
-.row-arrow { color: var(--text4); transition: all .15s; text-align: right; }
-.tender-row:hover .row-arrow { transform: translateX(4px); color: var(--navy); }
+.row-arrow { color: var(--text4); transition: all .15s; text-align: end; }
+.tender-row:hover .row-arrow { transform: translateX(4px); color: var(--ink); }
 
 .fav-btn { background: var(--surface); border: 1px solid var(--line2); cursor: pointer; padding: 6px 9px; border-radius: 50%; font-size: 13px; color: var(--text3); transition: all .15s; }
-.fav-btn:hover { border-color: var(--amber); color: var(--amberd); }
-.fav-btn.active { color: var(--amberd); border-color: var(--amber); background: var(--ambera); }
+.fav-btn:hover { border-color: var(--gold); color: var(--goldd); }
+.fav-btn.active { color: var(--goldd); border-color: var(--gold); background: var(--golda); }
 
-.pagination { display: flex; gap: 8px; justify-content: center; margin-top: 40px; flex-wrap: wrap; align-items: center; padding-bottom: 48px; }
+.pagination { display: flex; gap: 8px; justify-content: center; margin-top: 32px; flex-wrap: wrap; align-items: center; }
 .pag-btn { padding: 9px 14px; border: 1px solid var(--line2); font-size: 13px; font-weight: 600; color: var(--text3); transition: all .15s; text-decoration: none; border-radius: var(--r2); background: var(--surface); }
-.pag-btn:hover { border-color: var(--navy); color: var(--navy); }
-.pag-btn.current { background: var(--navy); color: #fff; border-color: var(--navy); }
+.pag-btn:hover { border-color: var(--ink); color: var(--ink); }
+.pag-btn.current { background: var(--ink); color: #fff; border-color: var(--ink); }
 
-.empty-state { text-align: center; padding: 96px 24px; }
-.empty-icon { font-size: 56px; opacity: .3; line-height: 1; }
-.empty-title { font-family: var(--serif); font-weight: 700; font-size: 27px; color: var(--text1); margin-top: 20px; }
+.empty-state { text-align: center; padding: 80px 24px; }
+.empty-icon { font-size: 48px; opacity: .3; line-height: 1; }
+.empty-title { font-family: var(--serif); font-weight: 700; font-size: 24px; color: var(--text1); margin-top: 18px; }
 .empty-title em { font-style: italic; color: var(--ink); font-weight: 600; }
-.empty-text { font-size: 15px; color: var(--text3); margin-top: 12px; }
+.empty-text { font-size: 14.5px; color: var(--text3); margin-top: 10px; }
 
 @media (max-width: 900px) {
+  .tenders-layout { grid-template-columns: 1fr; padding: 16px 18px 32px; }
+  .filter-panel { position: relative; top: 0; }
+  .tenders-hero { padding: 20px 18px 0; }
   .tenders-hero-grid { grid-template-columns: 1fr; }
   .tender-row { grid-template-columns: 1fr; gap: 10px; }
   .row-arrow { display: none; }
@@ -63,104 +69,120 @@
 </style>
 
 <div class="tenders-hero">
-  <div class="container">
-    <div class="tenders-hero-grid">
-      <div>
-        <div class="section-label" style="margin-bottom: 10px;">{{ tr('tenders_label') }}</div>
-        <h1 class="display-l">{{ tr('tenders_title', n=total)|safe }}</h1>
-        <div class="tenders-meta">
-          <div class="tenders-meta-item">{{ tr('tenders_updated') }} <span>{{ tr('tenders_continuous') }}</span></div>
-          <div class="tenders-meta-item">{{ tr('tenders_sources') }} <span>{{ tr('tenders_sources_val') }}</span></div>
-          {% if member %}<div class="tenders-meta-item">{{ tr('dash_plan') }} <span>{{ member.plan|upper }}</span></div>{% endif %}
-        </div>
+  <div class="tenders-hero-grid">
+    <div>
+      <div class="section-label" style="margin-bottom: 8px;">{{ tr('tenders_label') }}</div>
+      <h1 class="display-m">{{ tr('tenders_title', n=total)|safe }}</h1>
+      <div class="tenders-meta">
+        <div class="tenders-meta-item">{{ tr('tenders_updated') }} <span>{{ tr('tenders_continuous') }}</span></div>
+        <div class="tenders-meta-item">{{ tr('tenders_sources') }} <span>{{ tr('tenders_sources_val') }}</span></div>
       </div>
-      <div style="display: flex; gap: 8px; align-items: center;">
-        <div class="sort-tabs">
-          <a href="?q={{ q }}&s={{ sf }}&t={{ tf }}&sort=recent&page=1" class="sort-tab {% if sort=='recent' %}on{% endif %}">{{ tr('tenders_sort_recent') }}</a>
-          <a href="?q={{ q }}&s={{ sf }}&t={{ tf }}&sort=deadline&page=1" class="sort-tab {% if sort=='deadline' %}on{% endif %}">{{ tr('tenders_sort_deadline') }}</a>
-        </div>
-        {% if not member %}<a href="/register" class="btn btn-accent btn-sm">{{ tr('tenders_activate') }}</a>{% endif %}
-      </div>
+    </div>
+    <div class="sort-tabs">
+      <a href="?q={{ q }}&s={{ sf }}&r={{ rf }}&t={{ tf }}&sort=recent&page=1" class="sort-tab {% if sort=='recent' %}on{% endif %}">{{ tr('tenders_sort_recent') }}</a>
+      <a href="?q={{ q }}&s={{ sf }}&r={{ rf }}&t={{ tf }}&sort=deadline&page=1" class="sort-tab {% if sort=='deadline' %}on{% endif %}">{{ tr('tenders_sort_deadline') }}</a>
     </div>
   </div>
 </div>
 
-<div class="container">
-  <form method="get" class="filters-bar">
-    <div class="search-input">
+<div class="tenders-layout">
+  <form method="get" class="filter-panel">
+    <div class="filter-panel-title">
+      <svg viewBox="0 0 24 24"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+      {{ tr('filter_title') }}
+    </div>
+    <div class="filter-group">
+      <label>{{ tr('filter_keyword') }}</label>
       <input name="q" value="{{ q }}" class="inp" placeholder="{{ tr('tenders_search') }}">
     </div>
-    <select name="t" class="sel" style="width: 160px;" onchange="this.form.submit()">
-      <option value="">{{ tr('tenders_all_types') }}</option>
-      <option value="Public" {% if tf=='Public' %}selected{% endif %}>{{ tr('tenders_public') }}</option>
-      <option value="Privé" {% if tf=='Privé' %}selected{% endif %}>{{ tr('tenders_private') }}</option>
-    </select>
-    <select name="s" class="sel" style="width: 240px;" onchange="this.form.submit()">
-      <option value="">{{ tr('tenders_all_sectors', n=total) }}</option>
-      {% for group_name, group_sectors in sector_groups.items() %}
-      <optgroup label="{{ group_name }}">
-        {% for code, label in group_sectors.items() %}
-        <option value="{{ code }}" {% if code==sf or (code + ' – ' + label)==sf %}selected{% endif %}>{{ code }} – {{ label[:40] }}</option>
+    <div class="filter-group">
+      <label>{{ tr('filter_type') }}</label>
+      <select name="t" class="sel">
+        <option value="">{{ tr('tenders_all_types') }}</option>
+        <option value="Public" {% if tf=='Public' %}selected{% endif %}>{{ tr('tenders_public') }}</option>
+        <option value="Privé" {% if tf=='Privé' %}selected{% endif %}>{{ tr('tenders_private') }}</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>{{ tr('filter_sector') }}</label>
+      <select name="s" class="sel">
+        <option value="">{{ tr('tenders_all_sectors', n=total) }}</option>
+        {% for group_name, group_sectors in sector_groups.items() %}
+        <optgroup label="{{ group_name }}">
+          {% for code, label in group_sectors.items() %}
+          <option value="{{ code }}" {% if code==sf or (code + ' – ' + label)==sf %}selected{% endif %}>{{ code }} – {{ label[:40] }}</option>
+          {% endfor %}
+        </optgroup>
         {% endfor %}
-      </optgroup>
-      {% endfor %}
-    </select>
-    <button type="submit" class="btn btn-outline btn-sm">{{ tr('tenders_filter') }}</button>
-    {% if q or sf or tf %}<a href="/tenders" class="btn btn-ghost btn-sm">{{ tr('tenders_clear') }}</a>{% endif %}
+      </select>
+    </div>
+    {% if regions %}
+    <div class="filter-group">
+      <label>{{ tr('filter_region') }}</label>
+      <select name="r" class="sel">
+        <option value="">{{ tr('filter_region_all') }}</option>
+        {% for reg in regions %}
+        <option value="{{ reg }}" {% if reg==rf %}selected{% endif %}>{{ reg[:28] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
     <input type="hidden" name="sort" value="{{ sort }}">
+    <button type="submit" class="btn btn-primary btn-full">{{ tr('tenders_filter') }}</button>
+    {% if q or sf or tf or rf %}<a href="/tenders" class="btn btn-ghost btn-full btn-sm">{{ tr('tenders_clear') }}</a>{% endif %}
   </form>
 
-  {% if tenders %}
-  <div class="tenders-table">
-    {% for t in tenders %}
-    {% set dl_n, dl_l = (days_left if days_left is defined else dl)(t.date_limite) %}
-    <a href="/tenders/{{ t.id }}" class="tender-row">
-      <div>
-        <div class="row-title">{{ t.objet[:140] }}{% if t.objet|length > 140 %}…{% endif %}</div>
-        <div class="row-tags">
-          {% if t.type_offre=='Privé' %}<span class="badge badge-blue">{{ tr('tenders_private') }}</span>{% endif %}
-          <span class="badge badge-gold">{{ get_label(t.secteur)[:24] }}</span>
-          {% if t.montant %}<span class="badge badge-grn">{{ t.montant[:30] }}</span>{% endif %}
-          {% if dl_l and dl_n <= 7 and dl_n >= 0 %}
-          <span class="badge {% if dl_n <= 2 %}badge-red{% elif dl_n <= 5 %}badge-gold{% else %}badge-blue{% endif %}">{{ dl_l }}</span>
-          {% endif %}
-          {% if t.region %}<span class="badge badge-gray">{{ t.region[:18] }}</span>{% endif %}
+  <div>
+    {% if tenders %}
+    <div class="tenders-table">
+      {% for t in tenders %}
+      {% set dl_n, dl_l = days_left(t.date_limite) %}
+      <a href="/tenders/{{ t.id }}" class="tender-row">
+        <div>
+          <div class="row-title">{{ t.objet[:140] }}{% if t.objet|length > 140 %}…{% endif %}</div>
+          <div class="row-tags">
+            {% if t.type_offre=='Privé' %}<span class="badge badge-blue">{{ tr('tenders_private') }}</span>{% endif %}
+            <span class="badge badge-gold">{{ get_label(t.secteur)[:24] }}</span>
+            {% if t.montant %}<span class="badge badge-grn">{{ t.montant[:30] }}</span>{% endif %}
+            {% if dl_l and dl_n <= 7 and dl_n >= 0 %}
+            <span class="badge {% if dl_n <= 2 %}badge-red{% elif dl_n <= 5 %}badge-gold{% else %}badge-blue{% endif %}">{{ dl_l }}</span>
+            {% endif %}
+            {% if t.region %}<span class="badge badge-gray">{{ t.region[:18] }}</span>{% endif %}
+          </div>
         </div>
-      </div>
-      <div class="row-buyer">{{ (t.acheteur or '—')[:40] }}</div>
-      <div class="row-deadline" style="color: {% if dl_n is defined and dl_n < 0 %}var(--text4){% elif dl_n is defined and dl_n <= 3 %}var(--red){% elif dl_n is defined and dl_n <= 7 %}var(--amberd){% else %}var(--text2){% endif %};">
-        {% if t.date_limite %}⏰ {{ t.date_limite }}{% else %}—{% endif %}
-      </div>
-      <div style="display: flex; align-items: center; gap: 8px;">
-        {% if member %}
-        <button class="fav-btn {% if t.id in favs %}active{% endif %}" onclick="event.preventDefault();event.stopPropagation();toggleFav(this,'{{ t.id }}')" title="Favori">{% if t.id in favs %}★{% else %}☆{% endif %}</button>
-        {% endif %}
-        <span class="row-arrow">{{ '←' if dir=='rtl' else '→' }}</span>
-      </div>
-    </a>
-    {% endfor %}
-  </div>
+        <div class="row-buyer">{{ (t.acheteur or '—')[:40] }}</div>
+        <div class="row-deadline" style="color: {% if dl_n is defined and dl_n < 0 %}var(--text4){% elif dl_n is defined and dl_n <= 3 %}var(--red){% elif dl_n is defined and dl_n <= 7 %}var(--goldd){% else %}var(--text2){% endif %};">
+          {% if t.date_limite %}⏰ {{ t.date_limite }}{% else %}—{% endif %}
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <button class="fav-btn {% if t.id in favs %}active{% endif %}" onclick="event.preventDefault();event.stopPropagation();toggleFav(this,'{{ t.id }}')" title="{{ tr('dash_stat_favs') }}">{% if t.id in favs %}★{% else %}☆{% endif %}</button>
+          <span class="row-arrow">{{ '←' if dir=='rtl' else '→' }}</span>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
 
-  {% if pages > 1 %}
-  <div class="pagination">
-    {% if page > 1 %}<a href="?q={{ q }}&s={{ sf }}&t={{ tf }}&sort={{ sort }}&page={{ page-1 }}" class="pag-btn">{{ tr('tenders_prev') }}</a>{% endif %}
-    {% for pp in range(1, pages+1) %}
-      {% if pp == page %}<span class="pag-btn current">{{ pp }}</span>
-      {% elif pp == 1 or pp == pages or (pp >= page-2 and pp <= page+2) %}<a href="?q={{ q }}&s={{ sf }}&t={{ tf }}&sort={{ sort }}&page={{ pp }}" class="pag-btn">{{ pp }}</a>
-      {% elif pp == page-3 or pp == page+3 %}<span style="color:var(--text4);padding:9px 4px;font-size:13px;">…</span>{% endif %}
-    {% endfor %}
-    {% if page < pages %}<a href="?q={{ q }}&s={{ sf }}&t={{ tf }}&sort={{ sort }}&page={{ page+1 }}" class="pag-btn">{{ tr('tenders_next') }}</a>{% endif %}
-  </div>
-  {% endif %}
+    {% if pages > 1 %}
+    <div class="pagination">
+      {% if page > 1 %}<a href="?q={{ q }}&s={{ sf }}&r={{ rf }}&t={{ tf }}&sort={{ sort }}&page={{ page-1 }}" class="pag-btn">{{ tr('tenders_prev') }}</a>{% endif %}
+      {% for pp in range(1, pages+1) %}
+        {% if pp == page %}<span class="pag-btn current">{{ pp }}</span>
+        {% elif pp == 1 or pp == pages or (pp >= page-2 and pp <= page+2) %}<a href="?q={{ q }}&s={{ sf }}&r={{ rf }}&t={{ tf }}&sort={{ sort }}&page={{ pp }}" class="pag-btn">{{ pp }}</a>
+        {% elif pp == page-3 or pp == page+3 %}<span style="color:var(--text4);padding:9px 4px;font-size:13px;">…</span>{% endif %}
+      {% endfor %}
+      {% if page < pages %}<a href="?q={{ q }}&s={{ sf }}&r={{ rf }}&t={{ tf }}&sort={{ sort }}&page={{ page+1 }}" class="pag-btn">{{ tr('tenders_next') }}</a>{% endif %}
+    </div>
+    {% endif %}
 
-  {% else %}
-  <div class="empty-state">
-    <div class="empty-icon">∅</div>
-    <div class="empty-title">{{ tr('tenders_empty_title')|safe }}</div>
-    <div class="empty-text">{% if q or sf or tf %}{{ tr('tenders_empty_filtered') }}{% else %}{{ tr('tenders_empty_none') }}{% endif %}</div>
-    {% if q or sf or tf %}<div style="margin-top: 28px;"><a href="/tenders" class="btn btn-outline btn-lg">{{ tr('tenders_view_all') }}</a></div>{% endif %}
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">∅</div>
+      <div class="empty-title">{{ tr('tenders_empty_title')|safe }}</div>
+      <div class="empty-text">{% if q or sf or tf or rf %}{{ tr('tenders_empty_filtered') }}{% else %}{{ tr('tenders_empty_none') }}{% endif %}</div>
+      {% if q or sf or tf or rf %}<div style="margin-top: 24px;"><a href="/tenders" class="btn btn-outline btn-lg">{{ tr('tenders_view_all') }}</a></div>{% endif %}
+    </div>
+    {% endif %}
   </div>
-  {% endif %}
 </div>
 
 {% endblock %}

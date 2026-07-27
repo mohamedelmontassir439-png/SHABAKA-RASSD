@@ -1,5 +1,5 @@
 """
-ATLAS PRO v3.2 — SaaS Veille Marchés Publics Maroc
+MAROC ENTREPRENEURIAT v3.2 — SaaS Veille Marchés Publics Maroc
 Full audit & fix — Production ready
 """
 import os, re, json, secrets, asyncio, logging, hashlib
@@ -132,7 +132,7 @@ async def do_scrape():
 
         # ── marchespublics.gov.ma ─────────────────────────
         State.log("═" * 48)
-        State.log("  ATLAS PRO — Veille v3.2")
+        State.log("  MAROC ENTREPRENEURIAT — Veille v3.2")
         State.log(f"  {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
         State.log("═" * 48)
         try:
@@ -264,7 +264,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
-    State.log(f"ATLAS PRO v{cfg.APP_VERSION} | Multi-source: {'✅' if MULTI_OK else '❌'}")
+    State.log(f"MAROC ENTREPRENEURIAT v{cfg.APP_VERSION} | Multi-source: {'✅' if MULTI_OK else '❌'}")
     asyncio.create_task(scheduler())
     yield
 
@@ -280,7 +280,7 @@ async def not_found(req: Request, exc):
 async def server_error(req: Request, exc):
     logger.error(f"[500] {req.url}: {exc}")
     return HTMLResponse("""<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>Erreur serveur — Atlas Pro</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Erreur serveur — Maroc Entrepreneuriat</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -403,6 +403,8 @@ async def tenders_page(req: Request, q:str="", s:str="", r:str="", t:str="",
     if not get_member(req):
         return RedirectResponse("/login?next=/tenders", 302)
     db = get_db(); per = 25; page = max(1, page)
+    regions = [row[0] for row in db.execute(
+        "SELECT DISTINCT region FROM tenders WHERE region!='' AND statut='actif' ORDER BY region LIMIT 60").fetchall()]
     where, params = ["statut='actif'"], []
     if q:
         where.append("(objet LIKE ? OR acheteur LIKE ? OR description LIKE ?)")
@@ -425,7 +427,7 @@ async def tenders_page(req: Request, q:str="", s:str="", r:str="", t:str="",
     pages = max(1,(total+per-1)//per)
     return render(req, "tenders.html", {
         "tenders":rows,"total":total,"page":page,"pages":pages,
-        "q":q,"sf":s,"rf":r,"tf":t,"sort":sort,"favs":favs})
+        "q":q,"sf":s,"rf":r,"tf":t,"sort":sort,"favs":favs,"regions":regions})
 
 @app.get("/tenders/{tid}", response_class=HTMLResponse)
 async def tender_detail(req: Request, tid: str):
@@ -552,21 +554,39 @@ async def dashboard(req: Request):
            JOIN tenders t ON t.id=nl.tender_id
            WHERE nl.member_id=? ORDER BY nl.sent_at DESC LIMIT 10""",
         (member["id"],)).fetchall()]
+    latest = [dict(r) for r in db.execute(
+        "SELECT * FROM tenders WHERE statut='actif' ORDER BY scraped_at DESC LIMIT 5").fetchall()]
     if ms:
         ph   = ",".join(["?"]*len(ms))
         recs = [dict(r) for r in db.execute(
-            f"SELECT * FROM tenders WHERE secteur IN ({ph}) AND statut='actif' ORDER BY scraped_at DESC LIMIT 6",
+            f"SELECT * FROM tenders WHERE secteur IN ({ph}) AND statut='actif' ORDER BY scraped_at DESC LIMIT 5",
             ms).fetchall()]
     else:
         recs = [dict(r) for r in db.execute(
-            "SELECT * FROM tenders WHERE statut='actif' ORDER BY scraped_at DESC LIMIT 6").fetchall()]
+            "SELECT * FROM tenders WHERE statut='actif' ORDER BY scraped_at DESC LIMIT 5").fetchall()]
     stats = {
         "favs":   db.execute("SELECT COUNT(*) FROM favorites WHERE member_id=?",(member["id"],)).fetchone()[0],
         "notifs": db.execute("SELECT COUNT(*) FROM notif_log WHERE member_id=?",(member["id"],)).fetchone()[0],
         "active": db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif'").fetchone()[0],
+        "today":  db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif' AND scraped_at>=date('now')").fetchone()[0],
+        "recs":   len(recs),
     }
+    # Répartition par grande famille (Travaux / Équipements / Services) — les
+    # 83 codes du référentiel commencent par T/P/S selon leur catégorie.
+    grp_rows = db.execute(
+        "SELECT substr(secteur,1,1) g, COUNT(*) n FROM tenders WHERE statut='actif' AND secteur!='' GROUP BY g").fetchall()
+    grp_labels = {"T": "Travaux", "P": "Équipements", "S": "Services"}
+    sector_dist = [{"code": r["g"], "label": grp_labels.get(r["g"], r["g"]), "n": r["n"]} for r in grp_rows if r["g"] in grp_labels]
+    sector_dist.sort(key=lambda x: -x["n"])
+    # Tendance hebdomadaire (8 dernières semaines) pour le graphique d'évolution.
+    trend_rows = db.execute(
+        """SELECT strftime('%Y-%W', scraped_at) wk, COUNT(*) n FROM tenders
+           WHERE statut='actif' GROUP BY wk ORDER BY wk DESC LIMIT 8""").fetchall()
+    trend = list(reversed([{"week": r["wk"], "n": r["n"]} for r in trend_rows]))
     db.close()
-    return render(req,"dashboard.html",{"favs":favs,"notifs":notifs,"recs":recs,"stats":stats})
+    return render(req,"dashboard.html",{
+        "favs":favs,"notifs":notifs,"recs":recs,"latest":latest,"stats":stats,
+        "sector_dist":sector_dist,"trend":trend})
 
 @app.get("/tarifs", response_class=HTMLResponse)
 async def tarifs(req: Request): return render(req,"tarifs.html",{})

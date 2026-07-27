@@ -11,7 +11,7 @@ load_dotenv()
 @dataclass
 class Settings:
     # App
-    APP_NAME:    str  = "ATLAS PRO"
+    APP_NAME:    str  = "MAROC ENTREPRENEURIAT"
     APP_VERSION: str  = "3.0.0"
     SITE_URL:    str  = os.getenv("SITE_URL", "https://web-production-b4ae4.up.railway.app")
     SECRET_KEY:  str  = os.getenv("SECRET_KEY", secrets.token_hex(32))
@@ -36,16 +36,16 @@ class Settings:
     GMAIL_USER:    str = os.getenv("GMAIL_USER", "")
     GMAIL_PASS:    str = os.getenv("GMAIL_PASS", "")
     FROM_EMAIL:    str = os.getenv("FROM_EMAIL", "alerts@atlas.ma")
-    FROM_NAME:     str = "ATLAS PRO"
+    FROM_NAME:     str = "MAROC ENTREPRENEURIAT"
     # WhatsApp (service Baileys séparé)
     WA_SERVICE_URL: str = os.getenv("WA_SERVICE_URL", "http://localhost:3001")
     WA_SECRET:      str = os.getenv("WA_SECRET", "atlas_wa_secret_2024")
     # Abonnement (mise à niveau manuelle via WhatsApp)
     PAYMENT_PHONE: str = os.getenv("PAYMENT_PHONE", "")
-    PAYMENT_MSG:   str = os.getenv("PAYMENT_MSG", "Bonjour, je souhaite m'abonner à ATLAS PRO")
+    PAYMENT_MSG:   str = os.getenv("PAYMENT_MSG", "Bonjour, je souhaite m'abonner à MAROC ENTREPRENEURIAT")
     # Plans (abonnement annuel, paiement manuel via WhatsApp)
     PLANS: dict = field(default_factory=lambda: {
-        "free":    {"name":"Gratuit", "price":0,   "period":"",      "tenders_day":15,"email":True, "telegram":False,"whatsapp":False,"api":False},
+        "free":    {"name":"Inactif", "price":0,   "period":"",      "tenders_day":15,"email":True, "telegram":False,"whatsapp":False,"api":False},
         "pro":     {"name":"Annuel",  "price":3999,"period":"an",    "tenders_day":0, "email":True, "telegram":True, "whatsapp":True, "api":True},
         "business":{"name":"Biennal", "price":6999,"period":"2 ans", "tenders_day":0, "email":True, "telegram":True, "whatsapp":True, "api":True},
     })

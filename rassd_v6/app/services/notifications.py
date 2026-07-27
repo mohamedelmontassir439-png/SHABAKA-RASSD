@@ -47,7 +47,7 @@ def tg_send(chat_id: str, text: str, parse_mode: str = "HTML") -> bool:
 
 def tg_admin(msg: str):
     if cfg.ADMIN_CHAT_ID:
-        tg_send(cfg.ADMIN_CHAT_ID, f"🔔 <b>ATLAS PRO</b>\n{msg}")
+        tg_send(cfg.ADMIN_CHAT_ID, f"🔔 <b>MAROC ENTREPRENEURIAT</b>\n{msg}")
 
 def build_tg_message(t: dict) -> str:
     _n, dl_label = days_left(t.get("date_limite", ""))
@@ -75,9 +75,9 @@ def build_tg_message(t: dict) -> str:
     else:
         lines.append(f"🔗 <a href='{cfg.SITE_URL}/tenders/{t['id']}/source'>Voir le marché</a>")
     lines += [
-        f"📱 <a href='{cfg.SITE_URL}/tenders/{t['id']}'>Voir sur ATLAS PRO</a>",
+        f"📱 <a href='{cfg.SITE_URL}/tenders/{t['id']}'>Voir sur MAROC ENTREPRENEURIAT</a>",
         "",
-        "<i>ATLAS PRO · Veille Marchés Publics & Privés Maroc</i>",
+        "<i>MAROC ENTREPRENEURIAT · Veille Marchés Publics & Privés Maroc</i>",
     ]
     return "\n".join(lines)
 
@@ -162,7 +162,7 @@ td{{padding:10px 0;border-bottom:1px solid #e3e7ef;vertical-align:top;font-size:
 .dl-badge{{display:inline-block;padding:6px 14px;background:rgba(242,169,59,.12);border:1px solid rgba(242,169,59,.3);border-radius:99px;font-size:12px;color:#b9791a;margin-bottom:20px}}
 </style></head>
 <body><div class="wrap">
-<div class="hdr"><div class="logo">Atlas<em>Pro</em></div><div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:3px">MARCHÉS {type_offre.upper()}S · MAROC</div></div>
+<div class="hdr"><div class="logo">Maroc<em>Entrepreneuriat</em></div><div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:3px">MARCHÉS {type_offre.upper()}S · MAROC</div></div>
 <div class="body">
 <p style="color:#6b7488;font-size:13px;margin-bottom:16px">Bonjour {nom or "Madame/Monsieur"},</p>
 <p style="color:#6b7488;font-size:13px;margin-bottom:20px">Un nouveau marché correspondant à votre profil vient d'être publié :</p>
@@ -177,9 +177,9 @@ td{{padding:10px 0;border-bottom:1px solid #e3e7ef;vertical-align:top;font-size:
 <tr><td class="lbl">📅 Publication</td><td class="val">{t.get("date_publication","—")}</td></tr>
 </table>
 <a href="{cta_url}" class="cta">{cta_label} ↗</a>
-<a href="{site}/tenders/{t["id"]}" class="cta2">Détails ATLAS PRO</a>
+<a href="{site}/tenders/{t["id"]}" class="cta2">Détails MAROC ENTREPRENEURIAT</a>
 </div>
-<div class="ftr"><p style="color:#98a1b3;font-size:11px">ATLAS PRO · <a href="{site}" style="color:#6b7488">atlaspro.ma</a> · <a href="{site}/settings" style="color:#6b7488">Gérer mes alertes</a></p></div>
+<div class="ftr"><p style="color:#98a1b3;font-size:11px">MAROC ENTREPRENEURIAT · <a href="{site}" style="color:#6b7488">marocentrepreneuriat.ma</a> · <a href="{site}/settings" style="color:#6b7488">Gérer mes alertes</a></p></div>
 </div></body></html>"""
 
 # ── Dispatch principal ────────────────────────────────────
@@ -272,7 +272,7 @@ def test_notifications(email: str = "", telegram_id: str = "", whatsapp: str = "
     results = {"telegram": False, "email": False, "whatsapp": False}
     fake_tender = {
         "id":               "bdc_test",
-        "objet":            "TEST — Marché de test ATLAS PRO",
+        "objet":            "TEST — Marché de test MAROC ENTREPRENEURIAT",
         "acheteur":         "Administration Marocaine",
         "secteur":          "S901",
         "region":           "Rabat-Salé-Kénitra",
@@ -285,7 +285,7 @@ def test_notifications(email: str = "", telegram_id: str = "", whatsapp: str = "
         results["telegram"] = tg_send(telegram_id, build_tg_message(fake_tender))
     if email:
         html = build_email(fake_tender, "Administrateur")
-        results["email"] = email_send(email, "🧪 Test ATLAS PRO — Notifications", html)
+        results["email"] = email_send(email, "🧪 Test MAROC ENTREPRENEURIAT — Notifications", html)
     if whatsapp:
         results["whatsapp"] = send_wa(whatsapp, format_tender_wa(fake_tender))
     return results

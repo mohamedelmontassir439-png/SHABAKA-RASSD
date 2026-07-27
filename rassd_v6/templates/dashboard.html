@@ -1,108 +1,250 @@
 {% extends "base.html" %}
-{% block title %}Mon espace — Atlas Pro{% endblock %}
+{% block title %}Mon espace — Maroc Entrepreneuriat{% endblock %}
 {% block body %}
 <style>
-.dash-hero { padding: 40px 0 24px; border-bottom: 1px solid var(--line); }
-.dash-greeting { font-family: var(--serif); font-weight: 700; font-size: clamp(26px, 4vw, 38px); color: var(--text1); line-height: 1.18; letter-spacing: -.01em; margin-top: 12px; }
+.dash-hero { padding: 28px 32px 0; }
+.dash-greeting { font-family: var(--serif); font-weight: 700; font-size: clamp(22px, 3vw, 30px); color: var(--text1); line-height: 1.2; letter-spacing: -.01em; }
 .dash-greeting em { font-style: italic; color: var(--ink); font-weight: 600; }
-.dash-meta { display: flex; gap: 24px; margin-top: 18px; font-size: 13px; color: var(--text3); flex-wrap: wrap; font-weight: 500; }
-.dash-meta-item span { color: var(--navy); font-weight: 700; }
+.dash-meta { font-size: 13.5px; color: var(--text3); margin-top: 6px; }
 
-.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 32px 0; }
-.stat-cell { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 24px; box-shadow: var(--sh); }
-.stat-num { font-family: var(--serif); font-weight: 700; font-size: 36px; color: var(--ink); line-height: 1; }
-.stat-label { font-size: 13px; color: var(--text3); margin-top: 10px; font-weight: 600; }
+.dash-wrap { padding: 22px 32px 40px; display: flex; flex-direction: column; gap: 20px; }
 
-.dash-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 24px 0; }
-.dash-section-label { font-size: 13px; font-weight: 700; color: var(--amberd); letter-spacing: .05em; text-transform: uppercase; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.kpi-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 20px 22px; box-shadow: var(--sh); }
+.kpi-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.kpi-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.kpi-icon svg { width: 19px; height: 19px; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.kpi-icon.i-indigo { background: var(--indigoa); color: var(--indigo); }
+.kpi-icon.i-grn { background: var(--grna); color: var(--grn); }
+.kpi-icon.i-gold { background: var(--golda); color: var(--goldd); }
+.kpi-icon.i-purple { background: var(--purplea); color: var(--purple); }
+.kpi-spark { width: 74px; height: 28px; }
+.kpi-spark polyline { fill: none; stroke-width: 2; }
+.kpi-value { font-family: var(--serif); font-weight: 700; font-size: 28px; color: var(--text1); line-height: 1; }
+.kpi-label { font-size: 12.5px; color: var(--text3); margin-top: 7px; font-weight: 600; }
 
-.rec-row { display: block; padding: 16px; border: 1px solid var(--line); border-radius: var(--r2); background: var(--surface); margin-bottom: 10px; transition: all .15s; text-decoration: none; color: inherit; }
-.rec-row:hover { border-color: var(--navy); box-shadow: var(--sh); }
-.rec-tags { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
-.rec-title { font-weight: 600; font-size: 15px; color: var(--text1); line-height: 1.35; margin-bottom: 6px; }
-.rec-meta { font-size: 12.5px; color: var(--text3); }
+.mid-row { display: grid; grid-template-columns: 1fr 1.3fr 1.3fr; gap: 16px; align-items: stretch; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); box-shadow: var(--sh); padding: 20px 22px; display: flex; flex-direction: column; }
+.panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.panel-title { font-weight: 700; font-size: 14.5px; color: var(--text1); }
+.panel-link { font-size: 12.5px; font-weight: 600; color: var(--goldd); }
 
-.notif-row { display: grid; grid-template-columns: 1fr auto; gap: 14px; align-items: center; padding: 14px; border: 1px solid var(--line); border-radius: var(--r2); background: var(--surface); margin-bottom: 10px; }
-.notif-title { font-size: 14px; color: var(--text1); font-weight: 600; margin-bottom: 4px; line-height: 1.45; }
-.notif-meta { font-size: 12px; color: var(--text3); }
+.donut-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; flex: 1; justify-content: center; }
+.donut { width: 152px; height: 152px; border-radius: 50%; position: relative; flex-shrink: 0; }
+.donut::after { content: ""; position: absolute; inset: 21%; background: var(--surface); border-radius: 50%; display: flex; }
+.donut-center { position: absolute; inset: 21%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.donut-center-n { font-family: var(--serif); font-weight: 700; font-size: 22px; color: var(--text1); line-height: 1; }
+.donut-center-l { font-size: 10.5px; color: var(--text3); margin-top: 3px; }
+.donut-legend { display: flex; flex-direction: column; gap: 9px; width: 100%; }
+.donut-legend-row { display: flex; align-items: center; gap: 9px; font-size: 12.5px; color: var(--text2); }
+.donut-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.donut-legend-label { flex: 1; }
+.donut-legend-pct { font-weight: 700; color: var(--text1); }
 
-.empty-tile { padding: 36px 22px; text-align: center; border: 1.5px dashed var(--line2); border-radius: var(--r3); }
-.empty-tile-text { font-size: 14.5px; color: var(--text3); margin-bottom: 18px; line-height: 1.55; }
+.mini-list { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.mini-row { display: flex; align-items: center; gap: 12px; padding: 10px 6px; border-radius: var(--r2); transition: background .15s; }
+.mini-row:hover { background: var(--surface2); }
+.mini-icon { width: 34px; height: 34px; border-radius: 9px; background: var(--surface2); color: var(--text3); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.mini-icon svg { width: 16px; height: 16px; stroke-width: 2; fill: none; }
+.mini-info { min-width: 0; flex: 1; }
+.mini-title { font-size: 13px; font-weight: 600; color: var(--text1); line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mini-sub { font-size: 11.5px; color: var(--text3); margin-top: 2px; }
+.mini-amount { font-size: 12.5px; font-weight: 700; color: var(--goldd); flex-shrink: 0; }
+.mini-star { color: var(--gold); flex-shrink: 0; }
 
-.quick-bar { background: var(--surface); border: 1px solid var(--line); padding: 20px 24px; margin-top: 32px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; border-radius: var(--r3); }
-.quick-bar-label { font-size: 13px; font-weight: 700; color: var(--amberd); letter-spacing: .04em; text-transform: uppercase; flex: 1; }
+.trend-panel { padding-bottom: 8px; }
+.trend-tabs { display: flex; gap: 4px; background: var(--surface2); border-radius: var(--r2); padding: 3px; }
+.trend-tabs span { padding: 6px 12px; font-size: 12px; font-weight: 700; color: var(--text3); border-radius: 6px; }
+.trend-tabs span.on { background: var(--surface); color: var(--ink); box-shadow: var(--sh); }
+.trend-chart-wrap { position: relative; }
+.trend-chart-wrap svg { width: 100%; height: 200px; display: block; }
+.trend-empty { text-align: center; padding: 40px 0; color: var(--text3); font-size: 13.5px; }
 
+.bottom-row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+.activity-row { display: flex; align-items: flex-start; gap: 12px; padding: 12px 4px; border-bottom: 1px solid var(--line); }
+.activity-row:last-child { border-bottom: none; }
+.activity-icon { width: 30px; height: 30px; border-radius: 50%; background: var(--grna); color: var(--grn); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+.activity-icon svg { width: 14px; height: 14px; stroke-width: 2; fill: none; }
+.activity-text { font-size: 13px; color: var(--text2); line-height: 1.5; }
+.activity-time { font-size: 11.5px; color: var(--text4); margin-top: 2px; }
+
+.empty-tile { padding: 30px 18px; text-align: center; border: 1.5px dashed var(--line2); border-radius: var(--r3); }
+.empty-tile-text { font-size: 13.5px; color: var(--text3); margin-bottom: 14px; line-height: 1.55; }
+
+@media(max-width: 1200px) {
+  .mid-row { grid-template-columns: 1fr; }
+  .kpi-row { grid-template-columns: 1fr 1fr; }
+}
 @media(max-width: 900px) {
-  .stats-row { grid-template-columns: 1fr 1fr; }
-  .dash-grid { grid-template-columns: 1fr; gap: 24px; }
-  .stat-num { font-size: 28px; }
+  .dash-hero, .dash-wrap { padding-left: 18px; padding-right: 18px; }
+  .kpi-row { grid-template-columns: 1fr 1fr; }
+  .bottom-row { grid-template-columns: 1fr; }
 }
 </style>
 
-<div class="container" style="padding-top: 16px;">
-  <section class="dash-hero">
-    <div class="section-label">{{ tr('dash_label') }}</div>
-    <h1 class="dash-greeting">{{ tr('dash_hello', name=(member.nom or tr('dash_welcome_default'))|e)|safe }}</h1>
-    <div class="dash-meta">
-      <div class="dash-meta-item">{{ tr('dash_plan') }} <span>{{ member.plan|upper }}</span></div>
-      <div class="dash-meta-item">{{ tr('dash_status') }} <span>{{ tr('dash_active') }}</span></div>
-      <div class="dash-meta-item">{{ tr('dash_member_since') }} <span>{{ (member.created_at or '')[:10] }}</span></div>
-    </div>
-  </section>
+<section class="dash-hero">
+  <h1 class="dash-greeting">{{ tr('dash_hello', name=(member.nom or tr('dash_welcome_default'))|e)|safe }}</h1>
+  <div class="dash-meta">{{ tr('dash_member_since') }} {{ (member.created_at or '')[:10] }}</div>
+</section>
 
-  <div class="stats-row">
-    <div class="stat-cell">
-      <div class="stat-num">{{ stats.favs or 0 }}</div>
-      <div class="stat-label">{{ tr('dash_stat_favs') }}</div>
+<div class="dash-wrap">
+
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-top">
+        <div class="kpi-icon i-indigo"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></div>
+        {% if trend and trend|length > 1 %}
+        {% set spark_max = (trend | map(attribute='n') | list | max) %}
+        {% set spark_max = spark_max if spark_max > 0 else 1 %}
+        <svg class="kpi-spark" viewBox="0 0 74 28"><polyline stroke="var(--indigo)" points="{% for pt in trend %}{{ (loop.index0 * (74 / (trend|length - 1)))|round(1) }},{{ (26 - (pt.n / spark_max * 24))|round(1) }}{% if not loop.last %} {% endif %}{% endfor %}"/></svg>
+        {% endif %}
+      </div>
+      <div class="kpi-value">{{ stats.active }}</div>
+      <div class="kpi-label">{{ tr('live_tenders') }}</div>
     </div>
-    <div class="stat-cell">
-      <div class="stat-num">{{ stats.notifs or 0 }}</div>
-      <div class="stat-label">{{ tr('dash_stat_notifs') }}</div>
+    <div class="kpi-card">
+      <div class="kpi-top"><div class="kpi-icon i-gold"><svg viewBox="0 0 24 24"><path d="M12 2.5l3.09 6.26L21.5 9.6l-4.75 4.63 1.12 6.53L12 17.7l-5.87 3.06 1.12-6.53L2.5 9.6l6.41-.84L12 2.5z"/></svg></div></div>
+      <div class="kpi-value">{{ stats.favs or 0 }}</div>
+      <div class="kpi-label">{{ tr('dash_stat_favs') }}</div>
     </div>
-    <div class="stat-cell">
-      <div class="stat-num">{{ member.plan|upper if member.plan else '—' }}</div>
-      <div class="stat-label">{{ tr('dash_stat_plan') }}</div>
+    <div class="kpi-card">
+      <div class="kpi-top"><div class="kpi-icon i-grn"><svg viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></svg></div></div>
+      <div class="kpi-value">{{ stats.today or 0 }}</div>
+      <div class="kpi-label">{{ tr('live_today') }}</div>
     </div>
-    <div class="stat-cell">
-      <div class="stat-num" style="color: var(--grn);">●</div>
-      <div class="stat-label">{{ tr('dash_stat_active') }}</div>
+    <div class="kpi-card">
+      <div class="kpi-top"><div class="kpi-icon i-purple"><svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 0 0 4 0"/></svg></div></div>
+      <div class="kpi-value">{{ stats.notifs or 0 }}</div>
+      <div class="kpi-label">{{ tr('dash_stat_notifs') }}</div>
     </div>
   </div>
 
-  <div class="dash-grid">
-    <div>
-      <div class="dash-section-label">{{ tr('dash_recommended') }}</div>
-      {% if recs %}
-        {% for t in recs %}
-        {% set dl_n, dl_l = days_left(t.date_limite) %}
-        <a href="/tenders/{{ t.id }}" class="rec-row">
-          <div class="rec-tags">
-            {% if t.type_offre=='Privé' %}<span class="badge badge-blue">{{ tr('tenders_private') }}</span>{% endif %}
-            <span class="badge badge-gold">{{ get_label(t.secteur)[:22] }}</span>
-            {% if dl_l and dl_n <= 7 %}<span class="badge badge-red">{{ dl_l }}</span>{% endif %}
-          </div>
-          <div class="rec-title">{{ t.objet[:100] }}</div>
-          <div class="rec-meta">⏰ {{ t.date_limite or '—' }}</div>
-        </a>
+  <div class="mid-row">
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title">{{ tr('dash_sector_dist') }}</div></div>
+      {% if sector_dist and sector_dist|length > 0 %}
+        {% set total = sector_dist | sum(attribute='n') %}
+        {% set colors = ['var(--indigo)','var(--grn)','var(--gold)'] %}
+        {% set ns = namespace(cum=0, stops="") %}
+        {% for s in sector_dist %}
+          {% set pct = (s.n / total * 100) if total > 0 else 0 %}
+          {% set c = colors[loop.index0 % 3] %}
+          {% set stop = c ~ " " ~ (ns.cum|round(2)) ~ "% " ~ ((ns.cum + pct)|round(2)) ~ "%" %}
+          {% set ns.stops = ns.stops ~ (", " if ns.stops else "") ~ stop %}
+          {% set ns.cum = ns.cum + pct %}
         {% endfor %}
+        <div class="donut-wrap">
+          <div class="donut" style="background: conic-gradient({{ ns.stops|safe }});">
+            <div class="donut-center"><div class="donut-center-n">{{ total }}</div><div class="donut-center-l">{{ tr('res_hero_label').split(' ')[0] if false else tr('live_tenders') }}</div></div>
+          </div>
+          <div class="donut-legend">
+            {% for s in sector_dist %}
+            {% set pct = (s.n / total * 100) if total > 0 else 0 %}
+            <div class="donut-legend-row">
+              <span class="donut-dot" style="background:{{ colors[loop.index0 % 3] }};"></span>
+              <span class="donut-legend-label">{{ s.label }}</span>
+              <span class="donut-legend-pct">{{ pct|round|int }}%</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
       {% else %}
-      <div class="empty-tile">
-        <div class="empty-tile-text">{{ tr('dash_no_recs') }}</div>
-        <a href="/settings" class="btn btn-outline btn-sm">{{ tr('dash_configure') }}</a>
-      </div>
+      <div class="empty-tile"><div class="empty-tile-text">{{ tr('dash_no_data') }}</div></div>
       {% endif %}
     </div>
 
-    <div>
-      <div class="dash-section-label">{{ tr('dash_notifs_title') }}</div>
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title">{{ tr('latest_label') }}</div>
+        <a href="/tenders" class="panel-link">{{ tr('dash_view_all') }}</a>
+      </div>
+      <div class="mini-list">
+        {% if latest %}
+          {% for t in latest %}
+          <a href="/tenders/{{ t.id }}" class="mini-row">
+            <div class="mini-icon"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></div>
+            <div class="mini-info">
+              <div class="mini-title">{{ t.objet[:60] }}</div>
+              <div class="mini-sub">{{ (t.acheteur or '—')[:36] }} · {{ t.date_limite or '—' }}</div>
+            </div>
+            {% if t.montant %}<div class="mini-amount">{{ t.montant[:14] }}</div>{% endif %}
+          </a>
+          {% endfor %}
+        {% else %}
+        <div class="empty-tile"><div class="empty-tile-text">{{ tr('dash_no_data') }}</div></div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title">{{ tr('dash_recommended') }}</div>
+        <a href="/settings" class="panel-link">{{ tr('dash_configure') }}</a>
+      </div>
+      <div class="mini-list">
+        {% if recs %}
+          {% for t in recs %}
+          <a href="/tenders/{{ t.id }}" class="mini-row">
+            <div class="mini-icon"><svg viewBox="0 0 24 24"><path d="M12 2.5l3.09 6.26L21.5 9.6l-4.75 4.63 1.12 6.53L12 17.7l-5.87 3.06 1.12-6.53L2.5 9.6l6.41-.84L12 2.5z"/></svg></div>
+            <div class="mini-info">
+              <div class="mini-title">{{ t.objet[:60] }}</div>
+              <div class="mini-sub">{{ get_label(t.secteur)[:30] }} · {{ (t.acheteur or '—')[:24] }}</div>
+            </div>
+          </a>
+          {% endfor %}
+        {% else %}
+        <div class="empty-tile">
+          <div class="empty-tile-text">{{ tr('dash_no_recs') }}</div>
+          <a href="/settings" class="btn btn-outline btn-sm">{{ tr('dash_configure') }}</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="panel trend-panel">
+    <div class="panel-head">
+      <div class="panel-title">{{ tr('dash_trend_title') }}</div>
+      <div class="trend-tabs"><span class="on">{{ tr('dash_trend_8w') }}</span></div>
+    </div>
+    <div class="trend-chart-wrap">
+      {% if trend and trend|length > 1 %}
+      {% set w = 900 %}{% set h = 200 %}
+      {% set max_n = (trend | map(attribute='n') | list | max) %}
+      {% set max_n = max_n if max_n > 0 else 1 %}
+      {% set step = w / (trend|length - 1) %}
+      {% set ns2 = namespace(pts="", area="") %}
+      {% for pt in trend %}
+        {% set x = (loop.index0 * step)|round(1) %}
+        {% set y = (h - 20 - (pt.n / max_n * (h-40)))|round(1) %}
+        {% set ns2.pts = ns2.pts ~ (" " if ns2.pts else "") ~ x ~ "," ~ y %}
+      {% endfor %}
+      <svg viewBox="0 0 {{w}} {{h}}" preserveAspectRatio="none">
+        <polygon points="0,{{h}} {{ ns2.pts }} {{w}},{{h}}" fill="var(--indigoa)" opacity="0.6"/>
+        <polyline points="{{ ns2.pts }}" fill="none" stroke="var(--indigo)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        {% for pt in trend %}
+          {% set x = (loop.index0 * step)|round(1) %}
+          {% set y = (h - 20 - (pt.n / max_n * (h-40)))|round(1) %}
+          {% if loop.last %}<circle cx="{{x}}" cy="{{y}}" r="4.5" fill="var(--indigo)" stroke="var(--surface)" stroke-width="2"/>{% endif %}
+        {% endfor %}
+      </svg>
+      {% else %}
+      <div class="trend-empty">{{ tr('dash_no_data') }}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="bottom-row">
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title">{{ tr('dash_notifs_title') }}</div></div>
       {% if notifs %}
-        {% for n in notifs %}
-        <div class="notif-row">
+        {% for n in notifs[:6] %}
+        <div class="activity-row">
+          <div class="activity-icon"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></div>
           <div>
-            <div class="notif-title">{{ n.objet[:80] }}</div>
-            <div class="notif-meta">{{ n.channel }} · {{ n.sent_at[:10] }}</div>
+            <div class="activity-text">{{ tr('dash_activity_sent', channel=n.channel, objet=n.objet[:60]|e)|safe }}</div>
+            <div class="activity-time">{{ n.sent_at[:16] }}</div>
           </div>
-          <span class="badge {% if n.channel=='email' %}badge-blue{% else %}badge-gold{% endif %}">{{ n.channel }}</span>
         </div>
         {% endfor %}
       {% else %}
@@ -112,14 +254,17 @@
       </div>
       {% endif %}
     </div>
+
+    <div class="panel">
+      <div class="panel-head"><div class="panel-title">{{ tr('dash_quick_access') }}</div></div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <a href="/tenders" class="btn btn-outline btn-full">{{ tr('dash_all_tenders') }}</a>
+        <a href="/favorites" class="btn btn-outline btn-full">{{ tr('dash_favorites') }}</a>
+        <a href="/settings" class="btn btn-outline btn-full">{{ tr('dash_alerts') }}</a>
+        <a href="/feedback" class="btn btn-outline btn-full">{{ tr('dash_feedback') }}</a>
+      </div>
+    </div>
   </div>
 
-  <div class="quick-bar">
-    <span class="quick-bar-label">{{ tr('dash_quick_access') }}</span>
-    <a href="/tenders" class="btn btn-outline btn-sm">{{ tr('dash_all_tenders') }}</a>
-    <a href="/favorites" class="btn btn-outline btn-sm">{{ tr('dash_favorites') }}</a>
-    <a href="/settings" class="btn btn-outline btn-sm">{{ tr('dash_alerts') }}</a>
-    <a href="/feedback" class="btn btn-outline btn-sm">{{ tr('dash_feedback') }}</a>
-  </div>
 </div>
 {% endblock %}
