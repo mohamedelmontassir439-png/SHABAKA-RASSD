@@ -45,6 +45,11 @@ def check_rate_limit(ip: str, max_attempts: int = 5, window: int = 300) -> bool:
 def get_ip(req: Request) -> str:
     return req.headers.get("x-forwarded-for", req.client.host if req.client else "unknown").split(",")[0].strip()
 
+# Cookies "Secure" en production (HTTPS) — désactivé seulement si SITE_URL
+# est en http:// (dev local), sinon un cookie Secure serait simplement
+# jamais envoyé et casserait les tests locaux.
+COOKIE_SECURE = cfg.SITE_URL.startswith("https")
+
 # ══════════════════════════════════════════════════════════
 # SCRAPER STATE
 # ══════════════════════════════════════════════════════════
@@ -240,6 +245,18 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             "Permissions-Policy":        "geolocation=(), microphone=(), camera=()",
             # Force HTTPS pour 1 an sur ce domaine et ses sous-domaines
             "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+            # unsafe-inline requis: les pages utilisent des <style>/<script>
+            # inline plutôt que des fichiers externes — bloque au moins tout
+            # chargement de script/style/frame depuis un domaine non listé.
+            "Content-Security-Policy": (
+                "default-src 'self'; "
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+                "font-src 'self' https://fonts.gstatic.com; "
+                "script-src 'self' 'unsafe-inline'; "
+                "img-src 'self' data:; "
+                "connect-src 'self'; "
+                "frame-ancestors 'none'"
+            ),
         })
         return resp
 
@@ -559,6 +576,8 @@ async def register_post(req: Request,
     company:str=Form(""), pw:str=Form(""), pw2:str=Form(""),
     secteurs_sel:list=Form(default=[])):
     vals = {"nom":nom,"email":email,"phone":phone,"company":company}
+    if not check_rate_limit(f"register_{get_ip(req)}", 5, 600):
+        return render(req,"register.html",{"err":"Trop de tentatives. Réessayez dans quelques minutes.","vals":vals})
     err  = None
     if not email or not pw: err = "Email et mot de passe requis"
     elif not validate_email(email): err = "Adresse email invalide"
@@ -582,7 +601,7 @@ async def register_post(req: Request,
     finally: db.close()
     resp = RedirectResponse("/dashboard?welcome=1",302)
     resp.set_cookie("_session", session_tok,
-                    max_age=86400*30, httponly=True, samesite="lax")
+                    max_age=86400*30, httponly=True, samesite="lax", secure=COOKIE_SECURE)
     return resp
 
 @app.get("/login", response_class=HTMLResponse)
@@ -609,7 +628,7 @@ async def login_post(req: Request, email:str=Form(""), pw:str=Form(""), next:str
     dest = next or ("/dashboard?welcome=1" if not onboarded else "/dashboard")
     resp = RedirectResponse(dest, 302)
     resp.set_cookie("_session", session_tok,
-                    max_age=86400*30, httponly=True, samesite="lax")
+                    max_age=86400*30, httponly=True, samesite="lax", secure=COOKIE_SECURE)
     return resp
 
 @app.get("/logout")
@@ -662,7 +681,7 @@ async def admin_login_post(req: Request, pwd:str=Form("")):
         return render(req,"admin_login.html",{"err":"Mot de passe incorrect"})
     r = RedirectResponse("/admin",302)
     r.set_cookie("_admin",make_token("admin",cfg.ADMIN_PASS),
-                 httponly=True,max_age=86400*7,samesite="lax")
+                 httponly=True,max_age=86400*7,samesite="lax",secure=COOKIE_SECURE)
     return r
 
 @app.get("/admin/logout")
@@ -838,6 +857,8 @@ async def forgot_get(req: Request):
 
 @app.post("/forgot")
 async def forgot_post(req: Request, email: str = Form("")):
+    if not check_rate_limit(f"forgot_{get_ip(req)}", 5, 600):
+        return render(req, "forgot.html", {"err": "Trop de tentatives. Réessayez dans quelques minutes."})
     db = get_db()
     m  = db.execute("SELECT * FROM members WHERE email=? AND actif=1", (email,)).fetchone()
     if m:
