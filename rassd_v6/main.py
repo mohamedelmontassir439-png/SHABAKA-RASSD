@@ -361,8 +361,11 @@ def _is_admin(req: Request) -> bool:
 async def home(req: Request):
     db = get_db()
     stats   = get_stats()
+    # Le détail des marchés (objet, acheteur...) est réservé aux membres —
+    # les visiteurs anonymes ne voient qu'un aperçu générique (voir landing.html).
+    member  = get_member(req)
     recent  = [dict(r) for r in db.execute(
-        "SELECT * FROM tenders WHERE statut='actif' ORDER BY scraped_at DESC LIMIT 9").fetchall()]
+        "SELECT * FROM tenders WHERE statut='actif' ORDER BY scraped_at DESC LIMIT 9").fetchall()] if member else []
     sectors = [dict(r) for r in db.execute(
         "SELECT secteur,COUNT(*) cnt FROM tenders WHERE statut='actif' GROUP BY secteur ORDER BY cnt DESC LIMIT 12").fetchall()]
     db.close()
@@ -771,6 +774,8 @@ async def admin_reset(req: Request):
 @app.get("/api/v1/tenders")
 async def api_tenders(req:Request, secteur:str="", region:str="", q:str="", type_offre:str="",
                        limit:int=20, offset:int=0, page:int=0):
+    if not get_member(req):
+        return JSONResponse({"ok":False,"msg":"Réservé aux membres — connectez-vous"},401)
     if page > 0: offset = (page-1)*limit
     db = get_db()
     where, params = ["statut='actif'"], []
@@ -789,7 +794,9 @@ async def api_tenders(req:Request, secteur:str="", region:str="", q:str="", type
     return {"ok":True,"total":total,"page":page or (offset//limit+1),"results":rows}
 
 @app.get("/api/v1/tenders/{tid}")
-async def api_tender(tid:str):
+async def api_tender(req:Request, tid:str):
+    if not get_member(req):
+        return JSONResponse({"ok":False,"msg":"Réservé aux membres — connectez-vous"},401)
     db = get_db()
     t  = db.execute("SELECT * FROM tenders WHERE id=?",(tid,)).fetchone()
     db.close()
@@ -950,16 +957,16 @@ async def health():
 
 @app.get("/sitemap.xml")
 async def sitemap():
-    db  = get_db()
-    ids = [r[0] for r in db.execute("SELECT id FROM tenders WHERE statut='actif' LIMIT 2000").fetchall()]
-    db.close()
-    urls = "\n".join(f"  <url><loc>{cfg.SITE_URL}/tenders/{i}</loc></url>" for i in ids)
-    xml  = f"""<?xml version="1.0" encoding="UTF-8"?>
+    # Les marchés sont réservés aux membres — on ne référence ici que les
+    # pages publiques, pas les fiches individuelles (inutile pour le SEO
+    # puisqu'elles redirigent vers /login, et ça évite d'exposer les IDs).
+    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>{cfg.SITE_URL}/</loc></url>
-  <url><loc>{cfg.SITE_URL}/tenders</loc></url>
   <url><loc>{cfg.SITE_URL}/tarifs</loc></url>
-{urls}</urlset>"""
+  <url><loc>{cfg.SITE_URL}/login</loc></url>
+  <url><loc>{cfg.SITE_URL}/register</loc></url>
+</urlset>"""
     return Response(xml, media_type="application/xml")
 
 @app.get("/robots.txt")

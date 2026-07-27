@@ -43,11 +43,11 @@ class Settings:
     # Abonnement (mise à niveau manuelle via WhatsApp)
     PAYMENT_PHONE: str = os.getenv("PAYMENT_PHONE", "")
     PAYMENT_MSG:   str = os.getenv("PAYMENT_MSG", "Bonjour, je souhaite m'abonner à ATLAS PRO")
-    # Plans
+    # Plans (abonnement annuel, paiement manuel via WhatsApp)
     PLANS: dict = field(default_factory=lambda: {
-        "free":    {"name":"Gratuit","price":0,  "tenders_day":15,"email":True, "telegram":False,"api":False},
-        "pro":     {"name":"Pro",    "price":99, "tenders_day":0, "email":True, "telegram":True, "api":True},
-        "business":{"name":"Business","price":299,"tenders_day":0,"email":True, "telegram":True, "api":True},
+        "free":    {"name":"Gratuit", "price":0,   "period":"",      "tenders_day":15,"email":True, "telegram":False,"whatsapp":False,"api":False},
+        "pro":     {"name":"Annuel",  "price":3999,"period":"an",    "tenders_day":0, "email":True, "telegram":True, "whatsapp":True, "api":True},
+        "business":{"name":"Biennal", "price":6999,"period":"2 ans", "tenders_day":0, "email":True, "telegram":True, "whatsapp":True, "api":True},
     })
     SECTEURS: dict = field(default_factory=lambda: SECTORS)
     SECTOR_GROUPS: dict = field(default_factory=lambda: GROUPS)

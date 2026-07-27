@@ -57,7 +57,7 @@
     {% set free = plans.free if plans else {"name":"Gratuit","price":0,"tenders_day":15} %}
     <div class="plan-card">
       <div class="plan-name">{{ free.name }}</div>
-      <div class="plan-price-row"><span class="plan-price">0</span><span class="plan-period">MAD / mois</span></div>
+      <div class="plan-price-row"><span class="plan-price">0</span><span class="plan-period">MAD</span></div>
       <div class="plan-desc">Pour découvrir la plateforme et tester la veille sur votre secteur.</div>
       <ul class="plan-feats">
         <li>{{ free.tenders_day }} marchés consultables / jour</li>
@@ -69,11 +69,11 @@
       <a href="/register" class="btn btn-outline btn-full btn-lg">Commencer gratuitement</a>
     </div>
 
-    {% set pro = plans.pro if plans else {"name":"Pro","price":99} %}
+    {% set pro = plans.pro if plans else {"name":"Annuel","price":3999} %}
     <div class="plan-card featured">
       <div class="plan-pill">★ Le plus choisi</div>
       <div class="plan-name">{{ pro.name }}</div>
-      <div class="plan-price-row"><span class="plan-price">{{ pro.price }}</span><span class="plan-period">MAD / mois</span></div>
+      <div class="plan-price-row"><span class="plan-price">{{ pro.price }}</span><span class="plan-period">MAD / an</span></div>
       <div class="plan-desc">Pour les entreprises qui répondent régulièrement aux appels d'offres.</div>
       <ul class="plan-feats">
         <li>Marchés illimités, public & privé</li>
@@ -82,30 +82,30 @@
         <li>Historique des résultats (gagnant + montant)</li>
         <li>Accès API en lecture</li>
       </ul>
-      <a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ (cfg.PAYMENT_MSG ~ ' — Offre Pro')|urlencode }}" target="_blank" class="btn btn-accent btn-full btn-lg">Passer à Pro →</a>
+      <a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ (cfg.PAYMENT_MSG ~ ' — Abonnement Annuel (3999 MAD/an)')|urlencode }}" target="_blank" class="btn btn-accent btn-full btn-lg">S'abonner — 1 an →</a>
     </div>
 
-    {% set biz = plans.business if plans else {"name":"Business","price":299} %}
+    {% set biz = plans.business if plans else {"name":"Biennal","price":6999} %}
     <div class="plan-card">
       <div class="plan-name">{{ biz.name }}</div>
-      <div class="plan-price-row"><span class="plan-price">{{ biz.price }}</span><span class="plan-period">MAD / mois</span></div>
-      <div class="plan-desc">Pour les équipes et groupes avec plusieurs métiers à surveiller.</div>
+      <div class="plan-price-row"><span class="plan-price">{{ biz.price }}</span><span class="plan-period">MAD / 2 ans</span></div>
+      <div class="plan-desc">Le meilleur prix à l'année — engagez-vous 2 ans et économisez.</div>
       <ul class="plan-feats">
-        <li>Tout le contenu de l'offre Pro</li>
-        <li>Comptes multi-utilisateurs</li>
+        <li>Tout le contenu de l'offre Annuelle</li>
+        <li>Tarif bloqué 2 ans, aucune hausse</li>
         <li>Accès API étendu</li>
         <li>Support prioritaire dédié</li>
         <li>Accompagnement à la mise en place</li>
       </ul>
-      <a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ (cfg.PAYMENT_MSG ~ ' — Offre Business')|urlencode }}" target="_blank" class="btn btn-outline btn-full btn-lg">Passer à Business →</a>
+      <a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ (cfg.PAYMENT_MSG ~ ' — Abonnement Biennal (6999 MAD/2 ans)')|urlencode }}" target="_blank" class="btn btn-outline btn-full btn-lg">S'abonner — 2 ans →</a>
     </div>
 
   </div>
 
   <div class="trust-bar">
-    <div class="trust-item">Sans engagement</div>
-    <div class="trust-item">Sans carte bancaire pour l'offre gratuite</div>
-    <div class="trust-item">Annulation à tout moment</div>
+    <div class="trust-item">Sans engagement pour l'offre gratuite</div>
+    <div class="trust-item">Paiement par virement bancaire</div>
+    <div class="trust-item">Contrat fourni pour chaque abonnement</div>
   </div>
 </div>
 
@@ -117,7 +117,7 @@
   </div>
   <div class="faq-item">
     <div class="faq-q">Comment fonctionne le paiement ?</div>
-    <div class="faq-a">Le paiement se fait directement avec notre équipe, par virement ou paiement mobile. Contactez-nous depuis la page d'offre pour finaliser votre abonnement.</div>
+    <div class="faq-a">Vous nous contactez par WhatsApp depuis cette page. Nous établissons ensemble un contrat d'abonnement, puis le règlement se fait par virement bancaire direct vers notre compte. L'accès est activé dès réception du virement.</div>
   </div>
   <div class="faq-item">
     <div class="faq-q">Les alertes WhatsApp sont-elles vraiment en temps réel ?</div>

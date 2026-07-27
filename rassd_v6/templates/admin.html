@@ -203,8 +203,8 @@ tr:hover td { background: var(--surface2); }
               <form method="post" action="/admin/member/{{ m.id }}/plan">
                 <select name="plan" class="sel" onchange="this.form.submit()">
                   <option value="free" {% if m.plan=='free' %}selected{% endif %}>Gratuit</option>
-                  <option value="pro" {% if m.plan=='pro' %}selected{% endif %}>Pro</option>
-                  <option value="business" {% if m.plan=='business' %}selected{% endif %}>Business</option>
+                  <option value="pro" {% if m.plan=='pro' %}selected{% endif %}>Annuel (3999/an)</option>
+                  <option value="business" {% if m.plan=='business' %}selected{% endif %}>Biennal (6999/2ans)</option>
                 </select>
               </form>
             </td>

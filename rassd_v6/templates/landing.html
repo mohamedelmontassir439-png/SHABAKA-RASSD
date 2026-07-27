@@ -20,6 +20,15 @@
 .hero-card-obj { font-size: 14px; font-weight: 600; color: var(--text1); max-width: 260px; }
 .hero-card-meta { font-size: 12px; color: var(--text3); margin-top: 3px; }
 
+.hero-card-locked { position: relative; overflow: hidden; filter: blur(.5px); }
+.skeleton-line { height: 12px; border-radius: 4px; background: var(--surface2); margin-bottom: 8px; }
+.skeleton-line-sm { height: 9px; width: 40%; margin-bottom: 0; opacity: .7; }
+.skeleton-badge { width: 52px; height: 22px; border-radius: 999px; background: var(--surface2); flex-shrink: 0; }
+.hero-card-lock-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 20px; background: linear-gradient(180deg, rgba(255,255,255,.4) 0%, var(--surface) 55%); }
+@media (prefers-color-scheme: dark) { .hero-card-lock-overlay { background: linear-gradient(180deg, rgba(16,26,48,.4) 0%, var(--surface) 55%); } }
+.hero-card-lock-icon { font-size: 26px; }
+.hero-card-lock-text { font-size: 13.5px; font-weight: 600; color: var(--text2); max-width: 220px; line-height: 1.4; }
+
 /* ── LIVE COUNTER ─────────────────────────────── */
 .live-bar { background: var(--surface); border-bottom: 1px solid var(--line); padding: 36px 0; }
 .live-inner { display: flex; gap: 0; justify-content: center; align-items: center; flex-wrap: wrap; }
@@ -57,6 +66,11 @@
 .latest-meta { font-size: 13px; color: var(--text3); }
 .latest-arrow { color: var(--text4); transition: transform .15s; }
 .latest-row:hover .latest-arrow { transform: translateX(4px); color: var(--ink); }
+
+.latest-locked { position: relative; }
+.latest-row-skeleton { filter: blur(.5px); pointer-events: none; }
+.latest-lock-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 20px; background: linear-gradient(180deg, rgba(255,255,255,.25) 0%, var(--bg) 60%); border-radius: var(--r3); }
+@media (prefers-color-scheme: dark) { .latest-lock-overlay { background: linear-gradient(180deg, rgba(10,18,32,.25) 0%, var(--bg) 60%); } }
 
 /* ── SOCIAL PROOF ─────────────────────────────── */
 .proof { padding: 96px 0; background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
@@ -108,8 +122,9 @@
       </div>
     </div>
     <div class="hero-visual">
+      {% if recent %}
       <div class="hero-card">
-        {% for t in (recent[:3] if recent else []) %}
+        {% for t in recent[:3] %}
         <div class="hero-card-row">
           <div>
             <div class="hero-card-obj">{{ t.objet[:60] }}{% if t.objet|length > 60 %}…{% endif %}</div>
@@ -117,10 +132,26 @@
           </div>
           <span class="badge {% if t.type_offre=='Privé' %}badge-blue{% else %}badge-gold{% endif %}">{{ t.type_offre or 'Public' }}</span>
         </div>
-        {% else %}
-        <div class="hero-card-row"><div class="hero-card-meta">La veille démarre — les premiers marchés apparaîtront ici.</div></div>
         {% endfor %}
       </div>
+      {% else %}
+      <div class="hero-card hero-card-locked">
+        {% for i in range(3) %}
+        <div class="hero-card-row">
+          <div style="flex:1;">
+            <div class="skeleton-line" style="width: {{ [78,64,88][i] }}%;"></div>
+            <div class="skeleton-line skeleton-line-sm" style="width: {{ [40,52,34][i] }}%;"></div>
+          </div>
+          <div class="skeleton-badge"></div>
+        </div>
+        {% endfor %}
+        <div class="hero-card-lock-overlay">
+          <div class="hero-card-lock-icon">🔒</div>
+          <div class="hero-card-lock-text">Connectez-vous pour voir les marchés en direct</div>
+          <a href="/register" class="btn btn-accent btn-sm">Accès gratuit →</a>
+        </div>
+      </div>
+      {% endif %}
     </div>
   </div>
 </section>
@@ -229,10 +260,26 @@
       {% endfor %}
     </div>
     {% else %}
-    <p class="section-sub">La veille démarre — les premiers marchés apparaîtront ici sous peu.</p>
+    <div class="latest-list latest-locked">
+      {% for i in range(4) %}
+      <div class="latest-row latest-row-skeleton">
+        <div style="width:100%;">
+          <div class="skeleton-line" style="width: {{ [72,58,80,66][i] }}%;"></div>
+        </div>
+        <div class="skeleton-line skeleton-line-sm" style="width:70%;"></div>
+        <div class="skeleton-line skeleton-line-sm" style="width:60%;"></div>
+        <div class="skeleton-badge" style="width:16px;height:16px;border-radius:4px;"></div>
+      </div>
+      {% endfor %}
+      <div class="latest-lock-overlay">
+        <div class="hero-card-lock-icon">🔒</div>
+        <div class="hero-card-lock-text">Les marchés en temps réel sont réservés aux membres inscrits</div>
+        <a href="/register" class="btn btn-accent btn-lg">Créer un compte gratuit →</a>
+      </div>
+    </div>
     {% endif %}
     <div style="text-align: center; margin-top: 44px;">
-      <a href="/tenders" class="btn btn-outline btn-lg">Voir tous les marchés →</a>
+      <a href="{{ '/tenders' if recent else '/register' }}" class="btn btn-outline btn-lg">{{ 'Voir tous les marchés →' if recent else 'Voir les marchés — inscription gratuite →' }}</a>
     </div>
   </div>
 </section>
