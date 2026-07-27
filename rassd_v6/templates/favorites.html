@@ -26,8 +26,8 @@
 
 <div class="container">
   <section class="fav-hero">
-    <div class="section-label">Vos favoris</div>
-    <h1 class="display-l">{{ tenders|length }} marché{% if tenders|length > 1 %}s{% endif %} <em>sauvegardé{% if tenders|length > 1 %}s{% endif %}</em></h1>
+    <div class="section-label">{{ tr('fav_label') }}</div>
+    <h1 class="display-l">{{ tr('fav_count', n=tenders|length, s=('s' if tenders|length > 1 and lang=='fr' else ''))|safe }}</h1>
   </section>
 
   {% if tenders %}
@@ -38,23 +38,23 @@
       <div>
         <div class="fav-title">{{ t.objet[:140] }}</div>
         <div class="fav-tags">
-          {% if t.type_offre=='Privé' %}<span class="badge badge-blue">Privé</span>{% endif %}
+          {% if t.type_offre=='Privé' %}<span class="badge badge-blue">{{ tr('tenders_private') }}</span>{% endif %}
           <span class="badge badge-gold">{{ get_label(t.secteur)[:22] }}</span>
           {% if dl_l and dl_n <= 7 %}<span class="badge badge-red">{{ dl_l }}</span>{% endif %}
         </div>
       </div>
       <div class="fav-buyer">{{ (t.acheteur or '—')[:36] }}</div>
       <div class="fav-deadline">{% if t.date_limite %}⏰ {{ t.date_limite }}{% endif %}</div>
-      <div class="fav-arrow">→</div>
+      <div class="fav-arrow">{{ '←' if dir=='rtl' else '→' }}</div>
     </a>
     {% endfor %}
   </div>
   {% else %}
   <div class="empty">
     <div class="empty-glyph">☆</div>
-    <div class="empty-h">Aucun <em>favori</em></div>
-    <div class="empty-p">Ajoutez des marchés à vos favoris depuis la liste ou la page de détail pour les retrouver ici.</div>
-    <a href="/tenders" class="btn btn-primary btn-lg">Explorer les marchés →</a>
+    <div class="empty-h">{{ tr('fav_empty_title')|safe }}</div>
+    <div class="empty-p">{{ tr('fav_empty_text') }}</div>
+    <a href="/tenders" class="btn btn-primary btn-lg">{{ tr('fav_explore') }}</a>
   </div>
   {% endif %}
 </div>

@@ -18,24 +18,24 @@
 <div class="auth-wrap">
   <div class="auth-card">
     <div class="auth-mark">A</div>
-    <h1 class="auth-title">Bon retour</h1>
-    <p class="auth-sub">Reprenez là où vous l'aviez laissé.</p>
+    <h1 class="auth-title">{{ tr('login_title') }}</h1>
+    <p class="auth-sub">{{ tr('login_sub') }}</p>
 
     <div class="auth-panel">
-      {% if request.query_params.get("reset") %}<div class="alert alert-ok" style="margin-bottom: 20px;">✓ Mot de passe réinitialisé avec succès.</div>{% endif %}
+      {% if request.query_params.get("reset") %}<div class="alert alert-ok" style="margin-bottom: 20px;">{{ tr('login_reset_ok') }}</div>{% endif %}
       {% if err %}<div class="alert alert-err" style="margin-bottom: 20px;">{{ err }}</div>{% endif %}
 
       <form method="post" class="auth-form">
         <input type="hidden" name="next" value="{{ next }}">
-        <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" class="inp" required autofocus value="{{ (vals or {}).get('email','') }}"></div>
-        <div class="field"><label for="pw">Mot de passe</label><input id="pw" name="pw" type="password" class="inp" required></div>
-        <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top: 4px;">Se connecter →</button>
+        <div class="field"><label for="email">{{ tr('login_email') }}</label><input id="email" name="email" type="email" class="inp" required autofocus value="{{ (vals or {}).get('email','') }}"></div>
+        <div class="field"><label for="pw">{{ tr('login_pw') }}</label><input id="pw" name="pw" type="password" class="inp" required></div>
+        <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top: 4px;">{{ tr('login_submit') }}</button>
       </form>
     </div>
 
     <div class="auth-foot">
-      <a href="/forgot" class="auth-foot-link">Mot de passe oublié ?</a>
-      Pas encore de compte ? <a href="/register">S'inscrire gratuitement</a>
+      <a href="/forgot" class="auth-foot-link">{{ tr('login_forgot') }}</a>
+      {{ tr('login_no_account') }} <a href="/register">{{ tr('login_signup_link') }}</a>
     </div>
   </div>
 </div>

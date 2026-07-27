@@ -113,12 +113,12 @@
 <section class="hero">
   <div class="hero-grid">
     <div>
-      <div class="hero-eyebrow">✦ Marchés publics & privés du Maroc</div>
-      <h1 class="hero-title">La veille qui trouve <em>les marchés avant vous.</em></h1>
-      <p class="hero-sub">Atlas Pro surveille en continu les marchés publics et privés au Maroc et vous alerte dès qu'une opportunité correspond à votre secteur — par Email, Telegram et WhatsApp.</p>
+      <div class="hero-eyebrow">{{ tr('hero_eyebrow') }}</div>
+      <h1 class="hero-title">{{ tr('hero_title')|safe }}</h1>
+      <p class="hero-sub">{{ tr('hero_sub') }}</p>
       <div class="hero-cta">
-        <a href="/register" class="btn btn-accent btn-xl">Accéder gratuitement →</a>
-        <a href="/tenders" class="btn btn-outline btn-xl">Voir les marchés</a>
+        <a href="/register" class="btn btn-accent btn-xl">{{ tr('hero_cta_free') }}</a>
+        <a href="/tenders" class="btn btn-outline btn-xl">{{ tr('hero_cta_tenders') }}</a>
       </div>
     </div>
     <div class="hero-visual">
@@ -130,7 +130,7 @@
             <div class="hero-card-obj">{{ t.objet[:60] }}{% if t.objet|length > 60 %}…{% endif %}</div>
             <div class="hero-card-meta">{{ (t.acheteur or 'Maroc')[:34] }}</div>
           </div>
-          <span class="badge {% if t.type_offre=='Privé' %}badge-blue{% else %}badge-gold{% endif %}">{{ t.type_offre or 'Public' }}</span>
+          <span class="badge {% if t.type_offre=='Privé' %}badge-blue{% else %}badge-gold{% endif %}">{{ tr('tenders_private') if t.type_offre=='Privé' else tr('tenders_public') }}</span>
         </div>
         {% endfor %}
       </div>
@@ -147,8 +147,8 @@
         {% endfor %}
         <div class="hero-card-lock-overlay">
           <div class="hero-card-lock-icon">🔒</div>
-          <div class="hero-card-lock-text">Connectez-vous pour voir les marchés en direct</div>
-          <a href="/register" class="btn btn-accent btn-sm">Accès gratuit →</a>
+          <div class="hero-card-lock-text">{{ tr('hero_locked_text') }}</div>
+          <a href="/register" class="btn btn-accent btn-sm">{{ tr('hero_locked_cta') }}</a>
         </div>
       </div>
       {% endif %}
@@ -161,22 +161,22 @@
   <div class="live-inner">
     <div class="live-item">
       <div class="live-n">{{ stats.tenders or '—' }}</div>
-      <div class="live-l">Marchés actifs</div>
+      <div class="live-l">{{ tr('live_tenders') }}</div>
     </div>
     <div class="live-sep"></div>
     <div class="live-item">
       <div class="live-n">{{ stats.today or '—' }}</div>
-      <div class="live-l">Publiés aujourd'hui</div>
+      <div class="live-l">{{ tr('live_today') }}</div>
     </div>
     <div class="live-sep"></div>
     <div class="live-item">
       <div class="live-n">2</div>
-      <div class="live-l">Sources surveillées</div>
+      <div class="live-l">{{ tr('live_sources') }}</div>
     </div>
     <div class="live-sep"></div>
     <div class="live-item">
       <div class="live-n">24/7</div>
-      <div class="live-l">Veille continue</div>
+      <div class="live-l">{{ tr('live_continuous') }}</div>
     </div>
   </div>
 </div>
@@ -184,24 +184,24 @@
 <!-- PAIN -->
 <section class="pain">
   <div class="container">
-    <div class="section-label">Le problème</div>
-    <div class="section-title" style="max-width: 720px;">Chaque jour, des marchés vous <em>échappent</em></div>
-    <p class="section-sub" style="font-size: 16.5px;">Les opportunités existent. Mais elles sont éparpillées sur plusieurs plateformes publiques et privées, avec des délais très courts. Sans veille systématique, vous les ratez.</p>
+    <div class="section-label">{{ tr('pain_label') }}</div>
+    <div class="section-title" style="max-width: 720px;">{{ tr('pain_title')|safe }}</div>
+    <p class="section-sub" style="font-size: 16.5px;">{{ tr('pain_sub') }}</p>
     <div class="pain-grid">
       <div class="pain-card">
         <div class="pain-num">01</div>
-        <div class="pain-title">Sources <em>dispersées</em></div>
-        <div class="pain-text">Le portail national des marchés publics et les plateformes privées publient en continu. Les vérifier manuellement chaque jour est impossible.</div>
+        <div class="pain-title">{{ tr('pain1_title')|safe }}</div>
+        <div class="pain-text">{{ tr('pain1_text') }}</div>
       </div>
       <div class="pain-card">
         <div class="pain-num">02</div>
-        <div class="pain-title">Délais <em>serrés</em></div>
-        <div class="pain-text">Parfois quelques jours seulement. Le temps de découvrir l'avis et monter une offre, la deadline est déjà dépassée.</div>
+        <div class="pain-title">{{ tr('pain2_title')|safe }}</div>
+        <div class="pain-text">{{ tr('pain2_text') }}</div>
       </div>
       <div class="pain-card">
         <div class="pain-num">03</div>
-        <div class="pain-title">Avantage <em>perdu</em></div>
-        <div class="pain-text">Les entreprises équipées d'une veille soumettent plus tôt, mieux préparées. Chaque jour sans alerte est un désavantage.</div>
+        <div class="pain-title">{{ tr('pain3_title')|safe }}</div>
+        <div class="pain-text">{{ tr('pain3_text') }}</div>
       </div>
     </div>
   </div>
@@ -210,32 +210,32 @@
 <!-- VALUE -->
 <section class="value">
   <div class="container">
-    <div class="section-label">Notre réponse</div>
-    <div class="section-title" style="max-width: 720px;">Quatre piliers pour ne plus rien <em>rater</em></div>
+    <div class="section-label">{{ tr('value_label') }}</div>
+    <div class="section-title" style="max-width: 720px;">{{ tr('value_title')|safe }}</div>
     <div class="value-grid">
       <div class="value-item">
-        <div class="value-num">01 — Vitesse</div>
-        <div class="value-title">Alerte <em>immédiate</em> dès la publication</div>
-        <div class="value-text">Notre système surveille en continu les marchés publics et privés. Dès qu'une opportunité correspond à votre activité, vous êtes notifié — avant vos concurrents.</div>
-        <div class="value-result">✓ Premier informé, premier servi</div>
+        <div class="value-num">{{ tr('value1_num') }}</div>
+        <div class="value-title">{{ tr('value1_title')|safe }}</div>
+        <div class="value-text">{{ tr('value1_text') }}</div>
+        <div class="value-result">{{ tr('value1_result') }}</div>
       </div>
       <div class="value-item">
-        <div class="value-num">02 — Précision</div>
-        <div class="value-title">Filtrage <em>intelligent</em> par secteur</div>
-        <div class="value-text">Définissez votre domaine une fois. Chaque marché est classé automatiquement selon le référentiel officiel — vous ne recevez que ce qui vous concerne.</div>
-        <div class="value-result">✓ Zéro bruit, signal pur</div>
+        <div class="value-num">{{ tr('value2_num') }}</div>
+        <div class="value-title">{{ tr('value2_title')|safe }}</div>
+        <div class="value-text">{{ tr('value2_text') }}</div>
+        <div class="value-result">{{ tr('value2_result') }}</div>
       </div>
       <div class="value-item">
-        <div class="value-num">03 — Couverture</div>
-        <div class="value-title">Public <em>et</em> privé, en un seul endroit</div>
-        <div class="value-text">Marchés publics (marchespublics.gov.ma) et appels d'offres privés réunis dans un tableau de bord unique, avec la même veille en temps réel.</div>
-        <div class="value-result">✓ Une seule plateforme à surveiller</div>
+        <div class="value-num">{{ tr('value3_num') }}</div>
+        <div class="value-title">{{ tr('value3_title')|safe }}</div>
+        <div class="value-text">{{ tr('value3_text') }}</div>
+        <div class="value-result">{{ tr('value3_result') }}</div>
       </div>
       <div class="value-item">
-        <div class="value-num">04 — Profondeur</div>
-        <div class="value-title">Tableau de bord & <em>favoris</em></div>
-        <div class="value-text">Un espace conçu pour les professionnels : favoris, historique, recherche multicritère. Votre centre de veille personnel.</div>
-        <div class="value-result">✓ Mémoire institutionnelle</div>
+        <div class="value-num">{{ tr('value4_num') }}</div>
+        <div class="value-title">{{ tr('value4_title')|safe }}</div>
+        <div class="value-text">{{ tr('value4_text') }}</div>
+        <div class="value-result">{{ tr('value4_result') }}</div>
       </div>
     </div>
   </div>
@@ -244,8 +244,8 @@
 <!-- LATEST TENDERS -->
 <section class="latest">
   <div class="container">
-    <div class="section-label">Derniers marchés</div>
-    <div class="section-title" style="max-width: 720px;">Voici ce qui vient de <em>paraître</em></div>
+    <div class="section-label">{{ tr('latest_label') }}</div>
+    <div class="section-title" style="max-width: 720px;">{{ tr('latest_title')|safe }}</div>
     {% if recent %}
     <div class="latest-list">
       {% for t in recent[:6] %}
@@ -254,8 +254,8 @@
           <div class="latest-title">{{ t.objet[:110] }}{% if t.objet|length > 110 %}…{% endif %}</div>
         </div>
         <div class="latest-meta">{{ (t.acheteur or 'Maroc')[:28] }}</div>
-        <div class="latest-meta">{{ t.date_limite or 'À définir' }}</div>
-        <div class="latest-arrow">→</div>
+        <div class="latest-meta">{{ t.date_limite or tr('latest_empty') }}</div>
+        <div class="latest-arrow">{{ '←' if dir=='rtl' else '→' }}</div>
       </a>
       {% endfor %}
     </div>
@@ -273,13 +273,13 @@
       {% endfor %}
       <div class="latest-lock-overlay">
         <div class="hero-card-lock-icon">🔒</div>
-        <div class="hero-card-lock-text">Les marchés en temps réel sont réservés aux membres inscrits</div>
-        <a href="/register" class="btn btn-accent btn-lg">Créer un compte gratuit →</a>
+        <div class="hero-card-lock-text">{{ tr('latest_locked_text') }}</div>
+        <a href="/register" class="btn btn-accent btn-lg">{{ tr('latest_locked_cta') }}</a>
       </div>
     </div>
     {% endif %}
     <div style="text-align: center; margin-top: 44px;">
-      <a href="{{ '/tenders' if recent else '/register' }}" class="btn btn-outline btn-lg">{{ 'Voir tous les marchés →' if recent else 'Voir les marchés — inscription gratuite →' }}</a>
+      <a href="{{ '/tenders' if recent else '/register' }}" class="btn btn-outline btn-lg">{{ tr('latest_view_all') if recent else tr('latest_view_signup') }}</a>
     </div>
   </div>
 </section>
@@ -287,27 +287,27 @@
 <!-- PROOF -->
 <section class="proof">
   <div class="container">
-    <div class="section-label">Témoignages</div>
-    <div class="section-title" style="max-width: 720px;">Ils nous font <em>confiance</em></div>
-    <p class="section-sub" style="font-size: 15.5px;">Des entreprises de plusieurs secteurs utilisent Atlas Pro au quotidien pour ne plus rater une opportunité.</p>
+    <div class="section-label">{{ tr('proof_label') }}</div>
+    <div class="section-title" style="max-width: 720px;">{{ tr('proof_title')|safe }}</div>
+    <p class="section-sub" style="font-size: 15.5px;">{{ tr('proof_sub') }}</p>
     <div class="proof-grid">
       <div class="proof-card">
         <div class="proof-stars">★★★★★</div>
-        <div class="proof-text">"Avant, deux heures par jour à chercher. Maintenant l'alerte arrive sur le téléphone. Trois offres soumises ce mois-ci que j'aurais ratées."</div>
+        <div class="proof-text">{{ tr('proof1_text') }}</div>
         <div class="proof-author">K. Benali</div>
-        <div class="proof-sector">Travaux BTP · Casablanca</div>
+        <div class="proof-sector">{{ tr('proof1_sector') }}</div>
       </div>
       <div class="proof-card">
         <div class="proof-stars">★★★★★</div>
-        <div class="proof-text">"Ce qui m'a convaincu c'est la rapidité. Je reçois l'alerte avant même que le marché soit visible ailleurs. Vrai avantage."</div>
+        <div class="proof-text">{{ tr('proof2_text') }}</div>
         <div class="proof-author">M. Tahiri</div>
-        <div class="proof-sector">IT & Télécoms · Rabat</div>
+        <div class="proof-sector">{{ tr('proof2_sector') }}</div>
       </div>
       <div class="proof-card">
         <div class="proof-stars">★★★★★</div>
-        <div class="proof-text">"Le filtrage par secteur change tout. Je ne reçois que ce qui me concerne. Plus de temps pour les dossiers — et ça se voit."</div>
+        <div class="proof-text">{{ tr('proof3_text') }}</div>
         <div class="proof-author">S. Alaoui</div>
-        <div class="proof-sector">Études & Conseil · Fès</div>
+        <div class="proof-sector">{{ tr('proof3_sector') }}</div>
       </div>
     </div>
   </div>
@@ -316,14 +316,14 @@
 <!-- FINAL CTA -->
 <section class="final-cta">
   <div class="final-cta-content">
-    <div class="final-cta-eyebrow">✦ Atlas Pro</div>
-    <h2 class="final-cta-title">Ne laissez plus <em>aucune</em> opportunité vous échapper</h2>
-    <p class="final-cta-text">Créez votre compte, définissez vos secteurs d'activité, et laissez la veille travailler pour vous — 24h/24, sur les marchés publics comme privés, partout au Maroc.</p>
-    <a href="/register" class="btn btn-accent btn-xl">Créer mon compte gratuitement →</a>
+    <div class="final-cta-eyebrow">{{ tr('finalcta_eyebrow') }}</div>
+    <h2 class="final-cta-title">{{ tr('finalcta_title')|safe }}</h2>
+    <p class="final-cta-text">{{ tr('finalcta_text') }}</p>
+    <a href="/register" class="btn btn-accent btn-xl">{{ tr('finalcta_cta') }}</a>
     <div class="final-cta-note">
-      <span>Sans carte bancaire</span>
-      <span>Configuration en 2 minutes</span>
-      <span>Alertes Email, Telegram & WhatsApp</span>
+      <span>{{ tr('finalcta_note1') }}</span>
+      <span>{{ tr('finalcta_note2') }}</span>
+      <span>{{ tr('finalcta_note3') }}</span>
     </div>
   </div>
 </section>

@@ -15,17 +15,17 @@
 <div class="auth-wrap">
   <div class="auth-card">
     <div class="auth-mark">A</div>
-    <h1 class="auth-title">Choisir un <em>nouveau mot de passe</em></h1>
-    <p class="auth-sub">Il doit contenir au moins 8 caractères.</p>
+    <h1 class="auth-title">{{ tr('reset_title')|safe }}</h1>
+    <p class="auth-sub">{{ tr('reset_sub') }}</p>
 
     <div class="auth-panel">
       {% if err %}<div class="alert alert-err" style="margin-bottom: 20px;">{{ err }}</div>{% endif %}
 
       <form method="post" class="auth-form">
         <input type="hidden" name="token" value="{{ token }}">
-        <div class="field"><label for="pw">Nouveau mot de passe</label><input id="pw" name="pw" type="password" class="inp" required minlength="8" autofocus placeholder="Min. 8 caractères"></div>
-        <div class="field"><label for="pw2">Confirmer</label><input id="pw2" name="pw2" type="password" class="inp" required placeholder="Répéter"></div>
-        <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top: 4px;">Réinitialiser →</button>
+        <div class="field"><label for="pw">{{ tr('reset_pw') }}</label><input id="pw" name="pw" type="password" class="inp" required minlength="8" autofocus placeholder="{{ tr('reg_pw_hint') }}"></div>
+        <div class="field"><label for="pw2">{{ tr('reset_pw2') }}</label><input id="pw2" name="pw2" type="password" class="inp" required placeholder="{{ tr('reg_pw2_hint') }}"></div>
+        <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top: 4px;">{{ tr('reset_submit') }}</button>
       </form>
     </div>
   </div>

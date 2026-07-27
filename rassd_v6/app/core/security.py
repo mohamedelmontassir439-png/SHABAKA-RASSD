@@ -100,7 +100,7 @@ def require_admin(req: Request):
 def validate_email(email: str) -> bool:
     return bool(re.match(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$', email))
 
-def validate_password(pw: str) -> tuple[bool, str]:
+def validate_password(pw: str, lang: str = "fr") -> tuple[bool, str]:
     """Valide qu'un mot de passe est suffisamment fort.
 
     Règles:
@@ -108,22 +108,23 @@ def validate_password(pw: str) -> tuple[bool, str]:
     - Au moins 1 chiffre OU 1 caractère spécial (anti-mot-de-passe trivial)
     - Pas dans la liste des mots de passe trop courants
     """
+    from app.core.i18n import tr as _tr
     if len(pw) < 8:
-        return False, "Au moins 8 caractères"
+        return False, _tr("err_pw_min8", lang)
     if len(pw) > 128:
-        return False, "Trop long (max 128 caractères)"
+        return False, _tr("err_pw_too_long", lang)
 
     # Rejette les mots de passe trop faibles même s'ils font 8+ caractères
     weak = {"password", "12345678", "qwerty12", "admin123", "atlas123",
             "00000000", "11111111", "abcdefgh", "password1"}
     if pw.lower() in weak:
-        return False, "Mot de passe trop commun"
+        return False, _tr("err_pw_too_common", lang)
 
     # Exige au moins 1 chiffre OU 1 caractère spécial
     has_digit = any(c.isdigit() for c in pw)
     has_special = any(not c.isalnum() for c in pw)
     if not (has_digit or has_special):
-        return False, "Ajoute au moins un chiffre ou un caractère spécial"
+        return False, _tr("err_pw_need_digit", lang)
 
     return True, ""
 
@@ -138,8 +139,9 @@ def is_plan_allowed(member: dict, feature: str) -> bool:
         return limit == 0  # 0 = unlimited
     return False
 
-def days_left(dl: str):
+def days_left(dl: str, lang: str = "fr"):
     """Retourne (nb_jours: int, label: str)"""
+    from app.core.i18n import tr as _tr
     if not dl or str(dl).strip() in ("", "N/A", "—", "-"):
         return 999, ""
     import re as _re
@@ -150,11 +152,11 @@ def days_left(dl: str):
         fmt   = "%d/%m/%Y" if "/" in m.group(1)[:3] else "%Y-%m-%d"
         d     = datetime.strptime(m.group(1), fmt).date()
         delta = (d - date.today()).days
-        if delta < 0:   return delta, "Expiré"
-        if delta == 0:  return 0,     "Aujourd'hui !"
-        if delta == 1:  return 1,     "Demain"
-        if delta <= 3:  return delta, f"{delta}j 🔥"
-        if delta <= 7:  return delta, f"{delta}j ⏳"
-        return delta, f"{delta} jours"
+        if delta < 0:   return delta, _tr("dl_expired", lang)
+        if delta == 0:  return 0,     _tr("dl_today", lang)
+        if delta == 1:  return 1,     _tr("dl_tomorrow", lang)
+        if delta <= 3:  return delta, _tr("dl_days_urgent", lang, n=delta)
+        if delta <= 7:  return delta, _tr("dl_days_soon", lang, n=delta)
+        return delta, _tr("dl_days", lang, n=delta)
     except Exception:
         return 999, ""

@@ -41,43 +41,43 @@
 
 <div class="container" style="padding-top: 16px;">
   <section class="dash-hero">
-    <div class="section-label">Espace personnel</div>
-    <h1 class="dash-greeting">Bonjour, <em>{{ member.nom or 'bienvenue' }}</em></h1>
+    <div class="section-label">{{ tr('dash_label') }}</div>
+    <h1 class="dash-greeting">{{ tr('dash_hello', name=(member.nom or tr('dash_welcome_default'))|e)|safe }}</h1>
     <div class="dash-meta">
-      <div class="dash-meta-item">Plan <span>{{ member.plan|upper }}</span></div>
-      <div class="dash-meta-item">Statut <span>Actif</span></div>
-      <div class="dash-meta-item">Membre depuis <span>{{ (member.created_at or '')[:10] }}</span></div>
+      <div class="dash-meta-item">{{ tr('dash_plan') }} <span>{{ member.plan|upper }}</span></div>
+      <div class="dash-meta-item">{{ tr('dash_status') }} <span>{{ tr('dash_active') }}</span></div>
+      <div class="dash-meta-item">{{ tr('dash_member_since') }} <span>{{ (member.created_at or '')[:10] }}</span></div>
     </div>
   </section>
 
   <div class="stats-row">
     <div class="stat-cell">
       <div class="stat-num">{{ stats.favs or 0 }}</div>
-      <div class="stat-label">Favoris</div>
+      <div class="stat-label">{{ tr('dash_stat_favs') }}</div>
     </div>
     <div class="stat-cell">
       <div class="stat-num">{{ stats.notifs or 0 }}</div>
-      <div class="stat-label">Alertes reçues</div>
+      <div class="stat-label">{{ tr('dash_stat_notifs') }}</div>
     </div>
     <div class="stat-cell">
       <div class="stat-num">{{ member.plan|upper if member.plan else '—' }}</div>
-      <div class="stat-label">Plan actuel</div>
+      <div class="stat-label">{{ tr('dash_stat_plan') }}</div>
     </div>
     <div class="stat-cell">
       <div class="stat-num" style="color: var(--grn);">●</div>
-      <div class="stat-label">En activité</div>
+      <div class="stat-label">{{ tr('dash_stat_active') }}</div>
     </div>
   </div>
 
   <div class="dash-grid">
     <div>
-      <div class="dash-section-label">Marchés recommandés</div>
+      <div class="dash-section-label">{{ tr('dash_recommended') }}</div>
       {% if recs %}
         {% for t in recs %}
         {% set dl_n, dl_l = days_left(t.date_limite) %}
         <a href="/tenders/{{ t.id }}" class="rec-row">
           <div class="rec-tags">
-            {% if t.type_offre=='Privé' %}<span class="badge badge-blue">Privé</span>{% endif %}
+            {% if t.type_offre=='Privé' %}<span class="badge badge-blue">{{ tr('tenders_private') }}</span>{% endif %}
             <span class="badge badge-gold">{{ get_label(t.secteur)[:22] }}</span>
             {% if dl_l and dl_n <= 7 %}<span class="badge badge-red">{{ dl_l }}</span>{% endif %}
           </div>
@@ -87,14 +87,14 @@
         {% endfor %}
       {% else %}
       <div class="empty-tile">
-        <div class="empty-tile-text">Définissez vos secteurs pour des recommandations personnalisées.</div>
-        <a href="/settings" class="btn btn-outline btn-sm">Configurer mes secteurs →</a>
+        <div class="empty-tile-text">{{ tr('dash_no_recs') }}</div>
+        <a href="/settings" class="btn btn-outline btn-sm">{{ tr('dash_configure') }}</a>
       </div>
       {% endif %}
     </div>
 
     <div>
-      <div class="dash-section-label">Dernières notifications</div>
+      <div class="dash-section-label">{{ tr('dash_notifs_title') }}</div>
       {% if notifs %}
         {% for n in notifs %}
         <div class="notif-row">
@@ -107,19 +107,19 @@
         {% endfor %}
       {% else %}
       <div class="empty-tile">
-        <div class="empty-tile-text">Aucune notification reçue. Activez les alertes pour rester informé.</div>
-        <a href="/settings" class="btn btn-primary btn-sm">Activer les alertes →</a>
+        <div class="empty-tile-text">{{ tr('dash_no_notifs') }}</div>
+        <a href="/settings" class="btn btn-primary btn-sm">{{ tr('dash_enable_alerts') }}</a>
       </div>
       {% endif %}
     </div>
   </div>
 
   <div class="quick-bar">
-    <span class="quick-bar-label">Accès rapide</span>
-    <a href="/tenders" class="btn btn-outline btn-sm">Tous les marchés</a>
-    <a href="/favorites" class="btn btn-outline btn-sm">★ Favoris</a>
-    <a href="/settings" class="btn btn-outline btn-sm">Alertes</a>
-    <a href="/feedback" class="btn btn-outline btn-sm">Feedback</a>
+    <span class="quick-bar-label">{{ tr('dash_quick_access') }}</span>
+    <a href="/tenders" class="btn btn-outline btn-sm">{{ tr('dash_all_tenders') }}</a>
+    <a href="/favorites" class="btn btn-outline btn-sm">{{ tr('dash_favorites') }}</a>
+    <a href="/settings" class="btn btn-outline btn-sm">{{ tr('dash_alerts') }}</a>
+    <a href="/feedback" class="btn btn-outline btn-sm">{{ tr('dash_feedback') }}</a>
   </div>
 </div>
 {% endblock %}

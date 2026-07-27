@@ -38,11 +38,11 @@
 
 <div class="res-hero">
   <div class="container">
-    <div class="section-label" style="margin-bottom: 10px;">Adjudications · Maroc</div>
-    <h1 class="display-l">{{ total }} résultats <em>publiés</em></h1>
+    <div class="section-label" style="margin-bottom: 10px;">{{ tr('res_hero_label') }}</div>
+    <h1 class="display-l">{{ tr('res_title', n=total)|safe }}</h1>
     <div class="res-meta">
-      <div class="res-meta-item">Attributaire <span>et montant final</span></div>
-      <div class="res-meta-item">Mise à jour <span>continue</span></div>
+      <div class="res-meta-item">{{ tr('res_meta_winner')|safe }}</div>
+      <div class="res-meta-item">{{ tr('res_meta_updated')|safe }}</div>
     </div>
   </div>
 </div>
@@ -50,10 +50,10 @@
 <div class="container">
   <form method="get" class="filters-bar">
     <div class="search-input">
-      <input name="q" value="{{ q }}" class="inp" placeholder="Rechercher par objet, acheteur ou attributaire…">
+      <input name="q" value="{{ q }}" class="inp" placeholder="{{ tr('res_search_placeholder') }}">
     </div>
-    <button type="submit" class="btn btn-outline btn-sm">Filtrer</button>
-    {% if q %}<a href="/resultats" class="btn btn-ghost btn-sm">✕ Effacer</a>{% endif %}
+    <button type="submit" class="btn btn-outline btn-sm">{{ tr('tenders_filter') }}</button>
+    {% if q %}<a href="/resultats" class="btn btn-ghost btn-sm">{{ tr('tenders_clear') }}</a>{% endif %}
   </form>
 
   {% if resultats %}
@@ -64,30 +64,30 @@
       <div class="res-tags">
         <span class="badge badge-gold">{{ get_label(r.secteur)[:24] }}</span>
         {% if r.region %}<span class="badge badge-gray">{{ r.region[:18] }}</span>{% endif %}
-        {% if r.reference %}<span class="badge badge-gray">Réf. {{ r.reference[:20] }}</span>{% endif %}
+        {% if r.reference %}<span class="badge badge-gray">{{ tr('res_ref') }} {{ r.reference[:20] }}</span>{% endif %}
       </div>
       <div class="res-grid">
         <div>
-          <div class="res-cell-label">Acheteur</div>
+          <div class="res-cell-label">{{ tr('detail_buyer') }}</div>
           <div class="res-cell-val">{{ (r.acheteur or '—')[:40] }}</div>
         </div>
         <div>
-          <div class="res-cell-label">Attributaire</div>
+          <div class="res-cell-label">{{ tr('res_winner') }}</div>
           <div class="res-cell-val" style="color: var(--grn);">{{ (r.adjudicataire or '—')[:40] }}</div>
         </div>
         <div>
-          <div class="res-cell-label">Montant</div>
+          <div class="res-cell-label">{{ tr('detail_amount') }}</div>
           <div class="res-cell-val">{{ r.montant or '—' }}</div>
         </div>
         <div>
-          <div class="res-cell-label">Date d'adjudication</div>
+          <div class="res-cell-label">{{ tr('res_adjudication_date') }}</div>
           <div class="res-cell-val">{{ r.date_adjudication or '—' }}</div>
         </div>
       </div>
       {% if r.dao_url or r.pv_url %}
       <div class="res-links">
-        {% if r.dao_url %}<a href="/resultats/{{ r.id }}/dao" target="_blank" class="btn btn-outline btn-sm">Dossier (D.A.O)</a>{% endif %}
-        {% if r.pv_url %}<a href="/resultats/{{ r.id }}/pv" target="_blank" class="btn btn-outline btn-sm">Procès-verbal</a>{% endif %}
+        {% if r.dao_url %}<a href="/resultats/{{ r.id }}/dao" target="_blank" class="btn btn-outline btn-sm">{{ tr('res_dao') }}</a>{% endif %}
+        {% if r.pv_url %}<a href="/resultats/{{ r.id }}/pv" target="_blank" class="btn btn-outline btn-sm">{{ tr('res_pv') }}</a>{% endif %}
       </div>
       {% endif %}
     </div>
@@ -96,22 +96,22 @@
 
   {% if pages > 1 %}
   <div class="pagination">
-    {% if page > 1 %}<a href="?q={{ q }}&page={{ page-1 }}" class="pag-btn">← Préc.</a>{% endif %}
+    {% if page > 1 %}<a href="?q={{ q }}&page={{ page-1 }}" class="pag-btn">{{ tr('tenders_prev') }}</a>{% endif %}
     {% for pp in range(1, pages+1) %}
       {% if pp == page %}<span class="pag-btn current">{{ pp }}</span>
       {% elif pp == 1 or pp == pages or (pp >= page-2 and pp <= page+2) %}<a href="?q={{ q }}&page={{ pp }}" class="pag-btn">{{ pp }}</a>
       {% elif pp == page-3 or pp == page+3 %}<span style="color:var(--text4);padding:9px 4px;font-size:13px;">…</span>{% endif %}
     {% endfor %}
-    {% if page < pages %}<a href="?q={{ q }}&page={{ page+1 }}" class="pag-btn">Suiv. →</a>{% endif %}
+    {% if page < pages %}<a href="?q={{ q }}&page={{ page+1 }}" class="pag-btn">{{ tr('tenders_next') }}</a>{% endif %}
   </div>
   {% endif %}
 
   {% else %}
   <div class="empty-state">
     <div class="empty-icon">∅</div>
-    <div class="empty-title">Aucun résultat <em>trouvé</em></div>
-    <div class="empty-text">{% if q %}Modifiez votre recherche.{% else %}Les premiers résultats apparaîtront ici après le prochain cycle de veille.{% endif %}</div>
-    {% if q %}<div style="margin-top: 28px;"><a href="/resultats" class="btn btn-outline btn-lg">Voir tous les résultats</a></div>{% endif %}
+    <div class="empty-title">{{ tr('res_empty_title')|safe }}</div>
+    <div class="empty-text">{% if q %}{{ tr('res_empty_filtered') }}{% else %}{{ tr('res_empty_none') }}{% endif %}</div>
+    {% if q %}<div style="margin-top: 28px;"><a href="/resultats" class="btn btn-outline btn-lg">{{ tr('res_view_all') }}</a></div>{% endif %}
   </div>
   {% endif %}
 </div>

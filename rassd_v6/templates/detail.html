@@ -54,12 +54,12 @@
 </style>
 
 <div class="page" style="max-width: 1200px;">
-  <a href="/tenders" class="detail-back">← Retour aux marchés</a>
+  <a href="/tenders" class="detail-back">{{ tr('detail_back') }}</a>
 
   <div class="detail-grid">
     <div>
       <div class="detail-eyebrow">
-        {% if t.type_offre=='Privé' %}<span class="badge badge-blue">Privé</span>{% endif %}
+        {% if t.type_offre=='Privé' %}<span class="badge badge-blue">{{ tr('tenders_private') }}</span>{% endif %}
         <span class="badge badge-gold">{{ get_label(t.secteur) }}</span>
         {% if t.region %}<span class="badge badge-gray">{{ t.region }}</span>{% endif %}
         {% if source_label(t.source) %}<span class="badge badge-gray">{{ source_label(t.source) }}</span>{% endif %}
@@ -77,48 +77,48 @@
 
       {% if dl_l %}
       <div class="deadline-banner" style="background: {% if dl_n < 0 %}var(--reda){% elif dl_n <= 3 %}var(--reda){% elif dl_n <= 7 %}var(--ambera){% else %}var(--grna){% endif %}; border: 1px solid {% if dl_n < 0 or dl_n <= 3 %}rgba(214,69,69,.25){% elif dl_n <= 7 %}rgba(242,169,59,.3){% else %}rgba(29,154,108,.25){% endif %}; color: {% if dl_n < 0 or dl_n <= 3 %}var(--red){% elif dl_n <= 7 %}var(--amberd){% else %}var(--grn){% endif %};">
-        ⏱ {{ dl_l }} {% if dl_n >= 0 and t.date_limite %}— Date limite : {{ t.date_limite }}{% endif %}
+        ⏱ {{ dl_l }} {% if dl_n >= 0 and t.date_limite %}— {{ tr('detail_deadline') }} : {{ t.date_limite }}{% endif %}
       </div>
       {% endif %}
 
       <div class="info-grid">
         <div class="info-cell">
-          <div class="info-label">Acheteur</div>
+          <div class="info-label">{{ tr('detail_buyer') }}</div>
           <div class="info-value">{{ (t.acheteur or '—')[:60] }}</div>
         </div>
         <div class="info-cell">
-          <div class="info-label">Secteur</div>
+          <div class="info-label">{{ tr('detail_sector') }}</div>
           <div class="info-value"><em>{{ get_label(t.secteur) }}</em></div>
         </div>
         <div class="info-cell">
-          <div class="info-label">Publication</div>
+          <div class="info-label">{{ tr('detail_publication') }}</div>
           <div class="info-value">{{ t.date_publication or '—' }}</div>
         </div>
         <div class="info-cell">
-          <div class="info-label">Date limite</div>
+          <div class="info-label">{{ tr('detail_deadline') }}</div>
           <div class="info-value" style="color: var(--red);">{{ t.date_limite or '—' }}</div>
         </div>
         <div class="info-cell">
-          <div class="info-label">Montant</div>
+          <div class="info-label">{{ tr('detail_amount') }}</div>
           <div class="info-value" style="color: var(--grn);">{{ t.montant or '—' }}</div>
         </div>
         <div class="info-cell">
-          <div class="info-label">Vues</div>
+          <div class="info-label">{{ tr('detail_views') }}</div>
           <div class="info-value">{{ (t.views or 0) }}</div>
         </div>
       </div>
 
       {% if t.description and (t.description or '')|length > 80 %}
       <div class="desc-section">
-        <div class="desc-label">Description complète</div>
+        <div class="desc-label">{{ tr('detail_desc') }}</div>
         <div id="desc" class="desc-content">{{ t.description[:5000] }}</div>
-        <button class="desc-toggle" onclick="const d=document.getElementById('desc');const exp=d.classList.toggle('expanded');this.textContent=exp?'Réduire ▲':'Lire la suite ▼';">Lire la suite ▼</button>
+        <button class="desc-toggle" data-more="{{ tr('detail_readmore') }}" data-less="{{ tr('detail_collapse') }}" onclick="const d=document.getElementById('desc');const exp=d.classList.toggle('expanded');this.textContent=exp?this.dataset.less:this.dataset.more;">{{ tr('detail_readmore') }}</button>
       </div>
       {% endif %}
 
       {% if related %}
       <div class="related-section">
-        <div class="related-label">Marchés similaires</div>
+        <div class="related-label">{{ tr('detail_related') }}</div>
         {% for r2 in related %}
         <a href="/tenders/{{ r2.id }}" class="related-row">
           <div class="related-title">{{ r2.objet[:120] }}</div>
@@ -131,39 +131,39 @@
 
     <div class="sticky-box">
       <div class="action-card">
-        <a href="/tenders/{{ t.id }}/source" target="_blank" class="btn btn-primary btn-full" style="margin-bottom: 10px;">Source officielle ↗</a>
+        <a href="/tenders/{{ t.id }}/source" target="_blank" class="btn btn-primary btn-full" style="margin-bottom: 10px;">{{ tr('detail_source') }}</a>
         {% if member %}
-        <button onclick="toggleFav(this,'{{ t.id }}')" id="favbtn" class="btn btn-outline btn-full btn-sm {% if is_fav %}active{% endif %}">
-          {% if is_fav %}★ Retirer des favoris{% else %}☆ Ajouter aux favoris{% endif %}
+        <button onclick="toggleFav(this,'{{ t.id }}')" id="favbtn" class="btn btn-outline btn-full btn-sm {% if is_fav %}active{% endif %}" data-add="{{ tr('detail_fav_add') }}" data-remove="{{ tr('detail_fav_remove') }}">
+          {% if is_fav %}{{ tr('detail_fav_remove') }}{% else %}{{ tr('detail_fav_add') }}{% endif %}
         </button>
         {% else %}
-        <a href="/register" class="btn btn-outline btn-full btn-sm">M'alerter sur ce secteur</a>
+        <a href="/register" class="btn btn-outline btn-full btn-sm">{{ tr('detail_alert_signup') }}</a>
         {% endif %}
       </div>
 
       <div class="action-card">
-        <div class="action-card-label">Métadonnées</div>
+        <div class="action-card-label">{{ tr('detail_meta') }}</div>
         <div class="action-card-info">
           <div class="action-card-row">
             <span class="action-card-key">ID</span>
             <span class="action-card-val">{{ t.id[:14] }}</span>
           </div>
           <div class="action-card-row">
-            <span class="action-card-key">Ajouté le</span>
+            <span class="action-card-key">{{ tr('detail_added') }}</span>
             <span class="action-card-val">{{ t.scraped_at[:10] }}</span>
           </div>
           <div class="action-card-row">
-            <span class="action-card-key">Statut</span>
+            <span class="action-card-key">{{ tr('detail_status') }}</span>
             <span class="badge badge-grn">{{ t.statut }}</span>
           </div>
         </div>
       </div>
 
       <div class="alert-card">
-        <div class="alert-card-title">Alerte <span>automatique</span></div>
-        <div class="alert-card-text">Recevez les prochains marchés «&nbsp;{{ get_label(t.secteur) }}&nbsp;» par Email & Telegram, dès leur publication.</div>
+        <div class="alert-card-title">{{ tr('detail_alert_title')|safe }}</div>
+        <div class="alert-card-text">{{ tr('detail_alert_text', sector=get_label(t.secteur)|e)|safe }}</div>
         <a href="{% if member %}/settings{% else %}/register{% endif %}" class="btn btn-primary btn-full btn-sm">
-          {% if member %}Gérer mes alertes{% else %}Créer mon alerte{% endif %}
+          {% if member %}{{ tr('detail_alert_manage') }}{% else %}{{ tr('detail_alert_create') }}{% endif %}
         </a>
       </div>
     </div>
@@ -177,7 +177,7 @@ async function toggleFav(btn, tid) {
     const r = await fetch(`/tenders/${tid}/favorite`, {method: 'POST'});
     const d = await r.json();
     if (d.ok) {
-      btn.textContent = d.fav ? '★ Retirer des favoris' : '☆ Ajouter aux favoris';
+      btn.textContent = d.fav ? btn.dataset.remove : btn.dataset.add;
       btn.classList.toggle('active', d.fav);
     }
   } catch(e) { console.error(e); }

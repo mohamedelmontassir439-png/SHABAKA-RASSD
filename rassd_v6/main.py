@@ -19,6 +19,7 @@ from app.core.security import (hash_pw, verify_pw, make_token, make_session_toke
                                 get_member, validate_email,
                                 validate_password, days_left)
 from app.core.sectors import get_label
+from app.core.i18n import get_lang, make_t, SUPPORTED_LANGS, tr as tr_
 from app.services.notifications import dispatch_notifications, tg_admin, test_notifications
 
 MULTI_OK = False
@@ -317,19 +318,27 @@ except OSError as e:
 # HELPERS
 # ══════════════════════════════════════════════════════════
 def render(req: Request, tpl: str, ctx: dict = None, status_code: int = 200):
-    m   = get_member(req)
-    ctx = ctx or {}
-    return templates.TemplateResponse(tpl, {
+    m    = get_member(req)
+    ctx  = ctx or {}
+    lang = get_lang(req)
+    dl_bound = lambda val: days_left(val, lang)
+    resp = templates.TemplateResponse(tpl, {
         "request":   req,  "member":   m,
         "cfg":          cfg,
         "secteurs":     cfg.SECTEURS,
         "sector_groups": cfg.SECTOR_GROUPS,
         "plans":        cfg.PLANS,
-        "dl":           days_left,
-        "days_left":    days_left,
+        "dl":           dl_bound,
+        "days_left":    dl_bound,
         "now":          datetime.now(),
+        "lang":         lang,
+        "dir":          "rtl" if lang == "ar" else "ltr",
+        "tr":           make_t(lang),
         **ctx
     }, status_code=status_code)
+    if req.query_params.get("lang") in SUPPORTED_LANGS:
+        resp.set_cookie("lang", lang, max_age=86400*365, samesite="lax", secure=COOKIE_SECURE)
+    return resp
 
 def get_stats() -> dict:
     db = get_db()
@@ -576,20 +585,21 @@ async def register_post(req: Request,
     company:str=Form(""), pw:str=Form(""), pw2:str=Form(""),
     secteurs_sel:list=Form(default=[])):
     vals = {"nom":nom,"email":email,"phone":phone,"company":company}
+    lang = get_lang(req)
     if not check_rate_limit(f"register_{get_ip(req)}", 5, 600):
-        return render(req,"register.html",{"err":"Trop de tentatives. Réessayez dans quelques minutes.","vals":vals})
+        return render(req,"register.html",{"err":tr_("err_too_many_generic",lang),"vals":vals})
     err  = None
-    if not email or not pw: err = "Email et mot de passe requis"
-    elif not validate_email(email): err = "Adresse email invalide"
-    elif pw != pw2: err = "Les mots de passe ne correspondent pas"
+    if not email or not pw: err = tr_("err_email_pw_required",lang)
+    elif not validate_email(email): err = tr_("err_email_invalid",lang)
+    elif pw != pw2: err = tr_("err_pw_mismatch",lang)
     else:
-        ok, msg = validate_password(pw)
+        ok, msg = validate_password(pw, lang)
         if not ok: err = msg
     if err: return render(req,"register.html",{"err":err,"vals":vals})
     db = get_db()
     try:
         if db.execute("SELECT id FROM members WHERE email=?",(email,)).fetchone():
-            return render(req,"register.html",{"err":"Email déjà utilisé","vals":vals})
+            return render(req,"register.html",{"err":tr_("err_email_taken",lang),"vals":vals})
         sects       = clean_secteurs(secteurs_sel)
         trial_ends  = (datetime.now()+timedelta(days=14)).strftime("%Y-%m-%d")
         created_at  = datetime.now().isoformat()
@@ -612,13 +622,14 @@ async def login_get(req: Request, next:str=""):
 @app.post("/login")
 async def login_post(req: Request, email:str=Form(""), pw:str=Form(""), next:str=Form("")):
     ip = get_ip(req)
+    lang = get_lang(req)
     if not check_rate_limit(ip):
-        return render(req,"login.html",{"err":"Trop de tentatives. Réessayez dans 5 minutes.","vals":{"email":email},"next":next})
+        return render(req,"login.html",{"err":tr_("err_too_many_5min",lang),"vals":{"email":email},"next":next})
     db = get_db()
     m  = db.execute("SELECT * FROM members WHERE email=? AND actif=1",(email,)).fetchone()
     if not m or not verify_pw(pw, m["pw_hash"]):
         db.close()
-        return render(req,"login.html",{"err":"Email ou mot de passe incorrect","vals":{"email":email},"next":next})
+        return render(req,"login.html",{"err":tr_("err_login_incorrect",lang),"vals":{"email":email},"next":next})
     session_tok = make_session_token()
     db.execute("UPDATE members SET last_login=?, session_token=? WHERE id=?",
                (datetime.now().isoformat(), session_tok, m["id"]))
@@ -857,8 +868,9 @@ async def forgot_get(req: Request):
 
 @app.post("/forgot")
 async def forgot_post(req: Request, email: str = Form("")):
+    lang = get_lang(req)
     if not check_rate_limit(f"forgot_{get_ip(req)}", 5, 600):
-        return render(req, "forgot.html", {"err": "Trop de tentatives. Réessayez dans quelques minutes."})
+        return render(req, "forgot.html", {"err": tr_("err_too_many_generic",lang)})
     db = get_db()
     m  = db.execute("SELECT * FROM members WHERE email=? AND actif=1", (email,)).fetchone()
     if m:
@@ -874,13 +886,13 @@ async def forgot_post(req: Request, email: str = Form("")):
             from app.services.notifications import email_send
             loop = asyncio.get_event_loop()
             loop.run_in_executor(None, lambda: email_send(
-                email, "Réinitialisation de votre mot de passe — ATLAS PRO",
-                f"""<h2>Réinitialisation de mot de passe</h2>
-                <p>Cliquez sur le lien ci-dessous pour réinitialiser votre mot de passe:</p>
+                email, tr_("email_reset_subject",lang),
+                f"""<h2>{tr_("email_reset_h2",lang)}</h2>
+                <p>{tr_("email_reset_p",lang)}</p>
                 <a href="{reset_url}" style="display:inline-block;padding:12px 24px;background:#f2a93b;color:#142850;border-radius:8px;text-decoration:none;font-weight:600">
-                  Réinitialiser mon mot de passe →
+                  {tr_("email_reset_btn",lang)}
                 </a>
-                <p style="color:#666;font-size:12px;margin-top:16px">Ce lien expire dans 2 heures.</p>"""))
+                <p style="color:#666;font-size:12px;margin-top:16px">{tr_("email_reset_expiry",lang)}</p>"""))
         except Exception as e:
             logger.error(f"[reset email] {e}")
         db.close()
@@ -888,30 +900,32 @@ async def forgot_post(req: Request, email: str = Form("")):
 
 @app.get("/reset", response_class=HTMLResponse)
 async def reset_get(req: Request, token: str = ""):
+    lang = get_lang(req)
     db  = get_db()
     m   = db.execute("SELECT * FROM members WHERE reset_token=?", (token,)).fetchone()
     db.close()
     if not m or not m["reset_token"]:
-        return render(req, "reset.html", {"err": "Lien invalide ou expiré"})
+        return render(req, "reset.html", {"err": tr_("err_reset_invalid_expired",lang)})
     if datetime.fromisoformat(m["reset_expires"] or "2000-01-01") < datetime.now():
-        return render(req, "reset.html", {"err": "Ce lien a expiré. Faites une nouvelle demande."})
+        return render(req, "reset.html", {"err": tr_("err_reset_expired",lang)})
     return render(req, "reset.html", {"token": token})
 
 @app.post("/reset")
 async def reset_post(req: Request, token: str = Form(""),
                      pw: str = Form(""), pw2: str = Form("")):
+    lang = get_lang(req)
     if pw != pw2:
-        return render(req, "reset.html", {"token": token, "err": "Les mots de passe ne correspondent pas"})
+        return render(req, "reset.html", {"token": token, "err": tr_("err_pw_mismatch",lang)})
     if len(pw) < 8:
-        return render(req, "reset.html", {"token": token, "err": "Minimum 8 caractères"})
+        return render(req, "reset.html", {"token": token, "err": tr_("err_pw_min8",lang)})
     db = get_db()
     m  = db.execute("SELECT * FROM members WHERE reset_token=?", (token,)).fetchone()
     if not m or not m["reset_token"]:
         db.close()
-        return render(req, "reset.html", {"err": "Lien invalide"})
+        return render(req, "reset.html", {"err": tr_("err_reset_invalid",lang)})
     if datetime.fromisoformat(m["reset_expires"] or "2000-01-01") < datetime.now():
         db.close()
-        return render(req, "reset.html", {"err": "Ce lien a expiré. Faites une nouvelle demande."})
+        return render(req, "reset.html", {"err": tr_("err_reset_expired",lang)})
     db.execute("UPDATE members SET pw_hash=?, reset_token='', reset_expires='', session_token='' WHERE id=?",
                (hash_pw(pw), m["id"]))
     db.commit(); db.close()

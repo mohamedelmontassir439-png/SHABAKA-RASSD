@@ -46,94 +46,94 @@
 {% block body %}
 
 <section class="pricing-hero">
-  <div class="section-label" style="justify-content:center;">Offres & Tarifs</div>
-  <h1 class="pricing-title">Une veille adaptée à <em>votre activité</em></h1>
-  <p class="pricing-intro">Commencez gratuitement. Passez à l'offre supérieure quand votre volume d'appels d'offres augmente — sans engagement, sans surprise.</p>
+  <div class="section-label" style="justify-content:center;">{{ tr('pr_label') }}</div>
+  <h1 class="pricing-title">{{ tr('pr_title')|safe }}</h1>
+  <p class="pricing-intro">{{ tr('pr_intro') }}</p>
 </section>
 
 <div class="plans-wrap">
   <div class="plans-grid">
 
-    {% set free = plans.free if plans else {"name":"Gratuit","price":0,"tenders_day":15} %}
+    {% set free = plans.free if plans else {"price":0,"tenders_day":15} %}
     <div class="plan-card">
-      <div class="plan-name">{{ free.name }}</div>
+      <div class="plan-name">{{ tr('plan_name_free') }}</div>
       <div class="plan-price-row"><span class="plan-price">0</span><span class="plan-period">MAD</span></div>
-      <div class="plan-desc">Pour découvrir la plateforme et tester la veille sur votre secteur.</div>
+      <div class="plan-desc">{{ tr('pr_free_desc') }}</div>
       <ul class="plan-feats">
-        <li>{{ free.tenders_day }} marchés consultables / jour</li>
-        <li>Alertes par Email</li>
-        <li>Tableau de bord & favoris</li>
-        <li class="off">Alertes Telegram & WhatsApp</li>
-        <li class="off">Accès API</li>
+        <li>{{ tr('pr_free_feat1', n=free.tenders_day) }}</li>
+        <li>{{ tr('pr_free_feat2') }}</li>
+        <li>{{ tr('pr_free_feat3') }}</li>
+        <li class="off">{{ tr('pr_free_feat4') }}</li>
+        <li class="off">{{ tr('pr_free_feat5') }}</li>
       </ul>
-      <a href="/register" class="btn btn-outline btn-full btn-lg">Commencer gratuitement</a>
+      <a href="/register" class="btn btn-outline btn-full btn-lg">{{ tr('pr_free_cta') }}</a>
     </div>
 
-    {% set pro = plans.pro if plans else {"name":"Annuel","price":3999} %}
+    {% set pro = plans.pro if plans else {"price":3999} %}
     <div class="plan-card featured">
-      <div class="plan-pill">★ Le plus choisi</div>
-      <div class="plan-name">{{ pro.name }}</div>
-      <div class="plan-price-row"><span class="plan-price">{{ pro.price }}</span><span class="plan-period">MAD / an</span></div>
-      <div class="plan-desc">Pour les entreprises qui répondent régulièrement aux appels d'offres.</div>
+      <div class="plan-pill">{{ tr('pr_popular') }}</div>
+      <div class="plan-name">{{ tr('plan_name_annual') }}</div>
+      <div class="plan-price-row"><span class="plan-price">{{ pro.price }}</span><span class="plan-period">MAD / {{ 'an' if lang=='fr' else 'سنة' }}</span></div>
+      <div class="plan-desc">{{ tr('pr_pro_desc') }}</div>
       <ul class="plan-feats">
-        <li>Marchés illimités, public & privé</li>
-        <li>Alertes Email + Telegram + WhatsApp</li>
-        <li>Filtrage multi-secteurs avancé</li>
-        <li>Historique des résultats (gagnant + montant)</li>
-        <li>Accès API en lecture</li>
+        <li>{{ tr('pr_pro_feat1') }}</li>
+        <li>{{ tr('pr_pro_feat2') }}</li>
+        <li>{{ tr('pr_pro_feat3') }}</li>
+        <li>{{ tr('pr_pro_feat4') }}</li>
+        <li>{{ tr('pr_pro_feat5') }}</li>
       </ul>
-      <a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ (cfg.PAYMENT_MSG ~ ' — Abonnement Annuel (3999 MAD/an)')|urlencode }}" target="_blank" class="btn btn-accent btn-full btn-lg">S'abonner — 1 an →</a>
+      <a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ (cfg.PAYMENT_MSG ~ ' — Abonnement Annuel (3999 MAD/an)')|urlencode }}" target="_blank" class="btn btn-accent btn-full btn-lg">{{ tr('pr_pro_cta') }}</a>
     </div>
 
-    {% set biz = plans.business if plans else {"name":"Biennal","price":6999} %}
+    {% set biz = plans.business if plans else {"price":6999} %}
     <div class="plan-card">
-      <div class="plan-name">{{ biz.name }}</div>
-      <div class="plan-price-row"><span class="plan-price">{{ biz.price }}</span><span class="plan-period">MAD / 2 ans</span></div>
-      <div class="plan-desc">Le meilleur prix à l'année — engagez-vous 2 ans et économisez.</div>
+      <div class="plan-name">{{ tr('plan_name_biennial') }}</div>
+      <div class="plan-price-row"><span class="plan-price">{{ biz.price }}</span><span class="plan-period">MAD / {{ '2 ans' if lang=='fr' else 'سنتين' }}</span></div>
+      <div class="plan-desc">{{ tr('pr_biz_desc') }}</div>
       <ul class="plan-feats">
-        <li>Tout le contenu de l'offre Annuelle</li>
-        <li>Tarif bloqué 2 ans, aucune hausse</li>
-        <li>Accès API étendu</li>
-        <li>Support prioritaire dédié</li>
-        <li>Accompagnement à la mise en place</li>
+        <li>{{ tr('pr_biz_feat1') }}</li>
+        <li>{{ tr('pr_biz_feat2') }}</li>
+        <li>{{ tr('pr_biz_feat3') }}</li>
+        <li>{{ tr('pr_biz_feat4') }}</li>
+        <li>{{ tr('pr_biz_feat5') }}</li>
       </ul>
-      <a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ (cfg.PAYMENT_MSG ~ ' — Abonnement Biennal (6999 MAD/2 ans)')|urlencode }}" target="_blank" class="btn btn-outline btn-full btn-lg">S'abonner — 2 ans →</a>
+      <a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ (cfg.PAYMENT_MSG ~ ' — Abonnement Biennal (6999 MAD/2 ans)')|urlencode }}" target="_blank" class="btn btn-outline btn-full btn-lg">{{ tr('pr_biz_cta') }}</a>
     </div>
 
   </div>
 
   <div class="trust-bar">
-    <div class="trust-item">Sans engagement pour l'offre gratuite</div>
-    <div class="trust-item">Paiement par virement bancaire</div>
-    <div class="trust-item">Contrat fourni pour chaque abonnement</div>
+    <div class="trust-item">{{ tr('pr_trust1') }}</div>
+    <div class="trust-item">{{ tr('pr_trust2') }}</div>
+    <div class="trust-item">{{ tr('pr_trust3') }}</div>
   </div>
 </div>
 
 <div class="faq-wrap">
-  <div class="section-label">Questions fréquentes</div>
+  <div class="section-label">{{ tr('pr_faq_label') }}</div>
   <div class="faq-item">
-    <div class="faq-q">Puis-je changer d'offre à tout moment ?</div>
-    <div class="faq-a">Oui. Contactez-nous par WhatsApp ou email et votre changement d'offre est appliqué sous 24h, sans perte de données ni interruption de service.</div>
+    <div class="faq-q">{{ tr('pr_faq1_q') }}</div>
+    <div class="faq-a">{{ tr('pr_faq1_a') }}</div>
   </div>
   <div class="faq-item">
-    <div class="faq-q">Comment fonctionne le paiement ?</div>
-    <div class="faq-a">Vous nous contactez par WhatsApp depuis cette page. Nous établissons ensemble un contrat d'abonnement, puis le règlement se fait par virement bancaire direct vers notre compte. L'accès est activé dès réception du virement.</div>
+    <div class="faq-q">{{ tr('pr_faq2_q') }}</div>
+    <div class="faq-a">{{ tr('pr_faq2_a') }}</div>
   </div>
   <div class="faq-item">
-    <div class="faq-q">Les alertes WhatsApp sont-elles vraiment en temps réel ?</div>
-    <div class="faq-a">Oui. Dès qu'un marché correspondant à votre secteur est détecté par notre veille, la notification part immédiatement sur les canaux que vous avez activés dans vos paramètres.</div>
+    <div class="faq-q">{{ tr('pr_faq3_q') }}</div>
+    <div class="faq-a">{{ tr('pr_faq3_a') }}</div>
   </div>
   <div class="faq-item">
-    <div class="faq-q">Que couvre exactement la veille ?</div>
-    <div class="faq-a">Les marchés publics (portail national marchespublics.gov.ma) et les appels d'offres privés, classés automatiquement selon le référentiel sectoriel officiel.</div>
+    <div class="faq-q">{{ tr('pr_faq4_q') }}</div>
+    <div class="faq-a">{{ tr('pr_faq4_a') }}</div>
   </div>
 </div>
 
 <div class="contact-card">
-  <div class="contact-card-h">Une question <em>avant de vous lancer</em> ?</div>
-  <div class="contact-card-p">Notre équipe répond directement à vos questions sur les offres, la couverture sectorielle ou la mise en place des alertes.</div>
+  <div class="contact-card-h">{{ tr('pr_contact_title')|safe }}</div>
+  <div class="contact-card-p">{{ tr('pr_contact_text') }}</div>
   <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
-    <a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ cfg.PAYMENT_MSG|urlencode }}" target="_blank" class="btn btn-primary btn-lg">Nous écrire sur WhatsApp</a>
+    <a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ cfg.PAYMENT_MSG|urlencode }}" target="_blank" class="btn btn-primary btn-lg">{{ tr('pr_contact_wa') }}</a>
     <a href="mailto:contact@atlaspro.ma" class="btn btn-outline btn-lg">contact@atlaspro.ma</a>
   </div>
 </div>

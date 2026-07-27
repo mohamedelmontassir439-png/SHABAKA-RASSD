@@ -34,47 +34,47 @@
 
 <div class="set-wrap">
   <div class="set-hero">
-    <div class="section-label">Paramètres</div>
-    <h1 class="display-l">Mes <em>alertes</em></h1>
+    <div class="section-label">{{ tr('set_label') }}</div>
+    <h1 class="display-l">{{ tr('set_title')|safe }}</h1>
   </div>
 
   <form method="post">
     <section class="set-block">
-      <div class="set-block-h">Profil</div>
-      <div class="set-block-sub">Vos informations de contact.</div>
+      <div class="set-block-h">{{ tr('set_profile') }}</div>
+      <div class="set-block-sub">{{ tr('set_profile_sub') }}</div>
       <div class="grid-2" style="gap: 20px;">
-        <div class="field"><label for="nom">Nom</label><input id="nom" name="nom" value="{{ member.nom }}" class="inp"></div>
-        <div class="field"><label for="phone">Téléphone</label><input id="phone" name="phone" value="{{ member.phone }}" class="inp"></div>
-        <div class="field" style="grid-column: 1/-1;"><label for="company">Entreprise</label><input id="company" name="company" value="{{ member.company }}" class="inp"></div>
+        <div class="field"><label for="nom">{{ tr('set_name') }}</label><input id="nom" name="nom" value="{{ member.nom }}" class="inp"></div>
+        <div class="field"><label for="phone">{{ tr('set_phone') }}</label><input id="phone" name="phone" value="{{ member.phone }}" class="inp"></div>
+        <div class="field" style="grid-column: 1/-1;"><label for="company">{{ tr('set_company') }}</label><input id="company" name="company" value="{{ member.company }}" class="inp"></div>
       </div>
     </section>
 
     <section class="set-block">
       <div class="set-block-h"><em>Telegram</em></div>
-      <div class="set-block-sub">Recevez les alertes instantanément sur votre mobile.</div>
-      <div class="field"><label for="telegram">Chat ID Telegram</label><input id="telegram" name="telegram" value="{{ member.telegram }}" class="inp" placeholder="ex: 123456789"></div>
+      <div class="set-block-sub">{{ tr('set_telegram_sub') }}</div>
+      <div class="field"><label for="telegram">{{ tr('set_telegram_id') }}</label><input id="telegram" name="telegram" value="{{ member.telegram }}" class="inp" placeholder="ex: 123456789"></div>
       <div class="tg-hint">
-        <strong>Comment obtenir votre Chat ID :</strong> Ouvrez Telegram, cherchez votre bot Atlas Pro, envoyez la commande <code>/start</code>, et le bot vous répondra avec votre ID.
+        <strong>{{ tr('set_telegram_hint') }}</strong> {{ tr('set_telegram_hint2') }} <code>/start</code>, {{ tr('set_telegram_hint3') }}
       </div>
     </section>
 
     <section class="set-block">
       <div class="set-block-h"><em>WhatsApp</em></div>
-      <div class="set-block-sub">Recevez les alertes directement sur WhatsApp.</div>
-      <div class="field"><label for="whatsapp">Numéro WhatsApp</label><input id="whatsapp" name="whatsapp" value="{{ member.whatsapp }}" class="inp" placeholder="ex: 06 12 34 56 78"></div>
+      <div class="set-block-sub">{{ tr('set_wa_sub') }}</div>
+      <div class="field"><label for="whatsapp">{{ tr('set_wa_number') }}</label><input id="whatsapp" name="whatsapp" value="{{ member.whatsapp }}" class="inp" placeholder="ex: 06 12 34 56 78"></div>
       <div class="tg-hint">
-        Saisissez votre numéro au format marocain (ex: <code>0612345678</code> ou <code>+212612345678</code>).
+        {{ tr('set_wa_hint') }} <code>0612345678</code> {{ 'أو' if lang=='ar' else 'ou' }} <code>+212612345678</code>).
       </div>
     </section>
 
     <section class="set-block">
-      <div class="set-block-h">Canaux de <em>notification</em></div>
-      <div class="set-block-sub">Choisissez comment vous souhaitez être alerté.</div>
+      <div class="set-block-h">{{ tr('set_channels')|safe }}</div>
+      <div class="set-block-sub">{{ tr('set_channels_sub') }}</div>
       {% for fn, label, desc in [
-        ('notif_email', 'Email', 'Alerte HTML détaillée envoyée à votre adresse email — idéal pour le bureau.'),
-        ('notif_tg', 'Telegram', 'Notification instantanée sur votre mobile — idéal en déplacement.'),
-        ('notif_wa', 'WhatsApp', 'Message envoyé directement sur votre WhatsApp — nécessite un numéro renseigné ci-dessus.'),
-        ('notif_digest', 'Digest hebdomadaire', 'Résumé des marchés de la semaine, chaque lundi matin.')
+        ('notif_email', tr('set_ch_email'), tr('set_ch_email_desc')),
+        ('notif_tg', tr('set_ch_tg'), tr('set_ch_tg_desc')),
+        ('notif_wa', tr('set_ch_wa'), tr('set_ch_wa_desc')),
+        ('notif_digest', tr('set_ch_digest'), tr('set_ch_digest_desc'))
       ] %}
       <label class="notif-channel">
         <input type="checkbox" name="{{ fn }}" value="1" {% if member[fn] %}checked{% endif %} class="notif-checkbox">
@@ -87,8 +87,8 @@
     </section>
 
     <section class="set-block">
-      <div class="set-block-h">Mes <em>secteurs</em></div>
-      <div class="set-block-sub">Sélectionnez vos secteurs pour ne recevoir que les marchés pertinents (publics et privés). Laissez vide pour tout recevoir.</div>
+      <div class="set-block-h">{{ tr('set_sectors')|safe }}</div>
+      <div class="set-block-sub">{{ tr('set_sectors_sub') }}</div>
       {% for group_name, group_sectors in sector_groups.items() %}
       <div class="sector-group">
         <div class="sector-group-title">{{ group_name }}</div>
@@ -108,8 +108,8 @@
     </section>
 
     <div class="save-bar">
-      <div class="save-bar-text">Vos préférences sont propres à votre compte</div>
-      <button type="submit" class="btn btn-accent">Enregistrer →</button>
+      <div class="save-bar-text">{{ tr('set_save_note') }}</div>
+      <button type="submit" class="btn btn-accent">{{ tr('set_save') }}</button>
     </div>
   </form>
 </div>

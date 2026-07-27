@@ -33,22 +33,22 @@
 
 <div class="fb-wrap">
   <div class="fb-hero">
-    <div class="section-label" style="justify-content: center; display: inline-flex;">Votre avis compte</div>
-    <h1 class="fb-title">Aidez-nous à <em>construire</em></h1>
-    <p class="fb-sub">Vos retours façonnent directement les prochaines fonctionnalités d'Atlas Pro.</p>
+    <div class="section-label" style="justify-content: center; display: inline-flex;">{{ tr('fb_label') }}</div>
+    <h1 class="fb-title">{{ tr('fb_title')|safe }}</h1>
+    <p class="fb-sub">{{ tr('fb_sub') }}</p>
   </div>
 
   {% if request.query_params.get('ok') %}
   <div class="fb-success">
     <div class="fb-success-glyph">✓</div>
-    <div class="fb-success-h">Merci pour votre <em>retour</em></div>
-    <div class="fb-success-p">Votre avis a été transmis à notre équipe. Nous le lirons avec attention.</div>
-    <a href="/dashboard" class="btn btn-primary btn-lg">Retour au tableau de bord →</a>
+    <div class="fb-success-h">{{ tr('fb_success_title')|safe }}</div>
+    <div class="fb-success-p">{{ tr('fb_success_text') }}</div>
+    <a href="/dashboard" class="btn btn-primary btn-lg">{{ tr('fb_back_dash') }}</a>
   </div>
   {% else %}
   <form method="post">
     <section class="fb-block">
-      <div class="fb-block-label">Votre satisfaction globale</div>
+      <div class="fb-block-label">{{ tr('fb_rating_label') }}</div>
       <div id="stars" class="stars-row">
         {% for i in [1,2,3,4,5] %}
         <span class="star" onclick="setRating({{ i }})" id="star-{{ i }}">★</span>
@@ -58,12 +58,12 @@
     </section>
 
     <section class="fb-block">
-      <div class="fb-block-label">Votre retour</div>
-      <textarea name="message" class="fb-textarea" placeholder="Qu'est-ce qui manque ? Qu'est-ce qui vous a plu ? Que souhaitez-vous voir dans la version complète ?" required></textarea>
+      <div class="fb-block-label">{{ tr('fb_message_label') }}</div>
+      <textarea name="message" class="fb-textarea" placeholder="{{ tr('fb_message_ph') }}" required></textarea>
     </section>
 
     <section class="fb-block">
-      <div class="fb-block-label">Fonctionnalités souhaitées</div>
+      <div class="fb-block-label">{{ tr('fb_features_label') }}</div>
       <div class="feature-grid" id="chips">
         {% for f in [
           "Export PDF & Excel","Application mobile","Analyse IA des marchés",
@@ -80,8 +80,8 @@
     </section>
 
     <div style="display: flex; gap: 16px; margin-top: 24px; align-items: center; flex-wrap: wrap;">
-      <button type="submit" class="btn btn-primary btn-xl">Envoyer mon retour →</button>
-      <a href="/dashboard" style="font-size: 13px; color: var(--text3); font-weight: 600;">Passer pour l'instant</a>
+      <button type="submit" class="btn btn-primary btn-xl">{{ tr('fb_submit') }}</button>
+      <a href="/dashboard" style="font-size: 13px; color: var(--text3); font-weight: 600;">{{ tr('fb_skip') }}</a>
     </div>
   </form>
   {% endif %}

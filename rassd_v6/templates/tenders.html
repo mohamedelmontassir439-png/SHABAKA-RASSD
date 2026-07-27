@@ -66,20 +66,20 @@
   <div class="container">
     <div class="tenders-hero-grid">
       <div>
-        <div class="section-label" style="margin-bottom: 10px;">Marchés actifs · Maroc</div>
-        <h1 class="display-l">{{ total }} marchés <em>disponibles</em></h1>
+        <div class="section-label" style="margin-bottom: 10px;">{{ tr('tenders_label') }}</div>
+        <h1 class="display-l">{{ tr('tenders_title', n=total)|safe }}</h1>
         <div class="tenders-meta">
-          <div class="tenders-meta-item">Mise à jour <span>continue</span></div>
-          <div class="tenders-meta-item">Sources <span>Public + Privé</span></div>
-          {% if member %}<div class="tenders-meta-item">Plan <span>{{ member.plan|upper }}</span></div>{% endif %}
+          <div class="tenders-meta-item">{{ tr('tenders_updated') }} <span>{{ tr('tenders_continuous') }}</span></div>
+          <div class="tenders-meta-item">{{ tr('tenders_sources') }} <span>{{ tr('tenders_sources_val') }}</span></div>
+          {% if member %}<div class="tenders-meta-item">{{ tr('dash_plan') }} <span>{{ member.plan|upper }}</span></div>{% endif %}
         </div>
       </div>
       <div style="display: flex; gap: 8px; align-items: center;">
         <div class="sort-tabs">
-          <a href="?q={{ q }}&s={{ sf }}&t={{ tf }}&sort=recent&page=1" class="sort-tab {% if sort=='recent' %}on{% endif %}">Récents</a>
-          <a href="?q={{ q }}&s={{ sf }}&t={{ tf }}&sort=deadline&page=1" class="sort-tab {% if sort=='deadline' %}on{% endif %}">Deadline</a>
+          <a href="?q={{ q }}&s={{ sf }}&t={{ tf }}&sort=recent&page=1" class="sort-tab {% if sort=='recent' %}on{% endif %}">{{ tr('tenders_sort_recent') }}</a>
+          <a href="?q={{ q }}&s={{ sf }}&t={{ tf }}&sort=deadline&page=1" class="sort-tab {% if sort=='deadline' %}on{% endif %}">{{ tr('tenders_sort_deadline') }}</a>
         </div>
-        {% if not member %}<a href="/register" class="btn btn-accent btn-sm">Activer alertes</a>{% endif %}
+        {% if not member %}<a href="/register" class="btn btn-accent btn-sm">{{ tr('tenders_activate') }}</a>{% endif %}
       </div>
     </div>
   </div>
@@ -88,15 +88,15 @@
 <div class="container">
   <form method="get" class="filters-bar">
     <div class="search-input">
-      <input name="q" value="{{ q }}" class="inp" placeholder="Rechercher un marché…">
+      <input name="q" value="{{ q }}" class="inp" placeholder="{{ tr('tenders_search') }}">
     </div>
     <select name="t" class="sel" style="width: 160px;" onchange="this.form.submit()">
-      <option value="">Public + Privé</option>
-      <option value="Public" {% if tf=='Public' %}selected{% endif %}>Public</option>
-      <option value="Privé" {% if tf=='Privé' %}selected{% endif %}>Privé</option>
+      <option value="">{{ tr('tenders_all_types') }}</option>
+      <option value="Public" {% if tf=='Public' %}selected{% endif %}>{{ tr('tenders_public') }}</option>
+      <option value="Privé" {% if tf=='Privé' %}selected{% endif %}>{{ tr('tenders_private') }}</option>
     </select>
     <select name="s" class="sel" style="width: 240px;" onchange="this.form.submit()">
-      <option value="">Tous les secteurs ({{ total }})</option>
+      <option value="">{{ tr('tenders_all_sectors', n=total) }}</option>
       {% for group_name, group_sectors in sector_groups.items() %}
       <optgroup label="{{ group_name }}">
         {% for code, label in group_sectors.items() %}
@@ -105,8 +105,8 @@
       </optgroup>
       {% endfor %}
     </select>
-    <button type="submit" class="btn btn-outline btn-sm">Filtrer</button>
-    {% if q or sf or tf %}<a href="/tenders" class="btn btn-ghost btn-sm">✕ Effacer</a>{% endif %}
+    <button type="submit" class="btn btn-outline btn-sm">{{ tr('tenders_filter') }}</button>
+    {% if q or sf or tf %}<a href="/tenders" class="btn btn-ghost btn-sm">{{ tr('tenders_clear') }}</a>{% endif %}
     <input type="hidden" name="sort" value="{{ sort }}">
   </form>
 
@@ -118,7 +118,7 @@
       <div>
         <div class="row-title">{{ t.objet[:140] }}{% if t.objet|length > 140 %}…{% endif %}</div>
         <div class="row-tags">
-          {% if t.type_offre=='Privé' %}<span class="badge badge-blue">Privé</span>{% endif %}
+          {% if t.type_offre=='Privé' %}<span class="badge badge-blue">{{ tr('tenders_private') }}</span>{% endif %}
           <span class="badge badge-gold">{{ get_label(t.secteur)[:24] }}</span>
           {% if t.montant %}<span class="badge badge-grn">{{ t.montant[:30] }}</span>{% endif %}
           {% if dl_l and dl_n <= 7 and dl_n >= 0 %}
@@ -135,7 +135,7 @@
         {% if member %}
         <button class="fav-btn {% if t.id in favs %}active{% endif %}" onclick="event.preventDefault();event.stopPropagation();toggleFav(this,'{{ t.id }}')" title="Favori">{% if t.id in favs %}★{% else %}☆{% endif %}</button>
         {% endif %}
-        <span class="row-arrow">→</span>
+        <span class="row-arrow">{{ '←' if dir=='rtl' else '→' }}</span>
       </div>
     </a>
     {% endfor %}
@@ -143,22 +143,22 @@
 
   {% if pages > 1 %}
   <div class="pagination">
-    {% if page > 1 %}<a href="?q={{ q }}&s={{ sf }}&t={{ tf }}&sort={{ sort }}&page={{ page-1 }}" class="pag-btn">← Préc.</a>{% endif %}
+    {% if page > 1 %}<a href="?q={{ q }}&s={{ sf }}&t={{ tf }}&sort={{ sort }}&page={{ page-1 }}" class="pag-btn">{{ tr('tenders_prev') }}</a>{% endif %}
     {% for pp in range(1, pages+1) %}
       {% if pp == page %}<span class="pag-btn current">{{ pp }}</span>
       {% elif pp == 1 or pp == pages or (pp >= page-2 and pp <= page+2) %}<a href="?q={{ q }}&s={{ sf }}&t={{ tf }}&sort={{ sort }}&page={{ pp }}" class="pag-btn">{{ pp }}</a>
       {% elif pp == page-3 or pp == page+3 %}<span style="color:var(--text4);padding:9px 4px;font-size:13px;">…</span>{% endif %}
     {% endfor %}
-    {% if page < pages %}<a href="?q={{ q }}&s={{ sf }}&t={{ tf }}&sort={{ sort }}&page={{ page+1 }}" class="pag-btn">Suiv. →</a>{% endif %}
+    {% if page < pages %}<a href="?q={{ q }}&s={{ sf }}&t={{ tf }}&sort={{ sort }}&page={{ page+1 }}" class="pag-btn">{{ tr('tenders_next') }}</a>{% endif %}
   </div>
   {% endif %}
 
   {% else %}
   <div class="empty-state">
     <div class="empty-icon">∅</div>
-    <div class="empty-title">Aucun marché <em>trouvé</em></div>
-    <div class="empty-text">{% if q or sf or tf %}Modifiez vos filtres ou élargissez votre recherche.{% else %}La veille est en cours. Revenez dans quelques instants.{% endif %}</div>
-    {% if q or sf or tf %}<div style="margin-top: 28px;"><a href="/tenders" class="btn btn-outline btn-lg">Voir tous les marchés</a></div>{% endif %}
+    <div class="empty-title">{{ tr('tenders_empty_title')|safe }}</div>
+    <div class="empty-text">{% if q or sf or tf %}{{ tr('tenders_empty_filtered') }}{% else %}{{ tr('tenders_empty_none') }}{% endif %}</div>
+    {% if q or sf or tf %}<div style="margin-top: 28px;"><a href="/tenders" class="btn btn-outline btn-lg">{{ tr('tenders_view_all') }}</a></div>{% endif %}
   </div>
   {% endif %}
 </div>

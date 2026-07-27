@@ -14,11 +14,11 @@
 <div class="err-wrap">
   <div class="err-content">
     <div class="err-num">404</div>
-    <h1 class="err-title">Page <em>introuvable</em></h1>
-    <p class="err-sub">La page que vous cherchez n'existe plus, ou n'a peut-être jamais existé. Le marché a peut-être expiré.</p>
+    <h1 class="err-title">{{ tr('404_title')|safe }}</h1>
+    <p class="err-sub">{{ tr('404_text') }}</p>
     <div class="err-cta">
-      <a href="/" class="btn btn-primary btn-lg">Retour à l'accueil →</a>
-      <a href="/tenders" class="btn btn-outline btn-lg">Voir les marchés</a>
+      <a href="/" class="btn btn-primary btn-lg">{{ tr('404_home') }}</a>
+      <a href="/tenders" class="btn btn-outline btn-lg">{{ tr('404_tenders') }}</a>
     </div>
   </div>
 </div>
