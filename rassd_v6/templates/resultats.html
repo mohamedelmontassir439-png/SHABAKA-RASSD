@@ -65,6 +65,7 @@
         <span class="badge badge-gold">{{ get_label(r.secteur)[:24] }}</span>
         {% if r.region %}<span class="badge badge-gray">{{ r.region[:18] }}</span>{% endif %}
         {% if r.reference %}<span class="badge badge-gray">{{ tr('res_ref') }} {{ r.reference[:20] }}</span>{% endif %}
+        <span class="badge badge-gray">{{ source_label('global-marches') }}</span>
       </div>
       <div class="res-grid">
         <div>

@@ -295,15 +295,18 @@ a{display:inline-flex;align-items:center;justify-content:center;padding:13px 26p
 <p>Notre équipe a été notifiée. Merci de réessayer dans un instant.</p>
 <a href="/">Retour à l'accueil →</a>
 </div></body></html>""", 500)
-def source_label(source: str) -> str:
+def source_label(source: str, lang: str = "fr") -> str:
     """Libellé affichable pour la source d'un marché.
 
-    N'expose jamais le nom du fournisseur de données des marchés privés —
-    seul le nom du portail public officiel est communiqué.
+    Le portail public officiel est nommé directement. Pour les marchés
+    privés, on n'expose jamais le nom du prestataire de données brut —
+    seulement une attribution générique, jamais vide.
     """
     if source == "marchespublics":
         return "marchespublics.gov.ma"
-    return ""
+    if source == "global-marches":
+        return tr_("source_private_platform", lang)
+    return tr_("source_private_platform", lang) if source else ""
 
 templates = Jinja2Templates(directory="templates")
 templates.env.globals["get_label"] = get_label
@@ -322,6 +325,7 @@ def render(req: Request, tpl: str, ctx: dict = None, status_code: int = 200):
     ctx  = ctx or {}
     lang = get_lang(req)
     dl_bound = lambda val: days_left(val, lang)
+    src_bound = lambda val: source_label(val, lang)
     resp = templates.TemplateResponse(tpl, {
         "request":   req,  "member":   m,
         "cfg":          cfg,
@@ -330,6 +334,7 @@ def render(req: Request, tpl: str, ctx: dict = None, status_code: int = 200):
         "plans":        cfg.PLANS,
         "dl":           dl_bound,
         "days_left":    dl_bound,
+        "source_label": src_bound,
         "now":          datetime.now(),
         "lang":         lang,
         "dir":          "rtl" if lang == "ar" else "ltr",
@@ -950,36 +955,6 @@ async def reset_post(req: Request, token: str = Form(""),
                (hash_pw(pw), m["id"]))
     db.commit(); db.close()
     return RedirectResponse("/login?reset=1", 302)
-
-# ══════════════════════════════════════════════════════════
-# FEEDBACK
-# ══════════════════════════════════════════════════════════
-@app.get("/feedback", response_class=HTMLResponse)
-async def feedback_get(req: Request):
-    return render(req, "feedback.html", {})
-
-@app.post("/feedback")
-async def feedback_post(req: Request,
-    message:  str  = Form(""),
-    rating:   int  = Form(0),
-    features: list = Form(default=[])):
-    member = get_member(req)
-    db = get_db()
-    db.execute(
-        "INSERT INTO feedback(member_id,email,message,features,rating,created_at) VALUES(?,?,?,?,?,?)",
-        (member["id"] if member else None,
-         member["email"] if member else "",
-         message, json.dumps(features), rating,
-         datetime.now().isoformat()))
-    db.commit(); db.close()
-    # Notify admin
-    try:
-        from app.services.notifications import tg_admin
-        stars = "⭐" * rating
-        tg_admin(f"📝 Nouveau feedback {stars}\n\n{message[:300]}\n\nFonctionnalités: {', '.join(features)}")
-    except Exception as e:
-        logger.warning(f"[feedback] Notification admin échouée: {e}")
-    return RedirectResponse("/feedback?ok=1", 302)
 
 # ══════════════════════════════════════════════════════════
 # WHATSAPP STATUS (admin)

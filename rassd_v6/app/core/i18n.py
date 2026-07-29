@@ -262,6 +262,7 @@ T = {
     "res_title":          {"fr": "{n} résultats <em>publiés</em>", "ar": "{n} نتيجة <em>منشورة</em>"},
     "res_meta_updated":   {"fr": "Mise à jour <span>continue</span>", "ar": "تحديث <span>متواصل</span>"},
     "res_ref":            {"fr": "Réf.", "ar": "المرجع"},
+    "source_private_platform": {"fr": "Plateforme de marchés privés", "ar": "منصة الصفقات الخاصة"},
     "res_adjudication_date": {"fr": "Date d'adjudication", "ar": "تاريخ الترسية"},
     "res_dao":            {"fr": "Dossier (D.A.O)", "ar": "الملف (D.A.O)"},
     "res_pv":             {"fr": "Procès-verbal", "ar": "المحضر"},
