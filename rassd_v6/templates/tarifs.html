@@ -55,7 +55,7 @@
 <div class="plans-wrap">
   <div class="plans-grid">
 
-    {% set pro = plans.pro if plans else {"price":3999} %}
+    {% set pro = plans.pro if plans else {"price":1999} %}
     <div class="plan-card featured">
       <div class="plan-pill">{{ tr('pr_popular') }}</div>
       <div class="plan-name">{{ tr('plan_name_annual') }}</div>
@@ -68,10 +68,10 @@
         <li>{{ tr('pr_pro_feat4') }}</li>
         <li>{{ tr('pr_pro_feat5') }}</li>
       </ul>
-      <a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ (cfg.PAYMENT_MSG ~ ' — Abonnement Annuel (3999 MAD/an)')|urlencode }}" target="_blank" class="btn btn-accent btn-full btn-lg">{{ tr('pr_pro_cta') }}</a>
+      <a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ tr('wa_msg_annual', price=pro.price)|urlencode }}" target="_blank" class="btn btn-accent btn-full btn-lg">{{ tr('pr_pro_cta') }}</a>
     </div>
 
-    {% set biz = plans.business if plans else {"price":6999} %}
+    {% set biz = plans.business if plans else {"price":3499} %}
     <div class="plan-card">
       <div class="plan-name">{{ tr('plan_name_biennial') }}</div>
       <div class="plan-price-row"><span class="plan-price">{{ biz.price }}</span><span class="plan-period">MAD / {{ '2 ans' if lang=='fr' else 'سنتين' }}</span></div>
@@ -83,7 +83,7 @@
         <li>{{ tr('pr_biz_feat4') }}</li>
         <li>{{ tr('pr_biz_feat5') }}</li>
       </ul>
-      <a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ (cfg.PAYMENT_MSG ~ ' — Abonnement Biennal (6999 MAD/2 ans)')|urlencode }}" target="_blank" class="btn btn-outline btn-full btn-lg">{{ tr('pr_biz_cta') }}</a>
+      <a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ tr('wa_msg_biennial', price=biz.price)|urlencode }}" target="_blank" class="btn btn-outline btn-full btn-lg">{{ tr('pr_biz_cta') }}</a>
     </div>
 
   </div>
@@ -119,7 +119,7 @@
   <div class="contact-card-h">{{ tr('pr_contact_title')|safe }}</div>
   <div class="contact-card-p">{{ tr('pr_contact_text') }}</div>
   <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
-    <a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ cfg.PAYMENT_MSG|urlencode }}" target="_blank" class="btn btn-primary btn-lg">{{ tr('pr_contact_wa') }}</a>
+    <a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ tr('wa_msg_generic')|urlencode }}" target="_blank" class="btn btn-primary btn-lg">{{ tr('pr_contact_wa') }}</a>
     <a href="mailto:contact@marocentrepreneuriat.ma" class="btn btn-outline btn-lg">contact@marocentrepreneuriat.ma</a>
   </div>
 </div>

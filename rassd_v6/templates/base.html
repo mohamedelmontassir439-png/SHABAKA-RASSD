@@ -161,9 +161,8 @@ html[dir="rtl"] .sel { background-position: left 14px center; padding-right: 14p
 .sidebar-inner { position: relative; background: linear-gradient(180deg, var(--ink3) 0%, rgba(7,13,26,.96) 100%); display: flex; flex-direction: column; flex: 1; min-height: 100%; }
 
 .sidebar-brand { display: flex; align-items: center; gap: 12px; padding: 26px 22px; border-bottom: 1px solid rgba(255,255,255,.08); }
-.brand-mark { width: 42px; height: 42px; border-radius: 11px; background: linear-gradient(160deg, var(--gold2), var(--gold)); color: #221304; display: flex; align-items: center; justify-content: center; font-weight: 800; font-family: var(--serif); font-size: 15px; flex-shrink: 0; }
 .brand-text { min-width: 0; }
-.brand-name { font-family: var(--serif); font-weight: 700; font-size: 16.5px; color: #fff; line-height: 1.2; }
+.brand-name { font-family: var(--serif); font-weight: 800; font-size: 26px; letter-spacing: -.01em; line-height: 1.1; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .brand-tagline { font-size: 11px; color: rgba(255,255,255,.45); margin-top: 2px; font-weight: 500; }
 
 .sidebar-nav { flex: 1; padding: 18px 14px; display: flex; flex-direction: column; gap: 2px; }
@@ -230,7 +229,7 @@ html[dir="rtl"] .sel { background-position: left 14px center; padding-right: 14p
 /* ── RTL (arabe) ─────────────────────────────────────────── */
 html[dir="rtl"] body { font-family: 'Tajawal', system-ui, sans-serif; }
 html[dir="rtl"] .section-title, html[dir="rtl"] .display-xl, html[dir="rtl"] .display-l, html[dir="rtl"] .display-m,
-html[dir="rtl"] .brand-name, html[dir="rtl"] .brand-mark {
+html[dir="rtl"] .brand-name {
   font-family: 'Amiri', 'Tajawal', serif;
 }
 html[dir="rtl"] .section-title em, html[dir="rtl"] .display-xl em, html[dir="rtl"] .display-l em, html[dir="rtl"] .display-m em { font-style: normal; }
@@ -270,9 +269,8 @@ html[dir="rtl"] .section-label::before { order: 2; }
   <aside class="sidebar">
     <div class="sidebar-inner">
       <a href="/" class="sidebar-brand">
-        <span class="brand-mark">ME</span>
         <div class="brand-text">
-          <div class="brand-name">Maroc Entrepreneuriat</div>
+          <div class="brand-name">ME</div>
           <div class="brand-tagline">{{ tr('brand_tagline') }}</div>
         </div>
       </a>

@@ -1,5 +1,5 @@
 """
-ATLAS PRO — WhatsApp Client (Baileys bridge)
+Maroc Entrepreneuriat — WhatsApp Client (Baileys bridge)
 Envoie des messages via le service Node.js Baileys local
 """
 import logging, requests
@@ -52,7 +52,7 @@ def format_tender_wa(tender: dict) -> str:
     site       = cfg.SITE_URL
     type_offre = tender.get("type_offre","Public")
 
-    return f"""🔔 *ATLAS PRO — Nouveau Marché {type_offre}*
+    return f"""🔔 *Maroc Entrepreneuriat — Nouveau Marché {type_offre}*
 
 📋 *{objet}*
 
@@ -62,4 +62,4 @@ def format_tender_wa(tender: dict) -> str:
 
 👉 Voir les détails: {site}/tenders/{tender.get('id','')}
 
-_ATLAS PRO — Veille Marchés Publics & Privés Maroc_"""
+_Maroc Entrepreneuriat — Veille Marchés Publics & Privés Maroc_"""
