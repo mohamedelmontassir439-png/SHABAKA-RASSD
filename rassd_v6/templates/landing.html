@@ -20,13 +20,8 @@
 .hero-card-obj { font-size: 14px; font-weight: 600; color: var(--text1); max-width: 260px; }
 .hero-card-meta { font-size: 12px; color: var(--text3); margin-top: 3px; }
 
-.hero-card-locked { position: relative; overflow: hidden; filter: blur(.5px); }
-.skeleton-line { height: 12px; border-radius: 4px; background: var(--surface2); margin-bottom: 8px; }
-.skeleton-line-sm { height: 9px; width: 40%; margin-bottom: 0; opacity: .7; }
-.skeleton-badge { width: 52px; height: 22px; border-radius: 999px; background: var(--surface2); flex-shrink: 0; }
-.hero-card-lock-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 20px; background: linear-gradient(180deg, rgba(16,22,42,.4) 0%, var(--surface) 55%); }
-.hero-card-lock-icon { font-size: 26px; }
-.hero-card-lock-text { font-size: 13.5px; font-weight: 600; color: var(--text2); max-width: 220px; line-height: 1.4; }
+.hero-card-promo { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 14px; padding: 48px 28px; }
+.hero-card-promo-title { font-family: var(--serif); font-weight: 700; font-size: 17px; color: var(--text1); max-width: 260px; line-height: 1.4; }
 
 /* ── CHANNELS BAR (honest integrations) ────────── */
 .channels-bar { background: var(--surface); border-bottom: 1px solid var(--line); padding: 30px 0; }
@@ -81,9 +76,7 @@
 .latest-arrow { color: var(--text4); transition: transform .15s; }
 .latest-row:hover .latest-arrow { transform: translateX(4px); color: var(--ink); }
 
-.latest-locked { position: relative; }
-.latest-row-skeleton { filter: blur(.5px); pointer-events: none; }
-.latest-lock-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 20px; background: linear-gradient(180deg, rgba(10,14,26,.25) 0%, var(--bg) 60%); border-radius: var(--r3); }
+.latest-empty-promo { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 16px; padding: 56px 28px; border: 1px solid var(--line); border-radius: var(--r3); background: var(--surface); margin-top: 44px; }
 
 /* ── SOCIAL PROOF (carousel) ────────────────────── */
 .proof { padding: 96px 0; background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); position: relative; overflow: hidden; }
@@ -164,21 +157,9 @@
         {% endfor %}
       </div>
       {% else %}
-      <div class="hero-card hero-card-locked">
-        {% for i in range(3) %}
-        <div class="hero-card-row">
-          <div style="flex:1;">
-            <div class="skeleton-line" style="width: {{ [78,64,88][i] }}%;"></div>
-            <div class="skeleton-line skeleton-line-sm" style="width: {{ [40,52,34][i] }}%;"></div>
-          </div>
-          <div class="skeleton-badge"></div>
-        </div>
-        {% endfor %}
-        <div class="hero-card-lock-overlay">
-          <div class="hero-card-lock-icon">🔒</div>
-          <div class="hero-card-lock-text">{{ tr('hero_locked_text') }}</div>
-          <a href="/tarifs" class="btn btn-accent btn-sm">{{ tr('hero_locked_cta') }}</a>
-        </div>
+      <div class="hero-card hero-card-promo">
+        <div class="hero-card-promo-title">{{ tr('hero_locked_text') }}</div>
+        <a href="/tarifs" class="btn btn-accent btn-sm">{{ tr('hero_locked_cta') }}</a>
       </div>
       {% endif %}
     </div>
@@ -350,22 +331,9 @@
       {% endfor %}
     </div>
     {% else %}
-    <div class="latest-list latest-locked">
-      {% for i in range(4) %}
-      <div class="latest-row latest-row-skeleton">
-        <div style="width:100%;">
-          <div class="skeleton-line" style="width: {{ [72,58,80,66][i] }}%;"></div>
-        </div>
-        <div class="skeleton-line skeleton-line-sm" style="width:70%;"></div>
-        <div class="skeleton-line skeleton-line-sm" style="width:60%;"></div>
-        <div class="skeleton-badge" style="width:16px;height:16px;border-radius:4px;"></div>
-      </div>
-      {% endfor %}
-      <div class="latest-lock-overlay">
-        <div class="hero-card-lock-icon">🔒</div>
-        <div class="hero-card-lock-text">{{ tr('latest_locked_text') }}</div>
-        <a href="/tarifs" class="btn btn-accent btn-lg">{{ tr('latest_locked_cta') }}</a>
-      </div>
+    <div class="latest-empty-promo">
+      <div class="hero-card-promo-title">{{ tr('latest_locked_text') }}</div>
+      <a href="/tarifs" class="btn btn-accent btn-lg">{{ tr('latest_locked_cta') }}</a>
     </div>
     {% endif %}
     <div style="text-align: center; margin-top: 44px;">
