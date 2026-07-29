@@ -1,8 +1,8 @@
-{% extends "base.html" %}
+{% extends "base_public.html" %}
 {% block title %}Offres & Tarifs — Maroc Entrepreneuriat{% endblock %}
 {% block head %}
 <style>
-.pricing-hero { padding: 72px 24px 24px; text-align: center; }
+.pricing-hero { padding: 72px 24px 24px; text-align: center; position: relative; }
 .pricing-title { font-family: var(--serif); font-weight: 700; font-size: clamp(32px, 5.5vw, 50px); line-height: 1.1; letter-spacing: -.01em; color: var(--text1); margin-bottom: 20px; }
 .pricing-title em { font-style: italic; color: var(--ink); font-weight: 600; }
 .pricing-intro { font-size: 16.5px; color: var(--text3); line-height: 1.7; max-width: 620px; margin: 0 auto; }
@@ -46,9 +46,10 @@
 {% block body %}
 
 <section class="pricing-hero">
-  <div class="section-label" style="justify-content:center;">{{ tr('pr_label') }}</div>
-  <h1 class="pricing-title">{{ tr('pr_title')|safe }}</h1>
-  <p class="pricing-intro">{{ tr('pr_intro') }}</p>
+  <div class="blob blob-gold" style="width:320px; height:320px; top:-80px; inset-inline-end:5%;"></div>
+  <div class="section-label reveal" style="justify-content:center;">{{ tr('pr_label') }}</div>
+  <h1 class="pricing-title reveal">{{ tr('pr_title')|safe }}</h1>
+  <p class="pricing-intro reveal">{{ tr('pr_intro') }}</p>
 </section>
 
 <div class="plans-wrap">

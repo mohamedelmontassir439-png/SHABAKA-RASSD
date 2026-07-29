@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base_public.html" %}
 {% block title %}MAROC ENTREPRENEURIAT — La référence des marchés publics et privés au Maroc{% endblock %}
 {% block head %}
 <style>
@@ -72,14 +72,23 @@
 .latest-lock-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 20px; background: linear-gradient(180deg, rgba(255,255,255,.25) 0%, var(--bg) 60%); border-radius: var(--r3); }
 @media (prefers-color-scheme: dark) { .latest-lock-overlay { background: linear-gradient(180deg, rgba(10,18,32,.25) 0%, var(--bg) 60%); } }
 
-/* ── SOCIAL PROOF ─────────────────────────────── */
-.proof { padding: 96px 0; background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.proof-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 44px; }
-.proof-card { background: var(--bg); border: 1px solid var(--line); border-radius: var(--r3); padding: 28px; }
-.proof-stars { color: var(--gold); font-size: 15px; margin-bottom: 18px; }
-.proof-text { font-size: 15px; color: var(--text2); line-height: 1.6; margin-bottom: 20px; }
+/* ── SOCIAL PROOF (carousel) ────────────────────── */
+.proof { padding: 96px 0; background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); position: relative; overflow: hidden; }
+.proof-carousel { position: relative; max-width: 720px; margin: 44px auto 0; }
+.proof-track { overflow: hidden; }
+.proof-slides { display: flex; transition: transform .5s cubic-bezier(.2,.7,.2,1); }
+.proof-card { flex: 0 0 100%; background: var(--bg); border: 1px solid var(--line); border-radius: var(--r3); padding: 40px 44px; text-align: center; }
+.proof-stars { color: var(--gold); font-size: 17px; margin-bottom: 20px; letter-spacing: 2px; }
+.proof-text { font-family: var(--serif); font-style: italic; font-size: 19px; color: var(--text1); line-height: 1.55; margin-bottom: 24px; }
 .proof-author { font-size: 13.5px; font-weight: 700; color: var(--text1); }
 .proof-sector { font-size: 12.5px; color: var(--goldd); margin-top: 3px; font-weight: 600; }
+.proof-nav { display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: 26px; }
+.proof-arrow { width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line2); background: var(--surface); color: var(--text2); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all .15s; flex-shrink: 0; }
+.proof-arrow:hover { border-color: var(--ink); color: var(--ink); }
+.proof-arrow svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2; }
+.proof-dots { display: flex; gap: 8px; }
+.proof-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line2); border: none; cursor: pointer; padding: 0; transition: all .2s; }
+.proof-dot.on { background: var(--gold); width: 22px; border-radius: 5px; }
 
 /* ── FINAL CTA ─────────────────────────────────── */
 .final-cta { position: relative; overflow: hidden; padding: 108px 24px; text-align: center; background: linear-gradient(160deg, var(--ink3) 0%, var(--ink) 100%); }
@@ -96,7 +105,9 @@
 @media(max-width: 900px) {
   .hero-grid { grid-template-columns: 1fr; }
   .hero-visual { display: none; }
-  .pain-grid, .value-grid, .proof-grid { grid-template-columns: 1fr; }
+  .pain-grid, .value-grid { grid-template-columns: 1fr; }
+  .proof-card { padding: 32px 24px; }
+  .proof-text { font-size: 16px; }
   .live-inner { gap: 0; }
   .live-item { padding: 0 20px; }
   .live-sep { display: none; }
@@ -111,17 +122,19 @@
 
 <!-- HERO -->
 <section class="hero">
+  <div class="blob blob-gold" style="width:420px; height:420px; top:-140px; inset-inline-end:-100px;"></div>
+  <div class="blob blob-indigo" style="width:340px; height:340px; bottom:-160px; inset-inline-start:-80px;"></div>
   <div class="hero-grid">
-    <div>
+    <div class="reveal in">
       <div class="hero-eyebrow">{{ tr('hero_eyebrow') }}</div>
       <h1 class="hero-title">{{ tr('hero_title')|safe }}</h1>
       <p class="hero-sub">{{ tr('hero_sub') }}</p>
       <div class="hero-cta">
-        <a href="/register" class="btn btn-accent btn-xl">{{ tr('hero_cta_free') }}</a>
+        <a href="/tarifs" class="btn btn-accent btn-xl">{{ tr('hero_cta_free') }}</a>
         <a href="/tenders" class="btn btn-outline btn-xl">{{ tr('hero_cta_tenders') }}</a>
       </div>
     </div>
-    <div class="hero-visual">
+    <div class="hero-visual reveal in reveal-2">
       {% if recent %}
       <div class="hero-card">
         {% for t in recent[:3] %}
@@ -148,7 +161,7 @@
         <div class="hero-card-lock-overlay">
           <div class="hero-card-lock-icon">🔒</div>
           <div class="hero-card-lock-text">{{ tr('hero_locked_text') }}</div>
-          <a href="/register" class="btn btn-accent btn-sm">{{ tr('hero_locked_cta') }}</a>
+          <a href="/tarifs" class="btn btn-accent btn-sm">{{ tr('hero_locked_cta') }}</a>
         </div>
       </div>
       {% endif %}
@@ -184,21 +197,21 @@
 <!-- PAIN -->
 <section class="pain">
   <div class="container">
-    <div class="section-label">{{ tr('pain_label') }}</div>
-    <div class="section-title" style="max-width: 720px;">{{ tr('pain_title')|safe }}</div>
-    <p class="section-sub" style="font-size: 16.5px;">{{ tr('pain_sub') }}</p>
+    <div class="section-label reveal">{{ tr('pain_label') }}</div>
+    <div class="section-title reveal" style="max-width: 720px;">{{ tr('pain_title')|safe }}</div>
+    <p class="section-sub reveal" style="font-size: 16.5px;">{{ tr('pain_sub') }}</p>
     <div class="pain-grid">
-      <div class="pain-card">
+      <div class="pain-card reveal reveal-1">
         <div class="pain-num">01</div>
         <div class="pain-title">{{ tr('pain1_title')|safe }}</div>
         <div class="pain-text">{{ tr('pain1_text') }}</div>
       </div>
-      <div class="pain-card">
+      <div class="pain-card reveal reveal-2">
         <div class="pain-num">02</div>
         <div class="pain-title">{{ tr('pain2_title')|safe }}</div>
         <div class="pain-text">{{ tr('pain2_text') }}</div>
       </div>
-      <div class="pain-card">
+      <div class="pain-card reveal reveal-3">
         <div class="pain-num">03</div>
         <div class="pain-title">{{ tr('pain3_title')|safe }}</div>
         <div class="pain-text">{{ tr('pain3_text') }}</div>
@@ -209,29 +222,30 @@
 
 <!-- VALUE -->
 <section class="value">
+  <div class="blob blob-purple" style="width:360px; height:360px; top:20%; inset-inline-end:-120px;"></div>
   <div class="container">
-    <div class="section-label">{{ tr('value_label') }}</div>
-    <div class="section-title" style="max-width: 720px;">{{ tr('value_title')|safe }}</div>
+    <div class="section-label reveal">{{ tr('value_label') }}</div>
+    <div class="section-title reveal" style="max-width: 720px;">{{ tr('value_title')|safe }}</div>
     <div class="value-grid">
-      <div class="value-item">
+      <div class="value-item reveal reveal-1">
         <div class="value-num">{{ tr('value1_num') }}</div>
         <div class="value-title">{{ tr('value1_title')|safe }}</div>
         <div class="value-text">{{ tr('value1_text') }}</div>
         <div class="value-result">{{ tr('value1_result') }}</div>
       </div>
-      <div class="value-item">
+      <div class="value-item reveal reveal-2">
         <div class="value-num">{{ tr('value2_num') }}</div>
         <div class="value-title">{{ tr('value2_title')|safe }}</div>
         <div class="value-text">{{ tr('value2_text') }}</div>
         <div class="value-result">{{ tr('value2_result') }}</div>
       </div>
-      <div class="value-item">
+      <div class="value-item reveal reveal-1">
         <div class="value-num">{{ tr('value3_num') }}</div>
         <div class="value-title">{{ tr('value3_title')|safe }}</div>
         <div class="value-text">{{ tr('value3_text') }}</div>
         <div class="value-result">{{ tr('value3_result') }}</div>
       </div>
-      <div class="value-item">
+      <div class="value-item reveal reveal-2">
         <div class="value-num">{{ tr('value4_num') }}</div>
         <div class="value-title">{{ tr('value4_title')|safe }}</div>
         <div class="value-text">{{ tr('value4_text') }}</div>
@@ -244,8 +258,8 @@
 <!-- LATEST TENDERS -->
 <section class="latest">
   <div class="container">
-    <div class="section-label">{{ tr('latest_label') }}</div>
-    <div class="section-title" style="max-width: 720px;">{{ tr('latest_title')|safe }}</div>
+    <div class="section-label reveal">{{ tr('latest_label') }}</div>
+    <div class="section-title reveal" style="max-width: 720px;">{{ tr('latest_title')|safe }}</div>
     {% if recent %}
     <div class="latest-list">
       {% for t in recent[:6] %}
@@ -274,40 +288,55 @@
       <div class="latest-lock-overlay">
         <div class="hero-card-lock-icon">🔒</div>
         <div class="hero-card-lock-text">{{ tr('latest_locked_text') }}</div>
-        <a href="/register" class="btn btn-accent btn-lg">{{ tr('latest_locked_cta') }}</a>
+        <a href="/tarifs" class="btn btn-accent btn-lg">{{ tr('latest_locked_cta') }}</a>
       </div>
     </div>
     {% endif %}
     <div style="text-align: center; margin-top: 44px;">
-      <a href="{{ '/tenders' if recent else '/register' }}" class="btn btn-outline btn-lg">{{ tr('latest_view_all') if recent else tr('latest_view_signup') }}</a>
+      <a href="{{ '/tenders' if recent else '/tarifs' }}" class="btn btn-outline btn-lg">{{ tr('latest_view_all') if recent else tr('latest_view_signup') }}</a>
     </div>
   </div>
 </section>
 
 <!-- PROOF -->
 <section class="proof">
-  <div class="container">
-    <div class="section-label">{{ tr('proof_label') }}</div>
-    <div class="section-title" style="max-width: 720px;">{{ tr('proof_title')|safe }}</div>
-    <p class="section-sub" style="font-size: 15.5px;">{{ tr('proof_sub') }}</p>
-    <div class="proof-grid">
-      <div class="proof-card">
-        <div class="proof-stars">★★★★★</div>
-        <div class="proof-text">{{ tr('proof1_text') }}</div>
-        <div class="proof-author">K. Benali</div>
-        <div class="proof-sector">{{ tr('proof1_sector') }}</div>
+  <div class="blob blob-gold" style="width:300px; height:300px; top:-100px; inset-inline-start:-80px;"></div>
+  <div class="container" style="text-align:center;">
+    <div class="section-label reveal" style="justify-content:center;">{{ tr('proof_label') }}</div>
+    <div class="section-title reveal" style="max-width: 720px; margin: 0 auto;">{{ tr('proof_title')|safe }}</div>
+    <p class="section-sub reveal" style="font-size: 15.5px; margin-left:auto; margin-right:auto;">{{ tr('proof_sub') }}</p>
+
+    <div class="proof-carousel reveal">
+      <div class="proof-track">
+        <div class="proof-slides" id="proofSlides">
+          <div class="proof-card">
+            <div class="proof-stars">★★★★★</div>
+            <div class="proof-text">{{ tr('proof1_text') }}</div>
+            <div class="proof-author">K. Benali</div>
+            <div class="proof-sector">{{ tr('proof1_sector') }}</div>
+          </div>
+          <div class="proof-card">
+            <div class="proof-stars">★★★★★</div>
+            <div class="proof-text">{{ tr('proof2_text') }}</div>
+            <div class="proof-author">M. Tahiri</div>
+            <div class="proof-sector">{{ tr('proof2_sector') }}</div>
+          </div>
+          <div class="proof-card">
+            <div class="proof-stars">★★★★★</div>
+            <div class="proof-text">{{ tr('proof3_text') }}</div>
+            <div class="proof-author">S. Alaoui</div>
+            <div class="proof-sector">{{ tr('proof3_sector') }}</div>
+          </div>
+        </div>
       </div>
-      <div class="proof-card">
-        <div class="proof-stars">★★★★★</div>
-        <div class="proof-text">{{ tr('proof2_text') }}</div>
-        <div class="proof-author">M. Tahiri</div>
-        <div class="proof-sector">{{ tr('proof2_sector') }}</div>
-      </div>
-      <div class="proof-card">
-        <div class="proof-stars">★★★★★</div>
-        <div class="proof-text">{{ tr('proof3_text') }}</div>
-        <div class="proof-author">S. Alaoui</div>
-        <div class="proof-sector">{{ tr('proof3_sector') }}</div>
+      <div class="proof-nav">
+        <button class="proof-arrow" id="proofPrev" aria-label="Précédent" type="button"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="proof-dots" id="proofDots">
+          <button class="proof-dot on" data-i="0" type="button"></button>
+          <button class="proof-dot" data-i="1" type="button"></button>
+          <button class="proof-dot" data-i="2" type="button"></button>
+        </div>
+        <button class="proof-arrow" id="proofNext" aria-label="Suivant" type="button"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
       </div>
     </div>
   </div>
@@ -315,11 +344,11 @@
 
 <!-- FINAL CTA -->
 <section class="final-cta">
-  <div class="final-cta-content">
+  <div class="final-cta-content reveal">
     <div class="final-cta-eyebrow">{{ tr('finalcta_eyebrow') }}</div>
     <h2 class="final-cta-title">{{ tr('finalcta_title')|safe }}</h2>
     <p class="final-cta-text">{{ tr('finalcta_text') }}</p>
-    <a href="/register" class="btn btn-accent btn-xl">{{ tr('finalcta_cta') }}</a>
+    <a href="/tarifs" class="btn btn-accent btn-xl">{{ tr('finalcta_cta') }}</a>
     <div class="final-cta-note">
       <span>{{ tr('finalcta_note1') }}</span>
       <span>{{ tr('finalcta_note2') }}</span>
@@ -328,4 +357,31 @@
   </div>
 </section>
 
+{% endblock %}
+{% block scripts %}
+<script>
+(function(){
+  const slides = document.getElementById('proofSlides');
+  const dots   = document.querySelectorAll('#proofDots .proof-dot');
+  const prev   = document.getElementById('proofPrev');
+  const next   = document.getElementById('proofNext');
+  if (!slides) return;
+  const rtl = document.documentElement.dir === 'rtl';
+  let i = 0;
+  const n = dots.length;
+  function go(idx){
+    i = (idx + n) % n;
+    const pct = i * 100 * (rtl ? 1 : -1);
+    slides.style.transform = `translateX(${pct}%)`;
+    dots.forEach((d, k) => d.classList.toggle('on', k === i));
+  }
+  prev.addEventListener('click', () => go(i - 1));
+  next.addEventListener('click', () => go(i + 1));
+  dots.forEach(d => d.addEventListener('click', () => go(parseInt(d.dataset.i, 10))));
+  let timer = setInterval(() => go(i + 1), 6000);
+  const carousel = document.querySelector('.proof-carousel');
+  carousel.addEventListener('mouseenter', () => clearInterval(timer));
+  carousel.addEventListener('mouseleave', () => { timer = setInterval(() => go(i + 1), 6000); });
+})();
+</script>
 {% endblock %}
