@@ -61,7 +61,7 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
 <div class="plans-wrap">
   <div class="plans-grid">
 
-    {% set pro = plans.pro if plans else {"price":1999} %}
+    {% set pro = plans.pro if plans else {"price":2499} %}
     <div class="plan-card featured">
       <div class="plan-pill">{{ tr('pr_popular') }}</div>
       <div class="plan-name">{{ tr('plan_name_annual') }}</div>
@@ -77,7 +77,7 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
       <a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ tr('wa_msg_annual', price=pro.price)|urlencode }}" target="_blank" class="btn btn-accent btn-full btn-lg">{{ tr('pr_pro_cta') }}</a>
     </div>
 
-    {% set biz = plans.business if plans else {"price":3499} %}
+    {% set biz = plans.business if plans else {"price":4299} %}
     <div class="plan-card">
       <div class="plan-name">{{ tr('plan_name_biennial') }}</div>
       <div class="plan-price-row"><span class="plan-price">{{ biz.price }}</span><span class="plan-period">MAD / {{ '2 ans' if lang=='fr' else 'سنتين' }}</span></div>
