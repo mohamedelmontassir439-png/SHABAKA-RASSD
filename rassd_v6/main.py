@@ -301,10 +301,10 @@ async def server_error(req: Request, exc):
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#f6f7fb;color:#3b4457;font-family:'Inter',system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px}
-.num{font-weight:800;font-size:96px;color:#f2a93b;line-height:.85}
-h1{font-weight:800;font-size:28px;color:#101828;margin:16px 0}
-p{font-size:16px;color:#6b7488;margin-bottom:32px}
-a{display:inline-flex;align-items:center;justify-content:center;padding:13px 26px;background:#142850;color:#fff;font-weight:600;font-size:14px;border-radius:10px;text-decoration:none}
+.num{font-weight:800;font-size:96px;color:#f2662d;line-height:.85}
+h1{font-weight:800;font-size:28px;color:#2b211b;margin:16px 0}
+p{font-size:16px;color:#8a7a6a;margin-bottom:32px}
+a{display:inline-flex;align-items:center;justify-content:center;padding:13px 26px;background:#1e1611;color:#fff;font-weight:600;font-size:14px;border-radius:10px;text-decoration:none}
 </style></head><body><div>
 <div class="num">500</div>
 <h1>Une erreur est survenue</h1>
@@ -1195,7 +1195,7 @@ async def forgot_post(req: Request, email: str = Form("")):
                 email, tr_("email_reset_subject",lang),
                 f"""<h2>{tr_("email_reset_h2",lang)}</h2>
                 <p>{tr_("email_reset_p",lang)}</p>
-                <a href="{reset_url}" style="display:inline-block;padding:12px 24px;background:#f2a93b;color:#142850;border-radius:8px;text-decoration:none;font-weight:600">
+                <a href="{reset_url}" style="display:inline-block;padding:12px 24px;background:#f2662d;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">
                   {tr_("email_reset_btn",lang)}
                 </a>
                 <p style="color:#666;font-size:12px;margin-top:16px">{tr_("email_reset_expiry",lang)}</p>"""))
@@ -1288,9 +1288,9 @@ async def robots():
 # ── PWA (installable sur mobile) ───────────────────────────
 def _pwa_icon_svg(size: int) -> str:
     return f"""<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" viewBox="0 0 {size} {size}">
-<rect width="{size}" height="{size}" fill="#0a0e1a"/>
+<rect width="{size}" height="{size}" fill="#1e1611"/>
 <text x="50%" y="58%" dominant-baseline="middle" text-anchor="middle"
-      font-family="Georgia, serif" font-weight="800" font-size="{int(size*0.42)}" fill="#8b98f9">ME</text>
+      font-family="Georgia, serif" font-weight="800" font-size="{int(size*0.42)}" fill="#f2662d">ME</text>
 </svg>"""
 
 @app.get("/icon-192.svg")
@@ -1309,8 +1309,8 @@ async def manifest():
         "description": "Veille des marchés publics et privés au Maroc",
         "start_url": "/dashboard",
         "display": "standalone",
-        "background_color": "#0a0e1a",
-        "theme_color": "#0a0e1a",
+        "background_color": "#f8f1e1",
+        "theme_color": "#f8f1e1",
         "lang": "fr",
         "icons": [
             {"src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any"},

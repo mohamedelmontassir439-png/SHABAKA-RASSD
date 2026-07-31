@@ -147,19 +147,19 @@ def build_email(t: dict, nom: str = "") -> str:
 *{{box-sizing:border-box;margin:0;padding:0}}
 body{{background:#f6f7fb;font-family:Arial,Helvetica,sans-serif;padding:20px}}
 .wrap{{max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e3e7ef;border-radius:12px;overflow:hidden}}
-.hdr{{padding:24px 32px;background:#142850;border-bottom:1px solid #e3e7ef}}
+.hdr{{padding:24px 32px;background:#1e1611;border-bottom:1px solid #e3e7ef}}
 .logo{{font-size:20px;font-weight:800;color:#ffffff}}
-.logo em{{font-style:normal;color:#f2a93b}}
+.logo em{{font-style:normal;color:#f2662d}}
 .body{{padding:32px}}
 .title{{font-size:17px;font-weight:700;color:#101828;line-height:1.5;margin-bottom:20px}}
 table{{width:100%;border-collapse:collapse;margin-bottom:24px}}
 td{{padding:10px 0;border-bottom:1px solid #e3e7ef;vertical-align:top;font-size:13px}}
 .lbl{{color:#98a1b3;letter-spacing:.5px;text-transform:uppercase;width:110px;font-size:11px}}
-.val{{color:#3b4457}}.val-g{{color:#b9791a;font-weight:700}}.val-r{{color:#d64545;font-weight:700}}
-.cta{{display:inline-block;margin:6px 6px 0 0;padding:12px 22px;background:#f2a93b;color:#142850;border-radius:8px;font-weight:700;text-decoration:none;font-size:13px}}
-.cta2{{display:inline-block;margin:6px 6px 0 0;padding:12px 22px;border:1px solid #142850;color:#142850;border-radius:8px;font-weight:700;text-decoration:none;font-size:13px}}
+.val{{color:#3b4457}}.val-g{{color:#c94e1f;font-weight:700}}.val-r{{color:#d64545;font-weight:700}}
+.cta{{display:inline-block;margin:6px 6px 0 0;padding:12px 22px;background:#f2662d;color:#1e1611;border-radius:8px;font-weight:700;text-decoration:none;font-size:13px}}
+.cta2{{display:inline-block;margin:6px 6px 0 0;padding:12px 22px;border:1px solid #1e1611;color:#1e1611;border-radius:8px;font-weight:700;text-decoration:none;font-size:13px}}
 .ftr{{padding:20px 32px;background:#f6f7fb;border-top:1px solid #e3e7ef;text-align:center}}
-.dl-badge{{display:inline-block;padding:6px 14px;background:rgba(242,169,59,.12);border:1px solid rgba(242,169,59,.3);border-radius:99px;font-size:12px;color:#b9791a;margin-bottom:20px}}
+.dl-badge{{display:inline-block;padding:6px 14px;background:rgba(242,102,45,.12);border:1px solid rgba(242,102,45,.3);border-radius:99px;font-size:12px;color:#c94e1f;margin-bottom:20px}}
 </style></head>
 <body><div class="wrap">
 <div class="hdr"><div class="logo">Maroc<em>Entrepreneuriat</em></div><div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:3px">MARCHÉS {type_offre.upper()}S · MAROC</div></div>
@@ -188,7 +188,7 @@ def build_digest_email(tenders: list, nom: str = "") -> str:
 <tr><td style="padding:14px 0;border-bottom:1px solid #e3e7ef;">
   <div style="font-size:14px;font-weight:700;color:#101828;margin-bottom:4px">{t["objet"][:140]}</div>
   <div style="font-size:12px;color:#6b7488">{t.get("acheteur","")[:80]} · {get_label(t.get("secteur",""))} · ⏰ {t.get("date_limite","—")}</div>
-  <a href="{site}/tenders/{t["id"]}" style="font-size:12px;color:#b9791a;font-weight:700;text-decoration:none">Voir le marché ↗</a>
+  <a href="{site}/tenders/{t["id"]}" style="font-size:12px;color:#c94e1f;font-weight:700;text-decoration:none">Voir le marché ↗</a>
 </td></tr>''' for t in tenders)
     return f"""<!DOCTYPE html>
 <html lang="fr"><head><meta charset="UTF-8">
@@ -196,9 +196,9 @@ def build_digest_email(tenders: list, nom: str = "") -> str:
 *{{box-sizing:border-box;margin:0;padding:0}}
 body{{background:#f6f7fb;font-family:Arial,Helvetica,sans-serif;padding:20px}}
 .wrap{{max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e3e7ef;border-radius:12px;overflow:hidden}}
-.hdr{{padding:24px 32px;background:#142850;border-bottom:1px solid #e3e7ef}}
+.hdr{{padding:24px 32px;background:#1e1611;border-bottom:1px solid #e3e7ef}}
 .logo{{font-size:20px;font-weight:800;color:#ffffff}}
-.logo em{{font-style:normal;color:#f2a93b}}
+.logo em{{font-style:normal;color:#f2662d}}
 .body{{padding:32px}}
 table{{width:100%;border-collapse:collapse}}
 .ftr{{padding:20px 32px;background:#f6f7fb;border-top:1px solid #e3e7ef;text-align:center}}

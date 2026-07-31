@@ -5,24 +5,24 @@
 <title>Administration — Maroc Entrepreneuriat</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-:root { --bg: #0a1220; --surface: #101b30; --line: #202e4a; --ink: #0f1b33; --gold: #c9903f; --gold2: #e2ac5f; --t1: #eef1f8; --t3: #8792ab; --t4: #56617e; --red: #ff9c94; --serif: 'Fraunces', Georgia, serif; }
-body { background: var(--bg); color: var(--t1); font-family: 'Inter', system-ui, sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='84'%3E%3Cg fill='none' stroke='%23c9903f' stroke-opacity='.07' stroke-width='1'%3E%3Cpath d='M42 2 80 42 42 82 4 42Z'/%3E%3Cpath d='M42 18 66 42 42 66 18 42Z'/%3E%3Cpath d='M42 2V82M4 42H80'/%3E%3C/g%3E%3C/svg%3E"); background-size: 84px 84px; }
-.card { background: var(--surface); border: 1px solid var(--line); padding: 44px 40px; max-width: 400px; width: 100%; border-radius: 18px; box-shadow: 0 26px 60px rgba(0,0,0,.45); }
+:root { --bg: #f8f1e1; --surface: #ffffff; --line: #e8dcc5; --ink: #2b211b; --gold: #f2662d; --gold2: #ff8552; --t1: #2b211b; --t3: #8a7a6a; --t4: #b7a896; --red: #d6493f; --serif: 'Fredoka', Georgia, serif; }
+body { background: var(--bg); color: var(--t1); font-family: 'Inter', system-ui, sans-serif; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='84'%3E%3Cg fill='none' stroke='%23f2662d' stroke-opacity='.12' stroke-width='1'%3E%3Cpath d='M42 2 80 42 42 82 4 42Z'/%3E%3Cpath d='M42 18 66 42 42 66 18 42Z'/%3E%3Cpath d='M42 2V82M4 42H80'/%3E%3C/g%3E%3C/svg%3E"); background-size: 84px 84px; }
+.card { background: var(--surface); border: 1px solid var(--line); padding: 44px 40px; max-width: 400px; width: 100%; border-radius: 18px; box-shadow: 0 26px 60px rgba(43,33,27,.14); }
 h1 { font-family: var(--serif); font-weight: 700; font-size: 27px; line-height: 1.2; letter-spacing: -.01em; text-align: center; margin-bottom: 6px; }
-h1 em { font-style: italic; color: var(--gold2); font-weight: 600; }
+h1 em { font-style: normal; color: var(--gold); font-weight: 700; }
 .sub { font-size: 14px; color: var(--t3); text-align: center; margin-bottom: 32px; }
 .field { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
 .field label { font-size: 13px; font-weight: 600; color: var(--t3); }
 .inp { width: 100%; background: var(--bg); border: 1.5px solid var(--line); padding: 11px 14px; color: var(--t1); font: inherit; font-size: 15px; outline: none; transition: border-color .15s; border-radius: 10px; }
 .inp:focus { border-color: var(--gold); }
-.btn { width: 100%; background: linear-gradient(180deg, var(--gold2), var(--gold)); color: #221304; border: none; padding: 13px; font-size: 14px; font-weight: 700; cursor: pointer; transition: filter .15s; border-radius: 10px; margin-top: 8px; }
+.btn { width: 100%; background: linear-gradient(180deg, var(--gold2), var(--gold)); color: #fff; border: none; padding: 13px; font-size: 14px; font-weight: 700; cursor: pointer; transition: filter .15s; border-radius: 10px; margin-top: 8px; }
 .btn:hover { filter: brightness(1.06); }
-.err { background: rgba(255,156,148,.1); border: 1px solid rgba(255,156,148,.28); color: var(--red); padding: 12px 16px; font-size: 14px; margin-bottom: 20px; border-radius: 10px; }
+.err { background: rgba(214,73,63,.08); border: 1px solid rgba(214,73,63,.28); color: var(--red); padding: 12px 16px; font-size: 14px; margin-bottom: 20px; border-radius: 10px; }
 .foot { text-align: center; margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 13px; color: var(--t4); }
-.foot a { color: var(--gold2); font-weight: 600; }
+.foot a { color: var(--gold); font-weight: 600; }
 </style>
 </head>
 <body>

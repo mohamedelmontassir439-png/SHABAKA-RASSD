@@ -5,16 +5,16 @@
 <title>Administration — Maroc Entrepreneuriat</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700;9..144,800&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #f4f6fa; --surface: #ffffff; --surface2: #eceff5;
-  --line: #e2e6ef; --line2: #cfd6e4;
-  --navy: #0f1b33; --navy3: #070d1a;
-  --amber: #c9903f; --amberd: #97621b; --ambera: rgba(201,144,63,.13);
-  --t1: #0d1727; --t2: #384258; --t3: #69738b; --t4: #97a1b6;
-  --grn: #1c8c62; --red: #c8433f; --blue: #3d5a95;
-  --serif: 'Fraunces', Georgia, serif;
+  --bg: #f8f1e1; --surface: #ffffff; --surface2: #f1e6cf;
+  --line: #e8dcc5; --line2: #d9c7a8;
+  --navy: #f2662d; --navy3: #1e1611;
+  --amber: #f2662d; --amberd: #c94e1f; --ambera: rgba(242,102,45,.14);
+  --t1: #2b211b; --t2: #4a3b32; --t3: #8a7a6a; --t4: #b7a896;
+  --grn: #2f9e5b; --red: #d6493f; --blue: #3d7a7a;
+  --serif: 'Fredoka', Georgia, serif;
   --sans: 'Inter', system-ui, sans-serif;
   --mono: 'JetBrains Mono', monospace;
 }
@@ -22,13 +22,13 @@
 body { background: var(--bg); color: var(--t2); font-family: var(--sans); font-size: 14px; min-height: 100vh; -webkit-font-smoothing: antialiased; }
 a { color: inherit; text-decoration: none; }
 
-.topbar { background: var(--navy3); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='84'%3E%3Cg fill='none' stroke='%23c9903f' stroke-opacity='.1' stroke-width='1'%3E%3Cpath d='M42 2 80 42 42 82 4 42Z'/%3E%3Cpath d='M42 18 66 42 42 66 18 42Z'/%3E%3Cpath d='M42 2V82M4 42H80'/%3E%3C/g%3E%3C/svg%3E"); background-size: 84px 84px; height: 60px; display: flex; align-items: center; padding: 0 28px; gap: 20px; position: sticky; top: 0; z-index: 100; }
+.topbar { background: var(--navy3); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='84'%3E%3Cg fill='none' stroke='%23f2662d' stroke-opacity='.14' stroke-width='1'%3E%3Cpath d='M42 2 80 42 42 82 4 42Z'/%3E%3Cpath d='M42 18 66 42 42 66 18 42Z'/%3E%3Cpath d='M42 2V82M4 42H80'/%3E%3C/g%3E%3C/svg%3E"); background-size: 84px 84px; height: 60px; display: flex; align-items: center; padding: 0 28px; gap: 20px; position: sticky; top: 0; z-index: 100; }
 .brand { font-family: var(--serif); font-weight: 700; font-size: 19px; color: #fff; }
 .brand em { font-style: italic; color: var(--amber); font-weight: 600; }
 .brand-meta { font-size: 12px; color: rgba(255,255,255,.45); font-weight: 500; }
 
 .btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 14px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid transparent; transition: all .15s; border-radius: 8px; }
-.btn-p { background: linear-gradient(180deg,#e2ac5f,var(--amber)); color: var(--navy3); border-color: var(--amber); font-weight: 700; }
+.btn-p { background: linear-gradient(180deg,#ff8552,var(--amber)); color: #fff; border-color: var(--amber); font-weight: 700; }
 .btn-p:hover { filter: brightness(1.06); }
 .btn-o { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.16); color: #fff; }
 .btn-o:hover { border-color: var(--amber); color: var(--amber); }
@@ -290,13 +290,13 @@ let sse = null;
 async function launch() {
   const btn = document.getElementById('btn'), trm = document.getElementById('trm'), st = document.getElementById('st');
   btn.disabled = true; btn.textContent = '⏳ En cours…';
-  st.textContent = '● EN COURS'; st.style.color = '#c9903f';
+  st.textContent = '● EN COURS'; st.style.color = '#f2662d';
   trm.innerHTML = '<div class="log-hdr">═══ Lancement de la veille ═══</div>';
   const r = await fetch('/admin/scrape', { credentials: 'include' });
   const d = await r.json();
   if (!d.ok) {
     trm.innerHTML += `<div class="log-err">❌ ${d.msg || 'Erreur: non autorisé'}</div>`;
-    trm.innerHTML += `<div class="log-n">→ <a href="/admin/scrape" style="color:#c9903f" target="_blank">Cliquez ici pour lancer manuellement</a></div>`;
+    trm.innerHTML += `<div class="log-n">→ <a href="/admin/scrape" style="color:#f2662d" target="_blank">Cliquez ici pour lancer manuellement</a></div>`;
     btn.disabled = false; btn.textContent = '▶ Actualiser'; return;
   }
   if (sse) sse.close();
