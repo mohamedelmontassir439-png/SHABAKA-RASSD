@@ -846,7 +846,7 @@ async def dashboard(req: Request):
     if not member: return RedirectResponse("/login?next=/dashboard",302)
     if not has_access(member):
         return render(req,"dashboard.html",{
-            "locked":True,"favs":[],"notifs":[],"recs":[],"latest":[],
+            "locked":True,"favs":[],"notifs":[],"recs":[],
             "stats":{"favs":0,"notifs":0,"active":0,"today":0,"recs":0},
             "sector_dist":[],"trend":[]})
     db   = get_db()
@@ -860,8 +860,6 @@ async def dashboard(req: Request):
            JOIN tenders t ON t.id=nl.tender_id
            WHERE nl.member_id=? ORDER BY nl.sent_at DESC LIMIT 10""",
         (member["id"],)).fetchall()]
-    latest = [dict(r) for r in db.execute(
-        "SELECT * FROM tenders WHERE statut='actif' ORDER BY scraped_at DESC LIMIT 5").fetchall()]
     if ms:
         ph   = ",".join(["?"]*len(ms))
         recs = [dict(r) for r in db.execute(
@@ -891,7 +889,7 @@ async def dashboard(req: Request):
     trend = list(reversed([{"week": r["wk"], "n": r["n"]} for r in trend_rows]))
     db.close()
     return render(req,"dashboard.html",{
-        "favs":favs,"notifs":notifs,"recs":recs,"latest":latest,"stats":stats,
+        "favs":favs,"notifs":notifs,"recs":recs,"stats":stats,
         "sector_dist":sector_dist,"trend":trend})
 
 @app.get("/tarifs", response_class=HTMLResponse)

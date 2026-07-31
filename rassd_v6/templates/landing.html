@@ -66,6 +66,21 @@
 .feat-title { font-weight: 700; font-size: 15.5px; color: var(--text1); margin-bottom: 8px; line-height: 1.3; }
 .feat-text { font-size: 13.5px; color: var(--text3); line-height: 1.6; }
 
+/* ── SOUS-TRAITANCE SPOTLIGHT ──────────────────── */
+.st-spot { padding: 96px 0; background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.st-spot-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 56px; align-items: center; }
+.st-spot-list { list-style: none; display: flex; flex-direction: column; gap: 14px; margin: 28px 0 32px; }
+.st-spot-list li { display: flex; align-items: flex-start; gap: 10px; font-size: 15px; color: var(--text2); line-height: 1.5; }
+.st-spot-list li::before { content: "✓"; color: var(--grn); font-weight: 700; flex-shrink: 0; }
+.st-spot-cards { display: flex; flex-direction: column; gap: 14px; }
+.st-spot-card { background: var(--bg); border: 1px solid var(--line); border-radius: var(--r3); padding: 22px 24px; box-shadow: var(--sh), var(--shg); }
+.st-spot-card-title { font-weight: 600; font-size: 14.5px; color: var(--text1); margin: 12px 0 6px; }
+.st-spot-card-meta { font-size: 12.5px; color: var(--text3); }
+.st-spot-rating { display: flex; align-items: center; gap: 10px; padding: 18px 24px; background: var(--golda); border: 1px solid rgba(242,102,45,.3); border-radius: var(--r3); }
+.st-spot-rating-stars { color: var(--gold); font-size: 16px; letter-spacing: 2px; }
+.st-spot-rating-text { font-size: 13px; color: var(--text2); font-weight: 600; }
+@media(max-width: 900px) { .st-spot-grid { grid-template-columns: 1fr; gap: 32px; } }
+
 /* ── PAIN ─────────────────────────────────────── */
 .pain { padding: 96px 0; }
 .pain-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 44px; }
@@ -337,6 +352,39 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
         <div class="value-title">{{ tr('value4_title')|safe }}</div>
         <div class="value-text">{{ tr('value4_text') }}</div>
         <div class="value-result">{{ tr('value4_result') }}</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SOUS-TRAITANCE SPOTLIGHT -->
+<section class="st-spot">
+  <div class="container st-spot-grid">
+    <div class="reveal">
+      <div class="section-label">{{ tr('st_spot_label') }}</div>
+      <div class="section-title" style="max-width: 520px;">{{ tr('st_spot_title')|safe }}</div>
+      <p class="section-sub" style="max-width: 520px;">{{ tr('st_spot_sub') }}</p>
+      <ul class="st-spot-list">
+        <li>{{ tr('st_spot_pt1') }}</li>
+        <li>{{ tr('st_spot_pt2') }}</li>
+        <li>{{ tr('st_spot_pt3') }}</li>
+      </ul>
+      <a href="{{ '/sous-traitance' if member else '/tarifs' }}" class="btn btn-accent btn-lg">{{ tr('st_spot_cta') }}</a>
+    </div>
+    <div class="st-spot-cards reveal reveal-2">
+      <div class="st-spot-card">
+        <span class="badge badge-blue">{{ tr('st_type_demande') }}</span>
+        <div class="st-spot-card-title">{{ tr('st_spot_example1') }}</div>
+        <div class="st-spot-card-meta">{{ tr('st_spot_example1_meta') }}</div>
+      </div>
+      <div class="st-spot-card">
+        <span class="badge badge-grn">{{ tr('st_type_offre') }}</span>
+        <div class="st-spot-card-title">{{ tr('st_spot_example2') }}</div>
+        <div class="st-spot-card-meta">{{ tr('st_spot_example2_meta') }}</div>
+      </div>
+      <div class="st-spot-rating">
+        <span class="st-spot-rating-stars">★★★★★</span>
+        <span class="st-spot-rating-text">{{ tr('st_spot_rating_text') }}</span>
       </div>
     </div>
   </div>

@@ -23,7 +23,7 @@
 .kpi-value { font-family: var(--serif); font-weight: 700; font-size: 28px; color: var(--text1); line-height: 1; }
 .kpi-label { font-size: 12.5px; color: var(--text3); margin-top: 7px; font-weight: 600; }
 
-.mid-row { display: grid; grid-template-columns: 1fr 1.3fr 1.3fr; gap: 16px; align-items: stretch; }
+.mid-row { display: grid; grid-template-columns: 1fr 1.3fr; gap: 16px; align-items: stretch; }
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); box-shadow: var(--sh), var(--shg); padding: 20px 22px; display: flex; flex-direction: column; }
 .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .panel-title { font-weight: 700; font-size: 14.5px; color: var(--text1); }
@@ -161,29 +161,6 @@
       {% else %}
       <div class="empty-tile"><div class="empty-tile-text">{{ tr('dash_no_data') }}</div></div>
       {% endif %}
-    </div>
-
-    <div class="panel">
-      <div class="panel-head">
-        <div class="panel-title">{{ tr('latest_label') }}</div>
-        <a href="/tenders" class="panel-link">{{ tr('dash_view_all') }}</a>
-      </div>
-      <div class="mini-list">
-        {% if latest %}
-          {% for t in latest %}
-          <a href="/tenders/{{ t.id }}" class="mini-row">
-            <div class="mini-icon"><svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></div>
-            <div class="mini-info">
-              <div class="mini-title">{{ t.objet[:60] }}</div>
-              <div class="mini-sub">{{ (t.acheteur or '—')[:36] }} · {{ t.date_limite or '—' }}</div>
-            </div>
-            {% if t.montant %}<div class="mini-amount">{{ t.montant[:14] }}</div>{% endif %}
-          </a>
-          {% endfor %}
-        {% else %}
-        <div class="empty-tile"><div class="empty-tile-text">{{ tr('dash_no_data') }}</div></div>
-        {% endif %}
-      </div>
     </div>
 
     <div class="panel">
