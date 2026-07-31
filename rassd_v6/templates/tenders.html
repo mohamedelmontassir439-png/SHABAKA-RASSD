@@ -191,7 +191,7 @@
 <script>
 async function toggleFav(btn, tid) {
   try {
-    const r = await fetch(`/tenders/${tid}/favorite`, {method: 'POST'});
+    const r = await fetch(`/tenders/${tid}/favorite`, {method: 'POST', headers: {'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content}});
     const d = await r.json();
     if (d.ok) { btn.textContent = d.fav ? '★' : '☆'; btn.classList.toggle('active', d.fav); }
   } catch(e) { console.error(e); }

@@ -22,6 +22,7 @@
   {% if err %}<div class="alert alert-err" style="margin-bottom:20px;">{{ err }}</div>{% endif %}
 
   <form method="post" class="stn-block">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <label class="type-choice">
       <div class="type-opt"><input type="radio" name="type" value="demande" checked><div class="type-opt-t">🔍 {{ tr('st_type_demande') }}</div></div>
       <div class="type-opt"><input type="radio" name="type" value="offre"><div class="type-opt-t">🛠️ {{ tr('st_type_offre') }}</div></div>

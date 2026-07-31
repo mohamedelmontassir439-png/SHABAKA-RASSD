@@ -39,6 +39,7 @@
   </div>
 
   <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <section class="set-block">
       <div class="set-block-h">{{ tr('set_profile') }}</div>
       <div class="set-block-sub">{{ tr('set_profile_sub') }}</div>

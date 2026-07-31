@@ -20,6 +20,7 @@
       {% if err %}<div class="alert alert-err" style="margin-bottom: 20px;">{{ err }}</div>{% endif %}
 
       <form method="post" class="auth-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <input type="hidden" name="token" value="{{ token }}">
         <div class="field"><label for="pw">{{ tr('reset_pw') }}</label><input id="pw" name="pw" type="password" class="inp" required minlength="8" autofocus placeholder="{{ tr('reg_pw_hint') }}"></div>
         <div class="field"><label for="pw2">{{ tr('reset_pw2') }}</label><input id="pw2" name="pw2" type="password" class="inp" required placeholder="{{ tr('reg_pw2_hint') }}"></div>

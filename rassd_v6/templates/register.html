@@ -32,6 +32,7 @@
     {% if err %}<div class="alert alert-err" style="margin-bottom: 20px;">{{ err }}</div>{% endif %}
 
     <form method="post" class="reg-form">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="ref" value="{{ ref or '' }}">
       <div class="grid-2">
         <div class="field"><label for="nom">{{ tr('reg_name') }}</label><input id="nom" name="nom" class="inp" placeholder="Mohamed Alaoui" value="{{ (vals or {}).get('nom','') }}"></div>

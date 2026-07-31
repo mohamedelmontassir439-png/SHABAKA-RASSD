@@ -24,6 +24,7 @@
       {% if err %}<div class="alert alert-err" style="margin-bottom: 20px;">{{ err }}</div>{% endif %}
 
       <form method="post" class="auth-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <input type="hidden" name="next" value="{{ next }}">
         <div class="field"><label for="email">{{ tr('login_email') }}</label><input id="email" name="email" type="email" class="inp" required autofocus value="{{ (vals or {}).get('email','') }}"></div>
         <div class="field"><label for="pw">{{ tr('login_pw') }}</label><input id="pw" name="pw" type="password" class="inp" required></div>

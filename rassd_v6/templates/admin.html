@@ -269,6 +269,7 @@ tr:hover td { background: var(--surface2); }
             </td>
             <td>
               <form method="post" action="/admin/member/{{ m.id }}/plan">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <select name="plan" class="sel" onchange="this.form.submit()">
                   <option value="free" {% if m.plan=='free' %}selected{% endif %}>Inactif (non abonné)</option>
                   <option value="pro" {% if m.plan=='pro' %}selected{% endif %}>Annuel (2499/an)</option>

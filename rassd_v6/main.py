@@ -17,7 +17,8 @@ from app.core.config   import cfg
 from app.core.database import get_db, init_db
 from app.core.security import (hash_pw, verify_pw, make_token, make_session_token,
                                 get_member, has_access, validate_email,
-                                validate_password, days_left)
+                                validate_password, days_left,
+                                get_csrf_token, verify_csrf)
 from app.core.sectors import get_label
 from app.core.i18n import get_lang, make_t, SUPPORTED_LANGS, tr as tr_
 from app.services.notifications import dispatch_notifications, tg_admin, test_notifications
@@ -44,7 +45,20 @@ def check_rate_limit(ip: str, max_attempts: int = 5, window: int = 300) -> bool:
     return True
 
 def get_ip(req: Request) -> str:
-    return req.headers.get("x-forwarded-for", req.client.host if req.client else "unknown").split(",")[0].strip()
+    """IP réelle du client pour le rate-limiting.
+
+    X-Forwarded-For est une liste où chaque proxy AJOUTE l'adresse qu'il a
+    observée à la fin — le premier élément est donc fourni par le client et
+    falsifiable à volonté (contournerait le rate-limit en changeant sa valeur
+    à chaque requête). Seul le DERNIER élément (ajouté par le proxy Railway,
+    le plus proche de nous) est fiable.
+    """
+    xff = req.headers.get("x-forwarded-for", "")
+    if xff:
+        parts = [p.strip() for p in xff.split(",") if p.strip()]
+        if parts:
+            return parts[-1]
+    return req.client.host if req.client else "unknown"
 
 # Cookies "Secure" en production (HTTPS) — désactivé seulement si SITE_URL
 # est en http:// (dev local), sinon un cookie Secure serait simplement
@@ -276,10 +290,25 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         })
         return resp
 
+def csrf_guard(req: Request, csrf_token: str = ""):
+    """Vérification CSRF appelée en première ligne de chaque route POST.
+
+    Implémentée route-par-route plutôt qu'en middleware: un BaseHTTPMiddleware
+    qui lit await req.form() consomme le flux ASGI une seule fois — la
+    ré-lecture par les paramètres Form(...) de la route en aval revient alors
+    vide (bug constaté en test: connexion/inscription cassées). Vérifier
+    directement dans la route, après que FastAPI a déjà parsé le formulaire,
+    évite ce piège.
+    """
+    if not verify_csrf(req, csrf_token):
+        raise HTTPException(status_code=403, detail="Session expirée — merci de rafraîchir la page et réessayer.")
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
     State.log(f"MAROC ENTREPRENEURIAT v{cfg.APP_VERSION} | Multi-source: {'✅' if MULTI_OK else '❌'}")
+    if cfg.WA_SECRET == "atlas_wa_secret_2024":
+        logger.warning("[startup] WA_SECRET utilise sa valeur par défaut — configure-la dans les variables d'environnement Railway.")
     asyncio.create_task(scheduler())
     asyncio.create_task(digest_scheduler())
     yield
@@ -342,6 +371,7 @@ def render(req: Request, tpl: str, ctx: dict = None, status_code: int = 200):
     lang = get_lang(req)
     dl_bound = lambda val: days_left(val, lang)
     src_bound = lambda val: source_label(val, lang)
+    csrf_tok = get_csrf_token(req) or secrets.token_urlsafe(24)
     resp = templates.TemplateResponse(tpl, {
         "request":   req,  "member":   m,
         "cfg":          cfg,
@@ -355,10 +385,13 @@ def render(req: Request, tpl: str, ctx: dict = None, status_code: int = 200):
         "lang":         lang,
         "dir":          "rtl" if lang == "ar" else "ltr",
         "tr":           make_t(lang),
+        "csrf_token":   csrf_tok,
         **ctx
     }, status_code=status_code)
     if req.query_params.get("lang") in SUPPORTED_LANGS:
         resp.set_cookie("lang", lang, max_age=86400*365, samesite="lax", secure=COOKIE_SECURE)
+    if not req.cookies.get("_csrf"):
+        resp.set_cookie("_csrf", csrf_tok, max_age=86400*30, httponly=True, samesite="lax", secure=COOKIE_SECURE)
     return resp
 
 def get_stats() -> dict:
@@ -508,7 +541,10 @@ async def tender_source_redirect(req: Request, tid: str):
 async def toggle_fav(req: Request, tid: str):
     member = get_member(req)
     if not member: return JSONResponse({"ok":False,"msg":"Non connecté"},401)
+    if not verify_csrf(req, ""): return JSONResponse({"ok":False,"msg":"Session expirée"},403)
     if not has_access(member): return JSONResponse({"ok":False,"msg":"Abonnement requis"},403)
+    if not check_rate_limit(f"fav_{member['id']}", 60, 300):
+        return JSONResponse({"ok":False,"msg":"Trop de requêtes, patientez un instant"},429)
     db = get_db()
     try:
         exists = db.execute("SELECT id FROM favorites WHERE member_id=? AND tender_id=?",
@@ -616,13 +652,16 @@ async def subtraitance_new_get(req: Request):
 @app.post("/sous-traitance/nouveau")
 async def subtraitance_new_post(req: Request, type:str=Form("demande"), titre:str=Form(""),
                                  secteur:str=Form(""), region:str=Form(""), budget:str=Form(""),
-                                 date_limite:str=Form(""), description:str=Form("")):
+                                 date_limite:str=Form(""), description:str=Form(""), csrf_token:str=Form("")):
     m0 = get_member(req)
     lang = get_lang(req)
+    csrf_guard(req, csrf_token)
     if not m0:
         return RedirectResponse("/login?next=/sous-traitance/nouveau", 302)
     if not has_access(m0):
         return RedirectResponse("/tarifs?locked=1", 302)
+    if not check_rate_limit(f"st_new_{m0['id']}", 10, 3600):
+        return render(req, "subtraitance_new.html", {"err": tr_("err_too_many_generic", lang)})
     if not titre.strip() or not description.strip():
         return render(req, "subtraitance_new.html", {"err": tr_("st_err_required", lang)})
     db  = get_db()
@@ -698,12 +737,15 @@ async def subtraitance_detail(req: Request, pid: str, with_:str=""):
         "my_rating_given": my_rating_given})
 
 @app.post("/sous-traitance/{pid}/message")
-async def subtraitance_send_message(req: Request, pid: str, body:str=Form(""), to:str=Form("")):
+async def subtraitance_send_message(req: Request, pid: str, body:str=Form(""), to:str=Form(""), csrf_token:str=Form("")):
     m0 = get_member(req)
+    csrf_guard(req, csrf_token)
     if not m0:
         return RedirectResponse("/login", 302)
     if not has_access(m0):
         return RedirectResponse("/tarifs?locked=1", 302)
+    if not check_rate_limit(f"st_msg_{m0['id']}", 20, 600):
+        return RedirectResponse(f"/sous-traitance/{pid}", 302)
     if not body.strip():
         return RedirectResponse(f"/sous-traitance/{pid}", 302)
     db = get_db()
@@ -712,10 +754,28 @@ async def subtraitance_send_message(req: Request, pid: str, body:str=Form(""), t
         db.close()
         return RedirectResponse("/sous-traitance", 302)
     owner_id = post["member_id"]
-    recipient_id = int(to) if to else owner_id
-    if m0["id"] == owner_id and not to:
-        db.close()
-        return RedirectResponse(f"/sous-traitance/{pid}", 302)
+    if m0["id"] != owner_id:
+        # Un non-propriétaire ne peut écrire qu'au propriétaire de l'annonce —
+        # "to" est ignoré pour empêcher de contacter un membre arbitraire.
+        recipient_id = owner_id
+    else:
+        # Le propriétaire ne peut répondre qu'à quelqu'un qui lui a déjà
+        # écrit sur CETTE annonce — "to" est validé, jamais utilisé tel quel.
+        if not to:
+            db.close()
+            return RedirectResponse(f"/sous-traitance/{pid}", 302)
+        try:
+            to_id = int(to)
+        except ValueError:
+            db.close()
+            return RedirectResponse(f"/sous-traitance/{pid}", 302)
+        prior = db.execute(
+            "SELECT 1 FROM subcontract_messages WHERE post_id=? AND sender_id=? LIMIT 1",
+            (pid, to_id)).fetchone()
+        if not prior:
+            db.close()
+            return RedirectResponse(f"/sous-traitance/{pid}", 302)
+        recipient_id = to_id
     db.execute("""INSERT INTO subcontract_messages(post_id,sender_id,recipient_id,body,created_at,read_at)
                   VALUES(?,?,?,?,?,?)""",
                (pid, m0["id"], recipient_id, body.strip()[:2000], datetime.now().isoformat(), ""))
@@ -737,8 +797,9 @@ async def subtraitance_send_message(req: Request, pid: str, body:str=Form(""), t
     return RedirectResponse(f"/sous-traitance/{pid}?with={who}", 302)
 
 @app.post("/sous-traitance/{pid}/cloturer")
-async def subtraitance_close(req: Request, pid: str):
+async def subtraitance_close(req: Request, pid: str, csrf_token:str=Form("")):
     m0 = get_member(req)
+    csrf_guard(req, csrf_token)
     if not m0:
         return RedirectResponse("/login", 302)
     db = get_db()
@@ -751,12 +812,15 @@ async def subtraitance_close(req: Request, pid: str):
 
 @app.post("/sous-traitance/{pid}/noter")
 async def subtraitance_rate(req: Request, pid: str, rated_id:int=Form(...),
-                             rating:int=Form(5), comment:str=Form("")):
+                             rating:int=Form(5), comment:str=Form(""), csrf_token:str=Form("")):
     m0 = get_member(req)
+    csrf_guard(req, csrf_token)
     if not m0:
         return RedirectResponse("/login", 302)
     if not has_access(m0):
         return RedirectResponse("/tarifs?locked=1", 302)
+    if not check_rate_limit(f"st_rate_{m0['id']}", 20, 3600):
+        return RedirectResponse(f"/sous-traitance/{pid}", 302)
     if rated_id == m0["id"] or rating < 1 or rating > 5:
         return RedirectResponse(f"/sous-traitance/{pid}", 302)
     db = get_db()
@@ -845,9 +909,10 @@ async def register_get(req: Request, ref:str=""):
 async def register_post(req: Request,
     nom:str=Form(""), email:str=Form(""), phone:str=Form(""),
     company:str=Form(""), pw:str=Form(""), pw2:str=Form(""),
-    ref:str=Form(""), secteurs_sel:list=Form(default=[])):
+    ref:str=Form(""), csrf_token:str=Form(""), secteurs_sel:list=Form(default=[])):
     vals = {"nom":nom,"email":email,"phone":phone,"company":company}
     lang = get_lang(req)
+    csrf_guard(req, csrf_token)
     if not check_rate_limit(f"register_{get_ip(req)}", 5, 600):
         return render(req,"register.html",{"err":tr_("err_too_many_generic",lang),"vals":vals})
     err  = None
@@ -889,9 +954,10 @@ async def login_get(req: Request, next:str=""):
     return render(req,"login.html",{"next":next})
 
 @app.post("/login")
-async def login_post(req: Request, email:str=Form(""), pw:str=Form(""), next:str=Form("")):
+async def login_post(req: Request, email:str=Form(""), pw:str=Form(""), next:str=Form(""), csrf_token:str=Form("")):
     ip = get_ip(req)
     lang = get_lang(req)
+    csrf_guard(req, csrf_token)
     if not check_rate_limit(ip):
         return render(req,"login.html",{"err":tr_("err_too_many_5min",lang),"vals":{"email":email},"next":next})
     db = get_db()
@@ -934,9 +1000,12 @@ async def settings_get(req: Request):
 @app.post("/settings")
 async def settings_post(req: Request,
     nom:str=Form(""), phone:str=Form(""), company:str=Form(""),
-    telegram:str=Form(""), secteurs_sel:list=Form(default=[])):
+    telegram:str=Form(""), csrf_token:str=Form(""), secteurs_sel:list=Form(default=[])):
     member = get_member(req)
+    csrf_guard(req, csrf_token)
     if not member: return RedirectResponse("/login",302)
+    if not check_rate_limit(f"settings_{member['id']}", 15, 600):
+        return RedirectResponse("/settings",302)
     form     = await req.form()
     n_email  = 1 if form.get("notif_email")  else 0
     n_tg     = 1 if form.get("notif_tg")     else 0
@@ -962,10 +1031,14 @@ async def admin_login_get(req: Request):
     return render(req,"admin_login.html",{})
 
 @app.post("/admin/login")
-async def admin_login_post(req: Request, pwd:str=Form("")):
+async def admin_login_post(req: Request, pwd:str=Form(""), csrf_token:str=Form("")):
     ip = get_ip(req)
+    csrf_guard(req, csrf_token)
     if not check_rate_limit(f"admin_{ip}", 5, 600):
         return render(req,"admin_login.html",{"err":"Trop de tentatives."})
+    if not cfg.ADMIN_PASS or cfg.ADMIN_PASS == "atlas2026":
+        logger.error("[admin] ADMIN_PASS non configuré ou valeur par défaut — accès refusé par sécurité")
+        return render(req,"admin_login.html",{"err":"Configuration serveur invalide — contactez l'administrateur système."})
     if pwd != cfg.ADMIN_PASS:
         return render(req,"admin_login.html",{"err":"Mot de passe incorrect"})
     r = RedirectResponse("/admin",302)
@@ -1008,14 +1081,18 @@ async def admin_panel(req: Request):
            JOIN members r ON r.referred_by = m.id
            GROUP BY m.id ORDER BY n DESC LIMIT 5""").fetchall()]
     db.close()
-    return templates.TemplateResponse("admin.html",{
+    csrf_tok = get_csrf_token(req) or secrets.token_urlsafe(24)
+    resp = templates.TemplateResponse("admin.html",{
         "request":req,"stats":stats,"sectors":sectors,
         "members":members,"scrapes":scrapes,
         "logs":State.logs[-100:],"running":State.running,
         "last_run":State.last_run,"cfg":cfg,"multi_ok":MULTI_OK,
         "member_growth":member_growth,"plan_dist":plan_dist,
         "mrr_estimate":mrr_estimate,"total_active_members":total_active_members,
-        "referral_top":referral_top})
+        "referral_top":referral_top,"csrf_token":csrf_tok})
+    if not req.cookies.get("_csrf"):
+        resp.set_cookie("_csrf", csrf_tok, max_age=86400*30, httponly=True, samesite="lax", secure=COOKIE_SECURE)
+    return resp
 
 @app.get("/admin/scrape")
 async def admin_scrape(req: Request):
@@ -1050,8 +1127,9 @@ async def admin_expire(req: Request):
     return JSONResponse({"ok":True,"expired":exp,"active":active})
 
 @app.post("/admin/member/{mid}/plan")
-async def set_plan(req: Request, mid:int, plan:str=Form("")):
+async def set_plan(req: Request, mid:int, plan:str=Form(""), csrf_token:str=Form("")):
     if not _is_admin(req): return JSONResponse({"ok":False},401)
+    csrf_guard(req, csrf_token)
     if plan not in cfg.PLANS: return JSONResponse({"ok":False,"msg":"Plan invalide"})
     db = get_db()
     db.execute("UPDATE members SET plan=? WHERE id=?",(plan,mid))
@@ -1059,8 +1137,9 @@ async def set_plan(req: Request, mid:int, plan:str=Form("")):
     return RedirectResponse("/admin",302)
 
 @app.post("/admin/member/{mid}/toggle")
-async def toggle_member(req: Request, mid:int):
+async def toggle_member(req: Request, mid:int, csrf_token:str=Form("")):
     if not _is_admin(req): return JSONResponse({"ok":False},401)
+    csrf_guard(req, csrf_token)
     db = get_db()
     m  = db.execute("SELECT actif FROM members WHERE id=?",(mid,)).fetchone()
     if m:
@@ -1173,8 +1252,9 @@ async def forgot_get(req: Request):
     return render(req, "forgot.html", {})
 
 @app.post("/forgot")
-async def forgot_post(req: Request, email: str = Form("")):
+async def forgot_post(req: Request, email: str = Form(""), csrf_token: str = Form("")):
     lang = get_lang(req)
+    csrf_guard(req, csrf_token)
     if not check_rate_limit(f"forgot_{get_ip(req)}", 5, 600):
         return render(req, "forgot.html", {"err": tr_("err_too_many_generic",lang)})
     db = get_db()
@@ -1218,8 +1298,9 @@ async def reset_get(req: Request, token: str = ""):
 
 @app.post("/reset")
 async def reset_post(req: Request, token: str = Form(""),
-                     pw: str = Form(""), pw2: str = Form("")):
+                     pw: str = Form(""), pw2: str = Form(""), csrf_token: str = Form("")):
     lang = get_lang(req)
+    csrf_guard(req, csrf_token)
     if pw != pw2:
         return render(req, "reset.html", {"token": token, "err": tr_("err_pw_mismatch",lang)})
     if len(pw) < 8:

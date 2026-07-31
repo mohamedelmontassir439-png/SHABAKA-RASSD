@@ -5,6 +5,20 @@ from fastapi import Request, HTTPException
 from app.core.config import cfg
 from app.core.database import get_db
 
+def get_csrf_token(req: Request) -> str:
+    """Retourne le jeton CSRF de la requête courante (cookie _csrf), ou une
+    chaîne vide si absent — le jeton effectif est (re)généré et posé sur la
+    réponse par render()/les routes admin, jamais ici (fonction pure, sans
+    effet de bord sur la réponse)."""
+    tok = req.cookies.get("_csrf", "")
+    return tok if tok and len(tok) >= 20 else ""
+
+def verify_csrf(req: Request, submitted: str) -> bool:
+    cookie_tok = req.cookies.get("_csrf", "")
+    header_tok = req.headers.get("x-csrf-token", "")
+    candidate  = submitted or header_tok
+    return bool(cookie_tok) and bool(candidate) and secrets.compare_digest(cookie_tok, candidate)
+
 def hash_pw(pw: str) -> str:
     return bcrypt.hashpw(pw.encode(), bcrypt.gensalt(rounds=12)).decode()
 

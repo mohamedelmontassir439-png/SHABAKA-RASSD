@@ -34,6 +34,7 @@ h1 em { font-style: normal; color: var(--gold); font-weight: 700; }
   {% if err %}<div class="err">{{ err }}</div>{% endif %}
 
   <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
     <div class="field">
       <label for="pw">Mot de passe administrateur</label>
       <input id="pw" type="password" name="pwd" class="inp" required autofocus>
