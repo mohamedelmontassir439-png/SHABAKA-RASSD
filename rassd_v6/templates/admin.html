@@ -71,6 +71,18 @@ td { padding: 14px 20px; border-bottom: 1px solid var(--line); font-size: 13px; 
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: var(--surface2); }
 
+.analytics-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+.an-donut { width: 110px; height: 110px; border-radius: 50%; position: relative; margin: 0 auto; }
+.an-donut::after { content: ""; position: absolute; inset: 22%; background: var(--surface); border-radius: 50%; }
+.an-legend { display: flex; flex-direction: column; gap: 6px; margin-top: 14px; font-size: 12px; }
+.an-legend-row { display: flex; align-items: center; gap: 8px; }
+.an-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.an-trend svg { width: 100%; height: 90px; display: block; }
+.an-mrr { font-family: var(--serif); font-weight: 800; font-size: 30px; color: var(--navy); }
+.an-mrr-note { font-size: 11.5px; color: var(--t4); margin-top: 6px; line-height: 1.5; }
+.ref-row { display: flex; justify-content: space-between; font-size: 12.5px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.ref-row:last-child { border-bottom: none; }
+
 .sectors-grid { display: flex; flex-wrap: wrap; gap: 8px; }
 .sector-tag { display: inline-flex; align-items: center; gap: 8px; padding: 6px 13px; background: var(--surface2); border: 1px solid var(--line); font-size: 12.5px; border-radius: 999px; }
 .sector-tag span { color: var(--t2); }
@@ -108,6 +120,62 @@ tr:hover td { background: var(--surface2); }
       <div class="stat-l">{{ l }}</div>
     </div>
     {% endfor %}
+  </div>
+
+  <div class="card">
+    <div class="card-h"><span class="card-ht">Analytics — abonnements & croissance</span></div>
+    <div class="card-b">
+      <div class="analytics-grid">
+        <div>
+          <div class="an-mrr">{{ mrr_estimate }} MAD<span style="font-size:14px;color:var(--t4);font-weight:600;">/mois</span></div>
+          <div class="an-mrr-note">Estimation mensualisée basée sur les plans actifs assignés (paiement manuel hors plateforme — pas un historique de transactions réel).<br>{{ total_active_members }} membre(s) actif(s) au total.</div>
+        </div>
+        <div>
+          {% set pd = plan_dist %}
+          {% set total_p = (pd.get('free',0) + pd.get('pro',0) + pd.get('business',0)) %}
+          {% if total_p > 0 %}
+          {% set pro_pct = (pd.get('pro',0) / total_p * 100) %}
+          {% set biz_pct = (pd.get('business',0) / total_p * 100) %}
+          <div class="an-donut" style="background: conic-gradient(var(--amber) 0% {{ pro_pct|round(2) }}%, var(--blue) {{ pro_pct|round(2) }}% {{ (pro_pct+biz_pct)|round(2) }}%, var(--line2) {{ (pro_pct+biz_pct)|round(2) }}% 100%);"></div>
+          <div class="an-legend">
+            <div class="an-legend-row"><span class="an-dot" style="background:var(--amber);"></span>Annuel · {{ pd.get('pro',0) }}</div>
+            <div class="an-legend-row"><span class="an-dot" style="background:var(--blue);"></span>Biennal · {{ pd.get('business',0) }}</div>
+            <div class="an-legend-row"><span class="an-dot" style="background:var(--line2);"></span>Inactif · {{ pd.get('free',0) }}</div>
+          </div>
+          {% endif %}
+        </div>
+        <div>
+          <div style="font-size:11.5px;font-weight:700;color:var(--amberd);letter-spacing:.04em;text-transform:uppercase;margin-bottom:10px;">Inscriptions (8 sem.)</div>
+          <div class="an-trend">
+            {% if member_growth and member_growth|length > 1 %}
+            {% set w=260 %}{% set h=80 %}
+            {% set max_n = (member_growth | map(attribute='n') | list | max) %}
+            {% set max_n = max_n if max_n > 0 else 1 %}
+            {% set step = w / (member_growth|length - 1) %}
+            {% set ns = namespace(pts="") %}
+            {% for pt in member_growth %}
+              {% set x = (loop.index0 * step)|round(1) %}
+              {% set y = (h - 10 - (pt.n / max_n * (h-20)))|round(1) %}
+              {% set ns.pts = ns.pts ~ (" " if ns.pts else "") ~ x ~ "," ~ y %}
+            {% endfor %}
+            <svg viewBox="0 0 {{w}} {{h}}" preserveAspectRatio="none">
+              <polyline points="{{ ns.pts }}" fill="none" stroke="var(--navy)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            {% else %}
+            <div style="font-size:12.5px;color:var(--t4);">Pas assez de données.</div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% if referral_top %}
+      <div style="border-top:1px solid var(--line);padding-top:14px;">
+        <div style="font-size:11.5px;font-weight:700;color:var(--amberd);letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px;">Top parrains</div>
+        {% for r in referral_top %}
+        <div class="ref-row"><span>{{ r.nom or r.email }}</span><span style="font-weight:700;color:var(--navy);">{{ r.n }} inscription(s)</span></div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
   </div>
 
   <div class="grid2">

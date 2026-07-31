@@ -223,6 +223,21 @@ async def scheduler():
         except Exception as e: logger.error(f"[scheduler] {e}")
         await asyncio.sleep(cfg.SCAN_INTERVAL_MIN * 60)
 
+async def digest_scheduler():
+    """Vérifie toutes les heures s'il faut envoyer le récapitulatif hebdomadaire
+    (lundi) — send_weekly_digests() est idempotent (last_digest_sent par membre)
+    donc plusieurs passages le même lundi ne renvoient rien en double."""
+    from app.services.notifications import send_weekly_digests
+    await asyncio.sleep(60)
+    while True:
+        try:
+            loop = asyncio.get_event_loop()
+            sent = await loop.run_in_executor(None, send_weekly_digests)
+            if sent: logger.info(f"[digest] {sent} récapitulatif(s) envoyé(s)")
+        except Exception as e:
+            logger.error(f"[digest_scheduler] {e}")
+        await asyncio.sleep(3600)
+
 # ══════════════════════════════════════════════════════════
 # MIDDLEWARE
 # ══════════════════════════════════════════════════════════
@@ -266,6 +281,7 @@ async def lifespan(app: FastAPI):
     init_db()
     State.log(f"MAROC ENTREPRENEURIAT v{cfg.APP_VERSION} | Multi-source: {'✅' if MULTI_OK else '❌'}")
     asyncio.create_task(scheduler())
+    asyncio.create_task(digest_scheduler())
     yield
 
 app = FastAPI(lifespan=lifespan, title=cfg.APP_NAME,
@@ -427,16 +443,15 @@ async def tenders_page(req: Request, q:str="", s:str="", r:str="", t:str="",
     rows  = [dict(x) for x in db.execute(
         f"SELECT * FROM tenders WHERE {wh} ORDER BY {order} LIMIT ? OFFSET ?",
         params+[per,(page-1)*per]).fetchall()]
-    member = get_member(req)
-    favs   = set()
-    if member:
-        favs = {x[0] for x in db.execute(
-            "SELECT tender_id FROM favorites WHERE member_id=?", (member["id"],)).fetchall()}
+    favs = {x[0] for x in db.execute(
+        "SELECT tender_id FROM favorites WHERE member_id=?", (m0["id"],)).fetchall()}
+    my_secteurs = clean_secteurs(json.loads(m0.get("secteurs","[]") or "[]"))
     db.close()
     pages = max(1,(total+per-1)//per)
     return render(req, "tenders.html", {
         "tenders":rows,"total":total,"page":page,"pages":pages,
-        "q":q,"sf":s,"rf":r,"tf":t,"sort":sort,"favs":favs,"regions":regions})
+        "q":q,"sf":s,"rf":r,"tf":t,"sort":sort,"favs":favs,"regions":regions,
+        "my_secteurs":my_secteurs})
 
 @app.get("/tenders/{tid}", response_class=HTMLResponse)
 async def tender_detail(req: Request, tid: str):
@@ -663,10 +678,24 @@ async def subtraitance_detail(req: Request, pid: str, with_:str=""):
             "UPDATE subcontract_messages SET read_at=? WHERE post_id=? AND sender_id=? AND recipient_id=? AND read_at=''",
             (datetime.now().isoformat(), pid, post["member_id"], m0["id"]))
         db.commit()
+    counterpart_id = int(other_id) if (is_owner and other_id) else (post["member_id"] if not is_owner else 0)
+    counterpart_rating, my_rating_given = None, 0
+    if counterpart_id:
+        rr = db.execute(
+            "SELECT AVG(rating) avg_r, COUNT(*) n FROM subcontract_ratings WHERE rated_id=?",
+            (counterpart_id,)).fetchone()
+        if rr and rr["n"]:
+            counterpart_rating = {"avg": round(rr["avg_r"], 1), "n": rr["n"]}
+        mine = db.execute(
+            "SELECT rating FROM subcontract_ratings WHERE post_id=? AND rater_id=? AND rated_id=?",
+            (pid, m0["id"], counterpart_id)).fetchone()
+        my_rating_given = mine["rating"] if mine else 0
     db.close()
     return render(req, "subtraitance_detail.html", {
         "post": post, "author": dict(author) if author else {}, "is_owner": is_owner,
-        "threads": threads, "thread_messages": thread_messages, "other_id": other_id})
+        "threads": threads, "thread_messages": thread_messages, "other_id": other_id,
+        "counterpart_id": counterpart_id, "counterpart_rating": counterpart_rating,
+        "my_rating_given": my_rating_given})
 
 @app.post("/sous-traitance/{pid}/message")
 async def subtraitance_send_message(req: Request, pid: str, body:str=Form(""), to:str=Form("")):
@@ -719,6 +748,33 @@ async def subtraitance_close(req: Request, pid: str):
         db.commit()
     db.close()
     return RedirectResponse(f"/sous-traitance/{pid}", 302)
+
+@app.post("/sous-traitance/{pid}/noter")
+async def subtraitance_rate(req: Request, pid: str, rated_id:int=Form(...),
+                             rating:int=Form(5), comment:str=Form("")):
+    m0 = get_member(req)
+    if not m0:
+        return RedirectResponse("/login", 302)
+    if not has_access(m0):
+        return RedirectResponse("/tarifs?locked=1", 302)
+    if rated_id == m0["id"] or rating < 1 or rating > 5:
+        return RedirectResponse(f"/sous-traitance/{pid}", 302)
+    db = get_db()
+    # On ne peut noter que quelqu'un avec qui on a échangé un message sur cette annonce
+    exchanged = db.execute(
+        """SELECT 1 FROM subcontract_messages WHERE post_id=?
+           AND ((sender_id=? AND recipient_id=?) OR (sender_id=? AND recipient_id=?)) LIMIT 1""",
+        (pid, m0["id"], rated_id, rated_id, m0["id"])).fetchone()
+    if exchanged:
+        db.execute(
+            """INSERT INTO subcontract_ratings(post_id,rater_id,rated_id,rating,comment,created_at)
+               VALUES(?,?,?,?,?,?)
+               ON CONFLICT(post_id,rater_id,rated_id) DO UPDATE SET rating=excluded.rating, comment=excluded.comment""",
+            (pid, m0["id"], rated_id, rating, comment.strip()[:500], datetime.now().isoformat()))
+        db.commit()
+    db.close()
+    who = rated_id if m0["id"] != rated_id else ""
+    return RedirectResponse(f"/sous-traitance/{pid}?with={who}", 302)
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(req: Request):
@@ -781,15 +837,15 @@ async def tarifs(req: Request): return render(req,"tarifs.html",{})
 # AUTH
 # ══════════════════════════════════════════════════════════
 @app.get("/register", response_class=HTMLResponse)
-async def register_get(req: Request):
+async def register_get(req: Request, ref:str=""):
     if get_member(req): return RedirectResponse("/dashboard",302)
-    return render(req,"register.html",{})
+    return render(req,"register.html",{"ref":ref})
 
 @app.post("/register")
 async def register_post(req: Request,
     nom:str=Form(""), email:str=Form(""), phone:str=Form(""),
     company:str=Form(""), pw:str=Form(""), pw2:str=Form(""),
-    secteurs_sel:list=Form(default=[])):
+    ref:str=Form(""), secteurs_sel:list=Form(default=[])):
     vals = {"nom":nom,"email":email,"phone":phone,"company":company}
     lang = get_lang(req)
     if not check_rate_limit(f"register_{get_ip(req)}", 5, 600):
@@ -810,9 +866,16 @@ async def register_post(req: Request,
         trial_ends  = (datetime.now()+timedelta(days=14)).strftime("%Y-%m-%d")
         created_at  = datetime.now().isoformat()
         session_tok = make_session_token()
+        my_ref_code = secrets.token_urlsafe(5).upper().replace("_","A").replace("-","B")[:7]
+        referred_by = 0
+        if ref:
+            r = db.execute("SELECT id FROM members WHERE referral_code=?", (ref.strip().upper(),)).fetchone()
+            if r: referred_by = r["id"]
         db.execute(
-            "INSERT INTO members(nom,email,phone,company,pw_hash,secteurs,plan,created_at,trial_ends,session_token) VALUES(?,?,?,?,?,?,?,?,?,?)",
-            (nom,email,phone,company,hash_pw(pw),json.dumps(sects),"free",created_at,trial_ends,session_tok))
+            """INSERT INTO members(nom,email,phone,company,pw_hash,secteurs,plan,created_at,trial_ends,
+               session_token,referral_code,referred_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (nom,email,phone,company,hash_pw(pw),json.dumps(sects),"free",created_at,trial_ends,
+             session_tok,my_ref_code,referred_by))
         db.commit()
     finally: db.close()
     resp = RedirectResponse("/dashboard?welcome=1",302)
@@ -856,8 +919,17 @@ async def logout():
 async def settings_get(req: Request):
     member = get_member(req)
     if not member: return RedirectResponse("/login?next=/settings",302)
+    if not member.get("referral_code"):
+        code = secrets.token_urlsafe(5).upper().replace("_","A").replace("-","B")[:7]
+        db = get_db()
+        db.execute("UPDATE members SET referral_code=? WHERE id=?", (code, member["id"]))
+        db.commit(); db.close()
     ms = clean_secteurs(json.loads(member.get("secteurs","[]") or "[]"))
-    return render(req,"settings.html",{"ms":ms})
+    referral_count = 0
+    db2 = get_db()
+    referral_count = db2.execute("SELECT COUNT(*) FROM members WHERE referred_by=?", (member["id"],)).fetchone()[0]
+    db2.close()
+    return render(req,"settings.html",{"ms":ms,"referral_count":referral_count})
 
 @app.post("/settings")
 async def settings_post(req: Request,
@@ -916,12 +988,34 @@ async def admin_panel(req: Request):
         "SELECT id,nom,email,plan,created_at,last_login,actif FROM members ORDER BY created_at DESC LIMIT 30").fetchall()]
     scrapes = [dict(r) for r in db.execute(
         "SELECT * FROM scrape_log ORDER BY run_at DESC LIMIT 8").fetchall()]
+
+    # ── Analytics : croissance des membres, répartition des plans,
+    # estimation du revenu mensualisé (paiement manuel — jamais de vrai
+    # historique de transactions, donc calculé à partir des plans actifs) ──
+    growth_rows = db.execute(
+        """SELECT strftime('%Y-%W', created_at) wk, COUNT(*) n FROM members
+           WHERE created_at != '' GROUP BY wk ORDER BY wk DESC LIMIT 8""").fetchall()
+    member_growth = list(reversed([{"week": r["wk"], "n": r["n"]} for r in growth_rows]))
+    plan_rows = db.execute(
+        "SELECT plan, COUNT(*) n FROM members WHERE actif=1 GROUP BY plan").fetchall()
+    plan_dist = {r["plan"]: r["n"] for r in plan_rows}
+    pro_price  = cfg.PLANS.get("pro",{}).get("price",0)
+    biz_price  = cfg.PLANS.get("business",{}).get("price",0)
+    mrr_estimate = round(plan_dist.get("pro",0) * (pro_price/12) + plan_dist.get("business",0) * (biz_price/24))
+    total_active_members = db.execute("SELECT COUNT(*) FROM members WHERE actif=1").fetchone()[0]
+    referral_top = [dict(r) for r in db.execute(
+        """SELECT m.nom, m.email, COUNT(r.id) n FROM members m
+           JOIN members r ON r.referred_by = m.id
+           GROUP BY m.id ORDER BY n DESC LIMIT 5""").fetchall()]
     db.close()
     return templates.TemplateResponse("admin.html",{
         "request":req,"stats":stats,"sectors":sectors,
         "members":members,"scrapes":scrapes,
         "logs":State.logs[-100:],"running":State.running,
-        "last_run":State.last_run,"cfg":cfg,"multi_ok":MULTI_OK})
+        "last_run":State.last_run,"cfg":cfg,"multi_ok":MULTI_OK,
+        "member_growth":member_growth,"plan_dist":plan_dist,
+        "mrr_estimate":mrr_estimate,"total_active_members":total_active_members,
+        "referral_top":referral_top})
 
 @app.get("/admin/scrape")
 async def admin_scrape(req: Request):
@@ -1190,3 +1284,45 @@ async def sitemap():
 async def robots():
     return Response(f"User-agent: *\nAllow: /\nSitemap: {cfg.SITE_URL}/sitemap.xml\n",
                     media_type="text/plain")
+
+# ── PWA (installable sur mobile) ───────────────────────────
+def _pwa_icon_svg(size: int) -> str:
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" viewBox="0 0 {size} {size}">
+<rect width="{size}" height="{size}" fill="#0a0e1a"/>
+<text x="50%" y="58%" dominant-baseline="middle" text-anchor="middle"
+      font-family="Georgia, serif" font-weight="800" font-size="{int(size*0.42)}" fill="#8b98f9">ME</text>
+</svg>"""
+
+@app.get("/icon-192.svg")
+async def icon_192():
+    return Response(_pwa_icon_svg(192), media_type="image/svg+xml")
+
+@app.get("/icon-512.svg")
+async def icon_512():
+    return Response(_pwa_icon_svg(512), media_type="image/svg+xml")
+
+@app.get("/manifest.json")
+async def manifest():
+    return JSONResponse({
+        "name": "Maroc Entrepreneuriat",
+        "short_name": "ME",
+        "description": "Veille des marchés publics et privés au Maroc",
+        "start_url": "/dashboard",
+        "display": "standalone",
+        "background_color": "#0a0e1a",
+        "theme_color": "#0a0e1a",
+        "lang": "fr",
+        "icons": [
+            {"src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any"},
+            {"src": "/icon-512.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any"},
+        ],
+    })
+
+@app.get("/sw.js")
+async def service_worker():
+    js = """
+self.addEventListener('install', (e) => { self.skipWaiting(); });
+self.addEventListener('activate', (e) => { e.waitUntil(self.clients.claim()); });
+self.addEventListener('fetch', (e) => { e.respondWith(fetch(e.request)); });
+"""
+    return Response(js, media_type="application/javascript")

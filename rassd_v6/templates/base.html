@@ -7,6 +7,8 @@
 <title>{% block title %}MAROC ENTREPRENEURIAT — Marchés Publics & Privés du Maroc{% endblock %}</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230f1b33'/%3E%3Ctext x='50%25' y='58%25' dominant-baseline='middle' text-anchor='middle' font-family='Georgia, serif' font-weight='700' font-size='13' fill='%23c98a3e'%3EME%3C/text%3E%3C/svg%3E">
 <meta name="theme-color" content="#0f1b33">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700;9..144,800;9..144,900&family=Inter:wght@400;500;600;700;800&family=Amiri:wght@400;700&family=Tajawal:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -395,6 +397,9 @@ html[dir="rtl"] .section-label::before { order: 2; }
   if(p.get('welcome')) show('🎉 Bienvenue sur Maroc Entrepreneuriat', 5000);
   if(p.get('saved'))   show('✓ Modifications sauvegardées');
 })();
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(()=>{}));
+}
 </script>
 {% block scripts %}{% endblock %}
 </body>

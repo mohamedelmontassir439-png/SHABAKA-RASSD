@@ -141,6 +141,7 @@
         <div>
           <div class="row-title">{{ t.objet[:140] }}{% if t.objet|length > 140 %}…{% endif %}</div>
           <div class="row-tags">
+            {% if my_secteurs and t.secteur in my_secteurs %}<span class="badge badge-grn">✓ {{ tr('tenders_match') }}</span>{% endif %}
             {% if t.type_offre=='Privé' %}<span class="badge badge-blue">{{ tr('tenders_private') }}</span>{% endif %}
             <span class="badge badge-gold">{{ get_label(t.secteur)[:24] }}</span>
             {% if t.montant %}<span class="badge badge-grn">{{ t.montant[:30] }}</span>{% endif %}

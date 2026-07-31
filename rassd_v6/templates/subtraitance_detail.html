@@ -48,7 +48,11 @@
         <div class="std-info-grid">
           <div class="std-info-cell">
             <div class="std-info-label">{{ tr('st_posted_by') }}</div>
-            <div class="std-info-val">{{ (author.company or author.nom or author.email or '—')[:40] }}</div>
+            <div class="std-info-val">{{ (author.company or author.nom or author.email or '—')[:40] }}
+              {% if not is_owner and counterpart_rating and counterpart_id == post.member_id %}
+              <span style="color:var(--gold); font-size:13px; font-weight:600;">★ {{ counterpart_rating.avg }} ({{ counterpart_rating.n }} {{ tr('st_rating_reviews') }})</span>
+              {% endif %}
+            </div>
           </div>
           <div class="std-info-cell">
             <div class="std-info-label">{{ tr('st_posted_on') }}</div>
@@ -125,6 +129,23 @@
           <button type="submit" class="btn btn-primary">{{ tr('st_msg_send') }}</button>
         </form>
         {% endif %}
+      {% endif %}
+
+      {% if counterpart_id and thread_messages %}
+      <div style="border-top:1px solid var(--line); padding-top:14px; margin-top:4px;">
+        <div class="msg-panel-title" style="margin-bottom:10px;">⭐ {{ tr('st_rate_title') }}</div>
+        {% if my_rating_given %}<div style="font-size:12.5px; color:var(--text3); margin-bottom:8px;">{{ tr('st_rate_done') }}</div>{% endif %}
+        <form method="post" action="/sous-traitance/{{ post.id }}/noter" style="display:flex; flex-direction:column; gap:10px;">
+          <input type="hidden" name="rated_id" value="{{ counterpart_id }}">
+          <select name="rating" class="sel">
+            {% for i in [5,4,3,2,1] %}
+            <option value="{{ i }}" {% if my_rating_given == i %}selected{% endif %}>{{ '★' * i }}{{ '☆' * (5-i) }}</option>
+            {% endfor %}
+          </select>
+          <textarea name="comment" class="textarea" rows="2" placeholder="{{ tr('st_rate_placeholder') }}"></textarea>
+          <button type="submit" class="btn btn-outline btn-sm">{{ tr('st_rate_cta') }}</button>
+        </form>
+      </div>
       {% endif %}
     </div>
   </div>

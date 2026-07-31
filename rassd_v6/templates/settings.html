@@ -112,5 +112,17 @@
       <button type="submit" class="btn btn-accent">{{ tr('set_save') }}</button>
     </div>
   </form>
+
+  <section class="set-block">
+    <div class="set-block-h">{{ tr('set_referral_h') }}</div>
+    <div class="set-block-sub">{{ tr('set_referral_sub', n=referral_count) }}</div>
+    <div class="field">
+      <label>{{ tr('set_referral_link') }}</label>
+      <div style="display:flex; gap:8px;">
+        <input id="refLink" class="inp mono" readonly value="{{ cfg.SITE_URL }}/register?ref={{ member.referral_code }}">
+        <button type="button" class="btn btn-outline" onclick="navigator.clipboard.writeText(document.getElementById('refLink').value); this.textContent='{{ tr('set_referral_copied') }}'; setTimeout(()=>this.textContent='{{ tr('set_referral_copy') }}',2000);">{{ tr('set_referral_copy') }}</button>
+      </div>
+    </div>
+  </section>
 </div>
 {% endblock %}

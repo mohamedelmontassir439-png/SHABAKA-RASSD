@@ -4,7 +4,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from app.core.config   import cfg
 from app.core.database import get_db
-from app.core.security import days_left
+from app.core.security import days_left, has_access
 from app.core.sectors   import get_label
 
 logger = logging.getLogger("atlas.notif")
@@ -182,6 +182,80 @@ td{{padding:10px 0;border-bottom:1px solid #e3e7ef;vertical-align:top;font-size:
 <div class="ftr"><p style="color:#98a1b3;font-size:11px">MAROC ENTREPRENEURIAT · <a href="{site}" style="color:#6b7488">marocentrepreneuriat.ma</a> · <a href="{site}/settings" style="color:#6b7488">Gérer mes alertes</a></p></div>
 </div></body></html>"""
 
+def build_digest_email(tenders: list, nom: str = "") -> str:
+    site = cfg.SITE_URL
+    rows = "".join(f'''
+<tr><td style="padding:14px 0;border-bottom:1px solid #e3e7ef;">
+  <div style="font-size:14px;font-weight:700;color:#101828;margin-bottom:4px">{t["objet"][:140]}</div>
+  <div style="font-size:12px;color:#6b7488">{t.get("acheteur","")[:80]} · {get_label(t.get("secteur",""))} · ⏰ {t.get("date_limite","—")}</div>
+  <a href="{site}/tenders/{t["id"]}" style="font-size:12px;color:#b9791a;font-weight:700;text-decoration:none">Voir le marché ↗</a>
+</td></tr>''' for t in tenders)
+    return f"""<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8">
+<style>
+*{{box-sizing:border-box;margin:0;padding:0}}
+body{{background:#f6f7fb;font-family:Arial,Helvetica,sans-serif;padding:20px}}
+.wrap{{max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e3e7ef;border-radius:12px;overflow:hidden}}
+.hdr{{padding:24px 32px;background:#142850;border-bottom:1px solid #e3e7ef}}
+.logo{{font-size:20px;font-weight:800;color:#ffffff}}
+.logo em{{font-style:normal;color:#f2a93b}}
+.body{{padding:32px}}
+table{{width:100%;border-collapse:collapse}}
+.ftr{{padding:20px 32px;background:#f6f7fb;border-top:1px solid #e3e7ef;text-align:center}}
+</style></head>
+<body><div class="wrap">
+<div class="hdr"><div class="logo">Maroc<em>Entrepreneuriat</em></div><div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:3px">RÉCAPITULATIF HEBDOMADAIRE</div></div>
+<div class="body">
+<p style="color:#6b7488;font-size:13px;margin-bottom:20px">Bonjour {nom or "Madame/Monsieur"}, voici les {len(tenders)} marché(s) correspondant à votre profil publiés cette semaine :</p>
+<table>{rows}</table>
+</div>
+<div class="ftr"><p style="color:#98a1b3;font-size:11px">MAROC ENTREPRENEURIAT · <a href="{site}" style="color:#6b7488">marocentrepreneuriat.ma</a> · <a href="{site}/settings" style="color:#6b7488">Gérer mes alertes</a></p></div>
+</div></body></html>"""
+
+def send_weekly_digests(force: bool = False) -> int:
+    """Envoie le récapitulatif hebdomadaire (chaque lundi) aux membres ayant
+    activé l'option 'Digest hebdomadaire' — regroupe les marchés mis en file
+    depuis le dernier envoi en un seul email par membre."""
+    from datetime import timedelta
+    db, sent = get_db(), 0
+    try:
+        if not force and datetime.now().weekday() != 0:  # 0 = lundi
+            return 0
+        members = db.execute(
+            "SELECT * FROM members WHERE actif=1 AND notif_digest=1 AND notif_email=1"
+        ).fetchall()
+        for m in members:
+            member = dict(m)
+            if not has_access(member):
+                continue
+            last = member.get("last_digest_sent") or ""
+            if last:
+                try:
+                    if datetime.now() - datetime.fromisoformat(last) < timedelta(days=6):
+                        continue
+                except ValueError:
+                    pass
+            rows = db.execute(
+                """SELECT t.* FROM notif_queue q JOIN tenders t ON t.id=q.tender_id
+                   WHERE q.member_id=? ORDER BY q.created_at ASC""",
+                (member["id"],)).fetchall()
+            if not rows:
+                continue
+            tenders = [dict(r) for r in rows]
+            html = build_digest_email(tenders, member.get("nom", ""))
+            ok = email_send(member["email"], f"📋 Votre récapitulatif hebdomadaire — {len(tenders)} marché(s)", html)
+            if ok:
+                db.execute("DELETE FROM notif_queue WHERE member_id=?", (member["id"],))
+                db.execute("UPDATE members SET last_digest_sent=? WHERE id=?",
+                           (datetime.now().isoformat(), member["id"]))
+                db.commit()
+                sent += 1
+    except Exception as e:
+        logger.error(f"[digest] {e}", exc_info=True)
+    finally:
+        db.close()
+    return sent
+
 # ── Dispatch principal ────────────────────────────────────
 
 def dispatch_notifications(tenders: list):
@@ -195,7 +269,12 @@ def dispatch_notifications(tenders: list):
         total_tg = total_email = total_wa = total_skip = 0
 
         for m in members:
-            member          = dict(m)
+            member = dict(m)
+            # Un membre dont l'abonnement n'a pas été activé par l'admin ne
+            # doit recevoir aucun détail de marché, sur aucun canal — le même
+            # principe que le blocage appliqué aux pages du site.
+            if not has_access(member):
+                continue
             member_secteurs = json.loads(member.get("secteurs", "[]") or "[]")
 
             for t in tenders:
@@ -211,6 +290,12 @@ def dispatch_notifications(tenders: list):
                     continue
 
                 now = datetime.now().isoformat()
+
+                # Digest hebdomadaire : mise en file, envoyée groupée le lundi
+                if member.get("notif_digest"):
+                    db.execute(
+                        "INSERT OR IGNORE INTO notif_queue(member_id,tender_id,created_at) VALUES(?,?,?)",
+                        (member["id"], t["id"], now))
 
                 # Telegram
                 if member.get("notif_tg") and member.get("telegram"):

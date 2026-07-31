@@ -60,7 +60,10 @@ CREATE TABLE IF NOT EXISTS members (
     notif_wa       INTEGER DEFAULT 0,
     reset_token    TEXT DEFAULT '',
     reset_expires  TEXT DEFAULT '',
-    onboarded      INTEGER DEFAULT 0
+    onboarded      INTEGER DEFAULT 0,
+    last_digest_sent TEXT DEFAULT '',
+    referral_code    TEXT DEFAULT '',
+    referred_by      INTEGER DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS favorites (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -134,6 +137,23 @@ CREATE TABLE IF NOT EXISTS subcontract_messages (
     created_at   TEXT DEFAULT '',
     read_at      TEXT DEFAULT ''
 );
+CREATE TABLE IF NOT EXISTS subcontract_ratings (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    post_id    TEXT NOT NULL,
+    rater_id   INTEGER NOT NULL,
+    rated_id   INTEGER NOT NULL,
+    rating     INTEGER DEFAULT 5,
+    comment    TEXT DEFAULT '',
+    created_at TEXT DEFAULT '',
+    UNIQUE(post_id, rater_id, rated_id)
+);
+CREATE TABLE IF NOT EXISTS notif_queue (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    member_id  INTEGER NOT NULL,
+    tender_id  TEXT NOT NULL,
+    created_at TEXT DEFAULT '',
+    UNIQUE(member_id, tender_id)
+);
 
 CREATE INDEX IF NOT EXISTS idx_t_statut   ON tenders(statut);
 CREATE INDEX IF NOT EXISTS idx_t_scraped  ON tenders(scraped_at DESC);
@@ -150,6 +170,9 @@ CREATE INDEX IF NOT EXISTS idx_sp_member  ON subcontract_posts(member_id);
 CREATE INDEX IF NOT EXISTS idx_sm_post    ON subcontract_messages(post_id);
 CREATE INDEX IF NOT EXISTS idx_sm_sender  ON subcontract_messages(sender_id);
 CREATE INDEX IF NOT EXISTS idx_sm_recip   ON subcontract_messages(recipient_id);
+CREATE INDEX IF NOT EXISTS idx_sr_post    ON subcontract_ratings(post_id);
+CREATE INDEX IF NOT EXISTS idx_sr_rated   ON subcontract_ratings(rated_id);
+CREATE INDEX IF NOT EXISTS idx_nq_member  ON notif_queue(member_id);
 """
 
 def migrate_db():
@@ -168,6 +191,9 @@ def migrate_db():
         "ALTER TABLE members ADD COLUMN onboarded INTEGER DEFAULT 0",
         "ALTER TABLE tenders ADD COLUMN type_offre TEXT DEFAULT 'Public'",
         "ALTER TABLE tenders ADD COLUMN source TEXT DEFAULT 'marchespublics'",
+        "ALTER TABLE members ADD COLUMN last_digest_sent TEXT DEFAULT ''",
+        "ALTER TABLE members ADD COLUMN referral_code TEXT DEFAULT ''",
+        "ALTER TABLE members ADD COLUMN referred_by INTEGER DEFAULT 0",
     ]
     for col in cols:
         try:
