@@ -85,12 +85,6 @@
           <div class="res-cell-val">{{ r.date_adjudication or '—' }}</div>
         </div>
       </div>
-      {% if r.dao_url or r.pv_url %}
-      <div class="res-links">
-        {% if r.dao_url %}<a href="/resultats/{{ r.id }}/dao" target="_blank" class="btn btn-outline btn-sm">{{ tr('res_dao') }}</a>{% endif %}
-        {% if r.pv_url %}<a href="/resultats/{{ r.id }}/pv" target="_blank" class="btn btn-outline btn-sm">{{ tr('res_pv') }}</a>{% endif %}
-      </div>
-      {% endif %}
     </div>
     {% endfor %}
   </div>

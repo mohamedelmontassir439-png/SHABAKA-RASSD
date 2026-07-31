@@ -71,6 +71,12 @@ def get_member(req: Request) -> Optional[dict]:
         db.close()
     return None
 
+def has_access(member: Optional[dict]) -> bool:
+    """Un membre inscrit ne voit les marchés réels qu'une fois son plan
+    activé manuellement par l'admin (paiement confirmé). Le plan 'free'
+    (par défaut à l'inscription) n'ouvre aucun accès aux données."""
+    return bool(member) and member.get("plan") in ("pro", "business")
+
 def require_member(req: Request) -> dict:
     m = get_member(req)
     if not m:

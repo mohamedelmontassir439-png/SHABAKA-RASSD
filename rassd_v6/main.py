@@ -16,7 +16,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.core.config   import cfg
 from app.core.database import get_db, init_db
 from app.core.security import (hash_pw, verify_pw, make_token, make_session_token,
-                                get_member, validate_email,
+                                get_member, has_access, validate_email,
                                 validate_password, days_left)
 from app.core.sectors import get_label
 from app.core.i18n import get_lang, make_t, SUPPORTED_LANGS, tr as tr_
@@ -392,11 +392,12 @@ def _is_admin(req: Request) -> bool:
 async def home(req: Request):
     db = get_db()
     stats   = get_stats()
-    # Le détail des marchés (objet, acheteur...) est réservé aux membres —
-    # les visiteurs anonymes ne voient qu'un aperçu générique (voir landing.html).
+    # Le détail des marchés (objet, acheteur...) est réservé aux membres dont
+    # l'abonnement a été activé par l'admin — les visiteurs anonymes ET les
+    # membres en attente d'activation ne voient qu'un aperçu générique (landing.html).
     member  = get_member(req)
     recent  = [dict(r) for r in db.execute(
-        "SELECT * FROM tenders WHERE statut='actif' ORDER BY scraped_at DESC LIMIT 9").fetchall()] if member else []
+        "SELECT * FROM tenders WHERE statut='actif' ORDER BY scraped_at DESC LIMIT 9").fetchall()] if has_access(member) else []
     sectors = [dict(r) for r in db.execute(
         "SELECT secteur,COUNT(*) cnt FROM tenders WHERE statut='actif' GROUP BY secteur ORDER BY cnt DESC LIMIT 12").fetchall()]
     db.close()
@@ -405,8 +406,11 @@ async def home(req: Request):
 @app.get("/tenders", response_class=HTMLResponse)
 async def tenders_page(req: Request, q:str="", s:str="", r:str="", t:str="",
                         page:int=1, sort:str="recent"):
-    if not get_member(req):
+    m0 = get_member(req)
+    if not m0:
         return RedirectResponse("/login?next=/tenders", 302)
+    if not has_access(m0):
+        return RedirectResponse("/tarifs?locked=1", 302)
     db = get_db(); per = 25; page = max(1, page)
     regions = [row[0] for row in db.execute(
         "SELECT DISTINCT region FROM tenders WHERE region!='' AND statut='actif' ORDER BY region LIMIT 60").fetchall()]
@@ -436,8 +440,11 @@ async def tenders_page(req: Request, q:str="", s:str="", r:str="", t:str="",
 
 @app.get("/tenders/{tid}", response_class=HTMLResponse)
 async def tender_detail(req: Request, tid: str):
-    if not get_member(req):
+    m0 = get_member(req)
+    if not m0:
         return RedirectResponse("/login?next=/tenders/" + tid, 302)
+    if not has_access(m0):
+        return RedirectResponse("/tarifs?locked=1", 302)
     db = get_db()
     t  = db.execute("SELECT * FROM tenders WHERE id=?", (tid,)).fetchone()
     if not t:
@@ -470,8 +477,11 @@ async def tender_detail(req: Request, tid: str):
 async def tender_source_redirect(req: Request, tid: str):
     """Redirige vers la source d'origine sans jamais exposer son nom/domaine
     dans le HTML de la page (uniquement dans l'en-tête Location de la 302)."""
-    if not get_member(req):
+    m0 = get_member(req)
+    if not m0:
         return RedirectResponse("/login?next=/tenders/" + tid, 302)
+    if not has_access(m0):
+        return RedirectResponse("/tarifs?locked=1", 302)
     db = get_db()
     t  = db.execute("SELECT url FROM tenders WHERE id=?", (tid,)).fetchone()
     db.close()
@@ -483,6 +493,7 @@ async def tender_source_redirect(req: Request, tid: str):
 async def toggle_fav(req: Request, tid: str):
     member = get_member(req)
     if not member: return JSONResponse({"ok":False,"msg":"Non connecté"},401)
+    if not has_access(member): return JSONResponse({"ok":False,"msg":"Abonnement requis"},403)
     db = get_db()
     try:
         exists = db.execute("SELECT id FROM favorites WHERE member_id=? AND tender_id=?",
@@ -502,6 +513,7 @@ async def toggle_fav(req: Request, tid: str):
 async def favorites_page(req: Request):
     member = get_member(req)
     if not member: return RedirectResponse("/login?next=/favorites",302)
+    if not has_access(member): return RedirectResponse("/tarifs?locked=1",302)
     db   = get_db()
     rows = [dict(r) for r in db.execute(
         """SELECT t.* FROM tenders t JOIN favorites f ON f.tender_id=t.id
@@ -512,8 +524,11 @@ async def favorites_page(req: Request):
 
 @app.get("/resultats", response_class=HTMLResponse)
 async def resultats_page(req: Request, q:str="", page:int=1):
-    if not get_member(req):
+    m0 = get_member(req)
+    if not m0:
         return RedirectResponse("/login?next=/resultats", 302)
+    if not has_access(m0):
+        return RedirectResponse("/tarifs?locked=1", 302)
     db = get_db(); per = 25; page = max(1, page)
     where, params = ["1=1"], []
     if q:
@@ -532,8 +547,11 @@ async def resultats_page(req: Request, q:str="", page:int=1):
 @app.get("/resultats/{rid}/{doc}")
 async def resultat_doc_redirect(req: Request, rid: str, doc: str):
     """Redirige vers le document (D.A.O/PV) sans exposer sa source dans le HTML."""
-    if not get_member(req):
+    m0 = get_member(req)
+    if not m0:
         return RedirectResponse("/login?next=/resultats", 302)
+    if not has_access(m0):
+        return RedirectResponse("/tarifs?locked=1", 302)
     if doc not in ("dao", "pv"):
         return RedirectResponse("/resultats", 302)
     db = get_db()
@@ -548,6 +566,11 @@ async def resultat_doc_redirect(req: Request, rid: str, doc: str):
 async def dashboard(req: Request):
     member = get_member(req)
     if not member: return RedirectResponse("/login?next=/dashboard",302)
+    if not has_access(member):
+        return render(req,"dashboard.html",{
+            "locked":True,"favs":[],"notifs":[],"recs":[],"latest":[],
+            "stats":{"favs":0,"notifs":0,"active":0,"today":0,"recs":0},
+            "sector_dist":[],"trend":[]})
     db   = get_db()
     ms   = clean_secteurs(json.loads(member.get("secteurs","[]") or "[]"))
     favs = [dict(r) for r in db.execute(
@@ -829,8 +852,11 @@ async def admin_reset(req: Request):
 @app.get("/api/v1/tenders")
 async def api_tenders(req:Request, secteur:str="", region:str="", q:str="", type_offre:str="",
                        limit:int=20, offset:int=0, page:int=0):
-    if not get_member(req):
+    m0 = get_member(req)
+    if not m0:
         return JSONResponse({"ok":False,"msg":"Réservé aux membres — connectez-vous"},401)
+    if not has_access(m0):
+        return JSONResponse({"ok":False,"msg":"Abonnement requis"},403)
     if page > 0: offset = (page-1)*limit
     db = get_db()
     where, params = ["statut='actif'"], []
@@ -850,8 +876,11 @@ async def api_tenders(req:Request, secteur:str="", region:str="", q:str="", type
 
 @app.get("/api/v1/tenders/{tid}")
 async def api_tender(req:Request, tid:str):
-    if not get_member(req):
+    m0 = get_member(req)
+    if not m0:
         return JSONResponse({"ok":False,"msg":"Réservé aux membres — connectez-vous"},401)
+    if not has_access(m0):
+        return JSONResponse({"ok":False,"msg":"Abonnement requis"},403)
     db = get_db()
     t  = db.execute("SELECT * FROM tenders WHERE id=?",(tid,)).fetchone()
     db.close()

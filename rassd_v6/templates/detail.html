@@ -131,7 +131,9 @@
 
     <div class="sticky-box">
       <div class="action-card">
+        {% if t.type_offre != 'Privé' %}
         <a href="/tenders/{{ t.id }}/source" target="_blank" class="btn btn-primary btn-full" style="margin-bottom: 10px;">{{ tr('detail_source') }}</a>
+        {% endif %}
         {% if member %}
         <button onclick="toggleFav(this,'{{ t.id }}')" id="favbtn" class="btn btn-outline btn-full btn-sm {% if is_fav %}active{% endif %}" data-add="{{ tr('detail_fav_add') }}" data-remove="{{ tr('detail_fav_remove') }}">
           {% if is_fav %}{{ tr('detail_fav_remove') }}{% else %}{{ tr('detail_fav_add') }}{% endif %}
