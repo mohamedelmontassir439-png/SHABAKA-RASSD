@@ -13,23 +13,30 @@
 .hero-cta { display: flex; gap: 14px; flex-wrap: wrap; }
 .hero-cta .btn-outline { background: transparent; border-color: rgba(255,255,255,.3); color: #fff; }
 .hero-cta .btn-outline:hover { border-color: #fff; background: rgba(255,255,255,.08); }
-.hero-visual { position: relative; }
-.hero-card { background: var(--surface); border-radius: var(--r4); box-shadow: var(--sh3), var(--shg); padding: 22px; border: 1px solid var(--line); }
-.hero-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
-.hero-card-brand { display: flex; align-items: center; gap: 8px; font-family: var(--serif); font-weight: 800; font-size: 15px; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.hero-card-dots { display: flex; gap: 5px; }
-.hero-card-dots span { width: 7px; height: 7px; border-radius: 50%; background: var(--line2); }
-.hero-card-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
-.hero-card-stat { background: var(--bg); border: 1px solid var(--line); border-radius: var(--r2); padding: 12px 14px; }
-.hero-card-stat-n { font-family: var(--serif); font-weight: 700; font-size: 20px; color: var(--text1); }
-.hero-card-stat-l { font-size: 10.5px; color: var(--text3); font-weight: 600; margin-top: 2px; text-transform: uppercase; letter-spacing: .03em; }
-.hero-card-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 4px; border-bottom: 1px solid var(--line); }
-.hero-card-row:last-child { border-bottom: none; }
-.hero-card-obj { font-size: 14px; font-weight: 600; color: var(--text1); max-width: 260px; }
-.hero-card-meta { font-size: 12px; color: var(--text3); margin-top: 3px; }
-
-.hero-card-promo { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 14px; padding: 28px 10px 8px; }
-.hero-card-promo-title { font-family: var(--serif); font-weight: 700; font-size: 17px; color: var(--text1); max-width: 260px; line-height: 1.4; }
+.hero-visual { position: relative; display: flex; align-items: center; justify-content: center; min-height: 420px; }
+.hero-globe { position: relative; width: min(100%, 440px); aspect-ratio: 1; display: flex; align-items: center; justify-content: center; }
+.hero-globe-halo { position: absolute; inset: -10%; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,.35) 0%, rgba(255,154,86,.12) 45%, transparent 72%); filter: blur(8px); }
+.hero-globe-orb { position: absolute; inset: 6%; border-radius: 50%; background:
+    radial-gradient(circle at 30% 26%, rgba(255,255,255,.55), transparent 40%),
+    radial-gradient(circle at 70% 75%, rgba(30,22,17,.5), transparent 60%),
+    linear-gradient(160deg, rgba(255,255,255,.22), rgba(255,255,255,.02));
+  border: 1px solid rgba(255,255,255,.45);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.15) inset, 0 30px 70px rgba(30,22,17,.18);
+  backdrop-filter: blur(2px);
+}
+.hero-globe-rings { position: absolute; inset: 0; width: 100%; height: 100%; animation: globe-spin 46s linear infinite; }
+.hero-globe-rings ellipse, .hero-globe-rings circle { fill: none; stroke: #fff; stroke-opacity: .55; stroke-width: 1; }
+.hero-globe-rings .r2 { stroke: var(--ink2); stroke-opacity: .5; }
+.hero-globe-rings .r3 { stroke-opacity: .3; }
+@keyframes globe-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.hero-globe-dot { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: #fff; box-shadow: 0 0 8px 2px rgba(255,255,255,.8); animation: globe-spin 46s linear infinite; }
+.hero-globe-brand { position: relative; z-index: 2; text-align: center; padding: 0 20px; }
+.hero-globe-mark { font-size: 11px; font-weight: 700; letter-spacing: .18em; text-transform: uppercase; color: rgba(255,255,255,.85); margin-bottom: 10px; }
+.hero-globe-name { font-family: var(--serif); font-weight: 700; font-size: clamp(19px, 2.4vw, 27px); line-height: 1.15; background: linear-gradient(100deg, #ffffff, #ffe3d1 30%, #ffffff 55%, #ffd7b8 80%, #ffffff); background-size: 250% auto; -webkit-background-clip: text; background-clip: text; color: transparent; animation: name-shimmer 5s ease-in-out infinite; }
+@keyframes name-shimmer { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+@media (prefers-reduced-motion: reduce) { .hero-globe-rings, .hero-globe-dot, .hero-globe-name { animation: none; } }
+@media (max-width: 900px) { .hero-visual { min-height: 300px; } .hero-globe { width: min(100%, 320px); } }
+.hero-card-promo-title { font-family: var(--serif); font-weight: 700; font-size: 17px; color: var(--text1); max-width: 260px; line-height: 1.4; margin: 0 auto; }
 
 /* ── CHANNELS BAR (honest integrations, tile style) ─ */
 .channels-bar { background: var(--surface); border-bottom: 1px solid var(--line); padding: 48px 0 52px; text-align: center; }
@@ -129,7 +136,7 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
 
 @media(max-width: 900px) {
   .hero-grid { grid-template-columns: 1fr; }
-  .hero-visual { display: none; }
+  .hero-visual { min-height: 260px; margin-top: 12px; }
   .pain-grid, .value-grid { grid-template-columns: 1fr; }
   .feat-grid { grid-template-columns: 1fr 1fr; }
   .proof-card { padding: 32px 24px; }
@@ -165,42 +172,23 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
       </div>
     </div>
     <div class="hero-visual reveal in reveal-2">
-      {% if recent %}
-      <div class="hero-card">
-        <div class="hero-card-head">
-          <span class="hero-card-brand">ME</span>
-          <span class="hero-card-dots"><span></span><span></span><span></span></span>
-        </div>
-        <div class="hero-card-stats">
-          <div class="hero-card-stat"><div class="hero-card-stat-n">{{ stats.tenders }}</div><div class="hero-card-stat-l">{{ tr('live_tenders') }}</div></div>
-          <div class="hero-card-stat"><div class="hero-card-stat-n">{{ stats.today }}</div><div class="hero-card-stat-l">{{ tr('live_today') }}</div></div>
-        </div>
-        {% for t in recent[:3] %}
-        <div class="hero-card-row">
-          <div>
-            <div class="hero-card-obj">{{ t.objet[:60] }}{% if t.objet|length > 60 %}…{% endif %}</div>
-            <div class="hero-card-meta">{{ (t.acheteur or 'Maroc')[:34] }}</div>
-          </div>
-          <span class="badge {% if t.type_offre=='Privé' %}badge-blue{% else %}badge-gold{% endif %}">{{ tr('tenders_private') if t.type_offre=='Privé' else tr('tenders_public') }}</span>
-        </div>
-        {% endfor %}
-      </div>
-      {% else %}
-      <div class="hero-card">
-        <div class="hero-card-head">
-          <span class="hero-card-brand">ME</span>
-          <span class="hero-card-dots"><span></span><span></span><span></span></span>
-        </div>
-        <div class="hero-card-stats">
-          <div class="hero-card-stat"><div class="hero-card-stat-n">{{ stats.tenders }}</div><div class="hero-card-stat-l">{{ tr('live_tenders') }}</div></div>
-          <div class="hero-card-stat"><div class="hero-card-stat-n">{{ stats.today }}</div><div class="hero-card-stat-l">{{ tr('live_today') }}</div></div>
-        </div>
-        <div class="hero-card-promo">
-          <div class="hero-card-promo-title">{{ tr('hero_locked_text') }}</div>
-          <a href="/tarifs" class="btn btn-accent btn-sm">{{ tr('hero_locked_cta') }}</a>
+      <div class="hero-globe">
+        <div class="hero-globe-halo"></div>
+        <div class="hero-globe-orb"></div>
+        <svg class="hero-globe-rings" viewBox="0 0 400 400" aria-hidden="true">
+          <ellipse class="r1" cx="200" cy="200" rx="185" ry="60"/>
+          <ellipse class="r2" cx="200" cy="200" rx="185" ry="115"/>
+          <ellipse class="r3" cx="200" cy="200" rx="185" ry="165"/>
+          <ellipse class="r2" cx="200" cy="200" rx="60" ry="185"/>
+          <ellipse class="r3" cx="200" cy="200" rx="115" ry="185"/>
+          <circle class="r1" cx="200" cy="200" r="185"/>
+        </svg>
+        <div class="hero-globe-dot" style="top:8%; left:50%;"></div>
+        <div class="hero-globe-brand">
+          <div class="hero-globe-mark">{{ tr('hero_globe_mark') }}</div>
+          <div class="hero-globe-name">Maroc Entrepreneuriat</div>
         </div>
       </div>
-      {% endif %}
     </div>
   </div>
 </section>

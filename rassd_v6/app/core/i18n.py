@@ -115,6 +115,7 @@ T = {
     "st_msg_select":      {"fr": "Sélectionnez une conversation à gauche.", "ar": "اختر محادثة من القائمة."},
     "st_ok_created":      {"fr": "✓ Annonce publiée avec succès", "ar": "✓ تم نشر الإعلان بنجاح"},
     "tenders_match":      {"fr": "Correspond à votre profil", "ar": "يطابق ملفك"},
+    "hero_globe_mark":    {"fr": "Couverture nationale", "ar": "تغطية وطنية"},
     "set_referral_h":     {"fr": "Parrainage", "ar": "الإحالة"},
     "set_referral_sub":   {"fr": "Partagez votre lien avec un collègue entrepreneur. {n} inscription(s) via votre lien jusqu'à présent.", "ar": "شارك رابطك مع زميل مقاول. {n} تسجيل عبر رابطك حتى الآن."},
     "set_referral_link":  {"fr": "Votre lien de parrainage", "ar": "رابط الإحالة الخاص بك"},
