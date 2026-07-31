@@ -70,6 +70,7 @@ T = {
     "dash_locked_title":  {"fr": "Votre compte est en attente d'activation", "ar": "حسابك في انتظار التفعيل"},
     "dash_locked_text":   {"fr": "Votre inscription est bien enregistrée. Les marchés, résultats et alertes seront visibles dès que votre abonnement sera confirmé par notre équipe.", "ar": "تسجيلكم مسجل بنجاح. ستصبح الصفقات والنتائج والتنبيهات مرئية بمجرد تأكيد اشتراككم من طرف فريقنا."},
     "dash_locked_cta":    {"fr": "Voir les offres d'abonnement →", "ar": "عرض عروض الاشتراك ←"},
+    "faq_home_title":     {"fr": "Questions <em>fréquentes</em>", "ar": "الأسئلة <em>الشائعة</em>"},
     "channels_label":     {"fr": "Alertes disponibles via", "ar": "التنبيهات متوفرة عبر"},
     "channel_email":      {"fr": "Email", "ar": "البريد الإلكتروني"},
     "channel_telegram":   {"fr": "Telegram", "ar": "تيليغرام"},
