@@ -562,6 +562,164 @@ async def resultat_doc_redirect(req: Request, rid: str, doc: str):
         return RedirectResponse("/resultats", 302)
     return RedirectResponse(url, 302)
 
+# ══════════════════════════════════════════════════════════
+# SOUS-TRAITANCE — annonces entre membres (demande / offre)
+# avec messagerie interne, réservé aux membres actifs (has_access)
+# ══════════════════════════════════════════════════════════
+@app.get("/sous-traitance", response_class=HTMLResponse)
+async def subtraitance_list(req: Request, tp:str="", s:str="", r:str="", mine:str="", page:int=1):
+    m0 = get_member(req)
+    if not m0:
+        return RedirectResponse("/login?next=/sous-traitance", 302)
+    if not has_access(m0):
+        return RedirectResponse("/tarifs?locked=1", 302)
+    db = get_db(); per = 20; page = max(1, page)
+    where, params = ["statut='actif'"], []
+    if tp in ("demande","offre"): where.append("type=?"); params.append(tp)
+    if s: where.append("secteur=?"); params.append(s)
+    if r: where.append("region=?"); params.append(r)
+    if mine: where = ["member_id=?"]; params = [m0["id"]]
+    wh = " AND ".join(where)
+    total = db.execute(f"SELECT COUNT(*) FROM subcontract_posts WHERE {wh}", params).fetchone()[0]
+    rows  = [dict(x) for x in db.execute(
+        f"SELECT * FROM subcontract_posts WHERE {wh} ORDER BY created_at DESC LIMIT ? OFFSET ?",
+        params+[per,(page-1)*per]).fetchall()]
+    db.close()
+    pages = max(1,(total+per-1)//per)
+    return render(req, "subtraitance.html", {
+        "posts":rows,"total":total,"page":page,"pages":pages,"tf":tp,"sf":s,"rf":r,"mine":mine})
+
+@app.get("/sous-traitance/nouveau", response_class=HTMLResponse)
+async def subtraitance_new_get(req: Request):
+    m0 = get_member(req)
+    if not m0:
+        return RedirectResponse("/login?next=/sous-traitance/nouveau", 302)
+    if not has_access(m0):
+        return RedirectResponse("/tarifs?locked=1", 302)
+    return render(req, "subtraitance_new.html", {})
+
+@app.post("/sous-traitance/nouveau")
+async def subtraitance_new_post(req: Request, type:str=Form("demande"), titre:str=Form(""),
+                                 secteur:str=Form(""), region:str=Form(""), budget:str=Form(""),
+                                 date_limite:str=Form(""), description:str=Form("")):
+    m0 = get_member(req)
+    lang = get_lang(req)
+    if not m0:
+        return RedirectResponse("/login?next=/sous-traitance/nouveau", 302)
+    if not has_access(m0):
+        return RedirectResponse("/tarifs?locked=1", 302)
+    if not titre.strip() or not description.strip():
+        return render(req, "subtraitance_new.html", {"err": tr_("st_err_required", lang)})
+    db  = get_db()
+    pid = "st_" + secrets.token_urlsafe(8)
+    db.execute("""INSERT INTO subcontract_posts
+                  (id,member_id,type,titre,secteur,region,budget,date_limite,description,statut,created_at)
+                  VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
+               (pid, m0["id"], type if type in ("demande","offre") else "demande",
+                titre.strip()[:200], secteur, region, budget.strip()[:100], date_limite,
+                description.strip()[:4000], "actif", datetime.now().isoformat()))
+    db.commit(); db.close()
+    return RedirectResponse(f"/sous-traitance/{pid}?ok=1", 302)
+
+@app.get("/sous-traitance/{pid}", response_class=HTMLResponse)
+async def subtraitance_detail(req: Request, pid: str, with_:str=""):
+    m0 = get_member(req)
+    if not m0:
+        return RedirectResponse("/login?next=/sous-traitance/" + pid, 302)
+    if not has_access(m0):
+        return RedirectResponse("/tarifs?locked=1", 302)
+    other_id = req.query_params.get("with", "")
+    db = get_db()
+    post = db.execute("SELECT * FROM subcontract_posts WHERE id=?", (pid,)).fetchone()
+    if not post:
+        db.close()
+        return HTMLResponse("Annonce introuvable", 404)
+    post     = dict(post)
+    author   = db.execute("SELECT id,nom,company,email FROM members WHERE id=?", (post["member_id"],)).fetchone()
+    is_owner = m0["id"] == post["member_id"]
+    threads, thread_messages = [], []
+    if is_owner:
+        others = db.execute(
+            "SELECT DISTINCT sender_id AS oid FROM subcontract_messages WHERE post_id=? AND sender_id!=?",
+            (pid, m0["id"])).fetchall()
+        other_ids = [o["oid"] for o in others]
+        if other_ids:
+            ph = ",".join(["?"]*len(other_ids))
+            threads = [dict(x) for x in db.execute(
+                f"SELECT id,nom,company FROM members WHERE id IN ({ph})", other_ids).fetchall()]
+        if other_id:
+            thread_messages = [dict(x) for x in db.execute(
+                "SELECT * FROM subcontract_messages WHERE post_id=? AND (sender_id=? OR recipient_id=?) ORDER BY created_at ASC",
+                (pid, other_id, other_id)).fetchall()]
+            db.execute(
+                "UPDATE subcontract_messages SET read_at=? WHERE post_id=? AND sender_id=? AND recipient_id=? AND read_at=''",
+                (datetime.now().isoformat(), pid, other_id, m0["id"]))
+            db.commit()
+    else:
+        thread_messages = [dict(x) for x in db.execute(
+            "SELECT * FROM subcontract_messages WHERE post_id=? AND (sender_id=? OR recipient_id=?) ORDER BY created_at ASC",
+            (pid, m0["id"], m0["id"])).fetchall()]
+        db.execute(
+            "UPDATE subcontract_messages SET read_at=? WHERE post_id=? AND sender_id=? AND recipient_id=? AND read_at=''",
+            (datetime.now().isoformat(), pid, post["member_id"], m0["id"]))
+        db.commit()
+    db.close()
+    return render(req, "subtraitance_detail.html", {
+        "post": post, "author": dict(author) if author else {}, "is_owner": is_owner,
+        "threads": threads, "thread_messages": thread_messages, "other_id": other_id})
+
+@app.post("/sous-traitance/{pid}/message")
+async def subtraitance_send_message(req: Request, pid: str, body:str=Form(""), to:str=Form("")):
+    m0 = get_member(req)
+    if not m0:
+        return RedirectResponse("/login", 302)
+    if not has_access(m0):
+        return RedirectResponse("/tarifs?locked=1", 302)
+    if not body.strip():
+        return RedirectResponse(f"/sous-traitance/{pid}", 302)
+    db = get_db()
+    post = db.execute("SELECT member_id FROM subcontract_posts WHERE id=?", (pid,)).fetchone()
+    if not post:
+        db.close()
+        return RedirectResponse("/sous-traitance", 302)
+    owner_id = post["member_id"]
+    recipient_id = int(to) if to else owner_id
+    if m0["id"] == owner_id and not to:
+        db.close()
+        return RedirectResponse(f"/sous-traitance/{pid}", 302)
+    db.execute("""INSERT INTO subcontract_messages(post_id,sender_id,recipient_id,body,created_at,read_at)
+                  VALUES(?,?,?,?,?,?)""",
+               (pid, m0["id"], recipient_id, body.strip()[:2000], datetime.now().isoformat(), ""))
+    db.commit()
+    recipient = db.execute("SELECT email,notif_email FROM members WHERE id=?", (recipient_id,)).fetchone()
+    db.close()
+    if recipient and recipient["notif_email"] and recipient["email"]:
+        try:
+            from app.services.notifications import email_send
+            loop = asyncio.get_event_loop()
+            sender_name = m0.get("nom") or m0["email"]
+            loop.run_in_executor(None, lambda: email_send(
+                recipient["email"], "📩 Nouveau message — Sous-traitance",
+                f"<p><b>{sender_name}</b> vous a envoyé un message au sujet d'une annonce de sous-traitance.</p>"
+                f"<p><a href='{cfg.SITE_URL}/sous-traitance/{pid}'>Voir le message →</a></p>"))
+        except Exception as e:
+            logger.warning(f"[subtraitance email] {e}")
+    who = m0["id"] if m0["id"] != owner_id else recipient_id
+    return RedirectResponse(f"/sous-traitance/{pid}?with={who}", 302)
+
+@app.post("/sous-traitance/{pid}/cloturer")
+async def subtraitance_close(req: Request, pid: str):
+    m0 = get_member(req)
+    if not m0:
+        return RedirectResponse("/login", 302)
+    db = get_db()
+    post = db.execute("SELECT member_id FROM subcontract_posts WHERE id=?", (pid,)).fetchone()
+    if post and post["member_id"] == m0["id"]:
+        db.execute("UPDATE subcontract_posts SET statut='clos' WHERE id=?", (pid,))
+        db.commit()
+    db.close()
+    return RedirectResponse(f"/sous-traitance/{pid}", 302)
+
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(req: Request):
     member = get_member(req)

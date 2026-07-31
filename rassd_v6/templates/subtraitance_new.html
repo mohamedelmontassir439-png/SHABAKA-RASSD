@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Nouvelle annonce — Sous-traitance — Maroc Entrepreneuriat{% endblock %}
+{% block body %}
+<style>
+.stn-wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 80px; }
+.stn-hero { margin-bottom: 28px; }
+.stn-block { padding: 28px; border: 1px solid var(--line); border-radius: var(--r3); background: var(--surface); box-shadow: var(--sh), var(--shg); }
+.type-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 22px; }
+.type-opt { border: 1.5px solid var(--line2); border-radius: var(--r2); padding: 16px; cursor: pointer; transition: all .15s; text-align: center; }
+.type-opt:hover { border-color: var(--ink); }
+.type-opt:has(input:checked) { border-color: var(--ink); background: var(--indigoa); }
+.type-opt input { display: none; }
+.type-opt-t { font-weight: 700; font-size: 14px; color: var(--text1); }
+</style>
+
+<div class="stn-wrap">
+  <div class="stn-hero">
+    <a href="/sous-traitance" class="detail-back" style="color:var(--text3); font-size:13px; font-weight:600;">{{ tr('st_back') }}</a>
+    <h1 class="display-l" style="margin-top:12px;">{{ tr('st_new_title')|safe }}</h1>
+  </div>
+
+  {% if err %}<div class="alert alert-err" style="margin-bottom:20px;">{{ err }}</div>{% endif %}
+
+  <form method="post" class="stn-block">
+    <label class="type-choice">
+      <div class="type-opt"><input type="radio" name="type" value="demande" checked><div class="type-opt-t">🔍 {{ tr('st_type_demande') }}</div></div>
+      <div class="type-opt"><input type="radio" name="type" value="offre"><div class="type-opt-t">🛠️ {{ tr('st_type_offre') }}</div></div>
+    </label>
+
+    <div class="field" style="margin-bottom:18px;">
+      <label for="titre">{{ tr('st_field_titre') }}</label>
+      <input id="titre" name="titre" class="inp" required maxlength="200">
+    </div>
+
+    <div class="grid-2" style="gap: 18px; margin-bottom:18px;">
+      <div class="field">
+        <label for="secteur">{{ tr('st_field_secteur') }}</label>
+        <select id="secteur" name="secteur" class="sel">
+          <option value="">—</option>
+          {% for group_name, group_sectors in sector_groups.items() %}
+          <optgroup label="{{ group_name }}">
+            {% for code, label in group_sectors.items() %}
+            <option value="{{ code }}">{{ code }} – {{ label[:40] }}</option>
+            {% endfor %}
+          </optgroup>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="field">
+        <label for="region">{{ tr('st_field_region') }}</label>
+        <input id="region" name="region" class="inp" maxlength="60">
+      </div>
+    </div>
+
+    <div class="grid-2" style="gap: 18px; margin-bottom:18px;">
+      <div class="field">
+        <label for="budget">{{ tr('st_field_budget') }}</label>
+        <input id="budget" name="budget" class="inp" maxlength="100">
+      </div>
+      <div class="field">
+        <label for="date_limite">{{ tr('st_field_deadline') }}</label>
+        <input id="date_limite" name="date_limite" type="date" class="inp">
+      </div>
+    </div>
+
+    <div class="field" style="margin-bottom:22px;">
+      <label for="description">{{ tr('st_field_desc') }}</label>
+      <textarea id="description" name="description" class="textarea" required maxlength="4000" rows="7"></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-accent btn-full btn-lg">{{ tr('st_submit') }}</button>
+  </form>
+</div>
+{% endblock %}

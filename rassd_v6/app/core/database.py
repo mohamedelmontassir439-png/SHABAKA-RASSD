@@ -112,6 +112,29 @@ CREATE TABLE IF NOT EXISTS tender_results (
     scraped_at        TEXT DEFAULT ''
 );
 
+CREATE TABLE IF NOT EXISTS subcontract_posts (
+    id           TEXT PRIMARY KEY,
+    member_id    INTEGER NOT NULL,
+    type         TEXT DEFAULT 'demande',
+    titre        TEXT DEFAULT '',
+    secteur      TEXT DEFAULT '',
+    region       TEXT DEFAULT '',
+    budget       TEXT DEFAULT '',
+    date_limite  TEXT DEFAULT '',
+    description  TEXT DEFAULT '',
+    statut       TEXT DEFAULT 'actif',
+    created_at   TEXT DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS subcontract_messages (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    post_id      TEXT NOT NULL,
+    sender_id    INTEGER NOT NULL,
+    recipient_id INTEGER NOT NULL,
+    body         TEXT DEFAULT '',
+    created_at   TEXT DEFAULT '',
+    read_at      TEXT DEFAULT ''
+);
+
 CREATE INDEX IF NOT EXISTS idx_t_statut   ON tenders(statut);
 CREATE INDEX IF NOT EXISTS idx_t_scraped  ON tenders(scraped_at DESC);
 CREATE INDEX IF NOT EXISTS idx_t_secteur  ON tenders(secteur);
@@ -121,6 +144,12 @@ CREATE INDEX IF NOT EXISTS idx_m_email    ON members(email);
 CREATE INDEX IF NOT EXISTS idx_fav_member ON favorites(member_id);
 CREATE INDEX IF NOT EXISTS idx_r_scraped  ON tender_results(scraped_at DESC);
 CREATE INDEX IF NOT EXISTS idx_r_secteur  ON tender_results(secteur);
+CREATE INDEX IF NOT EXISTS idx_sp_statut  ON subcontract_posts(statut);
+CREATE INDEX IF NOT EXISTS idx_sp_type    ON subcontract_posts(type);
+CREATE INDEX IF NOT EXISTS idx_sp_member  ON subcontract_posts(member_id);
+CREATE INDEX IF NOT EXISTS idx_sm_post    ON subcontract_messages(post_id);
+CREATE INDEX IF NOT EXISTS idx_sm_sender  ON subcontract_messages(sender_id);
+CREATE INDEX IF NOT EXISTS idx_sm_recip   ON subcontract_messages(recipient_id);
 """
 
 def migrate_db():
