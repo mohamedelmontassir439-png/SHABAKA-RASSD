@@ -138,6 +138,7 @@ def build_email(t: dict, nom: str = "") -> str:
     # Le lien passe par notre propre domaine (redirection serveur) pour les
     # marchés privés — leur source n'apparaît donc jamais dans l'email.
     cta_url         = t["url"] if is_public else f"{site}/tenders/{t['id']}/source"
+    priv_badge      = '<div class="priv-badge">🔒 Marché privé</div>' if type_offre == "Privé" else ""
     badge_html      = f'''<div class="dl-badge">⏰ {dl_label}</div>''' if dl_label else ""
     region_row      = f'<tr><td class="lbl">📍 Région</td><td class="val">{t.get("region","")}</td></tr>' if t.get("region") else ""
     montant_row     = f'<tr><td class="lbl">💰 Montant</td><td class="val">{t.get("montant","")}</td></tr>' if t.get("montant") else ""
@@ -159,14 +160,15 @@ td{{padding:10px 0;border-bottom:1px solid #e3e7ef;vertical-align:top;font-size:
 .cta{{display:inline-block;margin:6px 6px 0 0;padding:12px 22px;background:#f2662d;color:#1e1611;border-radius:8px;font-weight:700;text-decoration:none;font-size:13px}}
 .cta2{{display:inline-block;margin:6px 6px 0 0;padding:12px 22px;border:1px solid #1e1611;color:#1e1611;border-radius:8px;font-weight:700;text-decoration:none;font-size:13px}}
 .ftr{{padding:20px 32px;background:#f6f7fb;border-top:1px solid #e3e7ef;text-align:center}}
-.dl-badge{{display:inline-block;padding:6px 14px;background:rgba(242,102,45,.12);border:1px solid rgba(242,102,45,.3);border-radius:99px;font-size:12px;color:#c94e1f;margin-bottom:20px}}
+.dl-badge{{display:inline-block;padding:6px 14px;background:rgba(242,102,45,.12);border:1px solid rgba(242,102,45,.3);border-radius:99px;font-size:12px;color:#c94e1f;margin-bottom:20px;margin-inline-end:8px}}
+.priv-badge{{display:inline-block;padding:6px 14px;background:rgba(59,68,87,.08);border:1px solid rgba(59,68,87,.25);border-radius:99px;font-size:12px;color:#3b4457;font-weight:700;margin-bottom:20px}}
 </style></head>
 <body><div class="wrap">
 <div class="hdr"><div class="logo">Maroc<em>Entrepreneuriat</em></div><div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:3px">MARCHÉS {type_offre.upper()}S · MAROC</div></div>
 <div class="body">
 <p style="color:#6b7488;font-size:13px;margin-bottom:16px">Bonjour {nom or "Madame/Monsieur"},</p>
 <p style="color:#6b7488;font-size:13px;margin-bottom:20px">Un nouveau marché correspondant à votre profil vient d'être publié :</p>
-{badge_html}
+{priv_badge}{badge_html}
 <div class="title">{t["objet"][:200]}</div>
 <table>
 <tr><td class="lbl">🏢 Acheteur</td><td class="val">{t.get("acheteur","—")[:100]}</td></tr>
@@ -186,7 +188,7 @@ def build_digest_email(tenders: list, nom: str = "") -> str:
     site = cfg.SITE_URL
     rows = "".join(f'''
 <tr><td style="padding:14px 0;border-bottom:1px solid #e3e7ef;">
-  <div style="font-size:14px;font-weight:700;color:#101828;margin-bottom:4px">{t["objet"][:140]}</div>
+  <div style="font-size:14px;font-weight:700;color:#101828;margin-bottom:4px">{"🔒 Privé · " if t.get("type_offre")=="Privé" else ""}{t["objet"][:140]}</div>
   <div style="font-size:12px;color:#6b7488">{t.get("acheteur","")[:80]} · {get_label(t.get("secteur",""))} · ⏰ {t.get("date_limite","—")}</div>
   <a href="{site}/tenders/{t["id"]}" style="font-size:12px;color:#c94e1f;font-weight:700;text-decoration:none">Voir le marché ↗</a>
 </td></tr>''' for t in tenders)

@@ -592,17 +592,20 @@ async def tender_detail(req: Request, tid: str):
 
 @app.get("/tenders/{tid}/source")
 async def tender_source_redirect(req: Request, tid: str):
-    """Redirige vers la source d'origine sans jamais exposer son nom/domaine
-    dans le HTML de la page (uniquement dans l'en-tête Location de la 302)."""
+    """Ne redirige jamais vers un prestataire de données tiers (ex. global-
+    marches.com) — seul le portail officiel marchespublics.gov.ma peut être
+    montré tel quel, puisqu'il est déjà public par nature. Pour toute autre
+    source, on revient sur notre propre page de détail plutôt que d'exposer
+    le domaine d'origine dans la barre d'adresse du navigateur."""
     m0 = get_member(req)
     if not m0:
         return RedirectResponse("/login?next=/tenders/" + tid, 302)
     if not has_access(m0):
         return RedirectResponse("/tarifs?locked=1", 302)
     db = get_db()
-    t  = db.execute("SELECT url FROM tenders WHERE id=?", (tid,)).fetchone()
+    t  = db.execute("SELECT url, source FROM tenders WHERE id=?", (tid,)).fetchone()
     db.close()
-    if not t or not t["url"]:
+    if not t or not t["url"] or t["source"] != "marchespublics":
         return RedirectResponse("/tenders/" + tid, 302)
     return RedirectResponse(t["url"], 302)
 

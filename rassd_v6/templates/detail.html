@@ -132,7 +132,7 @@
 
     <div class="sticky-box">
       <div class="action-card">
-        {% if t.type_offre != 'Privé' %}
+        {% if t.source == 'marchespublics' %}
         <a href="/tenders/{{ t.id }}/source" target="_blank" class="btn btn-primary btn-full" style="margin-bottom: 10px;">{{ tr('detail_source') }}</a>
         {% endif %}
         {% if member %}
