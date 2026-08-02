@@ -2,7 +2,7 @@
 MAROC ENTREPRENEURIAT v3.2 — SaaS Veille Marchés Publics Maroc
 Full audit & fix — Production ready
 """
-import os, re, json, secrets, asyncio, logging, hashlib
+import os, re, json, secrets, asyncio, logging, hashlib, csv, io
 from datetime import datetime, date, timedelta
 from contextlib import asynccontextmanager
 from collections import defaultdict
@@ -1163,6 +1163,103 @@ async def admin_panel(req: Request):
     if not req.cookies.get("_csrf"):
         resp.set_cookie("_csrf", csrf_tok, max_age=86400*30, httponly=True, samesite="lax", secure=COOKIE_SECURE)
     return resp
+
+
+# Le champ "adjudicataire" contient parfois, à la place d'un vrai nom
+# d'entreprise, un statut de procédure (marché resté sans suite) — ces
+# valeurs ne sont pas des prospects et fausseraient le classement.
+NON_COMPANY_ADJUDICATAIRE = {
+    "infructueux", "annule", "annulé", "voir pv", "neant", "néant",
+    "sans suite", "non attribue", "non attribué", "abandonne", "abandonné",
+    "sans objet", "declare infructueux", "déclaré infructueux",
+}
+
+def _prospects_base_filter():
+    """WHERE/params qui excluent les valeurs d'adjudicataire qui ne sont pas
+    de vrais noms d'entreprise (marché resté sans suite, annulé, etc.)."""
+    junk_ph = ",".join(["?"] * len(NON_COMPANY_ADJUDICATAIRE))
+    where = [
+        "adjudicataire!='' AND LENGTH(TRIM(adjudicataire))>3",
+        f"LOWER(TRIM(adjudicataire)) NOT IN ({junk_ph})",
+    ]
+    return " AND ".join(where), list(NON_COMPANY_ADJUDICATAIRE)
+
+def _prospects_query(req: Request):
+    """Construit le WHERE/params communs à la page et à l'export CSV des
+    prospects : les adjudicataires (entreprises ayant déjà gagné un marché)
+    regroupés par nom, c'est le vivier de clients potentiels le plus fiable
+    puisqu'il s'agit d'entreprises réellement actives sur le marché marocain."""
+    q = req.query_params.get("q", "")
+    s = req.query_params.get("s", "")
+    r = req.query_params.get("r", "")
+    wh, params = _prospects_base_filter()
+    where = [wh]
+    if q:
+        where.append("adjudicataire LIKE ?"); params.append(f"%{q}%")
+    if s:
+        where.append("secteur=?"); params.append(s)
+    if r:
+        where.append("region=?"); params.append(r)
+    return " AND ".join(where), params, q, s, r
+
+@app.get("/admin/prospects", response_class=HTMLResponse)
+async def admin_prospects(req: Request, sort: str = "wins", page: int = 1):
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    wh, params, q, s, r = _prospects_query(req)
+    db = get_db(); per = 30; page = max(1, page)
+    order = "wins DESC" if sort == "wins" else "last_seen DESC"
+    total = db.execute(
+        f"SELECT COUNT(*) FROM (SELECT 1 FROM tender_results WHERE {wh} GROUP BY UPPER(TRIM(adjudicataire)))",
+        params).fetchone()[0]
+    rows = [dict(x) for x in db.execute(f"""
+        SELECT MAX(adjudicataire) AS name, COUNT(*) AS wins,
+               GROUP_CONCAT(DISTINCT secteur) AS secteurs_raw,
+               GROUP_CONCAT(DISTINCT region) AS regions_raw,
+               MAX(scraped_at) AS last_seen
+        FROM tender_results
+        WHERE {wh}
+        GROUP BY UPPER(TRIM(adjudicataire))
+        ORDER BY {order}
+        LIMIT ? OFFSET ?
+    """, params + [per, (page-1)*per]).fetchall()]
+    regions = [row[0] for row in db.execute(
+        "SELECT DISTINCT region FROM tender_results WHERE region!='' ORDER BY region LIMIT 60").fetchall()]
+    base_wh, base_params = _prospects_base_filter()
+    total_companies = db.execute(
+        f"SELECT COUNT(*) FROM (SELECT 1 FROM tender_results WHERE {base_wh} GROUP BY UPPER(TRIM(adjudicataire)))",
+        base_params).fetchone()[0]
+    db.close()
+    pages = max(1, (total+per-1)//per)
+    return templates.TemplateResponse("admin_prospects.html", {
+        "request": req, "cfg": cfg, "rows": rows, "total": total, "total_companies": total_companies,
+        "page": page, "pages": pages, "q": q, "sf": s, "rf": r, "sort": sort,
+        "regions": regions, "sector_groups": cfg.SECTOR_GROUPS})
+
+@app.get("/admin/prospects/export")
+async def admin_prospects_export(req: Request):
+    if not _is_admin(req): return JSONResponse({"ok": False}, 401)
+    wh, params, *_ = _prospects_query(req)
+    db = get_db()
+    rows = db.execute(f"""
+        SELECT MAX(adjudicataire) AS name, COUNT(*) AS wins,
+               GROUP_CONCAT(DISTINCT secteur) AS secteurs_raw,
+               GROUP_CONCAT(DISTINCT region) AS regions_raw,
+               MAX(scraped_at) AS last_seen
+        FROM tender_results
+        WHERE {wh}
+        GROUP BY UPPER(TRIM(adjudicataire))
+        ORDER BY wins DESC
+    """, params).fetchall()
+    db.close()
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(["Entreprise", "Marches_gagnes", "Secteurs", "Regions", "Derniere_activite"])
+    for row in rows:
+        secteurs = ", ".join(get_label(c) for c in (row["secteurs_raw"] or "").split(",") if c)
+        regions  = ", ".join(c for c in (row["regions_raw"] or "").split(",") if c)
+        writer.writerow([row["name"], row["wins"], secteurs, regions, (row["last_seen"] or "")[:10]])
+    return Response(content=buf.getvalue().encode("utf-8-sig"), media_type="text/csv",
+                     headers={"Content-Disposition": "attachment; filename=prospects_maroc_entrepreneuriat.csv"})
 
 @app.get("/admin/scrape")
 async def admin_scrape(req: Request):
