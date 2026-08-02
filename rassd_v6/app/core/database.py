@@ -35,7 +35,8 @@ CREATE TABLE IF NOT EXISTS tenders (
     scraped_at       TEXT DEFAULT '',
     updated_at       TEXT DEFAULT '',
     type_offre       TEXT DEFAULT 'Public',
-    source           TEXT DEFAULT 'marchespublics'
+    source           TEXT DEFAULT 'marchespublics',
+    type_procedure   TEXT DEFAULT 'marche'
 );
 CREATE TABLE IF NOT EXISTS members (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -112,7 +113,8 @@ CREATE TABLE IF NOT EXISTS tender_results (
     date_affichage    TEXT DEFAULT '',
     dao_url           TEXT DEFAULT '',
     pv_url            TEXT DEFAULT '',
-    scraped_at        TEXT DEFAULT ''
+    scraped_at        TEXT DEFAULT '',
+    type_procedure    TEXT DEFAULT 'marche'
 );
 
 CREATE TABLE IF NOT EXISTS subcontract_posts (
@@ -160,6 +162,7 @@ CREATE INDEX IF NOT EXISTS idx_t_scraped  ON tenders(scraped_at DESC);
 CREATE INDEX IF NOT EXISTS idx_t_secteur  ON tenders(secteur);
 CREATE INDEX IF NOT EXISTS idx_t_deadline ON tenders(date_limite);
 CREATE INDEX IF NOT EXISTS idx_t_type     ON tenders(type_offre);
+CREATE INDEX IF NOT EXISTS idx_t_proc     ON tenders(type_procedure);
 CREATE INDEX IF NOT EXISTS idx_m_email    ON members(email);
 CREATE INDEX IF NOT EXISTS idx_fav_member ON favorites(member_id);
 CREATE INDEX IF NOT EXISTS idx_r_scraped  ON tender_results(scraped_at DESC);
@@ -194,6 +197,8 @@ def migrate_db():
         "ALTER TABLE members ADD COLUMN last_digest_sent TEXT DEFAULT ''",
         "ALTER TABLE members ADD COLUMN referral_code TEXT DEFAULT ''",
         "ALTER TABLE members ADD COLUMN referred_by INTEGER DEFAULT 0",
+        "ALTER TABLE tenders ADD COLUMN type_procedure TEXT DEFAULT 'marche'",
+        "ALTER TABLE tender_results ADD COLUMN type_procedure TEXT DEFAULT 'marche'",
     ]
     for col in cols:
         try:

@@ -95,14 +95,15 @@ def _save_tenders(tenders: list, new_list: list) -> int:
             db.execute("""INSERT OR IGNORE INTO tenders
                 (id,objet,acheteur,secteur,region,montant,
                  date_publication,date_limite,description,
-                 url,statut,scraped_at,updated_at,type_offre,source)
-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                 url,statut,scraped_at,updated_at,type_offre,source,type_procedure)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (t["id"], t["objet"], t["acheteur"],
                  t.get("secteur",""), t.get("region",""),
                  t.get("montant",""), t.get("date_publication",""),
                  t.get("date_limite",""), t.get("description",""),
                  t["url"], t["statut"], t["scraped_at"], t["scraped_at"],
-                 t.get("type_offre","Public"), t.get("source","marchespublics")))
+                 t.get("type_offre","Public"), t.get("source","marchespublics"),
+                 t.get("type_procedure","marche")))
             if db.execute("SELECT changes()").fetchone()[0]:
                 saved += 1
                 new_list.append(t)
@@ -119,14 +120,14 @@ def _save_results(results: list) -> int:
             db.execute("""INSERT OR IGNORE INTO tender_results
                 (id,reference,objet,acheteur,adjudicataire,region,budget,montant,
                  secteur,date_adjudication,date_ouverture,date_affichage,
-                 dao_url,pv_url,scraped_at)
-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                 dao_url,pv_url,scraped_at,type_procedure)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (r["id"], r.get("reference",""), r["objet"], r.get("acheteur",""),
                  r.get("adjudicataire",""), r.get("region",""), r.get("budget",""),
                  r.get("montant",""), r.get("secteur",""),
                  r.get("date_adjudication",""), r.get("date_ouverture",""),
                  r.get("date_affichage",""), r.get("dao_url",""), r.get("pv_url",""),
-                 r["scraped_at"]))
+                 r["scraped_at"], r.get("type_procedure","marche")))
             if db.execute("SELECT changes()").fetchone()[0]:
                 saved += 1
         except Exception as e:
@@ -209,6 +210,36 @@ async def do_scrape():
         except Exception as e:
             State.log(f"❌ Résultats des marchés: {e}")
             logger.error(f"[gm results scraper] {e}", exc_info=True)
+
+        # ── Bons de commande ────────────────────────────────
+        try:
+            State.log("─" * 48)
+            from app.services.private_scraper import run_bc as gm_run_bc
+            db      = get_db()
+            known5  = {r[0] for r in db.execute("SELECT id FROM tenders").fetchall()}
+            db.close()
+            bc_results = await loop.run_in_executor(None, lambda: gm_run_bc(known5, State.log))
+            State.found += len(bc_results)
+            saved5 = _save_tenders(bc_results, new_tenders)
+            State.saved += saved5
+            State.log(f"✅ Bons de commande: {saved5} nouveaux")
+        except Exception as e:
+            State.log(f"❌ Bons de commande: {e}")
+            logger.error(f"[bc scraper] {e}", exc_info=True)
+
+        # ── Résultats des bons de commande ──────────────────
+        try:
+            State.log("─" * 48)
+            from app.services.private_scraper import run_bc_results as gm_run_bc_results
+            db      = get_db()
+            known6  = {r[0] for r in db.execute("SELECT id FROM tender_results").fetchall()}
+            db.close()
+            bc_res  = await loop.run_in_executor(None, lambda: gm_run_bc_results(known6, State.log))
+            saved6  = _save_results(bc_res)
+            State.log(f"✅ Résultats des bons de commande: {saved6} nouveaux")
+        except Exception as e:
+            State.log(f"❌ Résultats des bons de commande: {e}")
+            logger.error(f"[bc results scraper] {e}", exc_info=True)
 
         # ── Log run ───────────────────────────────────────
         db = get_db()
@@ -453,7 +484,7 @@ async def home(req: Request):
     return render(req, "landing.html", {"stats":stats,"recent":recent,"sectors":sectors})
 
 @app.get("/tenders", response_class=HTMLResponse)
-async def tenders_page(req: Request, q:str="", s:str="", r:str="", t:str="",
+async def tenders_page(req: Request, q:str="", s:str="", r:str="", t:str="", pr:str="",
                         page:int=1, sort:str="recent"):
     m0 = get_member(req)
     if not m0:
@@ -470,6 +501,7 @@ async def tenders_page(req: Request, q:str="", s:str="", r:str="", t:str="",
     if s: where.append("secteur=?");    params.append(s)
     if r: where.append("region=?");     params.append(r)
     if t: where.append("type_offre=?"); params.append(t)
+    if pr: where.append("type_procedure=?"); params.append(pr)
     wh    = " AND ".join(where)
     order = "scraped_at DESC" if sort=="recent" else "date_limite ASC"
     total = db.execute(f"SELECT COUNT(*) FROM tenders WHERE {wh}", params).fetchone()[0]
@@ -483,7 +515,7 @@ async def tenders_page(req: Request, q:str="", s:str="", r:str="", t:str="",
     pages = max(1,(total+per-1)//per)
     return render(req, "tenders.html", {
         "tenders":rows,"total":total,"page":page,"pages":pages,
-        "q":q,"sf":s,"rf":r,"tf":t,"sort":sort,"favs":favs,"regions":regions,
+        "q":q,"sf":s,"rf":r,"tf":t,"prf":pr,"sort":sort,"favs":favs,"regions":regions,
         "my_secteurs":my_secteurs})
 
 @app.get("/tenders/{tid}", response_class=HTMLResponse)

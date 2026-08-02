@@ -62,6 +62,7 @@
     <div class="res-row">
       <div class="res-title">{{ r.objet[:160] }}{% if r.objet|length > 160 %}…{% endif %}</div>
       <div class="res-tags">
+        {% if r.type_procedure=='bon_commande' %}<span class="badge badge-terra">{{ tr('tenders_bc') }}</span>{% endif %}
         <span class="badge badge-gold">{{ get_label(r.secteur)[:24] }}</span>
         {% if r.region %}<span class="badge badge-gray">{{ r.region[:18] }}</span>{% endif %}
         {% if r.reference %}<span class="badge badge-gray">{{ tr('res_ref') }} {{ r.reference[:20] }}</span>{% endif %}

@@ -59,6 +59,7 @@
   <div class="detail-grid">
     <div>
       <div class="detail-eyebrow">
+        {% if t.type_procedure=='bon_commande' %}<span class="badge badge-terra">{{ tr('tenders_bc') }}</span>{% endif %}
         {% if t.type_offre=='Privé' %}<span class="badge badge-blue">{{ tr('tenders_private') }}</span>{% endif %}
         <span class="badge badge-gold">{{ get_label(t.secteur) }}</span>
         {% if t.region %}<span class="badge badge-gray">{{ t.region }}</span>{% endif %}
