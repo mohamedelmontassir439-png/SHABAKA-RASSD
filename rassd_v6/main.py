@@ -484,7 +484,7 @@ async def home(req: Request):
     return render(req, "landing.html", {"stats":stats,"recent":recent,"sectors":sectors})
 
 @app.get("/tenders", response_class=HTMLResponse)
-async def tenders_page(req: Request, q:str="", s:str="", r:str="", t:str="", pr:str="",
+async def tenders_page(req: Request, q:str="", s:str="", r:str="", t:str="",
                         page:int=1, sort:str="recent"):
     m0 = get_member(req)
     if not m0:
@@ -492,16 +492,17 @@ async def tenders_page(req: Request, q:str="", s:str="", r:str="", t:str="", pr:
     if not has_access(m0):
         return RedirectResponse("/tarifs?locked=1", 302)
     db = get_db(); per = 25; page = max(1, page)
+    # Les bons de commande sont une procédure distincte, gérée sur sa propre
+    # page (/bons-de-commande) — jamais mélangés ici, quel que soit le filtre.
     regions = [row[0] for row in db.execute(
-        "SELECT DISTINCT region FROM tenders WHERE region!='' AND statut='actif' ORDER BY region LIMIT 60").fetchall()]
-    where, params = ["statut='actif'"], []
+        "SELECT DISTINCT region FROM tenders WHERE region!='' AND statut='actif' AND type_procedure!='bon_commande' ORDER BY region LIMIT 60").fetchall()]
+    where, params = ["statut='actif'", "type_procedure!='bon_commande'"], []
     if q:
         where.append("(objet LIKE ? OR acheteur LIKE ? OR description LIKE ?)")
         params += [f"%{q}%"]*3
     if s: where.append("secteur=?");    params.append(s)
     if r: where.append("region=?");     params.append(r)
     if t: where.append("type_offre=?"); params.append(t)
-    if pr: where.append("type_procedure=?"); params.append(pr)
     wh    = " AND ".join(where)
     order = "scraped_at DESC" if sort=="recent" else "date_limite ASC"
     total = db.execute(f"SELECT COUNT(*) FROM tenders WHERE {wh}", params).fetchone()[0]
@@ -515,7 +516,43 @@ async def tenders_page(req: Request, q:str="", s:str="", r:str="", t:str="", pr:
     pages = max(1,(total+per-1)//per)
     return render(req, "tenders.html", {
         "tenders":rows,"total":total,"page":page,"pages":pages,
-        "q":q,"sf":s,"rf":r,"tf":t,"prf":pr,"sort":sort,"favs":favs,"regions":regions,
+        "q":q,"sf":s,"rf":r,"tf":t,"sort":sort,"favs":favs,"regions":regions,
+        "my_secteurs":my_secteurs})
+
+@app.get("/bons-de-commande", response_class=HTMLResponse)
+async def bons_commande_page(req: Request, q:str="", s:str="", r:str="",
+                              page:int=1, sort:str="recent"):
+    # Page dédiée et totalement séparée des marchés classiques — les bons de
+    # commande sont une procédure d'achat public simplifiée (voir bc_intro),
+    # sans équivalent privé, donc pas de filtre Public/Privé ici.
+    m0 = get_member(req)
+    if not m0:
+        return RedirectResponse("/login?next=/bons-de-commande", 302)
+    if not has_access(m0):
+        return RedirectResponse("/tarifs?locked=1", 302)
+    db = get_db(); per = 25; page = max(1, page)
+    regions = [row[0] for row in db.execute(
+        "SELECT DISTINCT region FROM tenders WHERE region!='' AND statut='actif' AND type_procedure='bon_commande' ORDER BY region LIMIT 60").fetchall()]
+    where, params = ["statut='actif'", "type_procedure='bon_commande'"], []
+    if q:
+        where.append("(objet LIKE ? OR acheteur LIKE ? OR description LIKE ?)")
+        params += [f"%{q}%"]*3
+    if s: where.append("secteur=?"); params.append(s)
+    if r: where.append("region=?");  params.append(r)
+    wh    = " AND ".join(where)
+    order = "scraped_at DESC" if sort=="recent" else "date_limite ASC"
+    total = db.execute(f"SELECT COUNT(*) FROM tenders WHERE {wh}", params).fetchone()[0]
+    rows  = [dict(x) for x in db.execute(
+        f"SELECT * FROM tenders WHERE {wh} ORDER BY {order} LIMIT ? OFFSET ?",
+        params+[per,(page-1)*per]).fetchall()]
+    favs = {x[0] for x in db.execute(
+        "SELECT tender_id FROM favorites WHERE member_id=?", (m0["id"],)).fetchall()}
+    my_secteurs = clean_secteurs(json.loads(m0.get("secteurs","[]") or "[]"))
+    db.close()
+    pages = max(1,(total+per-1)//per)
+    return render(req, "bons_commande.html", {
+        "tenders":rows,"total":total,"page":page,"pages":pages,
+        "q":q,"sf":s,"rf":r,"sort":sort,"favs":favs,"regions":regions,
         "my_secteurs":my_secteurs})
 
 @app.get("/tenders/{tid}", response_class=HTMLResponse)
@@ -536,8 +573,8 @@ async def tender_detail(req: Request, tid: str):
         logger.warning(f"[views] {e}")
     secteur = t["secteur"] or ""
     related = [dict(r) for r in db.execute(
-        "SELECT * FROM tenders WHERE secteur=? AND id!=? AND statut='actif' ORDER BY scraped_at DESC LIMIT 4",
-        (secteur, tid)).fetchall()] if secteur else []
+        "SELECT * FROM tenders WHERE secteur=? AND id!=? AND statut='actif' AND type_procedure=? ORDER BY scraped_at DESC LIMIT 4",
+        (secteur, tid, t["type_procedure"] or "marche")).fetchall()] if secteur else []
     member = get_member(req); is_fav = False
     if member:
         try:

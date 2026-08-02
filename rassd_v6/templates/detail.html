@@ -54,7 +54,7 @@
 </style>
 
 <div class="page" style="max-width: 1200px;">
-  <a href="/tenders" class="detail-back">{{ tr('detail_back') }}</a>
+  <a href="{% if t.type_procedure=='bon_commande' %}/bons-de-commande{% else %}/tenders{% endif %}" class="detail-back">{{ tr('detail_back') }}</a>
 
   <div class="detail-grid">
     <div>

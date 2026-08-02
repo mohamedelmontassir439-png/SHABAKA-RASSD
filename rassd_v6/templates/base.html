@@ -289,6 +289,10 @@ html[dir="rtl"] .section-label::before { order: 2; }
           <svg viewBox="0 0 24 24"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
           <span>{{ tr('nav_tenders') }}</span>
         </a>
+        <a href="/bons-de-commande" class="side-link {% if request.url.path.startswith('/bons-de-commande') %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><path d="M9 2h6l1 4H8l1-4z"/><path d="M5 6h14l-1.2 14.2A2 2 0 0 1 15.8 22H8.2a2 2 0 0 1-2-1.8L5 6z"/><path d="M9 11h6M9 15h4"/></svg>
+          <span>{{ tr('nav_bc') }}</span>
+        </a>
         {% if member %}
         <a href="/resultats" class="side-link {% if request.url.path == '/resultats' %}active{% endif %}">
           <svg viewBox="0 0 24 24"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/></svg>

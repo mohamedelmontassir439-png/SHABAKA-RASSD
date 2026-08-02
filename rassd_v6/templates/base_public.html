@@ -266,6 +266,7 @@ html[dir="rtl"] .section-label::before { order: 2; }
   <div class="nav-links">
     <a href="/" class="nav-link {% if request.url.path == '/' %}active{% endif %}">{{ tr('nav_home') }}</a>
     <a href="/tenders" class="nav-link {% if request.url.path.startswith('/tenders') %}active{% endif %}">{{ tr('nav_tenders') }}</a>
+    <a href="/bons-de-commande" class="nav-link {% if request.url.path.startswith('/bons-de-commande') %}active{% endif %}">{{ tr('nav_bc') }}</a>
     {% if member %}
     <a href="/resultats" class="nav-link {% if request.url.path == '/resultats' %}active{% endif %}">{{ tr('nav_results') }}</a>
     {% endif %}

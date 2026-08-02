@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Marchés Publics & Privés — Maroc Entrepreneuriat{% endblock %}
+{% block title %}Bons de Commande — Maroc Entrepreneuriat{% endblock %}
 {% block body %}
 <style>
 .tenders-hero { padding: 24px 32px 0; }
@@ -7,6 +7,7 @@
 .tenders-meta { display: flex; gap: 20px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
 .tenders-meta-item { font-size: 13px; color: var(--text3); font-weight: 500; }
 .tenders-meta-item span { color: var(--ink); font-weight: 700; }
+.bc-intro { font-size: 13.5px; color: var(--text3); line-height: 1.6; max-width: 720px; margin-top: 14px; padding: 14px 16px; background: var(--terraa); border: 1px solid rgba(201,78,31,.2); border-radius: var(--r2); }
 
 .sort-tabs { display: flex; gap: 0; border: 1px solid var(--line2); border-radius: var(--r2); overflow: hidden; }
 .sort-tab { padding: 9px 16px; font-size: 13px; font-weight: 600; color: var(--text3); background: var(--surface); border: none; cursor: pointer; transition: all .15s; text-decoration: none; }
@@ -73,16 +74,17 @@
 <div class="tenders-hero">
   <div class="tenders-hero-grid">
     <div>
-      <div class="section-label" style="margin-bottom: 8px;">{{ tr('tenders_label') }}</div>
-      <h1 class="display-m">{{ tr('tenders_title', n=total)|safe }}</h1>
+      <div class="section-label" style="margin-bottom: 8px;">{{ tr('bc_label') }}</div>
+      <h1 class="display-m">{{ tr('bc_title', n=total)|safe }}</h1>
       <div class="tenders-meta">
         <div class="tenders-meta-item">{{ tr('tenders_updated') }} <span>{{ tr('tenders_continuous') }}</span></div>
-        <div class="tenders-meta-item">{{ tr('tenders_sources') }} <span>{{ tr('tenders_sources_val') }}</span></div>
+        <div class="tenders-meta-item">{{ tr('tenders_sources') }} <span>global-marches.com</span></div>
       </div>
+      <div class="bc-intro">{{ tr('bc_intro') }}</div>
     </div>
     <div class="sort-tabs">
-      <a href="?q={{ q }}&s={{ sf }}&r={{ rf }}&t={{ tf }}&sort=recent&page=1" class="sort-tab {% if sort=='recent' %}on{% endif %}">{{ tr('tenders_sort_recent') }}</a>
-      <a href="?q={{ q }}&s={{ sf }}&r={{ rf }}&t={{ tf }}&sort=deadline&page=1" class="sort-tab {% if sort=='deadline' %}on{% endif %}">{{ tr('tenders_sort_deadline') }}</a>
+      <a href="?q={{ q }}&s={{ sf }}&r={{ rf }}&sort=recent&page=1" class="sort-tab {% if sort=='recent' %}on{% endif %}">{{ tr('tenders_sort_recent') }}</a>
+      <a href="?q={{ q }}&s={{ sf }}&r={{ rf }}&sort=deadline&page=1" class="sort-tab {% if sort=='deadline' %}on{% endif %}">{{ tr('tenders_sort_deadline') }}</a>
     </div>
   </div>
 </div>
@@ -95,15 +97,7 @@
     </div>
     <div class="filter-group">
       <label>{{ tr('filter_keyword') }}</label>
-      <input name="q" value="{{ q }}" class="inp" placeholder="{{ tr('tenders_search') }}">
-    </div>
-    <div class="filter-group">
-      <label>{{ tr('filter_type') }}</label>
-      <select name="t" class="sel">
-        <option value="">{{ tr('tenders_all_types') }}</option>
-        <option value="Public" {% if tf=='Public' %}selected{% endif %}>{{ tr('tenders_public') }}</option>
-        <option value="Privé" {% if tf=='Privé' %}selected{% endif %}>{{ tr('tenders_private') }}</option>
-      </select>
+      <input name="q" value="{{ q }}" class="inp" placeholder="{{ tr('bc_search') }}">
     </div>
     <div class="filter-group">
       <label>{{ tr('filter_sector') }}</label>
@@ -131,7 +125,7 @@
     {% endif %}
     <input type="hidden" name="sort" value="{{ sort }}">
     <button type="submit" class="btn btn-primary btn-full">{{ tr('tenders_filter') }}</button>
-    {% if q or sf or tf or rf %}<a href="/tenders" class="btn btn-ghost btn-full btn-sm">{{ tr('tenders_clear') }}</a>{% endif %}
+    {% if q or sf or rf %}<a href="/bons-de-commande" class="btn btn-ghost btn-full btn-sm">{{ tr('tenders_clear') }}</a>{% endif %}
   </form>
 
   <div>
@@ -144,7 +138,7 @@
           <div class="row-title">{{ t.objet[:140] }}{% if t.objet|length > 140 %}…{% endif %}</div>
           <div class="row-tags">
             {% if my_secteurs and t.secteur in my_secteurs %}<span class="badge badge-grn">✓ {{ tr('tenders_match') }}</span>{% endif %}
-            {% if t.type_offre=='Privé' %}<span class="badge badge-blue">{{ tr('tenders_private') }}</span>{% endif %}
+            <span class="badge badge-terra">{{ tr('tenders_bc') }}</span>
             <span class="badge badge-gold">{{ get_label(t.secteur)[:24] }}</span>
             {% if t.montant %}<span class="badge badge-grn">{{ t.montant[:30] }}</span>{% endif %}
             {% if dl_l and dl_n <= 7 and dl_n >= 0 %}
@@ -167,22 +161,22 @@
 
     {% if pages > 1 %}
     <div class="pagination">
-      {% if page > 1 %}<a href="?q={{ q }}&s={{ sf }}&r={{ rf }}&t={{ tf }}&sort={{ sort }}&page={{ page-1 }}" class="pag-btn">{{ tr('tenders_prev') }}</a>{% endif %}
+      {% if page > 1 %}<a href="?q={{ q }}&s={{ sf }}&r={{ rf }}&sort={{ sort }}&page={{ page-1 }}" class="pag-btn">{{ tr('tenders_prev') }}</a>{% endif %}
       {% for pp in range(1, pages+1) %}
         {% if pp == page %}<span class="pag-btn current">{{ pp }}</span>
-        {% elif pp == 1 or pp == pages or (pp >= page-2 and pp <= page+2) %}<a href="?q={{ q }}&s={{ sf }}&r={{ rf }}&t={{ tf }}&sort={{ sort }}&page={{ pp }}" class="pag-btn">{{ pp }}</a>
+        {% elif pp == 1 or pp == pages or (pp >= page-2 and pp <= page+2) %}<a href="?q={{ q }}&s={{ sf }}&r={{ rf }}&sort={{ sort }}&page={{ pp }}" class="pag-btn">{{ pp }}</a>
         {% elif pp == page-3 or pp == page+3 %}<span style="color:var(--text4);padding:9px 4px;font-size:13px;">…</span>{% endif %}
       {% endfor %}
-      {% if page < pages %}<a href="?q={{ q }}&s={{ sf }}&r={{ rf }}&t={{ tf }}&sort={{ sort }}&page={{ page+1 }}" class="pag-btn">{{ tr('tenders_next') }}</a>{% endif %}
+      {% if page < pages %}<a href="?q={{ q }}&s={{ sf }}&r={{ rf }}&sort={{ sort }}&page={{ page+1 }}" class="pag-btn">{{ tr('tenders_next') }}</a>{% endif %}
     </div>
     {% endif %}
 
     {% else %}
     <div class="empty-state">
       <div class="empty-icon">∅</div>
-      <div class="empty-title">{{ tr('tenders_empty_title')|safe }}</div>
-      <div class="empty-text">{% if q or sf or tf or rf %}{{ tr('tenders_empty_filtered') }}{% else %}{{ tr('tenders_empty_none') }}{% endif %}</div>
-      {% if q or sf or tf or rf %}<div style="margin-top: 24px;"><a href="/tenders" class="btn btn-outline btn-lg">{{ tr('tenders_view_all') }}</a></div>{% endif %}
+      <div class="empty-title">{{ tr('bc_empty_title')|safe }}</div>
+      <div class="empty-text">{% if q or sf or rf %}{{ tr('bc_empty_filtered') }}{% else %}{{ tr('bc_empty_none') }}{% endif %}</div>
+      {% if q or sf or rf %}<div style="margin-top: 24px;"><a href="/bons-de-commande" class="btn btn-outline btn-lg">{{ tr('bc_view_all') }}</a></div>{% endif %}
     </div>
     {% endif %}
   </div>
