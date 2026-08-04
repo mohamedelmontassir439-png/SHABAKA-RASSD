@@ -2,13 +2,13 @@
 MAROC ENTREPRENEURIAT v3.2 — SaaS Veille Marchés Publics Maroc
 Full audit & fix — Production ready
 """
-import os, re, json, secrets, asyncio, logging, hashlib, csv, io
+import os, re, json, secrets, asyncio, logging, hashlib, csv, io, traceback
 from datetime import datetime, date, timedelta
 from contextlib import asynccontextmanager
 from collections import defaultdict
 from fastapi import FastAPI, Request, Form, HTTPException
 from fastapi.responses import (HTMLResponse, RedirectResponse,
-                               JSONResponse, StreamingResponse, Response)
+                               JSONResponse, StreamingResponse, Response, FileResponse)
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -283,6 +283,39 @@ async def digest_scheduler():
             logger.error(f"[digest_scheduler] {e}")
         await asyncio.sleep(3600)
 
+BACKUP_DIR  = "data/backups"
+BACKUP_KEEP = 14
+
+def make_db_backup():
+    """Copie la base SQLite dans data/backups/ (protège contre un bug
+    applicatif qui corromprait/effacerait des lignes en base) et purge les
+    sauvegardes au-delà de BACKUP_KEEP. Ne protège pas contre la perte du
+    volume Railway lui-même — /admin/backups permet un téléchargement
+    manuel pour garder une copie hors-site."""
+    import shutil
+    if not os.path.exists(cfg.DB_PATH):
+        return None
+    os.makedirs(BACKUP_DIR, exist_ok=True)
+    ts   = datetime.now().strftime("%Y%m%d_%H%M%S")
+    dest = os.path.join(BACKUP_DIR, f"atlas_{ts}.db")
+    shutil.copy2(cfg.DB_PATH, dest)
+    backups = sorted(f for f in os.listdir(BACKUP_DIR) if f.startswith("atlas_") and f.endswith(".db"))
+    while len(backups) > BACKUP_KEEP:
+        try: os.remove(os.path.join(BACKUP_DIR, backups.pop(0)))
+        except OSError: pass
+    return dest
+
+async def backup_scheduler():
+    await asyncio.sleep(90)
+    while True:
+        try:
+            loop = asyncio.get_event_loop()
+            path = await loop.run_in_executor(None, make_db_backup)
+            if path: logger.info(f"[backup] ✅ {path}")
+        except Exception as e:
+            logger.error(f"[backup_scheduler] {e}")
+        await asyncio.sleep(86400)
+
 # ══════════════════════════════════════════════════════════
 # MIDDLEWARE
 # ══════════════════════════════════════════════════════════
@@ -342,6 +375,7 @@ async def lifespan(app: FastAPI):
         logger.warning("[startup] WA_SECRET utilise sa valeur par défaut — configure-la dans les variables d'environnement Railway.")
     asyncio.create_task(scheduler())
     asyncio.create_task(digest_scheduler())
+    asyncio.create_task(backup_scheduler())
     yield
 
 app = FastAPI(lifespan=lifespan, title=cfg.APP_NAME,
@@ -352,10 +386,8 @@ app.add_middleware(SecurityMiddleware)
 async def not_found(req: Request, exc):
     return render(req, "404.html", {}, status_code=404)
 
-@app.exception_handler(500)
-async def server_error(req: Request, exc):
-    logger.error(f"[500] {req.url}: {exc}")
-    return HTMLResponse("""<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+def _server_error_html() -> str:
+    return """<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>Erreur serveur — Maroc Entrepreneuriat</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
@@ -370,7 +402,30 @@ a{display:inline-flex;align-items:center;justify-content:center;padding:13px 26p
 <h1>Une erreur est survenue</h1>
 <p>Notre équipe a été notifiée. Merci de réessayer dans un instant.</p>
 <a href="/">Retour à l'accueil →</a>
-</div></body></html>""", 500)
+</div></body></html>"""
+
+@app.exception_handler(500)
+async def server_error(req: Request, exc):
+    logger.error(f"[500] {req.url}: {exc}")
+    return HTMLResponse(_server_error_html(), 500)
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(req: Request, exc: Exception):
+    """Filet de sécurité pour toute exception Python non gérée explicitement
+    (@app.exception_handler(500) ne couvre que les HTTPException(500) levées
+    volontairement — sans ce handler, un bug applicatif imprévu remontait
+    jusqu'à la page d'erreur générique non brandée de Starlette)."""
+    logger.error(f"[unhandled] {req.method} {req.url.path}: {exc}", exc_info=True)
+    try:
+        db = get_db()
+        db.execute(
+            "INSERT INTO error_log(path,method,message,traceback,created_at) VALUES (?,?,?,?,?)",
+            (str(req.url.path), req.method, str(exc)[:500], traceback.format_exc()[:4000], datetime.now().isoformat()))
+        db.commit(); db.close()
+    except Exception as log_err:
+        logger.error(f"[error_log] échec d'enregistrement: {log_err}")
+    return HTMLResponse(_server_error_html(), 500)
+
 def source_label(source: str, lang: str = "fr") -> str:
     """Libellé affichable pour la source d'un marché.
 
@@ -912,6 +967,28 @@ async def subtraitance_rate(req: Request, pid: str, rated_id:int=Form(...),
     who = rated_id if m0["id"] != rated_id else ""
     return RedirectResponse(f"/sous-traitance/{pid}?with={who}", 302)
 
+@app.post("/sous-traitance/{pid}/signaler")
+async def subtraitance_report(req: Request, pid: str, reason:str=Form(""), csrf_token:str=Form("")):
+    m0 = get_member(req)
+    csrf_guard(req, csrf_token)
+    if not m0:
+        return RedirectResponse("/login", 302)
+    if not check_rate_limit(f"st_report_{m0['id']}", 10, 3600):
+        return RedirectResponse(f"/sous-traitance/{pid}?reported=1", 302)
+    db = get_db()
+    post = db.execute("SELECT titre FROM subcontract_posts WHERE id=?", (pid,)).fetchone()
+    if post:
+        db.execute(
+            "INSERT INTO subcontract_reports(post_id,reporter_id,reason,created_at) VALUES(?,?,?,?)",
+            (pid, m0["id"], reason.strip()[:500], datetime.now().isoformat()))
+        db.commit()
+        try:
+            tg_admin(f"🚩 Annonce signalée : « {post['titre'][:80]} »\n{cfg.SITE_URL}/admin/sous-traitance")
+        except Exception as e:
+            logger.warning(f"[report] notif admin échouée: {e}")
+    db.close()
+    return RedirectResponse(f"/sous-traitance/{pid}?reported=1", 302)
+
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(req: Request):
     member = get_member(req)
@@ -966,6 +1043,21 @@ async def dashboard(req: Request):
 
 @app.get("/tarifs", response_class=HTMLResponse)
 async def tarifs(req: Request): return render(req,"tarifs.html",{})
+
+# ══════════════════════════════════════════════════════════
+# PAGES LÉGALES
+# ══════════════════════════════════════════════════════════
+@app.get("/mentions-legales", response_class=HTMLResponse)
+async def legal_mentions(req: Request): return render(req, "legal_mentions.html", {})
+
+@app.get("/cgu", response_class=HTMLResponse)
+async def legal_cgu(req: Request): return render(req, "legal_cgu.html", {})
+
+@app.get("/confidentialite", response_class=HTMLResponse)
+async def legal_confidentialite(req: Request): return render(req, "legal_confidentialite.html", {})
+
+@app.get("/contact", response_class=HTMLResponse)
+async def contact_page(req: Request): return render(req, "contact.html", {})
 
 # ══════════════════════════════════════════════════════════
 # AUTH
@@ -1092,6 +1184,86 @@ async def settings_post(req: Request,
     finally: db.close()
     return RedirectResponse("/settings?ok=1",302)
 
+@app.get("/settings/export")
+async def settings_export(req: Request):
+    """Export des données personnelles (droit d'accès — loi 09-08/CNDP)."""
+    member = get_member(req)
+    if not member: return RedirectResponse("/login?next=/settings", 302)
+    db = get_db()
+    try:
+        favs = [r["tender_id"] for r in db.execute(
+            "SELECT tender_id FROM favorites WHERE member_id=?", (member["id"],)).fetchall()]
+        posts = [dict(r) for r in db.execute(
+            "SELECT id,type,titre,secteur,region,budget,date_limite,description,statut,created_at FROM subcontract_posts WHERE member_id=?",
+            (member["id"],)).fetchall()]
+        sent = [dict(r) for r in db.execute(
+            "SELECT post_id,recipient_id,body,created_at FROM subcontract_messages WHERE sender_id=?",
+            (member["id"],)).fetchall()]
+        received = [dict(r) for r in db.execute(
+            "SELECT post_id,sender_id,body,created_at FROM subcontract_messages WHERE recipient_id=?",
+            (member["id"],)).fetchall()]
+        ratings_given = [dict(r) for r in db.execute(
+            "SELECT post_id,rated_id,rating,comment,created_at FROM subcontract_ratings WHERE rater_id=?",
+            (member["id"],)).fetchall()]
+        ratings_received = [dict(r) for r in db.execute(
+            "SELECT post_id,rater_id,rating,comment,created_at FROM subcontract_ratings WHERE rated_id=?",
+            (member["id"],)).fetchall()]
+    finally:
+        db.close()
+    data = {
+        "profil": {
+            "nom": member.get("nom"), "email": member.get("email"), "phone": member.get("phone"),
+            "company": member.get("company"), "plan": member.get("plan"),
+            "secteurs": json.loads(member.get("secteurs","[]") or "[]"),
+            "regions": json.loads(member.get("regions","[]") or "[]"),
+            "telegram": member.get("telegram"), "whatsapp": member.get("whatsapp"),
+            "created_at": member.get("created_at"),
+        },
+        "favoris": favs,
+        "annonces_sous_traitance": posts,
+        "messages_envoyes": sent,
+        "messages_recus": received,
+        "evaluations_donnees": ratings_given,
+        "evaluations_recues": ratings_received,
+    }
+    body = json.dumps(data, ensure_ascii=False, indent=2)
+    return Response(content=body, media_type="application/json",
+                     headers={"Content-Disposition": "attachment; filename=mes-donnees-maroc-entrepreneuriat.json"})
+
+@app.post("/settings/delete")
+async def settings_delete(req: Request, password:str=Form(""), csrf_token:str=Form("")):
+    """Suppression de compte (droit à l'effacement — loi 09-08/CNDP).
+
+    Les échanges/évaluations liés aux annonces de sous-traitance sont
+    supprimés avec le compte plutôt qu'anonymisés : le service ne fait
+    pas de compromis partiel sur une demande de suppression."""
+    member = get_member(req)
+    csrf_guard(req, csrf_token)
+    if not member: return RedirectResponse("/login", 302)
+    if not check_rate_limit(f"del_acct_{member['id']}", 5, 600):
+        return RedirectResponse("/settings?err=too_many", 302)
+    if not verify_pw(password, member.get("pw_hash", "")):
+        return RedirectResponse("/settings?err=wrongpw", 302)
+    mid = member["id"]
+    db = get_db()
+    try:
+        db.execute("DELETE FROM favorites WHERE member_id=?", (mid,))
+        db.execute("DELETE FROM notif_log WHERE member_id=?", (mid,))
+        db.execute("DELETE FROM notif_queue WHERE member_id=?", (mid,))
+        db.execute("""DELETE FROM subcontract_messages WHERE post_id IN
+                      (SELECT id FROM subcontract_posts WHERE member_id=?)""", (mid,))
+        db.execute("DELETE FROM subcontract_messages WHERE sender_id=? OR recipient_id=?", (mid, mid))
+        db.execute("DELETE FROM subcontract_ratings WHERE rater_id=? OR rated_id=?", (mid, mid))
+        db.execute("DELETE FROM subcontract_reports WHERE reporter_id=?", (mid,))
+        db.execute("DELETE FROM subcontract_posts WHERE member_id=?", (mid,))
+        db.execute("DELETE FROM members WHERE id=?", (mid,))
+        db.commit()
+    finally:
+        db.close()
+    r = RedirectResponse("/?deleted=1", 302)
+    r.delete_cookie("_session")
+    return r
+
 # ══════════════════════════════════════════════════════════
 # ADMIN
 # ══════════════════════════════════════════════════════════
@@ -1150,6 +1322,10 @@ async def admin_panel(req: Request):
         """SELECT m.nom, m.email, COUNT(r.id) n FROM members m
            JOIN members r ON r.referred_by = m.id
            GROUP BY m.id ORDER BY n DESC LIMIT 5""").fetchall()]
+    recent_errors = [dict(r) for r in db.execute(
+        "SELECT * FROM error_log ORDER BY created_at DESC LIMIT 10").fetchall()]
+    errors_7j = db.execute(
+        "SELECT COUNT(*) FROM error_log WHERE created_at>=datetime('now','-7 days')").fetchone()[0]
     db.close()
     csrf_tok = get_csrf_token(req) or secrets.token_urlsafe(24)
     resp = templates.TemplateResponse("admin.html",{
@@ -1159,7 +1335,8 @@ async def admin_panel(req: Request):
         "last_run":State.last_run,"cfg":cfg,"multi_ok":MULTI_OK,
         "member_growth":member_growth,"plan_dist":plan_dist,
         "mrr_estimate":mrr_estimate,"total_active_members":total_active_members,
-        "referral_top":referral_top,"csrf_token":csrf_tok})
+        "referral_top":referral_top,"recent_errors":recent_errors,"errors_7j":errors_7j,
+        "csrf_token":csrf_tok})
     if not req.cookies.get("_csrf"):
         resp.set_cookie("_csrf", csrf_tok, max_age=86400*30, httponly=True, samesite="lax", secure=COOKIE_SECURE)
     return resp
@@ -1260,6 +1437,71 @@ async def admin_prospects_export(req: Request):
         writer.writerow([row["name"], row["wins"], secteurs, regions, (row["last_seen"] or "")[:10]])
     return Response(content=buf.getvalue().encode("utf-8-sig"), media_type="text/csv",
                      headers={"Content-Disposition": "attachment; filename=prospects_maroc_entrepreneuriat.csv"})
+
+@app.get("/admin/sous-traitance", response_class=HTMLResponse)
+async def admin_subtraitance(req: Request):
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    db = get_db()
+    posts = [dict(r) for r in db.execute("""
+        SELECT p.*, m.nom AS auteur_nom, m.email AS auteur_email,
+               (SELECT COUNT(*) FROM subcontract_reports WHERE post_id=p.id) AS n_reports
+        FROM subcontract_posts p LEFT JOIN members m ON m.id = p.member_id
+        ORDER BY n_reports DESC, p.created_at DESC LIMIT 200
+    """).fetchall()]
+    reports = [dict(r) for r in db.execute("""
+        SELECT r.*, m.email AS reporter_email FROM subcontract_reports r
+        LEFT JOIN members m ON m.id = r.reporter_id
+        ORDER BY r.created_at DESC LIMIT 100
+    """).fetchall()]
+    db.close()
+    csrf_tok = get_csrf_token(req) or secrets.token_urlsafe(24)
+    resp = templates.TemplateResponse("admin_subtraitance.html", {
+        "request": req, "cfg": cfg, "posts": posts, "reports": reports, "csrf_token": csrf_tok})
+    if not req.cookies.get("_csrf"):
+        resp.set_cookie("_csrf", csrf_tok, max_age=86400*30, httponly=True, samesite="lax", secure=COOKIE_SECURE)
+    return resp
+
+@app.post("/admin/sous-traitance/{pid}/delete")
+async def admin_subtraitance_delete(req: Request, pid: str, csrf_token:str=Form("")):
+    if not _is_admin(req): return JSONResponse({"ok": False}, 401)
+    csrf_guard(req, csrf_token)
+    db = get_db()
+    db.execute("DELETE FROM subcontract_messages WHERE post_id=?", (pid,))
+    db.execute("DELETE FROM subcontract_ratings WHERE post_id=?", (pid,))
+    db.execute("DELETE FROM subcontract_reports WHERE post_id=?", (pid,))
+    db.execute("DELETE FROM subcontract_posts WHERE id=?", (pid,))
+    db.commit(); db.close()
+    return RedirectResponse("/admin/sous-traitance", 302)
+
+@app.get("/admin/backups", response_class=HTMLResponse)
+async def admin_backups(req: Request):
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    os.makedirs(BACKUP_DIR, exist_ok=True)
+    files = []
+    for f in sorted(os.listdir(BACKUP_DIR), reverse=True):
+        if f.startswith("atlas_") and f.endswith(".db"):
+            p = os.path.join(BACKUP_DIR, f)
+            files.append({
+                "name": f,
+                "size_mb": round(os.path.getsize(p) / (1024*1024), 2),
+                "mtime": datetime.fromtimestamp(os.path.getmtime(p)).strftime("%Y-%m-%d %H:%M"),
+            })
+    return templates.TemplateResponse("admin_backups.html", {"request": req, "cfg": cfg, "files": files})
+
+@app.get("/admin/backups/run")
+async def admin_backups_run(req: Request):
+    if not _is_admin(req): return JSONResponse({"ok": False}, 401)
+    path = make_db_backup()
+    return RedirectResponse("/admin/backups", 302) if path else JSONResponse({"ok": False, "msg": "Base introuvable"}, 500)
+
+@app.get("/admin/backups/download/{filename}")
+async def admin_backups_download(req: Request, filename: str):
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    safe_name = os.path.basename(filename)
+    path = os.path.join(BACKUP_DIR, safe_name)
+    if not safe_name.startswith("atlas_") or not safe_name.endswith(".db") or not os.path.isfile(path):
+        return HTMLResponse("Fichier introuvable", 404)
+    return FileResponse(path, filename=safe_name, media_type="application/octet-stream")
 
 @app.get("/admin/scrape")
 async def admin_scrape(req: Request):

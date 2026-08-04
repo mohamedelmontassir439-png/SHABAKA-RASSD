@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Modération sous-traitance — Maroc Entrepreneuriat</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f8f1e1; --surface: #ffffff; --surface2: #f1e6cf;
+  --line: #e8dcc5; --line2: #d9c7a8;
+  --navy: #f2662d; --navy3: #1e1611;
+  --amber: #f2662d; --amberd: #c94e1f; --ambera: rgba(242,102,45,.14);
+  --t1: #2b211b; --t2: #4a3b32; --t3: #8a7a6a; --t4: #b7a896;
+  --grn: #2f9e5b; --red: #d6493f; --blue: #3d7a7a;
+  --serif: 'Fredoka', Georgia, serif;
+  --sans: 'Inter', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--t2); font-family: var(--sans); font-size: 14px; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+a { color: inherit; text-decoration: none; }
+
+.topbar { background: var(--navy3); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='84'%3E%3Cg fill='none' stroke='%23f2662d' stroke-opacity='.14' stroke-width='1'%3E%3Cpath d='M42 2 80 42 42 82 4 42Z'/%3E%3Cpath d='M42 18 66 42 42 66 18 42Z'/%3E%3Cpath d='M42 2V82M4 42H80'/%3E%3C/g%3E%3C/svg%3E"); background-size: 84px 84px; height: 60px; display: flex; align-items: center; padding: 0 28px; gap: 20px; position: sticky; top: 0; z-index: 100; }
+.brand { font-family: var(--serif); font-weight: 700; font-size: 19px; color: #fff; }
+.brand em { font-style: italic; color: var(--amber); font-weight: 600; }
+.brand-meta { font-size: 12px; color: rgba(255,255,255,.45); font-weight: 500; }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 14px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid transparent; transition: all .15s; border-radius: 8px; }
+.btn-o { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.16); color: #fff; }
+.btn-o:hover { border-color: var(--amber); color: var(--amber); }
+.btn-d { background: rgba(200,67,63,.14); border-color: rgba(200,67,63,.35); color: #ff9d9d; }
+.btn-d:hover { background: rgba(200,67,63,.25); }
+
+.page { max-width: 1280px; margin: 0 auto; padding: 32px 28px; }
+.page-h { margin-bottom: 24px; }
+.page-h-title { font-family: var(--serif); font-weight: 700; font-size: 33px; color: var(--t1); line-height: 1.15; letter-spacing: -.01em; }
+.page-h-title em { font-style: italic; color: var(--navy); font-weight: 600; }
+.page-h-sub { font-size: 13px; font-weight: 700; color: var(--amberd); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; }
+
+.card { background: var(--surface); border: 1px solid var(--line); margin-bottom: 20px; border-radius: 12px; box-shadow: 0 1px 2px rgba(16,24,40,.04); overflow: hidden; }
+.card-h { padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.card-ht { font-size: 13px; font-weight: 700; color: var(--amberd); letter-spacing: .04em; text-transform: uppercase; }
+
+.badge { display: inline-flex; padding: 4px 10px; font-size: 11.5px; font-weight: 700; border-radius: 999px; }
+.b-g { background: var(--ambera); color: var(--amberd); }
+.b-r { background: rgba(214,69,69,.1); color: var(--red); }
+.b-grn { background: rgba(29,154,108,.1); color: var(--grn); }
+.b-gray { background: var(--surface2); color: var(--t3); }
+
+table { width: 100%; border-collapse: collapse; }
+th { font-size: 11.5px; font-weight: 700; color: var(--t3); letter-spacing: .04em; text-transform: uppercase; padding: 12px 20px; text-align: left; border-bottom: 1px solid var(--line); }
+td { padding: 14px 20px; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--t2); vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.post-title { color: var(--t1); font-weight: 700; font-size: 13.5px; }
+.post-desc { color: var(--t3); font-size: 12px; margin-top: 3px; max-width: 380px; }
+.empty { text-align: center; padding: 60px 24px; color: var(--t3); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand">Maroc<em>Entrepreneuriat</em></span>
+  <span class="brand-meta">Modération — Sous-traitance</span>
+  <div style="margin-left: auto; display: flex; gap: 8px;">
+    <a href="/admin" class="btn btn-o">← Tableau de bord</a>
+  </div>
+</div>
+
+<div class="page">
+  <div class="page-h">
+    <div class="page-h-sub">Modération</div>
+    <div class="page-h-title">Annonces de <em>sous-traitance</em></div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><span class="card-ht">Toutes les annonces ({{ posts|length }})</span></div>
+    {% if posts %}
+    <table>
+      <tr><th>Annonce</th><th>Auteur</th><th>Statut</th><th>Signalements</th><th>Publiée</th><th></th></tr>
+      {% for p in posts %}
+      <tr>
+        <td>
+          <div class="post-title">{{ p.titre[:70] }}</div>
+          <div class="post-desc">{{ p.description[:120] }}{% if p.description|length > 120 %}…{% endif %}</div>
+        </td>
+        <td>{{ p.auteur_nom or '—' }}<br><span style="color:var(--t4); font-size:11.5px;">{{ p.auteur_email or '' }}</span></td>
+        <td><span class="badge {% if p.statut=='actif' %}b-grn{% else %}b-gray{% endif %}">{{ p.statut }}</span></td>
+        <td>{% if p.n_reports %}<span class="badge b-r">🚩 {{ p.n_reports }}</span>{% else %}—{% endif %}</td>
+        <td style="color:var(--t3);">{{ p.created_at[:10] }}</td>
+        <td>
+          <a href="/sous-traitance/{{ p.id }}" target="_blank" class="btn btn-o" style="padding:6px 10px;">Voir</a>
+          <form method="post" action="/admin/sous-traitance/{{ p.id }}/delete" style="display:inline;" onsubmit="return confirm('Supprimer définitivement cette annonce ?');">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="btn btn-d" style="padding:6px 10px;">Supprimer</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <div class="empty">Aucune annonce pour l'instant.</div>
+    {% endif %}
+  </div>
+
+  {% if reports %}
+  <div class="card">
+    <div class="card-h"><span class="card-ht">Derniers signalements</span></div>
+    <table>
+      <tr><th>Annonce</th><th>Signalé par</th><th>Motif</th><th>Date</th></tr>
+      {% for r in reports %}
+      <tr>
+        <td><a href="/sous-traitance/{{ r.post_id }}" target="_blank" style="color:var(--navy); font-weight:600;">{{ r.post_id }}</a></td>
+        <td>{{ r.reporter_email or '—' }}</td>
+        <td>{{ r.reason or '—' }}</td>
+        <td style="color:var(--t3);">{{ r.created_at[:16] }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+</div>
+</body>
+</html>

@@ -34,6 +34,7 @@
   <a href="/sous-traitance" class="detail-back" style="color:var(--text3); font-size:13px; font-weight:600; display:inline-block; margin-bottom:24px;">{{ tr('st_back') }}</a>
 
   {% if request.query_params.get('ok') %}<div class="alert alert-ok" style="margin-bottom:20px;">{{ tr('st_ok_created') }}</div>{% endif %}
+  {% if request.query_params.get('reported') %}<div class="alert alert-ok" style="margin-bottom:20px;">{{ tr('st_report_sent') }}</div>{% endif %}
 
   <div class="std-grid">
     <div>
@@ -77,6 +78,16 @@
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <button type="submit" class="btn btn-outline btn-sm">{{ tr('st_close_cta') }}</button>
         </form>
+        {% endif %}
+        {% if not is_owner %}
+        <details style="margin-top:12px;">
+          <summary style="cursor:pointer; font-size:12.5px; color:var(--text3); font-weight:600;">{{ tr('st_report_cta') }}</summary>
+          <form method="post" action="/sous-traitance/{{ post.id }}/signaler" style="display:flex; gap:8px; margin-top:10px;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="text" name="reason" class="inp" placeholder="{{ tr('st_report_reason') }}" style="flex:1;" maxlength="500">
+            <button type="submit" class="btn btn-outline btn-sm">{{ tr('st_report_send') }}</button>
+          </form>
+        </details>
         {% endif %}
       </div>
     </div>

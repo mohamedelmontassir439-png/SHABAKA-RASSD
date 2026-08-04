@@ -1,0 +1,45 @@
+{% extends "base_public.html" %}
+{% block title %}Mentions légales — Maroc Entrepreneuriat{% endblock %}
+{% block body %}
+<style>
+.legal-wrap { max-width: 760px; margin: 0 auto; padding: 56px 24px 90px; }
+.legal-hero { margin-bottom: 32px; }
+.legal-body h2 { font-family: var(--serif); font-weight: 700; font-size: 20px; color: var(--text1); margin: 32px 0 12px; }
+.legal-body h2:first-child { margin-top: 0; }
+.legal-body p { font-size: 14.5px; color: var(--text2); line-height: 1.75; margin-bottom: 14px; }
+.legal-body a { color: var(--ink); font-weight: 600; }
+.legal-todo { color: var(--goldd); font-weight: 700; }
+.legal-note { background: var(--surface2); border: 1px solid var(--line); padding: 14px 18px; border-radius: var(--r2); font-size: 13px; color: var(--text3); margin-top: 28px; line-height: 1.6; }
+</style>
+
+<div class="legal-wrap">
+  <div class="legal-hero">
+    <div class="section-label">Informations légales</div>
+    <h1 class="display-l">Mentions <em>légales</em></h1>
+  </div>
+
+  <div class="legal-body">
+    <h2>Éditeur du site</h2>
+    <p>
+      Le site Maroc Entrepreneuriat est édité par
+      {% if cfg.COMPANY_NAME %}{{ cfg.COMPANY_NAME }}{% if cfg.COMPANY_FORM %} ({{ cfg.COMPANY_FORM }}){% endif %}{% else %}<span class="legal-todo">[raison sociale de l'éditeur à compléter]</span>{% endif %},
+      {% if cfg.COMPANY_ICE %}immatriculée sous l'ICE n° {{ cfg.COMPANY_ICE }},{% else %}<span class="legal-todo">[ICE à compléter]</span>{% endif %}
+      dont le siège est situé à {% if cfg.COMPANY_ADDRESS %}{{ cfg.COMPANY_ADDRESS }}{% else %}<span class="legal-todo">[adresse à compléter]</span>{% endif %}.
+    </p>
+    <p>Contact : <a href="mailto:{{ cfg.CONTACT_EMAIL }}">{{ cfg.CONTACT_EMAIL }}</a></p>
+
+    <h2>Hébergement</h2>
+    <p>Le site est hébergé par Railway Corp., 251 Little Falls Drive, Wilmington, DE 19808, États-Unis — <a href="https://railway.com" target="_blank" rel="noopener">railway.com</a>.</p>
+
+    <h2>Directeur de la publication</h2>
+    <p><span class="legal-todo">[nom du responsable de la publication à compléter]</span></p>
+
+    <h2>Propriété intellectuelle</h2>
+    <p>L'ensemble des éléments du site (textes, mise en page, base de données) est protégé. Les informations relatives aux marchés publics et privés proviennent de sources tierces, notamment le portail officiel <a href="https://www.marchespublics.gov.ma" target="_blank" rel="noopener">marchespublics.gov.ma</a>, et sont fournies à titre informatif. Maroc Entrepreneuriat ne garantit pas leur exhaustivité ni leur exactitude et invite chaque utilisateur à vérifier toute information auprès de la source officielle avant de prendre une décision engageante (candidature à un marché, par exemple).</p>
+  </div>
+
+  <div class="legal-note">
+    Cette page est un modèle générique et ne remplace pas un conseil juridique. Les champs marqués <span class="legal-todo">[à compléter]</span> doivent être renseignés (variables d'environnement <code>COMPANY_NAME</code>, <code>COMPANY_FORM</code>, <code>COMPANY_ICE</code>, <code>COMPANY_ADDRESS</code>) avant mise en production définitive.
+  </div>
+</div>
+{% endblock %}

@@ -383,9 +383,10 @@ html[dir="rtl"] .section-label::before { order: 2; }
       <div>© {{ now.year if now else 2026 }} Maroc Entrepreneuriat · {{ tr('footer_rights') }}</div>
       <div class="app-footer-links">
         <a href="/tarifs">{{ tr('footer_pricing') }}</a>
-        <a href="#">{{ tr('footer_legal') }}</a>
-        <a href="#">{{ tr('footer_terms') }}</a>
-        <a href="mailto:contact@marocentrepreneuriat.ma">{{ tr('footer_contact') }}</a>
+        <a href="/mentions-legales">{{ tr('footer_legal') }}</a>
+        <a href="/cgu">{{ tr('footer_terms') }}</a>
+        <a href="/confidentialite">{{ tr('footer_privacy') }}</a>
+        <a href="/contact">{{ tr('footer_contact') }}</a>
       </div>
     </footer>
   </div>
@@ -401,6 +402,7 @@ html[dir="rtl"] .section-label::before { order: 2; }
   if(p.get('ok'))      show('✓ Enregistré avec succès');
   if(p.get('welcome')) show('🎉 Bienvenue sur Maroc Entrepreneuriat', 5000);
   if(p.get('saved'))   show('✓ Modifications sauvegardées');
+  if(p.get('deleted')) show('Votre compte a été supprimé. Au revoir !', 5000);
 })();
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(()=>{}));

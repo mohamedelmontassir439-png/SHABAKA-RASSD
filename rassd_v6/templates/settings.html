@@ -30,6 +30,14 @@
 
 .save-bar { position: sticky; bottom: 20px; background: var(--navy); padding: 14px 22px; margin-top: 24px; display: flex; gap: 16px; align-items: center; border-radius: var(--r3); box-shadow: var(--sh3); }
 .save-bar-text { font-size: 13px; color: rgba(255,255,255,.7); font-weight: 600; flex: 1; }
+
+.danger-block { border-color: rgba(214,69,69,.3); }
+.danger-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.danger-row:last-child { border-bottom: none; }
+.danger-row-title { font-weight: 700; font-size: 14.5px; color: var(--text1); margin-bottom: 4px; }
+.danger-row-desc { font-size: 13px; color: var(--text3); line-height: 1.5; max-width: 440px; }
+.danger-form { display: flex; gap: 8px; align-items: center; }
+.danger-form input { width: 160px; }
 </style>
 
 <div class="set-wrap">
@@ -37,6 +45,9 @@
     <div class="section-label">{{ tr('set_label') }}</div>
     <h1 class="display-l">{{ tr('set_title')|safe }}</h1>
   </div>
+
+  {% if request.query_params.get('err')=='wrongpw' %}<div class="alert alert-err" style="margin-bottom:20px;">{{ tr('set_del_wrongpw') }}</div>{% endif %}
+  {% if request.query_params.get('err')=='too_many' %}<div class="alert alert-err" style="margin-bottom:20px;">{{ tr('err_too_many_generic') }}</div>{% endif %}
 
   <form method="post">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -123,6 +134,31 @@
         <input id="refLink" class="inp mono" readonly value="{{ cfg.SITE_URL }}/register?ref={{ member.referral_code }}">
         <button type="button" class="btn btn-outline" onclick="navigator.clipboard.writeText(document.getElementById('refLink').value); this.textContent='{{ tr('set_referral_copied') }}'; setTimeout(()=>this.textContent='{{ tr('set_referral_copy') }}',2000);">{{ tr('set_referral_copy') }}</button>
       </div>
+    </div>
+  </section>
+
+  <section class="set-block danger-block">
+    <div class="set-block-h">{{ tr('set_danger_h') }}</div>
+    <div class="set-block-sub">{{ tr('set_danger_sub') }}</div>
+
+    <div class="danger-row">
+      <div>
+        <div class="danger-row-title">{{ tr('set_export_title') }}</div>
+        <div class="danger-row-desc">{{ tr('set_export_desc') }}</div>
+      </div>
+      <a href="/settings/export" class="btn btn-outline btn-sm">{{ tr('set_export_cta') }}</a>
+    </div>
+
+    <div class="danger-row">
+      <div>
+        <div class="danger-row-title">{{ tr('set_delete_title') }}</div>
+        <div class="danger-row-desc">{{ tr('set_delete_desc') }}</div>
+      </div>
+      <form method="post" action="/settings/delete" class="danger-form" onsubmit="return confirm('{{ tr('set_delete_confirm') }}');">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="password" name="password" class="inp" placeholder="{{ tr('set_delete_pw_placeholder') }}" required>
+        <button type="submit" class="btn btn-danger btn-sm">{{ tr('set_delete_cta') }}</button>
+      </form>
     </div>
   </section>
 </div>

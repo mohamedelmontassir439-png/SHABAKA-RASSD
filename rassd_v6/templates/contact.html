@@ -1,0 +1,39 @@
+{% extends "base_public.html" %}
+{% block title %}Contact — Maroc Entrepreneuriat{% endblock %}
+{% block body %}
+<style>
+.legal-wrap { max-width: 760px; margin: 0 auto; padding: 56px 24px 90px; }
+.legal-hero { margin-bottom: 32px; }
+.contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 8px; }
+.contact-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 22px; box-shadow: var(--sh), var(--shg); }
+.contact-card-label { font-size: 12px; font-weight: 700; color: var(--goldd); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 10px; }
+.contact-card-val { font-size: 15px; font-weight: 700; color: var(--text1); }
+.contact-card a { color: var(--ink); }
+.legal-body p { font-size: 14.5px; color: var(--text2); line-height: 1.75; margin-bottom: 14px; }
+@media (max-width: 640px) { .contact-grid { grid-template-columns: 1fr; } }
+</style>
+
+<div class="legal-wrap">
+  <div class="legal-hero">
+    <div class="section-label">Une question ?</div>
+    <h1 class="display-l">Contactez <em>nous</em></h1>
+  </div>
+
+  <div class="legal-body">
+    <p>Pour toute question sur votre abonnement, une demande d'accès/export/suppression de vos données, ou un signalement, écrivez-nous — nous répondons sous 48h ouvrées.</p>
+  </div>
+
+  <div class="contact-grid">
+    <div class="contact-card">
+      <div class="contact-card-label">Email</div>
+      <div class="contact-card-val"><a href="mailto:{{ cfg.CONTACT_EMAIL }}">{{ cfg.CONTACT_EMAIL }}</a></div>
+    </div>
+    {% if cfg.PAYMENT_PHONE %}
+    <div class="contact-card">
+      <div class="contact-card-label">WhatsApp</div>
+      <div class="contact-card-val"><a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}" target="_blank" rel="noopener">{{ cfg.PAYMENT_PHONE }}</a></div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

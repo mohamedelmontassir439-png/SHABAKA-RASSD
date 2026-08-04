@@ -43,6 +43,14 @@ class Settings:
     # Abonnement (mise à niveau manuelle via WhatsApp)
     PAYMENT_PHONE: str = os.getenv("PAYMENT_PHONE", "")
     PAYMENT_MSG:   str = os.getenv("PAYMENT_MSG", "Bonjour, je souhaite m'abonner à MAROC ENTREPRENEURIAT")
+    # Identité légale (à renseigner via variables d'environnement Railway —
+    # les pages légales affichent un placeholder tant que ces champs sont vides,
+    # plutôt que d'inventer de fausses informations d'entreprise)
+    COMPANY_NAME:    str = os.getenv("COMPANY_NAME", "")
+    COMPANY_FORM:    str = os.getenv("COMPANY_FORM", "")
+    COMPANY_ICE:     str = os.getenv("COMPANY_ICE", "")
+    COMPANY_ADDRESS: str = os.getenv("COMPANY_ADDRESS", "")
+    CONTACT_EMAIL:   str = os.getenv("CONTACT_EMAIL", "contact@marocentrepreneuriat.ma")
     # Plans (abonnement annuel, paiement manuel via WhatsApp)
     PLANS: dict = field(default_factory=lambda: {
         "free":    {"name":"Inactif", "price":0,   "period":"",      "tenders_day":15,"email":True, "telegram":False,"whatsapp":False,"api":False},

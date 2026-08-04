@@ -1,0 +1,63 @@
+{% extends "base_public.html" %}
+{% block title %}Conditions générales d'utilisation — Maroc Entrepreneuriat{% endblock %}
+{% block body %}
+<style>
+.legal-wrap { max-width: 760px; margin: 0 auto; padding: 56px 24px 90px; }
+.legal-hero { margin-bottom: 32px; }
+.legal-body h2 { font-family: var(--serif); font-weight: 700; font-size: 20px; color: var(--text1); margin: 32px 0 12px; }
+.legal-body h2:first-child { margin-top: 0; }
+.legal-body p { font-size: 14.5px; color: var(--text2); line-height: 1.75; margin-bottom: 14px; }
+.legal-body ul { margin: 0 0 14px 22px; }
+.legal-body li { font-size: 14.5px; color: var(--text2); line-height: 1.75; margin-bottom: 6px; }
+.legal-body a { color: var(--ink); font-weight: 600; }
+.plan-table { width: 100%; border-collapse: collapse; margin: 8px 0 18px; }
+.plan-table th, .plan-table td { padding: 10px 14px; border: 1px solid var(--line); font-size: 13.5px; text-align: left; }
+.plan-table th { background: var(--surface2); color: var(--text3); font-weight: 700; text-transform: uppercase; font-size: 11.5px; letter-spacing: .04em; }
+.legal-note { background: var(--surface2); border: 1px solid var(--line); padding: 14px 18px; border-radius: var(--r2); font-size: 13px; color: var(--text3); margin-top: 28px; line-height: 1.6; }
+</style>
+
+<div class="legal-wrap">
+  <div class="legal-hero">
+    <div class="section-label">Cadre contractuel</div>
+    <h1 class="display-l">Conditions générales <em>d'utilisation</em></h1>
+  </div>
+
+  <div class="legal-body">
+    <h2>1. Objet</h2>
+    <p>Maroc Entrepreneuriat est un service de veille sur les marchés publics et privés au Maroc (appels d'offres, bons de commande) : agrégation de sources, alertes personnalisées (Email, Telegram, WhatsApp), suivi des résultats d'adjudication, et une place d'échange entre entreprises pour la sous-traitance de marchés.</p>
+
+    <h2>2. Inscription et compte</h2>
+    <p>L'accès aux fonctionnalités réservées nécessite la création d'un compte avec une adresse email valide. L'utilisateur s'engage à fournir des informations exactes et à assurer la confidentialité de ses identifiants. Chaque compte est personnel.</p>
+
+    <h2>3. Abonnements et paiement</h2>
+    <table class="plan-table">
+      <tr><th>Offre</th><th>Prix</th><th>Canaux d'alerte</th></tr>
+      {% for key, p in cfg.PLANS.items() %}
+      <tr>
+        <td>{{ p.name }}</td>
+        <td>{% if p.price %}{{ p.price }} MAD / {{ p.period }}{% else %}Gratuit{% endif %}</td>
+        <td>{{ 'Email' if p.email }}{{ ', Telegram' if p.telegram }}{{ ', WhatsApp' if p.whatsapp }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    <p>Le paiement est actuellement traité manuellement (contact direct via la page <a href="/contact">Contact</a> ou WhatsApp) — aucun prélèvement automatique n'est effectué et aucune donnée bancaire n'est collectée sur le site. L'activation du plan est effectuée par l'équipe après réception du paiement. L'abonnement n'est pas reconduit automatiquement : son renouvellement fait l'objet d'un nouveau contact avant l'échéance.</p>
+
+    <h2>4. Fiabilité des données</h2>
+    <p>Les marchés, résultats et informations affichés sont agrégés depuis des sources publiques et privées tierces (notamment le portail officiel marchespublics.gov.ma) à titre purement informatif. Maroc Entrepreneuriat ne garantit ni l'exhaustivité, ni l'exactitude, ni la mise à jour en temps réel de ces informations, et ne saurait être tenu responsable d'une décision prise sur leur seul fondement. Il appartient à chaque utilisateur de vérifier toute information auprès de la source officielle avant de candidater à un marché.</p>
+
+    <h2>5. Place de sous-traitance entre entreprises</h2>
+    <p>Les annonces publiées dans l'espace sous-traitance le sont sous l'entière responsabilité de leurs auteurs. Maroc Entrepreneuriat n'est ni partie, ni garant des échanges, accords ou contrats conclus entre utilisateurs à la suite de ces annonces. Tout contenu illicite, trompeur ou abusif peut être signalé et retiré à la discrétion de l'équipe.</p>
+
+    <h2>6. Résiliation</h2>
+    <p>Chaque utilisateur peut supprimer son compte à tout moment depuis la page <a href="/settings">Réglages</a>, ce qui entraîne la suppression des données associées conformément à notre <a href="/confidentialite">politique de confidentialité</a>.</p>
+
+    <h2>7. Responsabilité</h2>
+    <p>Le service est fourni « en l'état ». Maroc Entrepreneuriat met en œuvre des moyens raisonnables pour assurer la disponibilité et la sécurité du service, sans garantie de continuité absolue, et ne peut être tenu responsable des interruptions liées à des causes tierces (sources de données, hébergeur, réseaux de communication).</p>
+
+    <h2>8. Droit applicable</h2>
+    <p>Les présentes conditions sont soumises au droit marocain. Tout litige relève de la compétence des tribunaux marocains, à défaut de résolution amiable.</p>
+  </div>
+
+  <div class="legal-note">Document type, à faire relire par un juriste avant utilisation contractuelle définitive. Dernière mise à jour : {{ now.strftime('%d/%m/%Y') if now else '' }}.</div>
+</div>
+{% endblock %}

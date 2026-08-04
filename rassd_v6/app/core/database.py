@@ -156,6 +156,21 @@ CREATE TABLE IF NOT EXISTS notif_queue (
     created_at TEXT DEFAULT '',
     UNIQUE(member_id, tender_id)
 );
+CREATE TABLE IF NOT EXISTS subcontract_reports (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    post_id     TEXT NOT NULL,
+    reporter_id INTEGER NOT NULL,
+    reason      TEXT DEFAULT '',
+    created_at  TEXT DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS error_log (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    path       TEXT DEFAULT '',
+    method     TEXT DEFAULT '',
+    message    TEXT DEFAULT '',
+    traceback  TEXT DEFAULT '',
+    created_at TEXT DEFAULT ''
+);
 
 CREATE INDEX IF NOT EXISTS idx_t_statut   ON tenders(statut);
 CREATE INDEX IF NOT EXISTS idx_t_scraped  ON tenders(scraped_at DESC);
@@ -176,6 +191,8 @@ CREATE INDEX IF NOT EXISTS idx_sm_recip   ON subcontract_messages(recipient_id);
 CREATE INDEX IF NOT EXISTS idx_sr_post    ON subcontract_ratings(post_id);
 CREATE INDEX IF NOT EXISTS idx_sr_rated   ON subcontract_ratings(rated_id);
 CREATE INDEX IF NOT EXISTS idx_nq_member  ON notif_queue(member_id);
+CREATE INDEX IF NOT EXISTS idx_srep_post  ON subcontract_reports(post_id);
+CREATE INDEX IF NOT EXISTS idx_err_created ON error_log(created_at DESC);
 """
 
 def migrate_db():
