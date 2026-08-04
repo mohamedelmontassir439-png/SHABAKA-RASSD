@@ -53,9 +53,9 @@ class Settings:
     CONTACT_EMAIL:   str = os.getenv("CONTACT_EMAIL", "contact@marocentrepreneuriat.ma")
     # Plans (abonnement annuel, paiement manuel via WhatsApp)
     PLANS: dict = field(default_factory=lambda: {
-        "free":    {"name":"Inactif", "price":0,   "period":"",      "tenders_day":15,"email":True, "telegram":False,"whatsapp":False,"api":False},
-        "pro":     {"name":"Annuel",  "price":2499,"period":"an",    "tenders_day":0, "email":True, "telegram":True, "whatsapp":True, "api":True},
-        "business":{"name":"Biennal", "price":4299,"period":"2 ans", "tenders_day":0, "email":True, "telegram":True, "whatsapp":True, "api":True},
+        "free":    {"name":"Inactif", "price":0,   "period":"",      "tenders_day":15,"email":True, "telegram":False,"whatsapp":False},
+        "pro":     {"name":"Annuel",  "price":2499,"period":"an",    "tenders_day":0, "email":True, "telegram":True, "whatsapp":True},
+        "business":{"name":"Biennal", "price":4299,"period":"2 ans", "tenders_day":0, "email":True, "telegram":True, "whatsapp":True},
     })
     SECTEURS: dict = field(default_factory=lambda: SECTORS)
     SECTOR_GROUPS: dict = field(default_factory=lambda: GROUPS)

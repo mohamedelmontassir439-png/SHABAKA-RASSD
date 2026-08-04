@@ -153,7 +153,6 @@ def is_plan_allowed(member: dict, feature: str) -> bool:
     plans = cfg.PLANS
     p = plans.get(plan, plans["free"])
     if feature == "telegram": return p.get("telegram", False)
-    if feature == "api":      return p.get("api", False)
     if feature == "tenders":
         limit = p.get("tenders_day", 15)
         return limit == 0  # 0 = unlimited

@@ -45,7 +45,6 @@ T = {
     "footer_pricing":       {"fr": "Abonnements", "ar": "الاشتراكات"},
     "footer_free_access":   {"fr": "S'abonner", "ar": "الاشتراك"},
     "footer_alerts":        {"fr": "Alertes", "ar": "التنبيهات"},
-    "footer_api":           {"fr": "API REST", "ar": "واجهة API"},
     "footer_col_about":     {"fr": "À propos", "ar": "حول"},
     "footer_feedback":      {"fr": "Feedback", "ar": "ملاحظاتكم"},
     "footer_contact":       {"fr": "Contact", "ar": "اتصل بنا"},
