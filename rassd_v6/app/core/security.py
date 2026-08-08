@@ -104,9 +104,7 @@ def require_admin(req: Request):
     Le cookie contient un token dérivé de ADMIN_PASS + SECRET_KEY.
     ADMIN_PASS doit être défini en variable d'environnement (jamais en clair dans le code).
     """
-    if not cfg.ADMIN_PASS or cfg.ADMIN_PASS == "atlas2026":
-        # Valeur par défaut détectée = config non sécurisée
-        from fastapi.responses import RedirectResponse
+    if not cfg.ADMIN_PASS:
         raise HTTPException(
             status_code=503,
             detail="ADMIN_PASS non configuré ou utilise la valeur par défaut. "
