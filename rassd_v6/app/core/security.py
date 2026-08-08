@@ -1,4 +1,5 @@
 import bcrypt, hashlib, secrets, re
+from sqlalchemy import text
 from datetime import datetime, date, timedelta
 from typing import Optional
 from fastapi import Request, HTTPException
@@ -64,18 +65,18 @@ def get_member(req: Request) -> Optional[dict]:
     try:
         # Method 1: Direct DB token lookup (fast, no SECRET_KEY dependency)
         row = db.execute(
-            "SELECT * FROM members WHERE actif=1 AND session_token=?",
-            (token,)
+            text("SELECT * FROM members WHERE actif=1 AND session_token=:token"),
+            {"token": token}
         ).fetchone()
         if row:
             return dict(row)
         # Method 2: Fallback - computed token (backward compat)
-        rows = db.execute("SELECT * FROM members WHERE actif=1").fetchall()
+        rows = db.execute(text("SELECT * FROM members WHERE actif=1")).fetchall()
         for row in rows:
             if make_token(row["email"], row["created_at"]) == token:
                 # Migrate: store token in DB
-                db.execute("UPDATE members SET session_token=? WHERE id=?",
-                          (token, row["id"]))
+                db.execute(text("UPDATE members SET session_token=:token WHERE id=:id"),
+                          {"token": token, "id": row["id"]})
                 db.commit()
                 return dict(row)
     except Exception as e:
