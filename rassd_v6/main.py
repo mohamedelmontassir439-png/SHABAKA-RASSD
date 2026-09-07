@@ -18,7 +18,7 @@ from app.core.database import get_db, init_db
 from app.core.security import (hash_pw, verify_pw, make_token, make_session_token,
                                 get_member, has_access, validate_email,
                                 validate_password, days_left,
-                                get_csrf_token, verify_csrf)
+                                get_csrf_token, verify_csrf, subscription_state)
 from app.core.sectors import get_label
 from app.core.i18n import get_lang, make_t, SUPPORTED_LANGS, tr as tr_
 from app.services.notifications import dispatch_notifications, tg_admin, test_notifications
@@ -472,6 +472,7 @@ def render(req: Request, tpl: str, ctx: dict = None, status_code: int = 200):
         "dir":          "rtl" if lang == "ar" else "ltr",
         "tr":           make_t(lang),
         "csrf_token":   csrf_tok,
+        "sub":          subscription_state(m),
         **ctx
     }, status_code=status_code)
     if req.query_params.get("lang") in SUPPORTED_LANGS:
@@ -1090,19 +1091,27 @@ async def register_post(req: Request,
         if db.execute("SELECT id FROM members WHERE email=?",(email,)).fetchone():
             return render(req,"register.html",{"err":tr_("err_email_taken",lang),"vals":vals})
         sects       = clean_secteurs(secteurs_sel)
-        trial_ends  = (datetime.now()+timedelta(days=14)).strftime("%Y-%m-%d")
-        created_at  = datetime.now().isoformat()
+        now         = datetime.now()
+        trial_start = now.strftime("%Y-%m-%d")
+        trial_ends  = (now + timedelta(days=cfg.TRIAL_DAYS)).strftime("%Y-%m-%d")
+        created_at  = now.isoformat()
         session_tok = make_session_token()
         my_ref_code = secrets.token_urlsafe(5).upper().replace("_","A").replace("-","B")[:7]
         referred_by = 0
         if ref:
             r = db.execute("SELECT id FROM members WHERE referral_code=?", (ref.strip().upper(),)).fetchone()
             if r: referred_by = r["id"]
+        cur = db.execute(
+            """INSERT INTO members(nom,email,phone,company,pw_hash,secteurs,plan,created_at,
+               trial_start,trial_ends,subscription_status,session_token,referral_code,referred_by)
+               VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (nom,email,phone,company,hash_pw(pw),json.dumps(sects),"free",created_at,
+             trial_start,trial_ends,"TRIAL",session_tok,my_ref_code,referred_by))
         db.execute(
-            """INSERT INTO members(nom,email,phone,company,pw_hash,secteurs,plan,created_at,trial_ends,
-               session_token,referral_code,referred_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
-            (nom,email,phone,company,hash_pw(pw),json.dumps(sects),"free",created_at,trial_ends,
-             session_tok,my_ref_code,referred_by))
+            """INSERT INTO subscriptions(member_id,plan_id,price,currency,status,
+               trial_start,trial_end,created_at,updated_at)
+               VALUES(?,?,?,?,?,?,?,?,?)""",
+            (cur.lastrowid, "trial", 0, "MAD", "TRIAL", trial_start, trial_ends, created_at, created_at))
         db.commit()
     finally: db.close()
     resp = RedirectResponse("/dashboard?welcome=1",302)
@@ -1300,7 +1309,9 @@ async def admin_panel(req: Request):
     sectors = [dict(r) for r in db.execute(
         "SELECT secteur,COUNT(*) cnt FROM tenders WHERE statut='actif' GROUP BY secteur ORDER BY cnt DESC").fetchall()]
     members = [dict(r) for r in db.execute(
-        "SELECT id,nom,email,plan,created_at,last_login,actif FROM members ORDER BY created_at DESC LIMIT 30").fetchall()]
+        """SELECT id,nom,email,plan,created_at,last_login,actif,
+                  subscription_status,subscription_end,trial_ends
+           FROM members ORDER BY created_at DESC LIMIT 30""").fetchall()]
     scrapes = [dict(r) for r in db.execute(
         "SELECT * FROM scrape_log ORDER BY run_at DESC LIMIT 8").fetchall()]
 
@@ -1540,8 +1551,33 @@ async def set_plan(req: Request, mid:int, plan:str=Form(""), csrf_token:str=Form
     if not _is_admin(req): return JSONResponse({"ok":False},401)
     csrf_guard(req, csrf_token)
     if plan not in cfg.PLANS: return JSONResponse({"ok":False,"msg":"Plan invalide"})
+    months = cfg.PLANS[plan].get("months", 0)
+    now    = datetime.now()
     db = get_db()
-    db.execute("UPDATE members SET plan=? WHERE id=?",(plan,mid))
+    if months:
+        # L'échéance repart de la date de fin en cours si l'abonnement est
+        # encore valide (renouvellement), sinon d'aujourd'hui.
+        cur = db.execute("SELECT subscription_end FROM members WHERE id=?", (mid,)).fetchone()
+        base = now.date()
+        if cur and cur["subscription_end"]:
+            try:
+                prev = datetime.strptime(cur["subscription_end"][:10], "%Y-%m-%d").date()
+                if prev > base: base = prev
+            except ValueError:
+                pass
+        end = (base + timedelta(days=int(months * 30.44))).strftime("%Y-%m-%d")
+        db.execute(
+            "UPDATE members SET plan=?, subscription_status='ACTIVE', subscription_end=? WHERE id=?",
+            (plan, end, mid))
+        db.execute(
+            """INSERT INTO subscriptions(member_id,plan_id,price,currency,status,start_date,end_date,created_at,updated_at)
+               VALUES(?,?,?,?,?,?,?,?,?)""",
+            (mid, plan, cfg.PLANS[plan].get("price", 0), "MAD", "ACTIVE",
+             now.strftime("%Y-%m-%d"), end, now.isoformat(), now.isoformat()))
+    else:
+        db.execute(
+            "UPDATE members SET plan=?, subscription_status='EXPIRED', subscription_end='' WHERE id=?",
+            (plan, mid))
     db.commit(); db.close()
     return RedirectResponse("/admin",302)
 

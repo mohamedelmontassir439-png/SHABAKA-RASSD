@@ -61,6 +61,7 @@ a { color: inherit; text-decoration: none; }
 .b-g { background: var(--ambera); color: var(--amberd); }
 .b-r { background: rgba(214,69,69,.1); color: var(--red); }
 .b-grn { background: rgba(29,154,108,.1); color: var(--grn); }
+.b-gray { background: var(--surface2); color: var(--t3); }
 
 .inp, .sel { background: var(--surface); border: 1px solid var(--line2); padding: 7px 10px; color: var(--t1); font-family: var(--sans); font-size: 13px; outline: none; border-radius: 6px; }
 .inp:focus, .sel:focus { border-color: var(--navy); }
@@ -284,7 +285,7 @@ tr:hover td { background: var(--surface2); }
           <span style="font-size: 12px; color: var(--t3);">{{ stats.members }} total</span>
         </div>
         <table>
-          <tr><th>Membre</th><th>Plan</th><th>Inscrit</th></tr>
+          <tr><th>Membre</th><th>Plan</th><th>Statut</th><th>Inscrit</th></tr>
           {% for m in members %}
           <tr>
             <td>
@@ -296,10 +297,17 @@ tr:hover td { background: var(--surface2); }
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
                 <select name="plan" class="sel" onchange="this.form.submit()">
                   <option value="free" {% if m.plan=='free' %}selected{% endif %}>Inactif (non abonné)</option>
+                  <option value="monthly" {% if m.plan=='monthly' %}selected{% endif %}>Mensuel (250/mois)</option>
                   <option value="pro" {% if m.plan=='pro' %}selected{% endif %}>Annuel (2499/an)</option>
                   <option value="business" {% if m.plan=='business' %}selected{% endif %}>Biennal (4299/2ans)</option>
                 </select>
               </form>
+            </td>
+            <td>
+              {% set st = m.subscription_status or '—' %}
+              <span class="badge {% if st=='ACTIVE' %}b-grn{% elif st=='TRIAL' %}b-g{% else %}b-gray{% endif %}">{{ st }}</span>
+              {% if m.subscription_end %}<div style="color:var(--t4); font-size:11px; margin-top:3px;">→ {{ m.subscription_end }}</div>
+              {% elif st=='TRIAL' and m.trial_ends %}<div style="color:var(--t4); font-size:11px; margin-top:3px;">→ {{ m.trial_ends }}</div>{% endif %}
             </td>
             <td style="color: var(--t3);">{{ m.created_at[:10] }}</td>
           </tr>

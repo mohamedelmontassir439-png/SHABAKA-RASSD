@@ -132,6 +132,11 @@ html[dir="rtl"] .sel { background-position: left 14px center; padding-right: 14p
 .badge-gray { background: var(--surface2); color: var(--text3); border: 1px solid var(--line); }
 .badge-terra{ background: var(--terraa); color: var(--terra); border: 1px solid rgba(201,78,31,.28); }
 
+.sub-banner { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin: 16px 32px 0; padding: 13px 18px; border-radius: var(--r2); background: var(--golda); border: 1px solid rgba(242,102,45,.3); }
+.sub-banner-txt { flex: 1; font-size: 13.5px; font-weight: 600; color: var(--goldd); min-width: 200px; }
+.sub-banner-warn { background: var(--reda); border-color: rgba(200,67,63,.3); }
+.sub-banner-warn .sub-banner-txt { color: var(--red); }
+@media (max-width: 900px) { .sub-banner { margin: 12px 18px 0; } }
 .alert { padding: 14px 18px; border-radius: var(--r2); font-size: 14px; border: 1px solid; }
 .alert-err  { background: var(--reda); border-color: rgba(200,67,63,.25); color: var(--red); }
 .alert-ok   { background: var(--grna); border-color: rgba(28,140,98,.25); color: var(--grn); }
@@ -376,6 +381,18 @@ html[dir="rtl"] .section-label::before { order: 2; }
     </header>
 
     <main id="main" class="app-content">
+    {% if member and sub and sub.status in ('TRIAL','EXPIRED') %}
+    <div class="sub-banner {{ 'sub-banner-warn' if sub.status=='EXPIRED' else '' }}">
+      <span class="sub-banner-txt">
+        {% if sub.status == 'TRIAL' %}
+          {{ tr('trial_banner', n=sub.days_left) }}
+        {% else %}
+          {{ tr('trial_over_banner') }}
+        {% endif %}
+      </span>
+      <a href="/tarifs" class="btn btn-accent btn-sm">{{ tr('trial_banner_cta') }}</a>
+    </div>
+    {% endif %}
     {% block body %}{% endblock %}
     </main>
 

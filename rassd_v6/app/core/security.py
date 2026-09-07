@@ -85,11 +85,66 @@ def get_member(req: Request) -> Optional[dict]:
         db.close()
     return None
 
+PAID_PLANS = ("monthly", "pro", "business")
+
+def _parse_day(value: str):
+    """Lit une date stockée soit en 'YYYY-MM-DD', soit en ISO complet."""
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value)).date()
+    except ValueError:
+        try:
+            return datetime.strptime(str(value)[:10], "%Y-%m-%d").date()
+        except ValueError:
+            return None
+
+def subscription_state(member: Optional[dict]) -> dict:
+    """État d'abonnement consolidé d'un membre.
+
+    Ordre de priorité: un plan payant actif prime toujours sur l'essai (un
+    membre qui paie pendant son essai ne doit pas être rétrogradé à
+    l'expiration de celui-ci). Une date de fin vide sur un plan payant =
+    activation manuelle sans échéance renseignée: on n'expire pas le membre
+    sur une donnée manquante.
+    """
+    empty = {"status": "NONE", "is_active": False, "days_left": 0,
+             "plan": "free", "end_date": "", "in_trial": False}
+    if not member:
+        return empty
+    plan  = member.get("plan", "free")
+    today = date.today()
+
+    if plan in PAID_PLANS:
+        end = _parse_day(member.get("subscription_end", ""))
+        if end is None or end >= today:
+            return {"status": "ACTIVE", "is_active": True,
+                    "days_left": (end - today).days if end else 0,
+                    "plan": plan, "end_date": member.get("subscription_end", "") or "",
+                    "in_trial": False}
+        return {"status": "EXPIRED", "is_active": False, "days_left": 0,
+                "plan": plan, "end_date": member.get("subscription_end", "") or "",
+                "in_trial": False}
+
+    if member.get("subscription_status") == "TRIAL":
+        trial_end = _parse_day(member.get("trial_ends", ""))
+        if trial_end and trial_end >= today:
+            return {"status": "TRIAL", "is_active": True,
+                    "days_left": (trial_end - today).days,
+                    "plan": plan, "end_date": member.get("trial_ends", "") or "",
+                    "in_trial": True}
+        return {"status": "EXPIRED", "is_active": False, "days_left": 0,
+                "plan": plan, "end_date": member.get("trial_ends", "") or "",
+                "in_trial": False}
+
+    return {"status": member.get("subscription_status") or "NONE", "is_active": False,
+            "days_left": 0, "plan": plan, "end_date": "", "in_trial": False}
+
 def has_access(member: Optional[dict]) -> bool:
-    """Un membre inscrit ne voit les marchés réels qu'une fois son plan
-    activé manuellement par l'admin (paiement confirmé). Le plan 'free'
-    (par défaut à l'inscription) n'ouvre aucun accès aux données."""
-    return bool(member) and member.get("plan") in ("pro", "business")
+    """Accès aux données réelles: essai gratuit en cours OU abonnement payant
+    actif. Le compte survit à l'expiration (données conservées), seul l'accès
+    aux marchés est restreint."""
+    return subscription_state(member)["is_active"]
 
 def require_member(req: Request) -> dict:
     m = get_member(req)

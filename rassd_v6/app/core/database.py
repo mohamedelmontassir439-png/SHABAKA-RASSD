@@ -156,6 +156,53 @@ CREATE TABLE IF NOT EXISTS notif_queue (
     created_at TEXT DEFAULT '',
     UNIQUE(member_id, tender_id)
 );
+-- ── Abonnements / paiements ────────────────────────────────
+-- Le paiement est encaissé hors plateforme (virement, espèces, WhatsApp) puis
+-- enregistré par l'admin : ces tables tracent la réalité comptable, elles ne
+-- simulent aucune passerelle de paiement.
+CREATE TABLE IF NOT EXISTS subscriptions (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    member_id    INTEGER NOT NULL,
+    plan_id      TEXT DEFAULT 'monthly',
+    price        REAL DEFAULT 0,
+    currency     TEXT DEFAULT 'MAD',
+    status       TEXT DEFAULT 'TRIAL',
+    start_date   TEXT DEFAULT '',
+    end_date     TEXT DEFAULT '',
+    trial_start  TEXT DEFAULT '',
+    trial_end    TEXT DEFAULT '',
+    payment_id   INTEGER DEFAULT 0,
+    created_at   TEXT DEFAULT '',
+    updated_at   TEXT DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS payments (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    member_id       INTEGER NOT NULL,
+    subscription_id INTEGER DEFAULT 0,
+    amount          REAL DEFAULT 0,
+    currency        TEXT DEFAULT 'MAD',
+    method          TEXT DEFAULT '',
+    reference       TEXT DEFAULT '',
+    status          TEXT DEFAULT 'PAID',
+    period_start    TEXT DEFAULT '',
+    period_end      TEXT DEFAULT '',
+    paid_at         TEXT DEFAULT '',
+    recorded_by     TEXT DEFAULT 'admin',
+    note            TEXT DEFAULT '',
+    created_at      TEXT DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS documents (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    doc_type        TEXT DEFAULT 'receipt',
+    number          TEXT DEFAULT '',
+    member_id       INTEGER NOT NULL,
+    subscription_id INTEGER DEFAULT 0,
+    payment_id      INTEGER DEFAULT 0,
+    payload         TEXT DEFAULT '{}',
+    accepted_at     TEXT DEFAULT '',
+    accepted_ip     TEXT DEFAULT '',
+    created_at      TEXT DEFAULT ''
+);
 CREATE TABLE IF NOT EXISTS subcontract_reports (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     post_id     TEXT NOT NULL,
@@ -193,6 +240,12 @@ CREATE INDEX IF NOT EXISTS idx_sr_rated   ON subcontract_ratings(rated_id);
 CREATE INDEX IF NOT EXISTS idx_nq_member  ON notif_queue(member_id);
 CREATE INDEX IF NOT EXISTS idx_srep_post  ON subcontract_reports(post_id);
 CREATE INDEX IF NOT EXISTS idx_err_created ON error_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_sub_member  ON subscriptions(member_id);
+CREATE INDEX IF NOT EXISTS idx_sub_status  ON subscriptions(status);
+CREATE INDEX IF NOT EXISTS idx_pay_member  ON payments(member_id);
+CREATE INDEX IF NOT EXISTS idx_pay_paid    ON payments(paid_at DESC);
+CREATE INDEX IF NOT EXISTS idx_doc_member  ON documents(member_id);
+CREATE INDEX IF NOT EXISTS idx_doc_number  ON documents(number);
 """
 
 def migrate_db():
@@ -216,6 +269,12 @@ def migrate_db():
         "ALTER TABLE members ADD COLUMN referred_by INTEGER DEFAULT 0",
         "ALTER TABLE tenders ADD COLUMN type_procedure TEXT DEFAULT 'marche'",
         "ALTER TABLE tender_results ADD COLUMN type_procedure TEXT DEFAULT 'marche'",
+        # Abonnement / essai gratuit
+        "ALTER TABLE members ADD COLUMN trial_start TEXT DEFAULT ''",
+        "ALTER TABLE members ADD COLUMN subscription_status TEXT DEFAULT ''",
+        "ALTER TABLE members ADD COLUMN subscription_end TEXT DEFAULT ''",
+        "ALTER TABLE members ADD COLUMN email_verified INTEGER DEFAULT 0",
+        "ALTER TABLE members ADD COLUMN whatsapp_verified INTEGER DEFAULT 0",
     ]
     for col in cols:
         try:
@@ -228,6 +287,33 @@ def migrate_db():
         except Exception as e:
             logger.error(f"[migrate] Erreur inattendue: {e}")
     db.close()
+
+def migrate_subscriptions():
+    """Renseigne subscription_status pour les membres créés avant la mise en
+    place de l'essai gratuit.
+
+    Prudence volontaire: les membres 'free' existants sont marqués EXPIRED et
+    non TRIAL. Sans cela, l'activation du contrôle d'accès basé sur l'essai
+    ouvrirait rétroactivement l'accès complet à d'anciens comptes jamais
+    payants (leur trial_ends de 14 jours ayant pu être écrit récemment), ce que
+    l'admin n'a jamais validé. Seules les nouvelles inscriptions bénéficient de
+    l'essai de 7 jours. Idempotent: ne touche que les lignes non renseignées.
+    """
+    db = get_db()
+    try:
+        rows = db.execute(
+            "SELECT id, plan FROM members WHERE subscription_status IS NULL OR subscription_status=''"
+        ).fetchall()
+        for row in rows:
+            status = "ACTIVE" if row["plan"] in ("pro", "business") else "EXPIRED"
+            db.execute("UPDATE members SET subscription_status=? WHERE id=?", (status, row["id"]))
+        if rows:
+            db.commit()
+            logger.info(f"✅ {len(rows)} membre(s) migré(s) vers le suivi d'abonnement")
+    except Exception as e:
+        logger.error(f"[migrate_subscriptions] {e}")
+    finally:
+        db.close()
 
 def migrate_secteurs():
     """Reclassifie les marchés scrapés avant le passage aux codes officiels MB SA
@@ -280,6 +366,10 @@ def init_db():
         migrate_db()
     except Exception as e:
         logger.error(f"[init_db] Erreur migration: {e}")
+    try:
+        migrate_subscriptions()
+    except Exception as e:
+        logger.error(f"[init_db] Erreur migration abonnements: {e}")
     try:
         migrate_secteurs()
     except Exception as e:
