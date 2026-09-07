@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Sources &amp; conformité — Maroc Entrepreneuriat</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f8f1e1; --surface:#fff; --surface2:#f1e6cf; --line:#e8dcc5; --line2:#d9c7a8;
+  --navy:#f2662d; --navy3:#1e1611; --amber:#f2662d; --amberd:#c94e1f; --ambera:rgba(242,102,45,.14);
+  --t1:#2b211b; --t2:#4a3b32; --t3:#8a7a6a; --t4:#b7a896; --grn:#2f9e5b; --red:#d6493f; --blue:#3d7a7a;
+  --serif:'Fredoka',Georgia,serif; --sans:'Inter',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--t2);font-family:var(--sans);font-size:14px;min-height:100vh}
+a{color:inherit;text-decoration:none}
+.topbar{background:var(--navy3);height:60px;display:flex;align-items:center;padding:0 28px;gap:20px;position:sticky;top:0;z-index:100}
+.brand{font-family:var(--serif);font-weight:700;font-size:19px;color:#fff}
+.brand em{font-style:italic;color:var(--amber);font-weight:600}
+.brand-meta{font-size:12px;color:rgba(255,255,255,.45);font-weight:500}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;font-size:13px;font-weight:600;border:1px solid transparent;border-radius:8px}
+.btn-o{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.16);color:#fff}
+.btn-o:hover{border-color:var(--amber);color:var(--amber)}
+.page{max-width:1240px;margin:0 auto;padding:32px 28px}
+.page-h{margin-bottom:22px}
+.page-h-title{font-family:var(--serif);font-weight:700;font-size:33px;color:var(--t1);line-height:1.15}
+.page-h-title em{font-style:italic;color:var(--navy);font-weight:600}
+.page-h-sub{font-size:13px;font-weight:700;color:var(--amberd);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px}
+.note{font-size:13px;color:var(--t3);line-height:1.65;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:22px;max-width:940px}
+.card{background:var(--surface);border:1px solid var(--line);margin-bottom:20px;border-radius:12px;overflow:hidden}
+.card-h{padding:16px 20px;border-bottom:1px solid var(--line)}
+.card-ht{font-size:13px;font-weight:700;color:var(--amberd);letter-spacing:.04em;text-transform:uppercase}
+table{width:100%;border-collapse:collapse}
+th{font-size:11.5px;font-weight:700;color:var(--t3);letter-spacing:.04em;text-transform:uppercase;padding:12px 16px;text-align:left;border-bottom:1px solid var(--line)}
+td{padding:13px 16px;border-bottom:1px solid var(--line);font-size:13px;color:var(--t2);vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--surface2)}
+.badge{display:inline-flex;padding:3px 9px;font-size:11px;font-weight:700;border-radius:999px}
+.b-g{background:var(--ambera);color:var(--amberd)}
+.b-grn{background:rgba(29,154,108,.1);color:var(--grn)}
+.b-r{background:rgba(214,69,69,.1);color:var(--red)}
+.b-gray{background:var(--surface2);color:var(--t3)}
+.b-blue{background:rgba(61,122,122,.12);color:var(--blue)}
+.src-name{font-weight:700;color:var(--t1);font-size:13.5px}
+.src-notes{font-size:12px;color:var(--t3);line-height:1.55;max-width:460px;margin-top:5px}
+.mono{font-family:var(--mono);font-size:11.5px}
+.empty{text-align:center;padding:46px;color:var(--t3)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <span class="brand">Maroc<em>Entrepreneuriat</em></span>
+  <span class="brand-meta">Sources &amp; conformité</span>
+  <div style="margin-left:auto;display:flex;gap:8px;">
+    <a href="/admin/companies" class="btn btn-o">🏢 Entreprises</a>
+    <a href="/admin" class="btn btn-o">← Tableau de bord</a>
+  </div>
+</div>
+
+<div class="page">
+  <div class="page-h">
+    <div class="page-h-sub">Traçabilité</div>
+    <div class="page-h-title">Registre des <em>sources</em></div>
+  </div>
+
+  <div class="note">
+    Chaque source exploitée est documentée ici : domaine, méthode d'accès, statut du <span class="mono">robots.txt</span>, conditions vérifiées et autorisation retenue. Les statuts consignés correspondent à des vérifications réelles effectuées sur les domaines, pas à des suppositions. Mettez à jour ce registre à chaque changement de source ou d'accord.
+  </div>
+
+  <div class="card">
+    <div class="card-h"><span class="card-ht">Sources déclarées ({{ sources|length }})</span></div>
+    {% if sources %}
+    <table>
+      <tr><th>Source</th><th>Type</th><th>Accès</th><th>robots.txt</th><th>Autorisation</th><th>Statut</th><th>Vérifié le</th></tr>
+      {% for s in sources %}
+      <tr>
+        <td>
+          <div class="src-name">{{ s.source_name }}</div>
+          {% if s.domain %}<div class="mono" style="color:var(--t4);">{{ s.domain }}</div>{% endif %}
+          {% if s.notes %}<div class="src-notes">{{ s.notes }}</div>{% endif %}
+        </td>
+        <td><span class="badge b-blue">{{ s.source_type }}</span></td>
+        <td class="mono">{{ s.access_method }}</td>
+        <td>
+          <span class="badge {% if s.robots_status in ('absent','unavailable_403','n/a') %}b-gray{% else %}b-g{% endif %}">{{ s.robots_status }}</span>
+        </td>
+        <td>
+          <span class="badge {% if s.scraping_allowed in ('public_data','own_data') %}b-grn{% elif s.scraping_allowed=='partner_agreement' %}b-g{% else %}b-gray{% endif %}">{{ s.scraping_allowed }}</span>
+          {% if not s.terms_checked %}<div style="margin-top:4px;"><span class="badge b-r">CGU à vérifier</span></div>{% endif %}
+        </td>
+        <td><span class="badge {% if s.status=='active' %}b-grn{% else %}b-gray{% endif %}">{{ s.status }}</span></td>
+        <td style="color:var(--t3);white-space:nowrap;">{{ s.last_checked }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <div class="empty">Aucune source déclarée.</div>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <div class="card-h"><span class="card-ht">Santé par source</span></div>
+    {% if per_source %}
+    <table>
+      <tr><th>Source</th><th>Exécutions</th><th>Succès</th><th>Échecs</th><th>Enregistrements sauvés</th><th>Dernière exécution</th></tr>
+      {% for p in per_source %}
+      <tr>
+        <td class="src-name">{{ p.source }}</td>
+        <td>{{ p.runs }}</td>
+        <td><span class="badge b-grn">{{ p.ok or 0 }}</span></td>
+        <td>{% if p.ko %}<span class="badge b-r">{{ p.ko }}</span>{% else %}<span class="badge b-gray">0</span>{% endif %}</td>
+        <td>{{ p.saved or 0 }}</td>
+        <td style="color:var(--t3);white-space:nowrap;">{{ (p.last_run or '')[:16].replace('T',' ') }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <div class="empty">Aucune exécution enregistrée pour l'instant — les statistiques apparaîtront après la prochaine veille.</div>
+    {% endif %}
+  </div>
+
+  {% if runs %}
+  <div class="card">
+    <div class="card-h"><span class="card-ht">Dernières exécutions</span></div>
+    <table>
+      <tr><th>Démarrée</th><th>Source</th><th>Statut</th><th>Trouvés</th><th>Sauvés</th><th>Doublons</th><th>Durée</th><th>Message</th></tr>
+      {% for r in runs %}
+      <tr>
+        <td style="color:var(--t3);white-space:nowrap;">{{ (r.started_at or '')[:16].replace('T',' ') }}</td>
+        <td>{{ r.source }}</td>
+        <td><span class="badge {% if r.status=='SUCCESS' %}b-grn{% elif r.status=='FAILED' %}b-r{% else %}b-gray{% endif %}">{{ r.status }}</span></td>
+        <td>{{ r.records_found }}</td>
+        <td style="font-weight:700;color:var(--grn);">{{ r.records_saved }}</td>
+        <td style="color:var(--t3);">{{ r.duplicates }}</td>
+        <td style="color:var(--t3);">{{ (r.duration_ms/1000)|round(1) }}s</td>
+        <td style="color:var(--red);font-size:12px;">{{ (r.message or '')[:60] }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+</div>
+</body>
+</html>

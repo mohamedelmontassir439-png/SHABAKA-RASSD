@@ -135,6 +135,26 @@ def _save_results(results: list) -> int:
     db.commit(); db.close()
     return saved
 
+def _record_run(source: str, status: str, found: int = 0, saved: int = 0,
+                errors: int = 0, started=None, message: str = ""):
+    """Trace l'exécution d'un scraper, source par source (§24).
+
+    Volontairement tolérant aux pannes: un échec d'écriture du journal ne doit
+    jamais interrompre une veille en cours.
+    """
+    try:
+        now = datetime.now()
+        dur = int((now - started).total_seconds() * 1000) if started else 0
+        db = get_db()
+        db.execute(
+            """INSERT INTO scraper_runs(source,status,records_found,records_saved,duplicates,
+               errors,duration_ms,message,started_at,finished_at) VALUES(?,?,?,?,?,?,?,?,?,?)""",
+            (source, status, found, saved, max(0, found - saved), errors, dur,
+             (message or "")[:300], (started or now).isoformat(), now.isoformat()))
+        db.commit(); db.close()
+    except Exception as e:
+        logger.error(f"[scraper_runs] {e}")
+
 async def do_scrape():
     if State.running: return
     State.running = True
@@ -150,6 +170,7 @@ async def do_scrape():
         State.log("  MAROC ENTREPRENEURIAT — Veille v3.2")
         State.log(f"  {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
         State.log("═" * 48)
+        _t = datetime.now()
         try:
             from app.services.scraper import run
             db    = get_db()
@@ -160,9 +181,11 @@ async def do_scrape():
             saved = _save_tenders(results, new_tenders)
             State.saved += saved
             State.log(f"✅ marchespublics.gov.ma: {saved} nouveaux")
+            _record_run("marchespublics", "SUCCESS", len(results), saved, started=_t)
         except Exception as e:
             State.log(f"❌ marchespublics: {e}")
             logger.error(f"[scraper] {e}", exc_info=True)
+            _record_run("marchespublics", "FAILED", errors=1, started=_t, message=str(e))
 
         # ── Multi-sources ─────────────────────────────────
         if MULTI_OK:
@@ -182,6 +205,7 @@ async def do_scrape():
                 State.log(f"⚠ Multi: {e}")
 
         # ── Marchés privés ─────────────────────────────────
+        _t = datetime.now()
         try:
             State.log("─" * 48)
             from app.services.private_scraper import run as gm_run
@@ -193,11 +217,14 @@ async def do_scrape():
             saved3 = _save_tenders(gm_results, new_tenders)
             State.saved += saved3
             State.log(f"✅ Marchés privés: {saved3} nouveaux")
+            _record_run("global-marches", "SUCCESS", len(gm_results), saved3, started=_t)
         except Exception as e:
             State.log(f"❌ Marchés privés: {e}")
+            _record_run("global-marches", "FAILED", errors=1, started=_t, message=str(e))
             logger.error(f"[gm scraper] {e}", exc_info=True)
 
         # ── Résultats des marchés (adjudications) ──────────
+        _t = datetime.now()
         try:
             State.log("─" * 48)
             from app.services.private_scraper import run_results as gm_run_results
@@ -207,11 +234,14 @@ async def do_scrape():
             gm_res  = await loop.run_in_executor(None, lambda: gm_run_results(known4, State.log))
             saved4  = _save_results(gm_res)
             State.log(f"✅ Résultats des marchés: {saved4} nouveaux")
+            _record_run("global-marches-results", "SUCCESS", len(gm_res), saved4, started=_t)
         except Exception as e:
             State.log(f"❌ Résultats des marchés: {e}")
+            _record_run("global-marches-results", "FAILED", errors=1, started=_t, message=str(e))
             logger.error(f"[gm results scraper] {e}", exc_info=True)
 
         # ── Bons de commande ────────────────────────────────
+        _t = datetime.now()
         try:
             State.log("─" * 48)
             from app.services.private_scraper import run_bc as gm_run_bc
@@ -223,11 +253,14 @@ async def do_scrape():
             saved5 = _save_tenders(bc_results, new_tenders)
             State.saved += saved5
             State.log(f"✅ Bons de commande: {saved5} nouveaux")
+            _record_run("bons-de-commande", "SUCCESS", len(bc_results), saved5, started=_t)
         except Exception as e:
             State.log(f"❌ Bons de commande: {e}")
+            _record_run("bons-de-commande", "FAILED", errors=1, started=_t, message=str(e))
             logger.error(f"[bc scraper] {e}", exc_info=True)
 
         # ── Résultats des bons de commande ──────────────────
+        _t = datetime.now()
         try:
             State.log("─" * 48)
             from app.services.private_scraper import run_bc_results as gm_run_bc_results
@@ -237,8 +270,10 @@ async def do_scrape():
             bc_res  = await loop.run_in_executor(None, lambda: gm_run_bc_results(known6, State.log))
             saved6  = _save_results(bc_res)
             State.log(f"✅ Résultats des bons de commande: {saved6} nouveaux")
+            _record_run("bc-results", "SUCCESS", len(bc_res), saved6, started=_t)
         except Exception as e:
             State.log(f"❌ Résultats des bons de commande: {e}")
+            _record_run("bc-results", "FAILED", errors=1, started=_t, message=str(e))
             logger.error(f"[bc results scraper] {e}", exc_info=True)
 
         # ── Log run ───────────────────────────────────────
@@ -1645,6 +1680,94 @@ async def admin_subtraitance_delete(req: Request, pid: str, csrf_token:str=Form(
     db.execute("DELETE FROM subcontract_posts WHERE id=?", (pid,))
     db.commit(); db.close()
     return RedirectResponse("/admin/sous-traitance", 302)
+
+@app.get("/admin/companies", response_class=HTMLResponse)
+async def admin_companies(req: Request, q:str="", s:str="", r:str="", page:int=1):
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    db = get_db(); per = 40; page = max(1, page)
+    where, params = ["1=1"], []
+    if q:
+        where.append("(legal_name LIKE ? OR normalized_name LIKE ? OR email LIKE ?)")
+        params += [f"%{q}%"]*3
+    if s: where.append("sector=?"); params.append(s)
+    if r: where.append("region=?"); params.append(r)
+    wh = " AND ".join(where)
+    total = db.execute(f"SELECT COUNT(*) FROM companies WHERE {wh}", params).fetchone()[0]
+    rows = [dict(x) for x in db.execute(
+        f"SELECT * FROM companies WHERE {wh} ORDER BY wins DESC, legal_name LIMIT ? OFFSET ?",
+        params+[per,(page-1)*per]).fetchall()]
+    stats = {
+        "total":    db.execute("SELECT COUNT(*) FROM companies").fetchone()[0],
+        "phone":    db.execute("SELECT COUNT(*) FROM companies WHERE phone!=''").fetchone()[0],
+        "email":    db.execute("SELECT COUNT(*) FROM companies WHERE email!=''").fetchone()[0],
+        "sectors":  db.execute("SELECT COUNT(DISTINCT sector) FROM companies WHERE sector!=''").fetchone()[0],
+    }
+    regions = [x[0] for x in db.execute(
+        "SELECT DISTINCT region FROM companies WHERE region!='' ORDER BY region LIMIT 60").fetchall()]
+    db.close()
+    csrf_tok = get_csrf_token(req) or secrets.token_urlsafe(24)
+    resp = templates.TemplateResponse("admin_companies.html", {
+        "request": req, "cfg": cfg, "rows": rows, "total": total, "stats": stats,
+        "page": page, "pages": max(1,(total+per-1)//per), "q": q, "sf": s, "rf": r,
+        "regions": regions, "sector_groups": cfg.SECTOR_GROUPS, "csrf_token": csrf_tok})
+    if not req.cookies.get("_csrf"):
+        resp.set_cookie("_csrf", csrf_tok, max_age=86400*30, httponly=True, samesite="lax", secure=COOKIE_SECURE)
+    return resp
+
+@app.post("/admin/companies/seed")
+async def admin_companies_seed(req: Request, csrf_token: str = Form("")):
+    """Alimente la base entreprises depuis les adjudicataires déjà collectés."""
+    if not _is_admin(req): return JSONResponse({"ok": False}, 401)
+    csrf_guard(req, csrf_token)
+    from app.services.companies import seed_from_tender_results
+    db = get_db()
+    try:
+        stats = seed_from_tender_results(db)
+    finally:
+        db.close()
+    return RedirectResponse(
+        f"/admin/companies?seeded={stats['created']}&merged={stats['merged']}&rejected={stats['rejected']}", 302)
+
+@app.get("/admin/companies/export")
+async def admin_companies_export(req: Request, q:str="", s:str="", r:str=""):
+    if not _is_admin(req): return JSONResponse({"ok": False}, 401)
+    db = get_db()
+    where, params = ["1=1"], []
+    if q:
+        where.append("(legal_name LIKE ? OR normalized_name LIKE ?)"); params += [f"%{q}%"]*2
+    if s: where.append("sector=?"); params.append(s)
+    if r: where.append("region=?"); params.append(r)
+    rows = db.execute(
+        f"SELECT * FROM companies WHERE {' AND '.join(where)} ORDER BY wins DESC", params).fetchall()
+    db.close()
+    buf = io.StringIO(); w = csv.writer(buf)
+    w.writerow(["Entreprise","Secteur","Region","Ville","Telephone","Mobile","Email","Site","ICE","RC","Marches_gagnes","Source"])
+    for c in rows:
+        w.writerow([c["legal_name"], get_label(c["sector"]) if c["sector"] else "", c["region"], c["city"],
+                    c["phone"], c["mobile"], c["email"], c["website"], c["ice"], c["rc"], c["wins"], c["source"]])
+    return Response(content=buf.getvalue().encode("utf-8-sig"), media_type="text/csv",
+                     headers={"Content-Disposition": "attachment; filename=entreprises_maroc.csv"})
+
+@app.get("/admin/sources", response_class=HTMLResponse)
+async def admin_sources(req: Request):
+    """Registre de conformité des sources + état des dernières exécutions."""
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    db = get_db()
+    sources = [dict(r) for r in db.execute(
+        "SELECT * FROM source_registry ORDER BY source_type, source_name").fetchall()]
+    runs = [dict(r) for r in db.execute(
+        "SELECT * FROM scraper_runs ORDER BY started_at DESC LIMIT 40").fetchall()]
+    per_source = [dict(r) for r in db.execute("""
+        SELECT source,
+               COUNT(*) AS runs,
+               SUM(CASE WHEN status='SUCCESS' THEN 1 ELSE 0 END) AS ok,
+               SUM(CASE WHEN status='FAILED' THEN 1 ELSE 0 END) AS ko,
+               MAX(started_at) AS last_run,
+               SUM(records_saved) AS saved
+        FROM scraper_runs GROUP BY source ORDER BY last_run DESC""").fetchall()]
+    db.close()
+    return templates.TemplateResponse("admin_sources.html", {
+        "request": req, "cfg": cfg, "sources": sources, "runs": runs, "per_source": per_source})
 
 @app.get("/admin/backups", response_class=HTMLResponse)
 async def admin_backups(req: Request):

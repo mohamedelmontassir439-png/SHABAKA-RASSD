@@ -2,6 +2,7 @@
 ATLAS PRO — Database Layer (SQLite)
 """
 import os, sqlite3, logging
+from datetime import datetime
 from app.core.config import cfg
 
 logger = logging.getLogger("atlas.db")
@@ -203,6 +204,77 @@ CREATE TABLE IF NOT EXISTS documents (
     accepted_ip     TEXT DEFAULT '',
     created_at      TEXT DEFAULT ''
 );
+-- ── Base entreprises (intelligence commerciale) ────────────
+-- normalized_name sert de clé de rapprochement: c'est le nom réduit à sa
+-- forme canonique (sans accents, sans forme juridique, sans ponctuation),
+-- ce qui permet de reconnaître "STE ATLAS BTP SARL" et "Atlas B.T.P. S.A.R.L"
+-- comme une seule et même entreprise.
+CREATE TABLE IF NOT EXISTS companies (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    legal_name       TEXT DEFAULT '',
+    trade_name       TEXT DEFAULT '',
+    normalized_name  TEXT DEFAULT '',
+    sector           TEXT DEFAULT '',
+    subsector        TEXT DEFAULT '',
+    city             TEXT DEFAULT '',
+    region           TEXT DEFAULT '',
+    address          TEXT DEFAULT '',
+    phone            TEXT DEFAULT '',
+    mobile           TEXT DEFAULT '',
+    email            TEXT DEFAULT '',
+    website          TEXT DEFAULT '',
+    ice              TEXT DEFAULT '',
+    if_num           TEXT DEFAULT '',
+    rc               TEXT DEFAULT '',
+    source           TEXT DEFAULT '',
+    source_url       TEXT DEFAULT '',
+    source_type      TEXT DEFAULT '',
+    wins             INTEGER DEFAULT 0,
+    verified         INTEGER DEFAULT 0,
+    last_verified_at TEXT DEFAULT '',
+    created_at       TEXT DEFAULT '',
+    updated_at       TEXT DEFAULT ''
+);
+-- Chaque source d'où provient une entreprise est conservée: on ne supprime
+-- jamais une provenance en fusionnant deux doublons.
+CREATE TABLE IF NOT EXISTS company_sources (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    company_id  INTEGER NOT NULL,
+    source      TEXT DEFAULT '',
+    source_url  TEXT DEFAULT '',
+    raw_name    TEXT DEFAULT '',
+    seen_at     TEXT DEFAULT ''
+);
+-- ── Registre de conformité des sources (§28) ───────────────
+CREATE TABLE IF NOT EXISTS source_registry (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    source_name      TEXT UNIQUE NOT NULL,
+    source_type      TEXT DEFAULT '',
+    domain           TEXT DEFAULT '',
+    source_url       TEXT DEFAULT '',
+    access_method    TEXT DEFAULT '',
+    robots_status    TEXT DEFAULT 'unknown',
+    terms_checked    INTEGER DEFAULT 0,
+    scraping_allowed TEXT DEFAULT 'unknown',
+    api_available    INTEGER DEFAULT 0,
+    status           TEXT DEFAULT 'active',
+    last_checked     TEXT DEFAULT '',
+    notes            TEXT DEFAULT ''
+);
+-- ── Exécutions de scraper, par source (§24) ────────────────
+CREATE TABLE IF NOT EXISTS scraper_runs (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    source         TEXT DEFAULT '',
+    status         TEXT DEFAULT 'RUNNING',
+    records_found  INTEGER DEFAULT 0,
+    records_saved  INTEGER DEFAULT 0,
+    duplicates     INTEGER DEFAULT 0,
+    errors         INTEGER DEFAULT 0,
+    duration_ms    INTEGER DEFAULT 0,
+    message        TEXT DEFAULT '',
+    started_at     TEXT DEFAULT '',
+    finished_at    TEXT DEFAULT ''
+);
 CREATE TABLE IF NOT EXISTS subcontract_reports (
     id          INTEGER PRIMARY KEY AUTOINCREMENT,
     post_id     TEXT NOT NULL,
@@ -246,6 +318,14 @@ CREATE INDEX IF NOT EXISTS idx_pay_member  ON payments(member_id);
 CREATE INDEX IF NOT EXISTS idx_pay_paid    ON payments(paid_at DESC);
 CREATE INDEX IF NOT EXISTS idx_doc_member  ON documents(member_id);
 CREATE INDEX IF NOT EXISTS idx_doc_number  ON documents(number);
+CREATE INDEX IF NOT EXISTS idx_co_norm     ON companies(normalized_name);
+CREATE INDEX IF NOT EXISTS idx_co_sector   ON companies(sector);
+CREATE INDEX IF NOT EXISTS idx_co_region   ON companies(region);
+CREATE INDEX IF NOT EXISTS idx_co_ice      ON companies(ice);
+CREATE INDEX IF NOT EXISTS idx_co_wins     ON companies(wins DESC);
+CREATE INDEX IF NOT EXISTS idx_cosrc_co    ON company_sources(company_id);
+CREATE INDEX IF NOT EXISTS idx_srun_src    ON scraper_runs(source);
+CREATE INDEX IF NOT EXISTS idx_srun_start  ON scraper_runs(started_at DESC);
 """
 
 def migrate_db():
@@ -300,6 +380,44 @@ def migrate_db():
         except Exception as e:
             logger.error(f"[migrate] Erreur inattendue: {e}")
     db.close()
+
+def seed_source_registry():
+    """Enregistre les sources exploitées et leur statut de conformité (§28).
+
+    Les valeurs consignées correspondent à des vérifications réelles, pas à
+    des suppositions: au 07/09/2026, marchespublics.gov.ma renvoie 403 sur
+    /robots.txt (aucun fichier servi) et global-marches.com renvoie une page
+    HTML applicative à la place d'un robots.txt (donc aucun fichier non plus).
+    L'admin peut corriger ces champs depuis /admin/sources.
+    """
+    rows = [
+        # source_name, type, domain, url, access, robots, terms_checked, allowed, api, status, notes
+        ("marchespublics", "public", "marchespublics.gov.ma",
+         "https://www.marchespublics.gov.ma", "http_public", "unavailable_403", 0, "public_data", 0, "active",
+         "Portail officiel des marchés publics. /robots.txt renvoie 403 — aucune directive publiée. "
+         "Données de commande publique par nature publiques. Rythme de requêtes volontairement modéré."),
+        ("global-marches", "private_aggregator", "global-marches.com",
+         "https://global-marches.com", "authenticated_account", "absent", 0, "partner_agreement", 0, "active",
+         "Agrégateur privé (AO privés + bons de commande). Accès via un compte fourni par l'éditeur "
+         "du site. À formaliser par un accord écrit (licence de données ou API) — un accord verbal ne "
+         "protège pas la continuité du service. Nom de la source jamais exposé aux utilisateurs finaux."),
+        ("tender_results", "derived", "", "", "internal", "n/a", 1, "own_data", 0, "active",
+         "Données dérivées des résultats d'adjudication déjà collectés — sert de base à la table companies."),
+    ]
+    db = get_db()
+    try:
+        for r in rows:
+            db.execute(
+                """INSERT OR IGNORE INTO source_registry
+                   (source_name,source_type,domain,source_url,access_method,robots_status,
+                    terms_checked,scraping_allowed,api_available,status,last_checked,notes)
+                   VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
+                (*r[:10], datetime.now().strftime("%Y-%m-%d"), r[10]))
+        db.commit()
+    except Exception as e:
+        logger.error(f"[seed_source_registry] {e}")
+    finally:
+        db.close()
 
 def migrate_subscriptions():
     """Renseigne subscription_status pour les membres créés avant la mise en
@@ -383,6 +501,10 @@ def init_db():
         migrate_subscriptions()
     except Exception as e:
         logger.error(f"[init_db] Erreur migration abonnements: {e}")
+    try:
+        seed_source_registry()
+    except Exception as e:
+        logger.error(f"[init_db] Erreur registre des sources: {e}")
     try:
         migrate_secteurs()
     except Exception as e:

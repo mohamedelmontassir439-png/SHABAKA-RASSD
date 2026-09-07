@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Entreprises — Maroc Entrepreneuriat</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f8f1e1; --surface:#fff; --surface2:#f1e6cf; --line:#e8dcc5; --line2:#d9c7a8;
+  --navy:#f2662d; --navy3:#1e1611; --amber:#f2662d; --amberd:#c94e1f; --ambera:rgba(242,102,45,.14);
+  --t1:#2b211b; --t2:#4a3b32; --t3:#8a7a6a; --t4:#b7a896; --grn:#2f9e5b; --red:#d6493f;
+  --serif:'Fredoka',Georgia,serif; --sans:'Inter',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--t2);font-family:var(--sans);font-size:14px;min-height:100vh;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+.topbar{background:var(--navy3);height:60px;display:flex;align-items:center;padding:0 28px;gap:20px;position:sticky;top:0;z-index:100}
+.brand{font-family:var(--serif);font-weight:700;font-size:19px;color:#fff}
+.brand em{font-style:italic;color:var(--amber);font-weight:600}
+.brand-meta{font-size:12px;color:rgba(255,255,255,.45);font-weight:500}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:all .15s;border-radius:8px}
+.btn-p{background:linear-gradient(180deg,#ff8552,var(--amber));color:#fff;border-color:var(--amber);font-weight:700}
+.btn-o{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.16);color:#fff}
+.btn-o:hover{border-color:var(--amber);color:var(--amber)}
+.btn-l{background:var(--surface);border-color:var(--line2);color:var(--t1)}
+.btn-l:hover{border-color:var(--navy);color:var(--navy)}
+.page{max-width:1320px;margin:0 auto;padding:32px 28px}
+.page-h{display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.page-h-title{font-family:var(--serif);font-weight:700;font-size:33px;color:var(--t1);line-height:1.15}
+.page-h-title em{font-style:italic;color:var(--navy);font-weight:600}
+.page-h-sub{font-size:13px;font-weight:700;color:var(--amberd);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:18px}
+.stat-n{font-weight:800;font-size:26px;color:var(--navy);line-height:1}
+.stat-l{font-size:12px;color:var(--t3);margin-top:8px;font-weight:600}
+.card{background:var(--surface);border:1px solid var(--line);margin-bottom:20px;border-radius:12px;overflow:hidden}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line)}
+.inp,.sel{background:var(--surface);border:1px solid var(--line2);padding:8px 11px;color:var(--t1);font-size:13px;border-radius:6px;outline:none}
+.inp{flex:1;min-width:200px;max-width:300px}
+.alert-ok{background:rgba(29,154,108,.1);border:1px solid rgba(29,154,108,.3);color:var(--grn);padding:12px 16px;border-radius:8px;margin-bottom:18px;font-size:13.5px;font-weight:600}
+table{width:100%;border-collapse:collapse}
+th{font-size:11.5px;font-weight:700;color:var(--t3);letter-spacing:.04em;text-transform:uppercase;padding:12px 16px;text-align:left;border-bottom:1px solid var(--line)}
+td{padding:12px 16px;border-bottom:1px solid var(--line);font-size:13px;color:var(--t2);vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--surface2)}
+.co-name{color:var(--t1);font-weight:700;font-size:13.5px}
+.badge{display:inline-flex;padding:3px 9px;font-size:11px;font-weight:700;border-radius:999px}
+.b-g{background:var(--ambera);color:var(--amberd)}
+.b-gray{background:var(--surface2);color:var(--t3)}
+.b-grn{background:rgba(29,154,108,.1);color:var(--grn)}
+.muted{color:var(--t4);font-size:11.5px}
+.pagination{display:flex;gap:8px;justify-content:center;padding:18px;flex-wrap:wrap}
+.pag-btn{padding:8px 13px;border:1px solid var(--line2);font-size:12.5px;font-weight:600;color:var(--t3);border-radius:6px;background:var(--surface)}
+.pag-btn.current{background:var(--navy);color:#fff;border-color:var(--navy)}
+.empty{text-align:center;padding:56px 24px;color:var(--t3)}
+.note{font-size:13px;color:var(--t3);line-height:1.6;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:20px;max-width:900px}
+@media(max-width:980px){.stats-row{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <span class="brand">Maroc<em>Entrepreneuriat</em></span>
+  <span class="brand-meta">Base entreprises</span>
+  <div style="margin-left:auto;display:flex;gap:8px;">
+    <a href="/admin/sources" class="btn btn-o">🗂 Sources</a>
+    <a href="/admin" class="btn btn-o">← Tableau de bord</a>
+  </div>
+</div>
+
+<div class="page">
+  <div class="page-h">
+    <div>
+      <div class="page-h-sub">Intelligence commerciale</div>
+      <div class="page-h-title">Base <em>entreprises</em></div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <form method="post" action="/admin/companies/seed">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" class="btn btn-p">⟳ Alimenter depuis les adjudications</button>
+      </form>
+      <a href="/admin/companies/export?q={{ q }}&s={{ sf }}&r={{ rf }}" class="btn btn-l">⬇ Export CSV</a>
+    </div>
+  </div>
+
+  {% if request.query_params.get('seeded') is not none %}
+  <div class="alert-ok">✓ Import terminé — {{ request.query_params.get('seeded') }} entreprise(s) créée(s),
+    {{ request.query_params.get('merged') }} fusionnée(s) avec une fiche existante,
+    {{ request.query_params.get('rejected') }} libellé(s) écarté(s) (mentions de procédure, pas des entreprises).</div>
+  {% endif %}
+
+  <div class="note">
+    Ces entreprises proviennent des <strong>adjudicataires réellement retenus</strong> sur les marchés collectés : ce sont des sociétés actives, pas une liste achetée. Les noms sont ramenés à une forme canonique (« STE ATLAS B.T.P. SARL » = « Atlas BTP ») et les doublons fusionnés. Les résultats officiels d'adjudication ne publient ni téléphone ni email : utilisez le nom pour les retrouver sur les annuaires professionnels, l'OMPIC ou LinkedIn, puis complétez la fiche.
+  </div>
+
+  <div class="stats-row">
+    <div class="stat"><div class="stat-n">{{ stats.total }}</div><div class="stat-l">Entreprises</div></div>
+    <div class="stat"><div class="stat-n">{{ stats.sectors }}</div><div class="stat-l">Secteurs couverts</div></div>
+    <div class="stat"><div class="stat-n">{{ stats.phone }}</div><div class="stat-l">Avec téléphone</div></div>
+    <div class="stat"><div class="stat-n">{{ stats.email }}</div><div class="stat-l">Avec email</div></div>
+  </div>
+
+  <div class="card">
+    <form method="get" class="filters">
+      <input name="q" value="{{ q }}" class="inp" placeholder="Rechercher une entreprise…">
+      <select name="s" class="sel">
+        <option value="">Tous les secteurs</option>
+        {% for gname, gsectors in sector_groups.items() %}
+        <optgroup label="{{ gname }}">
+          {% for code, label in gsectors.items() %}
+          <option value="{{ code }}" {% if code==sf %}selected{% endif %}>{{ code }} – {{ label[:34] }}</option>
+          {% endfor %}
+        </optgroup>
+        {% endfor %}
+      </select>
+      {% if regions %}
+      <select name="r" class="sel">
+        <option value="">Toutes les régions</option>
+        {% for reg in regions %}<option value="{{ reg }}" {% if reg==rf %}selected{% endif %}>{{ reg[:26] }}</option>{% endfor %}
+      </select>
+      {% endif %}
+      <button type="submit" class="btn btn-p">Filtrer</button>
+      {% if q or sf or rf %}<a href="/admin/companies" class="btn btn-l">✕ Effacer</a>{% endif %}
+      <span style="margin-left:auto;font-size:12.5px;color:var(--t3);">{{ total }} résultat(s)</span>
+    </form>
+
+    {% if rows %}
+    <table>
+      <tr><th>Entreprise</th><th>Secteur</th><th>Région</th><th>Contact</th><th>Identifiants</th><th>Marchés</th></tr>
+      {% for c in rows %}
+      <tr>
+        <td>
+          <div class="co-name">{{ c.legal_name[:52] }}</div>
+          <div class="muted">{{ c.normalized_name[:44] }}</div>
+        </td>
+        <td>{% if c.sector %}<span class="badge b-g">{{ get_label(c.sector)[:22] }}</span>{% else %}—{% endif %}</td>
+        <td>{{ c.region[:22] or '—' }}{% if c.city %}<div class="muted">{{ c.city[:22] }}</div>{% endif %}</td>
+        <td>
+          {% if c.phone %}<div>{{ c.phone }}</div>{% endif %}
+          {% if c.email %}<div class="muted">{{ c.email[:30] }}</div>{% endif %}
+          {% if c.website %}<div class="muted">{{ c.website[:30] }}</div>{% endif %}
+          {% if not c.phone and not c.email and not c.website %}<span class="badge b-gray">à compléter</span>{% endif %}
+        </td>
+        <td>
+          {% if c.ice %}<div class="muted">ICE {{ c.ice }}</div>{% endif %}
+          {% if c.rc %}<div class="muted">RC {{ c.rc }}</div>{% endif %}
+          {% if not c.ice and not c.rc %}—{% endif %}
+        </td>
+        <td><span class="badge b-grn">{{ c.wins }}</span></td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% if pages > 1 %}
+    <div class="pagination">
+      {% for pp in range(1, pages+1) %}
+        {% if pp==page %}<span class="pag-btn current">{{ pp }}</span>
+        {% elif pp==1 or pp==pages or (pp>=page-2 and pp<=page+2) %}<a href="?q={{ q }}&s={{ sf }}&r={{ rf }}&page={{ pp }}" class="pag-btn">{{ pp }}</a>
+        {% elif pp==page-3 or pp==page+3 %}<span style="padding:8px 4px;color:var(--t4);">…</span>{% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="empty">Base vide — cliquez sur « Alimenter depuis les adjudications » pour la construire à partir des marchés déjà collectés.</div>
+    {% endif %}
+  </div>
+</div>
+</body>
+</html>
