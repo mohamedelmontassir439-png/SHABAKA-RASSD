@@ -137,7 +137,39 @@ def matches(member: dict, tender: dict) -> tuple:
             str(tender.get("acheteur", "")),
             str(tender.get("description", ""))[:1500],
         ]))
-        if not any(_norm(k) in haystack for k in f["keywords"]):
+        if not any(keyword_hits(k, haystack) for k in f["keywords"]):
             return False, "keywords"
 
     return True, "ok"
+
+
+# Longueur du radical retenu pour rapprocher les familles de mots françaises:
+# "elect" rapproche électricité/électrique, "plomb" plomberie/plombier,
+# "const" construction/constructeur.
+_STEM_LEN = 5
+
+
+def keyword_hits(keyword: str, haystack_norm: str) -> bool:
+    """Le mot-clé apparaît-il dans le texte, y compris sous une forme voisine ?
+
+    La comparaison est ancrée sur les débuts de mots, jamais sur une simple
+    sous-chaîne: "eau" ne doit pas se déclencher sur "bureaux", ni "or" sur
+    "formation". Le repli sur radical rattrape en revanche les variantes de
+    la même famille — un membre qui surveille "électricité" doit être alerté
+    d'un marché de "travaux d'installation électrique". Dans un service
+    d'alerte sur appels d'offres, manquer une opportunité coûte plus cher
+    qu'une alerte un peu large, et le membre peut toujours affiner.
+    """
+    k = _norm(keyword)
+    if not k:
+        return False
+    # Mot ou expression exacte, délimité par des frontières de mots.
+    if f" {k} " in f" {haystack_norm} ":
+        return True
+    # Famille de mots: un mot du texte commence par le radical du mot-clé.
+    # Réservé aux mots-clés assez longs, sinon "eau" ou "gaz" rapprocheraient
+    # n'importe quoi.
+    if len(k) >= _STEM_LEN and " " not in k:
+        stem = k[:_STEM_LEN]
+        return any(word.startswith(stem) for word in haystack_norm.split())
+    return False
