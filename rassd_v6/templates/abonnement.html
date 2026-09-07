@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}Mon abonnement — Maroc Entrepreneuriat{% endblock %}
+{% block body %}
+<style>
+.ab-wrap { max-width: 900px; margin: 0 auto; padding: 44px 24px 80px; }
+.ab-hero { margin-bottom: 30px; }
+.ab-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); box-shadow: var(--sh), var(--shg); padding: 26px; margin-bottom: 20px; }
+.ab-card-h { font-family: var(--serif); font-weight: 700; font-size: 19px; color: var(--text1); margin-bottom: 4px; }
+.ab-card-sub { font-size: 13.5px; color: var(--text3); margin-bottom: 20px; line-height: 1.6; }
+
+.plan-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+.plan-now { font-family: var(--serif); font-weight: 700; font-size: 30px; color: var(--text1); line-height: 1.15; }
+.plan-now em { font-style: italic; color: var(--ink); font-weight: 600; }
+.plan-sub { font-size: 13.5px; color: var(--text3); margin-top: 8px; }
+.state-pill { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border-radius: 999px; font-size: 12.5px; font-weight: 700; }
+.state-TRIAL { background: var(--golda); color: var(--goldd); }
+.state-ACTIVE { background: var(--grna); color: var(--grn); }
+.state-EXPIRED, .state-NONE { background: var(--reda); color: var(--red); }
+
+.ab-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r2); overflow: hidden; margin-top: 22px; }
+.ab-cell { background: var(--surface); padding: 16px 18px; }
+.ab-cell-l { font-size: 11px; font-weight: 700; color: var(--goldd); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 6px; }
+.ab-cell-v { font-size: 16px; font-weight: 700; color: var(--text1); }
+
+table.ab-t { width: 100%; border-collapse: collapse; }
+table.ab-t th { font-size: 11px; font-weight: 700; color: var(--text3); letter-spacing: .04em; text-transform: uppercase; text-align: start; padding: 10px 0; border-bottom: 1px solid var(--line); }
+table.ab-t td { padding: 13px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; color: var(--text2); }
+table.ab-t tr:last-child td { border-bottom: none; }
+.doc-link { color: var(--ink); font-weight: 700; font-family: var(--mono); font-size: 12.5px; }
+.ab-empty { font-size: 13.5px; color: var(--text3); padding: 8px 0; }
+@media (max-width: 760px) { .ab-grid { grid-template-columns: 1fr; } }
+</style>
+
+<div class="ab-wrap">
+  <div class="ab-hero">
+    <div class="section-label">{{ tr('sub_my_plan') }}</div>
+    <h1 class="display-l">Mon <em>abonnement</em></h1>
+  </div>
+
+  <div class="ab-card">
+    <div class="plan-head">
+      <div>
+        <div class="plan-now">
+          {% if sub.status == 'TRIAL' %}{{ tr('sub_status_trial') }}
+          {% else %}{{ cfg.PLANS.get(sub.plan, {}).get('name', 'Inactif') }}
+            {% if cfg.PLANS.get(sub.plan, {}).get('price') %}<em>— {{ cfg.PLANS[sub.plan].price }} MAD / {{ cfg.PLANS[sub.plan].period }}</em>{% endif %}
+          {% endif %}
+        </div>
+        <div class="plan-sub">
+          {% if sub.status == 'TRIAL' %}{{ tr('trial_banner', n=sub.days_left) }}
+          {% elif sub.status == 'ACTIVE' %}{% if sub.end_date %}{{ tr('sub_expires_on', d=sub.end_date) }}{% else %}Abonnement actif.{% endif %}
+          {% else %}{{ tr('trial_over_banner') }}{% endif %}
+        </div>
+      </div>
+      <span class="state-pill state-{{ sub.status }}">
+        {% if sub.status=='TRIAL' %}{{ tr('sub_status_trial') }}
+        {% elif sub.status=='ACTIVE' %}{{ tr('sub_status_active') }}
+        {% else %}{{ tr('sub_status_expired') }}{% endif %}
+      </span>
+    </div>
+
+    <div class="ab-grid">
+      <div class="ab-cell">
+        <div class="ab-cell-l">Statut</div>
+        <div class="ab-cell-v">{{ sub.status }}</div>
+      </div>
+      <div class="ab-cell">
+        <div class="ab-cell-l">{{ 'Fin d\'essai' if sub.in_trial else 'Échéance' }}</div>
+        <div class="ab-cell-v">{{ sub.end_date or '—' }}</div>
+      </div>
+      <div class="ab-cell">
+        <div class="ab-cell-l">Jours restants</div>
+        <div class="ab-cell-v" style="color: {% if sub.is_active %}var(--grn){% else %}var(--red){% endif %};">
+          {{ sub.days_left if sub.is_active else 0 }}
+        </div>
+      </div>
+    </div>
+
+    {% if not sub.is_active or sub.in_trial %}
+    <div style="margin-top:20px;">
+      <a href="/tarifs" class="btn btn-accent btn-lg">{{ tr('trial_banner_cta') }}</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="ab-card">
+    <div class="ab-card-h">Paiements</div>
+    <div class="ab-card-sub">Historique des règlements enregistrés pour votre compte.</div>
+    {% if payments %}
+    <table class="ab-t">
+      <tr><th>Date</th><th>Montant</th><th>Moyen</th><th>Période</th></tr>
+      {% for p in payments %}
+      <tr>
+        <td>{{ p.paid_at }}</td>
+        <td style="font-weight:700; color:var(--grn);">{{ p.amount|round(0)|int }} {{ p.currency }}</td>
+        <td>{{ p.method }}</td>
+        <td>{{ p.period_start }} → {{ p.period_end }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <div class="ab-empty">Aucun paiement enregistré pour l'instant.</div>
+    {% endif %}
+  </div>
+
+  <div class="ab-card">
+    <div class="ab-card-h">Contrats &amp; reçus</div>
+    <div class="ab-card-sub">Vos documents sont consultables et téléchargeables (impression / PDF).</div>
+    {% if docs %}
+    <table class="ab-t">
+      <tr><th>Document</th><th>Type</th><th>Émis le</th><th></th></tr>
+      {% for d in docs %}
+      <tr>
+        <td><a href="/documents/{{ d.number }}" class="doc-link">{{ d.number }}</a></td>
+        <td>{{ 'Contrat' if d.doc_type=='contract' else 'Reçu' }}
+          {% if d.doc_type=='contract' %}
+            {% if d.accepted_at %}<span class="badge badge-grn" style="margin-inline-start:6px;">Accepté</span>
+            {% else %}<span class="badge badge-gold" style="margin-inline-start:6px;">À signer</span>{% endif %}
+          {% endif %}
+        </td>
+        <td style="color:var(--text3);">{{ d.created_at[:10] }}</td>
+        <td style="text-align:end;"><a href="/documents/{{ d.number }}" class="btn btn-outline btn-sm">Ouvrir</a></td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <div class="ab-empty">Aucun document pour l'instant — vos contrats et reçus apparaîtront ici après votre premier règlement.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1274,6 +1274,79 @@ async def settings_delete(req: Request, password:str=Form(""), csrf_token:str=Fo
     return r
 
 # ══════════════════════════════════════════════════════════
+# ABONNEMENT · PAIEMENTS · DOCUMENTS
+# ══════════════════════════════════════════════════════════
+def _next_doc_number(db, doc_type: str) -> str:
+    """Numérotation séquentielle par année et par type (REC-2026-0001)."""
+    prefix = "REC" if doc_type == "receipt" else "CTR"
+    year   = datetime.now().year
+    like   = f"{prefix}-{year}-%"
+    n = db.execute("SELECT COUNT(*) FROM documents WHERE number LIKE ?", (like,)).fetchone()[0]
+    return f"{prefix}-{year}-{n+1:04d}"
+
+def _create_document(db, doc_type: str, member: dict, payload: dict,
+                     subscription_id: int = 0, payment_id: int = 0) -> str:
+    number = _next_doc_number(db, doc_type)
+    db.execute(
+        """INSERT INTO documents(doc_type,number,member_id,subscription_id,payment_id,payload,created_at)
+           VALUES(?,?,?,?,?,?,?)""",
+        (doc_type, number, member["id"], subscription_id, payment_id,
+         json.dumps(payload, ensure_ascii=False), datetime.now().isoformat()))
+    return number
+
+@app.get("/mon-abonnement", response_class=HTMLResponse)
+async def my_subscription(req: Request):
+    member = get_member(req)
+    if not member: return RedirectResponse("/login?next=/mon-abonnement", 302)
+    db = get_db()
+    payments = [dict(r) for r in db.execute(
+        "SELECT * FROM payments WHERE member_id=? ORDER BY paid_at DESC", (member["id"],)).fetchall()]
+    docs = [dict(r) for r in db.execute(
+        "SELECT id,doc_type,number,created_at,accepted_at FROM documents WHERE member_id=? ORDER BY id DESC",
+        (member["id"],)).fetchall()]
+    subs = [dict(r) for r in db.execute(
+        "SELECT * FROM subscriptions WHERE member_id=? ORDER BY id DESC LIMIT 5", (member["id"],)).fetchall()]
+    db.close()
+    return render(req, "abonnement.html", {"payments": payments, "docs": docs, "subs": subs})
+
+@app.get("/documents/{number}", response_class=HTMLResponse)
+async def view_document(req: Request, number: str):
+    """Consultation d'un contrat ou reçu. Un membre n'accède qu'à ses propres
+    documents; l'admin peut tous les consulter."""
+    member = get_member(req)
+    is_adm = _is_admin(req)
+    if not member and not is_adm:
+        return RedirectResponse(f"/login?next=/documents/{number}", 302)
+    db = get_db()
+    doc = db.execute("SELECT * FROM documents WHERE number=?", (number,)).fetchone()
+    if not doc or (not is_adm and doc["member_id"] != member["id"]):
+        db.close()
+        return render(req, "404.html", {}, status_code=404)
+    owner = db.execute("SELECT id,nom,email,phone,company FROM members WHERE id=?", (doc["member_id"],)).fetchone()
+    db.close()
+    try:
+        payload = json.loads(doc["payload"] or "{}")
+    except json.JSONDecodeError:
+        payload = {}
+    return render(req, "document.html", {
+        "doc": dict(doc), "payload": payload, "owner": dict(owner) if owner else {}})
+
+@app.post("/documents/{number}/accepter")
+async def accept_document(req: Request, number: str, csrf_token: str = Form("")):
+    """Acceptation électronique du contrat par le membre (horodatée + IP)."""
+    member = get_member(req)
+    csrf_guard(req, csrf_token)
+    if not member: return RedirectResponse("/login", 302)
+    db = get_db()
+    doc = db.execute("SELECT id,member_id,doc_type,accepted_at FROM documents WHERE number=?", (number,)).fetchone()
+    if doc and doc["member_id"] == member["id"] and doc["doc_type"] == "contract" and not doc["accepted_at"]:
+        db.execute("UPDATE documents SET accepted_at=?, accepted_ip=? WHERE id=?",
+                   (datetime.now().isoformat(), get_ip(req), doc["id"]))
+        db.commit()
+    db.close()
+    return RedirectResponse(f"/documents/{number}?accepted=1", 302)
+
+# ══════════════════════════════════════════════════════════
 # ADMIN
 # ══════════════════════════════════════════════════════════
 @app.get("/admin/login", response_class=HTMLResponse)
@@ -1580,6 +1653,96 @@ async def set_plan(req: Request, mid:int, plan:str=Form(""), csrf_token:str=Form
             (plan, mid))
     db.commit(); db.close()
     return RedirectResponse("/admin",302)
+
+@app.get("/admin/payments", response_class=HTMLResponse)
+async def admin_payments(req: Request):
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    db = get_db()
+    payments = [dict(r) for r in db.execute("""
+        SELECT p.*, m.nom AS member_nom, m.email AS member_email,
+               (SELECT number FROM documents d WHERE d.payment_id=p.id AND d.doc_type='receipt' LIMIT 1) AS receipt
+        FROM payments p LEFT JOIN members m ON m.id=p.member_id
+        ORDER BY p.paid_at DESC LIMIT 200""").fetchall()]
+    members = [dict(r) for r in db.execute(
+        "SELECT id,nom,email,plan,subscription_end FROM members WHERE actif=1 ORDER BY created_at DESC").fetchall()]
+    total = db.execute("SELECT COALESCE(SUM(amount),0) FROM payments WHERE status='PAID'").fetchone()[0]
+    this_month = db.execute(
+        "SELECT COALESCE(SUM(amount),0) FROM payments WHERE status='PAID' AND paid_at>=date('now','start of month')"
+    ).fetchone()[0]
+    db.close()
+    csrf_tok = get_csrf_token(req) or secrets.token_urlsafe(24)
+    resp = templates.TemplateResponse("admin_payments.html", {
+        "request": req, "cfg": cfg, "payments": payments, "members": members,
+        "total": total, "this_month": this_month, "csrf_token": csrf_tok})
+    if not req.cookies.get("_csrf"):
+        resp.set_cookie("_csrf", csrf_tok, max_age=86400*30, httponly=True, samesite="lax", secure=COOKIE_SECURE)
+    return resp
+
+@app.post("/admin/payments/record")
+async def admin_record_payment(req: Request, member_id:int=Form(...), plan:str=Form("monthly"),
+                                amount:float=Form(0), method:str=Form("Virement"),
+                                reference:str=Form(""), note:str=Form(""), csrf_token:str=Form("")):
+    """Enregistre un paiement encaissé hors plateforme, active/prolonge
+    l'abonnement et génère automatiquement le reçu et le contrat."""
+    if not _is_admin(req): return JSONResponse({"ok": False}, 401)
+    csrf_guard(req, csrf_token)
+    if plan not in cfg.PLANS or plan == "free":
+        return RedirectResponse("/admin/payments?err=plan", 302)
+    now    = datetime.now()
+    months = cfg.PLANS[plan].get("months", 1) or 1
+    price  = float(amount) if amount else float(cfg.PLANS[plan].get("price", 0))
+    db = get_db()
+    member = db.execute("SELECT * FROM members WHERE id=?", (member_id,)).fetchone()
+    if not member:
+        db.close()
+        return RedirectResponse("/admin/payments?err=member", 302)
+    member = dict(member)
+    # Renouvellement: on prolonge depuis l'échéance en cours si elle est future
+    base = now.date()
+    if member.get("subscription_end"):
+        try:
+            prev = datetime.strptime(member["subscription_end"][:10], "%Y-%m-%d").date()
+            if prev > base: base = prev
+        except ValueError:
+            pass
+    period_start = base.strftime("%Y-%m-%d")
+    period_end   = (base + timedelta(days=int(months * 30.44))).strftime("%Y-%m-%d")
+
+    cur = db.execute(
+        """INSERT INTO payments(member_id,amount,currency,method,reference,status,
+           period_start,period_end,paid_at,recorded_by,note,created_at)
+           VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (member_id, price, "MAD", method.strip()[:40], reference.strip()[:80], "PAID",
+         period_start, period_end, now.strftime("%Y-%m-%d"), "admin", note.strip()[:300], now.isoformat()))
+    payment_id = cur.lastrowid
+    cur2 = db.execute(
+        """INSERT INTO subscriptions(member_id,plan_id,price,currency,status,start_date,end_date,
+           payment_id,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)""",
+        (member_id, plan, price, "MAD", "ACTIVE", period_start, period_end,
+         payment_id, now.isoformat(), now.isoformat()))
+    sub_id = cur2.lastrowid
+    db.execute("UPDATE payments SET subscription_id=? WHERE id=?", (sub_id, payment_id))
+    db.execute(
+        "UPDATE members SET plan=?, subscription_status='ACTIVE', subscription_end=? WHERE id=?",
+        (plan, period_end, member_id))
+
+    common = {
+        "plan_id": plan, "plan_name": cfg.PLANS[plan].get("name", plan),
+        "price": price, "currency": "MAD",
+        "period_start": period_start, "period_end": period_end,
+        "method": method.strip()[:40], "reference": reference.strip()[:80],
+        "paid_at": now.strftime("%d/%m/%Y"),
+        "customer": {"nom": member.get("nom",""), "company": member.get("company",""),
+                      "email": member.get("email",""), "phone": member.get("phone","")},
+        "issuer": {"name": cfg.COMPANY_NAME, "form": cfg.COMPANY_FORM,
+                    "ice": cfg.COMPANY_ICE, "address": cfg.COMPANY_ADDRESS,
+                    "email": cfg.CONTACT_EMAIL},
+    }
+    receipt_no  = _create_document(db, "receipt", member, common, sub_id, payment_id)
+    contract_no = _create_document(db, "contract", member, common, sub_id, payment_id)
+    db.commit(); db.close()
+    logger.info(f"[payment] {price} MAD · membre {member_id} · {receipt_no}")
+    return RedirectResponse(f"/admin/payments?ok={receipt_no}", 302)
 
 @app.post("/admin/member/{mid}/toggle")
 async def toggle_member(req: Request, mid:int, csrf_token:str=Form("")):
