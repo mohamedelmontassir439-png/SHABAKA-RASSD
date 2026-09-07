@@ -80,6 +80,53 @@
     </section>
 
     <section class="set-block">
+      <div class="set-block-h">{{ tr('set_filters_h') }}</div>
+      <div class="set-block-sub">{{ tr('set_filters_sub') }}</div>
+
+      <div class="field" style="margin-bottom:18px;">
+        <label for="notif_keywords">{{ tr('set_filter_keywords') }}</label>
+        <input id="notif_keywords" name="notif_keywords" value="{{ member.notif_keywords or '' }}"
+               class="inp" maxlength="500" placeholder="{{ tr('set_filter_keywords_ph') }}">
+        <div style="font-size:12px; color:var(--text4); margin-top:5px;">{{ tr('set_filter_keywords_hint') }}</div>
+      </div>
+
+      <div class="grid-2" style="gap:20px; margin-bottom:18px;">
+        <div class="field">
+          <label for="notif_min_budget">{{ tr('set_filter_budget') }}</label>
+          <input id="notif_min_budget" name="notif_min_budget" type="number" min="0" step="1000"
+                 value="{{ member.notif_min_budget or 0 }}" class="inp" placeholder="0">
+          <div style="font-size:12px; color:var(--text4); margin-top:5px;">{{ tr('set_filter_budget_hint') }}</div>
+        </div>
+        <div class="field">
+          <label>{{ tr('set_filter_types') }}</label>
+          <div class="sector-chips">
+            {% for val, lbl in [('Public', tr('tenders_public')), ('Privé', tr('tenders_private')), ('bon_commande', tr('tenders_bc'))] %}
+            <label class="sector-chip">
+              <input type="checkbox" name="notif_types_sel" value="{{ val }}" {% if val in my_types %}checked{% endif %}>
+              <span>{{ lbl }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      {% if all_regions %}
+      <div class="field">
+        <label>{{ tr('set_filter_regions') }}</label>
+        <div class="sector-chips" style="max-height:190px; overflow-y:auto;">
+          {% for reg in all_regions %}
+          <label class="sector-chip">
+            <input type="checkbox" name="notif_regions_sel" value="{{ reg }}" {% if reg in my_regions %}checked{% endif %}>
+            <span>{{ reg[:26] }}</span>
+          </label>
+          {% endfor %}
+        </div>
+        <div style="font-size:12px; color:var(--text4); margin-top:7px;">{{ tr('set_filter_regions_hint') }}</div>
+      </div>
+      {% endif %}
+    </section>
+
+    <section class="set-block">
       <div class="set-block-h">{{ tr('set_channels')|safe }}</div>
       <div class="set-block-sub">{{ tr('set_channels_sub') }}</div>
       {% for fn, label, desc in [
@@ -124,6 +171,53 @@
       <button type="submit" class="btn btn-accent">{{ tr('set_save') }}</button>
     </div>
   </form>
+
+  <section class="set-block">
+    <div class="set-block-h">{{ tr('set_wa_verify_h') }}</div>
+    <div class="set-block-sub">{{ tr('set_wa_verify_sub') }}</div>
+
+    {% set wa_st = request.query_params.get('wa') %}
+    {% if wa_st == 'sent' %}<div class="alert alert-ok" style="margin-bottom:16px;">{{ tr('set_wa_code_sent') }}</div>
+    {% elif wa_st == 'verified' %}<div class="alert alert-ok" style="margin-bottom:16px;">{{ tr('set_wa_verified_ok') }}</div>
+    {% elif wa_st == 'wrong' %}<div class="alert alert-err" style="margin-bottom:16px;">{{ tr('set_wa_code_wrong') }}</div>
+    {% elif wa_st == 'expired' or wa_st == 'nocode' %}<div class="alert alert-err" style="margin-bottom:16px;">{{ tr('set_wa_code_expired') }}</div>
+    {% elif wa_st == 'failed' %}<div class="alert alert-err" style="margin-bottom:16px;">{{ tr('set_wa_send_failed') }}</div>
+    {% elif wa_st == 'nonumber' %}<div class="alert alert-err" style="margin-bottom:16px;">{{ tr('set_wa_no_number') }}</div>
+    {% elif wa_st == 'toomany' %}<div class="alert alert-err" style="margin-bottom:16px;">{{ tr('err_too_many_generic') }}</div>
+    {% elif wa_st == 'optout' %}<div class="alert alert-ok" style="margin-bottom:16px;">{{ tr('set_wa_optout_ok') }}</div>
+    {% endif %}
+
+    {% if member.whatsapp_verified %}
+    <div class="danger-row" style="border-bottom:none;">
+      <div>
+        <div class="danger-row-title"><span class="badge badge-grn">✓ {{ tr('set_wa_verified_badge') }}</span></div>
+        <div class="danger-row-desc">{{ tr('set_wa_verified_desc', phone=member.whatsapp) }}</div>
+      </div>
+      <form method="post" action="/settings/whatsapp/optout">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" class="btn btn-outline btn-sm">{{ tr('set_wa_optout_cta') }}</button>
+      </form>
+    </div>
+    {% elif member.whatsapp %}
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;">
+      <form method="post" action="/settings/whatsapp/send-code">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" class="btn btn-primary">{{ tr('set_wa_send_code') }}</button>
+      </form>
+      <form method="post" action="/settings/whatsapp/confirm" style="display:flex; gap:8px; align-items:flex-end;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="field">
+          <label for="wacode">{{ tr('set_wa_code_label') }}</label>
+          <input id="wacode" name="code" class="inp mono" inputmode="numeric" pattern="[0-9]{6}"
+                 maxlength="6" style="width:130px; letter-spacing:.18em;" placeholder="123456">
+        </div>
+        <button type="submit" class="btn btn-outline">{{ tr('set_wa_confirm_cta') }}</button>
+      </form>
+    </div>
+    {% else %}
+    <div class="ab-empty" style="font-size:13.5px; color:var(--text3);">{{ tr('set_wa_no_number') }}</div>
+    {% endif %}
+  </section>
 
   <section class="set-block">
     <div class="set-block-h">{{ tr('set_referral_h') }}</div>

@@ -275,6 +275,19 @@ def migrate_db():
         "ALTER TABLE members ADD COLUMN subscription_end TEXT DEFAULT ''",
         "ALTER TABLE members ADD COLUMN email_verified INTEGER DEFAULT 0",
         "ALTER TABLE members ADD COLUMN whatsapp_verified INTEGER DEFAULT 0",
+        # Consentement WhatsApp + vérification du numéro
+        "ALTER TABLE members ADD COLUMN wa_optin_at TEXT DEFAULT ''",
+        "ALTER TABLE members ADD COLUMN wa_verify_code TEXT DEFAULT ''",
+        "ALTER TABLE members ADD COLUMN wa_verify_expires TEXT DEFAULT ''",
+        # Filtres d'alerte (moteur de correspondance)
+        "ALTER TABLE members ADD COLUMN notif_regions TEXT DEFAULT '[]'",
+        "ALTER TABLE members ADD COLUMN notif_keywords TEXT DEFAULT ''",
+        "ALTER TABLE members ADD COLUMN notif_min_budget INTEGER DEFAULT 0",
+        "ALTER TABLE members ADD COLUMN notif_types TEXT DEFAULT '[]'",
+        # Journal de notification: statut de livraison
+        "ALTER TABLE notif_log ADD COLUMN status TEXT DEFAULT 'SENT'",
+        "ALTER TABLE notif_log ADD COLUMN error TEXT DEFAULT ''",
+        "ALTER TABLE notif_log ADD COLUMN provider TEXT DEFAULT ''",
     ]
     for col in cols:
         try:

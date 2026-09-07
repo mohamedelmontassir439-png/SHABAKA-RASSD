@@ -1162,11 +1162,22 @@ async def settings_get(req: Request):
         db.execute("UPDATE members SET referral_code=? WHERE id=?", (code, member["id"]))
         db.commit(); db.close()
     ms = clean_secteurs(json.loads(member.get("secteurs","[]") or "[]"))
-    referral_count = 0
     db2 = get_db()
     referral_count = db2.execute("SELECT COUNT(*) FROM members WHERE referred_by=?", (member["id"],)).fetchone()[0]
+    all_regions = [r[0] for r in db2.execute(
+        "SELECT DISTINCT region FROM tenders WHERE region!='' AND statut='actif' ORDER BY region LIMIT 80").fetchall()]
     db2.close()
-    return render(req,"settings.html",{"ms":ms,"referral_count":referral_count})
+    try:
+        my_regions = json.loads(member.get("notif_regions","[]") or "[]")
+    except json.JSONDecodeError:
+        my_regions = []
+    try:
+        my_types = json.loads(member.get("notif_types","[]") or "[]")
+    except json.JSONDecodeError:
+        my_types = []
+    return render(req,"settings.html",{
+        "ms": ms, "referral_count": referral_count, "all_regions": all_regions,
+        "my_regions": my_regions, "my_types": my_types})
 
 @app.post("/settings")
 async def settings_post(req: Request,
@@ -1184,14 +1195,92 @@ async def settings_post(req: Request,
     n_wa     = 1 if form.get("notif_wa")     else 0
     whatsapp = form.get("whatsapp","").strip()
     sects    = clean_secteurs(secteurs_sel)
+    # Filtres du moteur de correspondance
+    regions  = [r.strip() for r in form.getlist("notif_regions_sel") if r and r.strip()]
+    types    = [t.strip() for t in form.getlist("notif_types_sel") if t and t.strip()]
+    keywords = form.get("notif_keywords","").strip()[:500]
+    try:
+        min_budget = max(0, int(float(form.get("notif_min_budget") or 0)))
+    except (TypeError, ValueError):
+        min_budget = 0
+    # Changer de numéro invalide la vérification: le nouveau numéro doit être
+    # confirmé à son tour avant de recevoir la moindre alerte WhatsApp.
+    wa_verified = member.get("whatsapp_verified", 0)
+    if whatsapp != (member.get("whatsapp") or ""):
+        wa_verified = 0
     db = get_db()
     try:
         db.execute(
-            "UPDATE members SET nom=?,phone=?,company=?,telegram=?,whatsapp=?,notif_email=?,notif_tg=?,notif_wa=?,notif_digest=?,secteurs=? WHERE id=?",
-            (nom,phone,company,telegram.strip(),whatsapp,n_email,n_tg,n_wa,n_digest,json.dumps(sects),member["id"]))
+            """UPDATE members SET nom=?,phone=?,company=?,telegram=?,whatsapp=?,
+               notif_email=?,notif_tg=?,notif_wa=?,notif_digest=?,secteurs=?,
+               notif_regions=?,notif_types=?,notif_keywords=?,notif_min_budget=?,
+               whatsapp_verified=? WHERE id=?""",
+            (nom,phone,company,telegram.strip(),whatsapp,n_email,n_tg,n_wa,n_digest,
+             json.dumps(sects),json.dumps(regions),json.dumps(types),keywords,min_budget,
+             wa_verified,member["id"]))
         db.commit()
     finally: db.close()
     return RedirectResponse("/settings?ok=1",302)
+
+@app.post("/settings/whatsapp/send-code")
+async def wa_send_code(req: Request, csrf_token: str = Form("")):
+    """Envoie un code de vérification au numéro WhatsApp du membre (opt-in)."""
+    member = get_member(req)
+    csrf_guard(req, csrf_token)
+    if not member: return RedirectResponse("/login", 302)
+    if not member.get("whatsapp"):
+        return RedirectResponse("/settings?wa=nonumber", 302)
+    if not check_rate_limit(f"wa_code_{member['id']}", 5, 3600):
+        return RedirectResponse("/settings?wa=toomany", 302)
+    from app.services.notifications import send_wa_verification
+    code    = f"{secrets.randbelow(1000000):06d}"
+    expires = (datetime.now() + timedelta(minutes=15)).isoformat()
+    db = get_db()
+    db.execute("UPDATE members SET wa_verify_code=?, wa_verify_expires=? WHERE id=?",
+               (code, expires, member["id"]))
+    db.commit(); db.close()
+    ok = send_wa_verification(member["whatsapp"], code)
+    return RedirectResponse(f"/settings?wa={'sent' if ok else 'failed'}", 302)
+
+@app.post("/settings/whatsapp/confirm")
+async def wa_confirm(req: Request, code: str = Form(""), csrf_token: str = Form("")):
+    """Confirme le code reçu et enregistre le consentement WhatsApp."""
+    member = get_member(req)
+    csrf_guard(req, csrf_token)
+    if not member: return RedirectResponse("/login", 302)
+    if not check_rate_limit(f"wa_confirm_{member['id']}", 10, 900):
+        return RedirectResponse("/settings?wa=toomany", 302)
+    stored  = (member.get("wa_verify_code") or "").strip()
+    expires = member.get("wa_verify_expires") or ""
+    if not stored or not expires:
+        return RedirectResponse("/settings?wa=nocode", 302)
+    try:
+        if datetime.fromisoformat(expires) < datetime.now():
+            return RedirectResponse("/settings?wa=expired", 302)
+    except ValueError:
+        return RedirectResponse("/settings?wa=expired", 302)
+    if not secrets.compare_digest(stored, code.strip()):
+        return RedirectResponse("/settings?wa=wrong", 302)
+    db = get_db()
+    db.execute(
+        """UPDATE members SET whatsapp_verified=1, wa_optin_at=?, notif_wa=1,
+           wa_verify_code='', wa_verify_expires='' WHERE id=?""",
+        (datetime.now().isoformat(), member["id"]))
+    db.commit(); db.close()
+    return RedirectResponse("/settings?wa=verified", 302)
+
+@app.post("/settings/whatsapp/optout")
+async def wa_optout(req: Request, csrf_token: str = Form("")):
+    """Retrait du consentement WhatsApp (opt-out immédiat)."""
+    member = get_member(req)
+    csrf_guard(req, csrf_token)
+    if not member: return RedirectResponse("/login", 302)
+    db = get_db()
+    db.execute(
+        "UPDATE members SET notif_wa=0, whatsapp_verified=0, wa_optin_at='' WHERE id=?",
+        (member["id"],))
+    db.commit(); db.close()
+    return RedirectResponse("/settings?wa=optout", 302)
 
 @app.get("/settings/export")
 async def settings_export(req: Request):

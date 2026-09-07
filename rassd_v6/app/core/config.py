@@ -40,6 +40,11 @@ class Settings:
     # WhatsApp (service Baileys séparé)
     WA_SERVICE_URL: str = os.getenv("WA_SERVICE_URL", "http://localhost:3001")
     WA_SECRET:      str = os.getenv("WA_SECRET", "atlas_wa_secret_2024")
+    # WhatsApp via Twilio — utilisé automatiquement si ces variables sont
+    # renseignées, sinon on reste sur le service Baileys existant.
+    TWILIO_SID:        str = os.getenv("TWILIO_ACCOUNT_SID", "")
+    TWILIO_AUTH_TOKEN: str = os.getenv("TWILIO_AUTH_TOKEN", "")
+    TWILIO_WA_FROM:    str = os.getenv("TWILIO_WHATSAPP_FROM", "")
     # Abonnement (mise à niveau manuelle via WhatsApp)
     PAYMENT_PHONE: str = os.getenv("PAYMENT_PHONE", "")
     PAYMENT_MSG:   str = os.getenv("PAYMENT_MSG", "Bonjour, je souhaite m'abonner à MAROC ENTREPRENEURIAT")

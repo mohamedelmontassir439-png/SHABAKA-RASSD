@@ -9,13 +9,45 @@ from app.core.sectors   import get_label
 
 logger = logging.getLogger("atlas.notif")
 
+from app.services.matching import matches
+
 try:
-    from app.services.whatsapp import send_wa, format_tender_wa
+    from app.services.whatsapp import send_wa, format_tender_wa, twilio_configured
     WA_OK = True
 except Exception:
     WA_OK = False
     def send_wa(*a, **kw): return False
     def format_tender_wa(t): return ""
+    def twilio_configured(): return False
+
+
+def _log_notif(db, member_id: int, tender_id: str, channel: str,
+               ok: bool, error: str = "", provider: str = ""):
+    """Journalise chaque tentative d'envoi, réussie ou non.
+
+    Les échecs sont enregistrés au même titre que les réussites: sans cela,
+    un canal qui tombe en panne reste invisible et le marché serait retenté
+    indéfiniment à chaque cycle (la déduplication se base sur ce journal).
+    """
+    try:
+        db.execute(
+            """INSERT INTO notif_log(member_id,tender_id,channel,sent_at,status,error,provider)
+               VALUES(?,?,?,?,?,?,?)""",
+            (member_id, tender_id, channel, datetime.now().isoformat(),
+             "SENT" if ok else "FAILED", (error or "")[:300], provider))
+    except Exception as e:
+        logger.error(f"[notif_log] {e}")
+
+
+def send_wa_verification(phone: str, code: str) -> bool:
+    """Envoie le code de vérification WhatsApp (opt-in)."""
+    return send_wa(phone, (
+        f"🔐 Maroc Entrepreneuriat\n\n"
+        f"Votre code de vérification WhatsApp : *{code}*\n\n"
+        f"Saisissez-le sur la page Réglages pour activer les alertes WhatsApp.\n"
+        f"Ce code expire dans 15 minutes.\n\n"
+        f"Si vous n'êtes pas à l'origine de cette demande, ignorez ce message."
+    ))
 
 # ── Telegram ─────────────────────────────────────────────
 
@@ -277,11 +309,11 @@ def dispatch_notifications(tenders: list):
             # principe que le blocage appliqué aux pages du site.
             if not has_access(member):
                 continue
-            member_secteurs = json.loads(member.get("secteurs", "[]") or "[]")
-
             for t in tenders:
-                # Filtre secteur
-                if member_secteurs and t.get("secteur") not in member_secteurs:
+                # Moteur de correspondance: secteur, région, type, budget
+                # minimum et mots-clés (un filtre vide = aucune restriction).
+                ok_match, _reason = matches(member, t)
+                if not ok_match:
                     total_skip += 1
                     continue
                 # Dédup
@@ -302,11 +334,9 @@ def dispatch_notifications(tenders: list):
                 # Telegram
                 if member.get("notif_tg") and member.get("telegram"):
                     ok = tg_send(member["telegram"], build_tg_message(t))
+                    _log_notif(db, member["id"], t["id"], "telegram", ok,
+                               "" if ok else "échec envoi Telegram", "telegram")
                     if ok:
-                        db.execute(
-                            "INSERT INTO notif_log(member_id,tender_id,channel,sent_at) VALUES(?,?,?,?)",
-                            (member["id"], t["id"], "telegram", now)
-                        )
                         total_tg += 1
                     else:
                         logger.warning(f"[Notif] TG failed pour {member['email']}")
@@ -319,24 +349,29 @@ def dispatch_notifications(tenders: list):
                         f"📋 Nouveau marché: {t['objet'][:60]}",
                         html
                     )
+                    _log_notif(db, member["id"], t["id"], "email", ok,
+                               "" if ok else "échec envoi email",
+                               "brevo" if cfg.BREVO_KEY else "gmail")
                     if ok:
-                        db.execute(
-                            "INSERT INTO notif_log(member_id,tender_id,channel,sent_at) VALUES(?,?,?,?)",
-                            (member["id"], t["id"], "email", now)
-                        )
                         total_email += 1
 
-                # WhatsApp
+                # WhatsApp — n'est envoyé qu'à un numéro dont le membre a
+                # confirmé la propriété (opt-in vérifié par code). Sans cette
+                # condition on enverrait des messages non sollicités, ce que
+                # les règles WhatsApp/Twilio interdisent.
                 if member.get("notif_wa") and member.get("whatsapp"):
-                    ok = send_wa(member["whatsapp"], format_tender_wa(t))
-                    if ok:
-                        db.execute(
-                            "INSERT INTO notif_log(member_id,tender_id,channel,sent_at) VALUES(?,?,?,?)",
-                            (member["id"], t["id"], "whatsapp", now)
-                        )
-                        total_wa += 1
+                    if not member.get("whatsapp_verified"):
+                        _log_notif(db, member["id"], t["id"], "whatsapp", False,
+                                   "numéro non vérifié (opt-in requis)", "")
                     else:
-                        logger.warning(f"[Notif] WA failed pour {member['email']}")
+                        ok = send_wa(member["whatsapp"], format_tender_wa(t))
+                        _log_notif(db, member["id"], t["id"], "whatsapp", ok,
+                                   "" if ok else "échec envoi WhatsApp",
+                                   "twilio" if twilio_configured() else "baileys")
+                        if ok:
+                            total_wa += 1
+                        else:
+                            logger.warning(f"[Notif] WA failed pour {member['email']}")
 
         db.commit()
         logger.info(
