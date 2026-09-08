@@ -261,3 +261,38 @@ class TestEssaiGratuitSurLaLanding:
     def test_essai_annonce_sur_la_page_tarifs(self, client):
         page = client.get("/tarifs").text
         assert "Essai gratuit" in page and "Sans carte bancaire" in page
+
+
+class TestCompteDansLeTableauDeBord:
+    def test_le_tableau_de_bord_affiche_la_gestion_du_compte(self, client, db):
+        _register(client, "compte@example.com", company="Atlas SARL")
+        page = client.get("/dashboard").text
+        assert "Mon compte" in page
+        assert "compte@example.com" in page and "Atlas SARL" in page
+        assert 'action="/settings/delete"' in page, "le membre doit pouvoir supprimer son compte d'ici"
+        assert 'href="/settings/export"' in page
+        assert 'href="/mon-abonnement"' in page
+
+    def test_gestion_du_compte_visible_meme_apres_expiration(self, client, db):
+        """Un essai expiré suspend l'accès aux marchés, pas la maîtrise du compte."""
+        from datetime import date, timedelta
+        _register(client, "expire@example.com")
+        past = (date.today() - timedelta(days=1)).strftime("%Y-%m-%d")
+        db.execute("UPDATE members SET trial_ends=? WHERE email=?", (past, "expire@example.com"))
+        db.commit()
+
+        page = client.get("/dashboard")
+        assert page.status_code == 200
+        assert "Mon compte" in page.text
+        assert 'action="/settings/delete"' in page.text
+
+    def test_suppression_depuis_le_tableau_de_bord(self, client, db):
+        _register(client, "viadash@example.com")
+        mid = db.execute("SELECT id FROM members WHERE email=?",
+                         ("viadash@example.com",)).fetchone()["id"]
+        client.get("/dashboard")
+        token = client.cookies.get("_csrf")
+        r = client.post("/settings/delete",
+                        data={"password": "MotDePasse1!", "csrf_token": token})
+        assert r.status_code == 302
+        assert db.execute("SELECT COUNT(*) FROM members WHERE id=?", (mid,)).fetchone()[0] == 0

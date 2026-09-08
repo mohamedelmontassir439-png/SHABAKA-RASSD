@@ -25,6 +25,31 @@
 
 .mid-row { display: grid; grid-template-columns: 1fr 1.3fr; gap: 16px; align-items: stretch; }
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); box-shadow: var(--sh), var(--shg); padding: 20px 22px; display: flex; flex-direction: column; }
+
+/* ── Mon compte ────────────────────────────────────────── */
+.account-panel { margin-top: 18px; }
+.account-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r2); overflow: hidden; margin-bottom: 18px; }
+.account-cell { background: var(--surface); padding: 14px 16px; min-width: 0; }
+.account-label { font-size: 11px; font-weight: 700; color: var(--goldd); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 6px; }
+.account-value { font-size: 14.5px; font-weight: 700; color: var(--text1); overflow-wrap: anywhere; }
+.account-pill { display: inline-flex; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; margin-inline-start: 4px; }
+.account-pill-trial { background: var(--golda); color: var(--goldd); }
+.account-pill-ok { background: var(--grna); color: var(--grn); }
+.account-pill-off { background: var(--reda); color: var(--red); }
+.account-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.account-danger { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+.account-danger summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--red); list-style: none; display: inline-flex; align-items: center; gap: 6px; }
+.account-danger summary::-webkit-details-marker { display: none; }
+.account-danger summary::before { content: "🗑"; }
+.account-danger-box { margin-top: 12px; padding: 14px 16px; background: var(--reda); border: 1px solid rgba(200,67,63,.25); border-radius: var(--r2); max-width: 560px; }
+.account-danger-warn { font-size: 12.5px; color: var(--text2); line-height: 1.6; margin-bottom: 12px; }
+.account-danger-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.account-danger-form .inp { width: 200px; }
+@media (max-width: 900px) {
+  .account-grid { grid-template-columns: 1fr 1fr; }
+  .account-danger-form .inp { width: 100%; }
+}
+@media (max-width: 520px) { .account-grid { grid-template-columns: 1fr; } }
 .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .panel-title { font-weight: 700; font-size: 14.5px; color: var(--text1); }
 .panel-link { font-size: 12.5px; font-weight: 600; color: var(--goldd); }
@@ -252,5 +277,64 @@
     </div>
   </div>
 {% endif %}
+
+  {# Mon compte — volontairement placé hors du bloc "locked": un membre dont
+     l'essai a expiré doit garder la main sur son compte et ses données,
+     l'accès aux marchés étant la seule chose suspendue. #}
+  <div class="panel account-panel">
+    <div class="panel-head">
+      <div class="panel-title">{{ tr('dash_account_title') }}</div>
+      <a href="/settings" class="btn btn-outline btn-sm">{{ tr('dash_account_edit') }}</a>
+    </div>
+
+    <div class="account-grid">
+      <div class="account-cell">
+        <div class="account-label">{{ tr('set_name') }}</div>
+        <div class="account-value">{{ member.nom or '—' }}</div>
+      </div>
+      <div class="account-cell">
+        <div class="account-label">Email</div>
+        <div class="account-value">{{ member.email }}</div>
+      </div>
+      <div class="account-cell">
+        <div class="account-label">{{ tr('set_company') }}</div>
+        <div class="account-value">{{ member.company or '—' }}</div>
+      </div>
+      <div class="account-cell">
+        <div class="account-label">{{ tr('sub_my_plan') }}</div>
+        <div class="account-value">
+          {% if sub.status == 'TRIAL' %}
+            {{ tr('sub_status_trial') }}
+            <span class="account-pill account-pill-trial">{{ tr('sub_days_left', n=sub.days_left) }}</span>
+          {% elif sub.status == 'ACTIVE' %}
+            {{ cfg.PLANS.get(sub.plan, {}).get('name', '—') }}
+            <span class="account-pill account-pill-ok">{{ tr('sub_status_active') }}</span>
+          {% else %}
+            <span class="account-pill account-pill-off">{{ tr('sub_status_expired') }}</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="account-actions">
+      <a href="/mon-abonnement" class="btn btn-primary btn-sm">{{ tr('dash_account_sub') }}</a>
+      <a href="/settings" class="btn btn-outline btn-sm">{{ tr('dash_account_alerts') }}</a>
+      <a href="/settings/export" class="btn btn-outline btn-sm">{{ tr('set_export_cta') }}</a>
+    </div>
+
+    <details class="account-danger">
+      <summary>{{ tr('set_delete_title') }}</summary>
+      <div class="account-danger-box">
+        <div class="account-danger-warn">{{ tr('set_delete_desc') }}</div>
+        <form method="post" action="/settings/delete" class="account-danger-form"
+              onsubmit="return confirm('{{ tr('set_delete_confirm') }}');">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="password" name="password" class="inp"
+                 placeholder="{{ tr('set_delete_pw_placeholder') }}" required>
+          <button type="submit" class="btn btn-danger btn-sm">{{ tr('set_delete_cta') }}</button>
+        </form>
+      </div>
+    </details>
+  </div>
 </div>
 {% endblock %}
