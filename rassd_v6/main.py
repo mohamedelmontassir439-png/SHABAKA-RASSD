@@ -1749,6 +1749,7 @@ class PlacesState:
     stats     = {}
     started   = ""
     finished  = ""
+    moteur    = "places"
 
     @classmethod
     def log(cls, msg: str):
@@ -1759,27 +1760,32 @@ class PlacesState:
         logger.info(f"[places] {msg}")
 
 
-async def _run_places_collect(secteurs: list, villes: list, avec_email: bool):
-    from app.services.places_scraper import collecter
+async def _run_places_collect(secteurs: list, villes: list, avec_email: bool,
+                               moteur: str = "places"):
+    if moteur == "maps":
+        from app.services.maps_scraper import collecter
+    else:
+        from app.services.places_scraper import collecter
+    PlacesState.moteur   = moteur
     PlacesState.running  = True
     PlacesState.logs     = []
     PlacesState.stats    = {}
     PlacesState.started  = datetime.now().isoformat()
     PlacesState.finished = ""
     debut = datetime.now()
-    PlacesState.log(f"Démarrage — {len(secteurs)} secteur(s) × {len(villes)} ville(s)")
+    PlacesState.log(f"Démarrage [{moteur}] — {len(secteurs)} secteur(s) × {len(villes)} ville(s)")
     try:
         loop = asyncio.get_event_loop()
         stats = await loop.run_in_executor(
             None, lambda: collecter(secteurs, villes, PlacesState.log, avec_email))
         PlacesState.stats = stats
-        _record_run("google-places", "SUCCESS" if not stats.get("erreurs") else "PARTIAL",
+        _record_run(f"google-{moteur}", "SUCCESS" if not stats.get("erreurs") else "PARTIAL",
                     stats.get("trouvees", 0), stats.get("creees", 0),
                     stats.get("erreurs", 0), started=debut)
     except Exception as e:
         PlacesState.log(f"❌ {e}")
         logger.error(f"[places] {e}", exc_info=True)
-        _record_run("google-places", "FAILED", errors=1, started=debut, message=str(e))
+        _record_run(f"google-{moteur}", "FAILED", errors=1, started=debut, message=str(e))
     finally:
         PlacesState.running  = False
         PlacesState.finished = datetime.now().isoformat()
@@ -1791,10 +1797,11 @@ async def admin_companies_collect(req: Request, csrf_token: str = Form("")):
     csrf_guard(req, csrf_token)
     if PlacesState.running:
         return RedirectResponse("/admin/companies?collect=deja", 302)
-    if not cfg.GOOGLE_PLACES_API_KEY:
+    form     = await req.form()
+    moteur   = "maps" if form.get("moteur") == "maps" else "places"
+    if moteur == "places" and not cfg.GOOGLE_PLACES_API_KEY:
         return RedirectResponse("/admin/companies?collect=nokey", 302)
     from app.services.places_scraper import VILLES
-    form     = await req.form()
     secteurs = [s for s in form.getlist("secteurs") if s in cfg.SECTEURS]
     villes   = [v for v in form.getlist("villes") if v in VILLES]
     if not secteurs:
@@ -1802,17 +1809,65 @@ async def admin_companies_collect(req: Request, csrf_token: str = Form("")):
     if not villes:
         villes = VILLES[:5]
     avec_email = bool(form.get("avec_email"))
-    asyncio.create_task(_run_places_collect(secteurs, villes, avec_email))
+    asyncio.create_task(_run_places_collect(secteurs, villes, avec_email, moteur))
     return RedirectResponse("/admin/companies?collect=lance", 302)
 
 @app.get("/admin/companies/collect_status")
 async def admin_companies_collect_status(req: Request):
     if not _is_admin(req): return JSONResponse({"ok": False}, 401)
     return JSONResponse({
-        "ok": True, "running": PlacesState.running,
+        "ok": True, "running": PlacesState.running, "moteur": PlacesState.moteur,
         "logs": PlacesState.logs[-60:], "stats": PlacesState.stats,
         "started": PlacesState.started, "finished": PlacesState.finished,
     })
+
+@app.post("/admin/companies/import")
+async def admin_companies_import(req: Request):
+    """Importe un fichier JSON produit par collecte_maps.py sur un poste local.
+
+    Le serveur n'embarque pas de navigateur: la collecte Google Maps tourne
+    sur la machine de l'admin, et son résultat est déversé ici. Les fiches
+    passent par la même déduplication que les autres sources.
+    """
+    if not _is_admin(req): return JSONResponse({"ok": False}, 401)
+    form = await req.form()
+    csrf_guard(req, form.get("csrf_token", ""))
+    fichier = form.get("fichier")
+    if not fichier or not hasattr(fichier, "read"):
+        return RedirectResponse("/admin/companies?import=nofile", 302)
+    contenu = await fichier.read()
+    if len(contenu) > 8 * 1024 * 1024:
+        return RedirectResponse("/admin/companies?import=toobig", 302)
+    try:
+        fiches = json.loads(contenu.decode("utf-8"))
+        if not isinstance(fiches, list):
+            raise ValueError("le fichier doit contenir une liste de fiches")
+    except (json.JSONDecodeError, UnicodeDecodeError, ValueError) as e:
+        logger.warning(f"[import] fichier invalide: {e}")
+        return RedirectResponse("/admin/companies?import=invalide", 302)
+
+    from app.services.companies import upsert_company
+    stats = {"lues": 0, "creees": 0, "fusionnees": 0, "rejetees": 0}
+    db = get_db()
+    try:
+        for fiche in fiches[:20000]:
+            if not isinstance(fiche, dict) or not fiche.get("legal_name"):
+                continue
+            stats["lues"] += 1
+            _cid, action = upsert_company(db, fiche)
+            if action == "created":
+                stats["creees"] += 1
+            elif action == "rejected":
+                stats["rejetees"] += 1
+            else:
+                stats["fusionnees"] += 1
+        db.commit()
+    finally:
+        db.close()
+    logger.info(f"[import] {stats}")
+    return RedirectResponse(
+        f"/admin/companies?import=ok&creees={stats['creees']}"
+        f"&fusionnees={stats['fusionnees']}&rejetees={stats['rejetees']}", 302)
 
 @app.post("/admin/companies/seed")
 async def admin_companies_seed(req: Request, csrf_token: str = Form("")):

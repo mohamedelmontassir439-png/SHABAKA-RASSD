@@ -56,6 +56,11 @@ tr:hover td{background:var(--surface2)}
 .pag-btn.current{background:var(--navy);color:#fff;border-color:var(--navy)}
 .empty{text-align:center;padding:56px 24px;color:var(--t3)}
 .note{font-size:13px;color:var(--t3);line-height:1.6;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:10px;margin-bottom:20px;max-width:900px}
+.moteur-opt{flex:1;min-width:290px;display:flex;gap:10px;align-items:flex-start;padding:14px;border:1px solid var(--line2);border-radius:10px;cursor:pointer;background:var(--surface);transition:all .15s}
+.moteur-opt:has(input:checked){border-color:var(--navy);background:var(--ambera)}
+.moteur-opt input{margin-top:3px;flex-shrink:0}
+.moteur-opt b{font-size:13.5px;color:var(--t1)}
+.moteur-opt em{display:block;font-style:normal;font-size:12px;color:var(--t3);line-height:1.55;margin-top:5px}
 @media(max-width:980px){.stats-row{grid-template-columns:1fr 1fr}}
 </style>
 </head>
@@ -103,6 +108,18 @@ tr:hover td{background:var(--surface2)}
   <div class="alert-ok">⏳ Une collecte est déjà en cours.</div>
   {% endif %}
 
+  {% if request.query_params.get('import') == 'ok' %}
+  <div class="alert-ok">✓ Import terminé — {{ request.query_params.get('creees') }} fiche(s) créée(s),
+    {{ request.query_params.get('fusionnees') }} fusionnée(s), {{ request.query_params.get('rejetees') }} écartée(s).</div>
+  {% elif request.query_params.get('import') in ('invalide','nofile','toobig') %}
+  <div class="alert-ok" style="background:rgba(214,69,69,.1);border-color:rgba(214,69,69,.3);color:var(--red);">
+    ✕ Import impossible :
+    {% if request.query_params.get('import') == 'invalide' %}le fichier n'est pas un JSON valide (liste de fiches attendue).
+    {% elif request.query_params.get('import') == 'toobig' %}fichier trop volumineux (8 Mo maximum).
+    {% else %}aucun fichier reçu.{% endif %}
+  </div>
+  {% endif %}
+
   <div class="card">
     <div class="card-h" style="display:flex;justify-content:space-between;align-items:center;">
       <span class="card-ht">Collecte annuaire — Google Places API</span>
@@ -110,23 +127,32 @@ tr:hover td{background:var(--surface2)}
         {% if places_running %}● en cours{% else %}○ inactif{% endif %}</span>
     </div>
     <div class="card-b">
-      <div class="note" style="margin-bottom:18px;">
-        Les fiches proviennent de l'<strong>API officielle Google Places</strong>, pas d'un scraping de Google Maps
-        (interdit par les conditions d'utilisation de Google, bloqué par CAPTCHA et suivi d'un bannissement d'IP).
-        L'API fournit nom, adresse, téléphone et site web. <strong>Google ne publie aucun email</strong> :
-        s'il est activé, l'email est cherché sur le site de l'entreprise, en respectant son <code>robots.txt</code>.
-        <br><br>
-        <strong>Attention au coût :</strong> chaque couple secteur × ville consomme 1 à 3 requêtes facturées par Google.
-        Commencez petit (un secteur, une ville) pour mesurer le coût réel sur votre console Google avant de lancer large.
-      </div>
-
-      {% if not places_ready %}
-      <div class="alert-ok" style="background:rgba(214,69,69,.08);border-color:rgba(214,69,69,.3);color:var(--red);">
-        Clé API absente. Ajoutez <code>GOOGLE_PLACES_API_KEY</code> dans Railway, puis rechargez cette page.
-      </div>
-      {% else %}
       <form method="post" action="/admin/companies/collect" id="collect-form">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px;">
+          <label class="moteur-opt">
+            <input type="radio" name="moteur" value="maps" checked>
+            <span>
+              <b>Google Maps</b> — gratuit
+              <em>Navigateur piloté sur les pages publiques. Aucune clé requise. Rythme lent volontairement ; s'arrête si Google affiche une vérification anti-robot. Contraire aux conditions d'utilisation de Google : risque de blocage d'IP assumé.</em>
+            </span>
+          </label>
+          <label class="moteur-opt">
+            <input type="radio" name="moteur" value="places" {% if not places_ready %}disabled{% endif %}>
+            <span>
+              <b>API Places</b> — payante {% if not places_ready %}<span style="color:var(--red);">(clé absente)</span>{% endif %}
+              <em>Voie officielle et stable, autorisée par Google. Chaque secteur × ville consomme 1 à 3 requêtes facturées. Nécessite <code>GOOGLE_PLACES_API_KEY</code>.</em>
+            </span>
+          </label>
+        </div>
+
+        <div class="note" style="margin-bottom:18px;">
+          Les deux moteurs remplissent la même base : nom, catégorie, adresse, téléphone et site web.
+          <strong>Google ne publie aucun email</strong>, dans aucune de ses interfaces — l'email est donc cherché
+          sur le site de l'entreprise, après lecture de son <code>robots.txt</code>. Aucune adresse n'est devinée.
+          Les doublons sont fusionnés automatiquement, une relance enrichit les fiches existantes.
+        </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;">
           <div>
@@ -167,12 +193,28 @@ tr:hover td{background:var(--surface2)}
 
         <div style="margin-top:18px;">
           <button type="submit" class="btn btn-p" {% if places_running %}disabled{% endif %}>▶ Lancer la collecte</button>
-          <span style="font-size:12.5px;color:var(--t3);margin-left:10px;">Les doublons sont fusionnés automatiquement.</span>
+          <span style="font-size:12.5px;color:var(--t3);margin-left:10px;">Commencez par un secteur et une ville pour vérifier le résultat.</span>
         </div>
       </form>
 
       <div id="collect-log" style="display:{% if places_running %}block{% else %}none{% endif %};margin-top:18px;background:#0c1120;color:#d7e0f5;padding:14px 16px;font-family:var(--mono);font-size:12px;height:220px;overflow-y:auto;border-radius:8px;line-height:1.75;"></div>
-      {% endif %}
+
+      <div style="margin-top:22px;padding-top:18px;border-top:1px solid var(--line);">
+        <div style="font-size:13px;font-weight:700;color:var(--t1);margin-bottom:6px;">Importer une collecte faite sur votre ordinateur</div>
+        <div style="font-size:12.5px;color:var(--t3);line-height:1.6;margin-bottom:12px;max-width:760px;">
+          Ce serveur n'embarque pas de navigateur : la collecte <b>Google Maps</b> lancée ici ne fonctionnera
+          qu'en local. Sur votre machine, lancez
+          <code style="background:var(--surface2);padding:2px 6px;border-radius:4px;">py collecte_maps.py --secteurs T101 --villes Casablanca</code>
+          puis déposez ici le fichier JSON obtenu. Les doublons sont fusionnés comme pour toute autre source.
+        </div>
+        <form method="post" action="/admin/companies/import" enctype="multipart/form-data"
+              style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="file" name="fichier" accept=".json,application/json" required
+                 style="font-size:12.5px;border:1px solid var(--line2);padding:7px;border-radius:6px;background:var(--surface);">
+          <button type="submit" class="btn btn-l">⬆ Importer</button>
+        </form>
+      </div>
     </div>
   </div>
 

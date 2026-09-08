@@ -140,3 +140,51 @@ class TestEmailFinder:
     def test_aucun_email_invente(self):
         from app.services.email_finder import extract_emails
         assert extract_emails("<html>aucune adresse ici</html>") == []
+
+
+class TestLectureCarteMaps:
+    """Analyse des cartes Google Maps — textes réels relevés le 08/09/2026."""
+
+    def test_carte_complete(self):
+        from app.services.maps_scraper import lire_carte
+        texte = ("ENGOR\nENGOR\n4,3\nSociété de travaux publics · 20 Rue Ahmed El Kadmiri\n"
+                 "Fermé · Ouvre à 08:30 mer. · 05 22 23 68 50\n\nSite Web\n\nItinéraires")
+        infos = lire_carte(texte)
+        assert infos["phone"] == "05 22 23 68 50"
+        assert infos["subsector"] == "Société de travaux publics"
+        assert infos["address"] == "20 Rue Ahmed El Kadmiri"
+
+    def test_segment_vide_au_milieu(self):
+        from app.services.maps_scraper import lire_carte
+        texte = ("SBTH\nSBTH\n4,6\nEntreprise de construction ·  · 1 angle rue ibnou younouss\n"
+                 "Fermé · Ouvre à 08:30 mer. · 05 22 48 10 89")
+        infos = lire_carte(texte)
+        assert infos["subsector"] == "Entreprise de construction"
+        assert infos["address"] == "1 angle rue ibnou younouss"
+        assert infos["phone"] == "05 22 48 10 89"
+
+    def test_mobile_marocain(self):
+        from app.services.maps_scraper import lire_carte
+        infos = lire_carte("HSTB\nHSTB\nConstructeur · 34 Rue Soumaya\nOuvert · 06 63 61 85 81")
+        assert infos["phone"] == "06 63 61 85 81"
+
+    def test_sans_telephone(self):
+        from app.services.maps_scraper import lire_carte
+        infos = lire_carte("SOCIETE X\nSOCIETE X\n4,2\nEntrepreneur · 3 Rue 6\nFermé")
+        assert infos["phone"] == ""
+        assert infos["address"] == "3 Rue 6"
+
+    def test_horaire_pas_confondu_avec_un_numero(self):
+        """'Ouvre à 08:30' ne doit pas être pris pour un téléphone."""
+        from app.services.maps_scraper import lire_carte
+        infos = lire_carte("X\nX\nEntrepreneur · Rue A\nFermé · Ouvre à 08:30 mer.")
+        assert infos["phone"] == ""
+
+    def test_carte_vide(self):
+        from app.services.maps_scraper import lire_carte
+        assert lire_carte("") == {"subsector": "", "address": "", "phone": ""}
+
+    def test_les_83_secteurs_ont_une_requete_maps(self):
+        from app.services.maps_scraper import requete_secteur
+        from app.core.sectors import SECTORS
+        assert [c for c in SECTORS if not requete_secteur(c).strip()] == []

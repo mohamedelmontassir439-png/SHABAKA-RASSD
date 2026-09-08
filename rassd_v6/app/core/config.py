@@ -56,6 +56,11 @@ class Settings:
     GOOGLE_PLACES_API_KEY: str = os.getenv("GOOGLE_PLACES_API_KEY", "")
     PLACES_MAX_PER_QUERY:  int = int(os.getenv("PLACES_MAX_PER_QUERY", "60"))
     PLACES_DELAY_MS:       int = int(os.getenv("PLACES_DELAY_MS", "400"))
+    # Collecte directe Google Maps (navigateur piloté). Rythme lent assumé:
+    # une collecte rapide se fait bloquer en quelques minutes.
+    MAPS_MAX_PER_QUERY: int = int(os.getenv("MAPS_MAX_PER_QUERY", "20"))
+    MAPS_DELAY_MS:      int = int(os.getenv("MAPS_DELAY_MS", "1200"))
+    MAPS_HEADLESS:     bool = os.getenv("MAPS_HEADLESS", "true").lower() == "true"
     # Enrichissement email depuis le site web de l'entreprise
     EMAIL_FINDER_ENABLED:  bool = os.getenv("EMAIL_FINDER_ENABLED", "true").lower() == "true"
     EMAIL_FINDER_TIMEOUT:  int = int(os.getenv("EMAIL_FINDER_TIMEOUT", "12"))
