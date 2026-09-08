@@ -173,3 +173,91 @@ class TestBonsDeCommandeSepares:
         r = client.get("/tenders/gm_1/source")
         assert r.status_code == 302
         assert "global-marches" not in r.headers.get("location", "")
+
+
+class TestSuppressionDeCompte:
+    def test_le_membre_supprime_son_propre_compte(self, client, db):
+        _register(client, "aupartir@example.com")
+        mid = db.execute("SELECT id FROM members WHERE email=?",
+                         ("aupartir@example.com",)).fetchone()["id"]
+        db.execute("INSERT INTO favorites(member_id,tender_id) VALUES(?,'t1')", (mid,))
+        db.commit()
+
+        token = client.cookies.get("_csrf")
+        r = client.post("/settings/delete",
+                        data={"password": "MotDePasse1!", "csrf_token": token})
+        assert r.status_code == 302 and "deleted=1" in r.headers["location"]
+        assert db.execute("SELECT COUNT(*) FROM members WHERE id=?", (mid,)).fetchone()[0] == 0
+        assert db.execute("SELECT COUNT(*) FROM favorites WHERE member_id=?", (mid,)).fetchone()[0] == 0
+
+    def test_mauvais_mot_de_passe_ne_supprime_rien(self, client, db):
+        _register(client, "protege@example.com")
+        token = client.cookies.get("_csrf")
+        r = client.post("/settings/delete",
+                        data={"password": "MauvaisMotDePasse!", "csrf_token": token})
+        assert "err=wrongpw" in r.headers["location"]
+        assert db.execute("SELECT COUNT(*) FROM members WHERE email=?",
+                          ("protege@example.com",)).fetchone()[0] == 1
+
+    def test_admin_supprime_un_compte_avec_confirmation(self, client, db):
+        _register(client, "asupprimer@example.com")
+        mid = db.execute("SELECT id FROM members WHERE email=?",
+                         ("asupprimer@example.com",)).fetchone()["id"]
+        admin = type(client)(client._app)
+        _login_admin(admin)
+        admin.get("/admin/members")
+        token = admin.cookies.get("_csrf")
+        r = admin.post(f"/admin/member/{mid}/delete",
+                       data={"confirm": "asupprimer@example.com", "csrf_token": token})
+        assert r.status_code == 302 and "deleted=" in r.headers["location"]
+        assert db.execute("SELECT COUNT(*) FROM members WHERE id=?", (mid,)).fetchone()[0] == 0
+
+    def test_admin_sans_confirmation_ne_supprime_pas(self, client, db):
+        _register(client, "garde@example.com")
+        mid = db.execute("SELECT id FROM members WHERE email=?",
+                         ("garde@example.com",)).fetchone()["id"]
+        admin = type(client)(client._app)
+        _login_admin(admin)
+        admin.get("/admin/members")
+        token = admin.cookies.get("_csrf")
+        r = admin.post(f"/admin/member/{mid}/delete",
+                       data={"confirm": "mauvais@email.com", "csrf_token": token})
+        assert "err=confirmation" in r.headers["location"]
+        assert db.execute("SELECT COUNT(*) FROM members WHERE id=?", (mid,)).fetchone()[0] == 1
+
+    def test_les_pieces_comptables_survivent_mais_sont_detachees(self, client, db):
+        """Un reçu est une pièce comptable: il ne disparaît pas, il est anonymisé."""
+        _register(client, "comptable@example.com")
+        mid = db.execute("SELECT id FROM members WHERE email=?",
+                         ("comptable@example.com",)).fetchone()["id"]
+        admin = type(client)(client._app)
+        _login_admin(admin)
+        admin.get("/admin/payments")
+        token = admin.cookies.get("_csrf")
+        admin.post("/admin/payments/record", data={
+            "member_id": mid, "plan": "monthly", "amount": "250",
+            "method": "Virement", "csrf_token": token})
+        assert db.execute("SELECT COUNT(*) FROM payments WHERE member_id=?", (mid,)).fetchone()[0] == 1
+
+        admin.get("/admin/members")
+        token = admin.cookies.get("_csrf")
+        admin.post(f"/admin/member/{mid}/delete",
+                   data={"confirm": "comptable@example.com", "csrf_token": token})
+        assert db.execute("SELECT COUNT(*) FROM payments WHERE member_id=?", (mid,)).fetchone()[0] == 0
+        assert db.execute("SELECT COUNT(*) FROM payments WHERE member_id=0").fetchone()[0] == 1
+
+    def test_admin_membres_protege(self, client):
+        r = client.get("/admin/members")
+        assert r.status_code == 302 and "/admin/login" in r.headers["location"]
+
+
+class TestEssaiGratuitSurLaLanding:
+    def test_essai_annonce_sur_la_page_daccueil(self, client):
+        page = client.get("/").text
+        assert "Essai gratuit" in page
+        assert "7 jours" in page
+        assert 'href="/register"' in page
+
+    def test_essai_annonce_sur_la_page_tarifs(self, client):
+        page = client.get("/tarifs").text
+        assert "Essai gratuit" in page and "Sans carte bancaire" in page

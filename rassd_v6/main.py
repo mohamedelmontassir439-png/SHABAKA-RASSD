@@ -1363,6 +1363,46 @@ async def settings_export(req: Request):
     return Response(content=body, media_type="application/json",
                      headers={"Content-Disposition": "attachment; filename=mes-donnees-maroc-entrepreneuriat.json"})
 
+def _purge_member(mid: int) -> dict:
+    """Efface un compte et tout ce qui s'y rattache. Retourne le décompte.
+
+    Utilisée aussi bien par la suppression volontaire du membre que par la
+    suppression administrative: une seule implémentation, donc aucun risque
+    qu'un des deux chemins oublie une table et laisse des données derrière.
+    Les échanges et évaluations de sous-traitance partent avec le compte
+    plutôt que d'être anonymisés — on ne fait pas de compromis partiel sur
+    une demande d'effacement.
+
+    Les paiements, abonnements et documents sont conservés volontairement:
+    ce sont des pièces comptables. Ils sont détachés du membre (member_id
+    remis à 0) pour ne plus permettre de l'identifier.
+    """
+    deleted = {}
+    db = get_db()
+    try:
+        for table, where in (
+            ("favorites",            "member_id=?"),
+            ("notif_log",            "member_id=?"),
+            ("notif_queue",          "member_id=?"),
+            ("subcontract_messages", "post_id IN (SELECT id FROM subcontract_posts WHERE member_id=?)"),
+            ("subcontract_messages", "sender_id=? OR recipient_id=?"),
+            ("subcontract_ratings",  "rater_id=? OR rated_id=?"),
+            ("subcontract_reports",  "reporter_id=?"),
+            ("subcontract_posts",    "member_id=?"),
+        ):
+            params = (mid, mid) if where.count("?") == 2 else (mid,)
+            cur = db.execute(f"DELETE FROM {table} WHERE {where}", params)
+            deleted[table] = deleted.get(table, 0) + cur.rowcount
+        # Pièces comptables: conservées mais anonymisées.
+        for table in ("payments", "subscriptions", "documents"):
+            db.execute(f"UPDATE {table} SET member_id=0 WHERE member_id=?", (mid,))
+        cur = db.execute("DELETE FROM members WHERE id=?", (mid,))
+        deleted["members"] = cur.rowcount
+        db.commit()
+    finally:
+        db.close()
+    return deleted
+
 @app.post("/settings/delete")
 async def settings_delete(req: Request, password:str=Form(""), csrf_token:str=Form("")):
     """Suppression de compte (droit à l'effacement — loi 09-08/CNDP).
@@ -1377,22 +1417,7 @@ async def settings_delete(req: Request, password:str=Form(""), csrf_token:str=Fo
         return RedirectResponse("/settings?err=too_many", 302)
     if not verify_pw(password, member.get("pw_hash", "")):
         return RedirectResponse("/settings?err=wrongpw", 302)
-    mid = member["id"]
-    db = get_db()
-    try:
-        db.execute("DELETE FROM favorites WHERE member_id=?", (mid,))
-        db.execute("DELETE FROM notif_log WHERE member_id=?", (mid,))
-        db.execute("DELETE FROM notif_queue WHERE member_id=?", (mid,))
-        db.execute("""DELETE FROM subcontract_messages WHERE post_id IN
-                      (SELECT id FROM subcontract_posts WHERE member_id=?)""", (mid,))
-        db.execute("DELETE FROM subcontract_messages WHERE sender_id=? OR recipient_id=?", (mid, mid))
-        db.execute("DELETE FROM subcontract_ratings WHERE rater_id=? OR rated_id=?", (mid, mid))
-        db.execute("DELETE FROM subcontract_reports WHERE reporter_id=?", (mid,))
-        db.execute("DELETE FROM subcontract_posts WHERE member_id=?", (mid,))
-        db.execute("DELETE FROM members WHERE id=?", (mid,))
-        db.commit()
-    finally:
-        db.close()
+    _purge_member(member["id"])
     r = RedirectResponse("/?deleted=1", 302)
     r.delete_cookie("_session")
     return r
@@ -1955,6 +1980,51 @@ async def admin_record_payment(req: Request, member_id:int=Form(...), plan:str=F
     db.commit(); db.close()
     logger.info(f"[payment] {price} MAD · membre {member_id} · {receipt_no}")
     return RedirectResponse(f"/admin/payments?ok={receipt_no}", 302)
+
+@app.post("/admin/member/{mid}/delete")
+async def admin_delete_member(req: Request, mid: int, confirm: str = Form(""),
+                               csrf_token: str = Form("")):
+    """Suppression administrative d'un compte.
+
+    L'email du compte doit être ressaisi pour confirmer: sur une liste de
+    membres, un clic mal placé effacerait sinon le mauvais compte de façon
+    irréversible.
+    """
+    if not _is_admin(req): return JSONResponse({"ok": False}, 401)
+    csrf_guard(req, csrf_token)
+    db = get_db()
+    row = db.execute("SELECT id,email FROM members WHERE id=?", (mid,)).fetchone()
+    db.close()
+    if not row:
+        return RedirectResponse("/admin/members?err=introuvable", 302)
+    if confirm.strip().lower() != (row["email"] or "").strip().lower():
+        return RedirectResponse(f"/admin/members?err=confirmation&mid={mid}", 302)
+    _purge_member(mid)
+    logger.info(f"[admin] compte supprimé: {row['email']} (id={mid})")
+    return RedirectResponse(f"/admin/members?deleted={row['email']}", 302)
+
+@app.get("/admin/members", response_class=HTMLResponse)
+async def admin_members(req: Request, q: str = ""):
+    """Gestion complète des comptes membres (plan, activation, suppression)."""
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    db = get_db()
+    where, params = ["1=1"], []
+    if q:
+        where.append("(email LIKE ? OR nom LIKE ? OR company LIKE ?)")
+        params += [f"%{q}%"] * 3
+    rows = [dict(r) for r in db.execute(f"""
+        SELECT m.*,
+               (SELECT COUNT(*) FROM payments p WHERE p.member_id=m.id) AS n_payments,
+               (SELECT COALESCE(SUM(p.amount),0) FROM payments p WHERE p.member_id=m.id) AS total_paid
+        FROM members m WHERE {' AND '.join(where)}
+        ORDER BY m.created_at DESC LIMIT 300""", params).fetchall()]
+    db.close()
+    csrf_tok = get_csrf_token(req) or secrets.token_urlsafe(24)
+    resp = templates.TemplateResponse("admin_members.html", {
+        "request": req, "cfg": cfg, "members": rows, "q": q, "csrf_token": csrf_tok})
+    if not req.cookies.get("_csrf"):
+        resp.set_cookie("_csrf", csrf_tok, max_age=86400*30, httponly=True, samesite="lax", secure=COOKIE_SECURE)
+    return resp
 
 @app.post("/admin/member/{mid}/toggle")
 async def toggle_member(req: Request, mid:int, csrf_token:str=Form("")):

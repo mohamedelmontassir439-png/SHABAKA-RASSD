@@ -100,6 +100,7 @@ tr:hover td { background: var(--surface2); }
   <span class="brand">Maroc<em>Entrepreneuriat</em></span>
   <span class="brand-meta">Administration · v{{ cfg.APP_VERSION }}</span>
   <div style="margin-left: auto; display: flex; gap: 8px;">
+    <a href="/admin/members" class="btn btn-o">👥 Membres</a>
     <a href="/admin/payments" class="btn btn-o">💳 Paiements</a>
     <a href="/admin/companies" class="btn btn-o">🏢 Entreprises</a>
     <a href="/admin/sources" class="btn btn-o">🗂 Sources</a>
@@ -285,7 +286,7 @@ tr:hover td { background: var(--surface2); }
       <div class="card">
         <div class="card-h">
           <span class="card-ht">Derniers membres</span>
-          <span style="font-size: 12px; color: var(--t3);">{{ stats.members }} total</span>
+          <a href="/admin/members" style="font-size: 12px; color: var(--navy); font-weight: 700;">{{ stats.members }} total — tout gérer →</a>
         </div>
         <table>
           <tr><th>Membre</th><th>Plan</th><th>Statut</th><th>Inscrit</th></tr>

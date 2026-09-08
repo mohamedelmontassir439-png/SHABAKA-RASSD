@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Membres — Maroc Entrepreneuriat</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f8f1e1;--surface:#fff;--surface2:#f1e6cf;--line:#e8dcc5;--line2:#d9c7a8;
+--navy:#f2662d;--navy3:#1e1611;--amber:#f2662d;--amberd:#c94e1f;--ambera:rgba(242,102,45,.14);
+--t1:#2b211b;--t2:#4a3b32;--t3:#8a7a6a;--t4:#b7a896;--grn:#2f9e5b;--red:#d6493f;
+--serif:'Fredoka',Georgia,serif;--sans:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--t2);font-family:var(--sans);font-size:14px;min-height:100vh}
+a{color:inherit;text-decoration:none}
+.topbar{background:var(--navy3);height:60px;display:flex;align-items:center;padding:0 28px;gap:20px;position:sticky;top:0;z-index:100}
+.brand{font-family:var(--serif);font-weight:700;font-size:19px;color:#fff}
+.brand em{font-style:italic;color:var(--amber);font-weight:600}
+.brand-meta{font-size:12px;color:rgba(255,255,255,.45);font-weight:500}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer;border:1px solid transparent;border-radius:8px;transition:all .15s}
+.btn-o{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.16);color:#fff}
+.btn-o:hover{border-color:var(--amber);color:var(--amber)}
+.btn-p{background:linear-gradient(180deg,#ff8552,var(--amber));color:#fff;border-color:var(--amber);font-weight:700}
+.btn-l{background:var(--surface);border-color:var(--line2);color:var(--t1)}
+.btn-d{background:rgba(214,69,69,.1);border-color:rgba(214,69,69,.35);color:var(--red);font-weight:700}
+.btn-d:hover{background:rgba(214,69,69,.2)}
+.page{max-width:1340px;margin:0 auto;padding:32px 28px}
+.page-h{display:flex;justify-content:space-between;align-items:end;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+.page-h-title{font-family:var(--serif);font-weight:700;font-size:33px;color:var(--t1);line-height:1.15}
+.page-h-title em{font-style:italic;color:var(--navy);font-weight:600}
+.page-h-sub{font-size:13px;font-weight:700;color:var(--amberd);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.filters{display:flex;gap:10px;padding:16px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap;align-items:center}
+.inp,.sel{background:var(--surface);border:1px solid var(--line2);padding:8px 11px;color:var(--t1);font-size:13px;border-radius:6px;outline:none}
+.inp{flex:1;min-width:220px;max-width:340px}
+.alert-ok{background:rgba(29,154,108,.1);border:1px solid rgba(29,154,108,.3);color:var(--grn);padding:12px 16px;border-radius:8px;margin-bottom:18px;font-size:13.5px;font-weight:600}
+.alert-err{background:rgba(214,69,69,.1);border:1px solid rgba(214,69,69,.3);color:var(--red);padding:12px 16px;border-radius:8px;margin-bottom:18px;font-size:13.5px;font-weight:600}
+table{width:100%;border-collapse:collapse}
+th{font-size:11.5px;font-weight:700;color:var(--t3);letter-spacing:.04em;text-transform:uppercase;padding:12px 16px;text-align:left;border-bottom:1px solid var(--line)}
+td{padding:13px 16px;border-bottom:1px solid var(--line);font-size:13px;color:var(--t2);vertical-align:top}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--surface2)}
+.m-name{color:var(--t1);font-weight:700;font-size:13.5px}
+.muted{color:var(--t4);font-size:11.5px}
+.badge{display:inline-flex;padding:3px 9px;font-size:11px;font-weight:700;border-radius:999px}
+.b-g{background:var(--ambera);color:var(--amberd)}
+.b-grn{background:rgba(29,154,108,.1);color:var(--grn)}
+.b-r{background:rgba(214,69,69,.1);color:var(--red)}
+.b-gray{background:var(--surface2);color:var(--t3)}
+details.del summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border:1px solid rgba(214,69,69,.35);background:rgba(214,69,69,.08);color:var(--red);border-radius:8px;font-size:12.5px;font-weight:700}
+details.del summary::-webkit-details-marker{display:none}
+.del-box{margin-top:10px;padding:12px;border:1px solid rgba(214,69,69,.3);background:rgba(214,69,69,.05);border-radius:8px;max-width:330px}
+.del-warn{font-size:12px;color:var(--red);line-height:1.55;margin-bottom:9px;font-weight:600}
+.del-box .inp{width:100%;max-width:none;margin-bottom:8px;font-size:12.5px}
+.empty{text-align:center;padding:56px;color:var(--t3)}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <span class="brand">Maroc<em>Entrepreneuriat</em></span>
+  <span class="brand-meta">Gestion des membres</span>
+  <div style="margin-left:auto;display:flex;gap:8px;">
+    <a href="/admin/payments" class="btn btn-o">💳 Paiements</a>
+    <a href="/admin" class="btn btn-o">← Tableau de bord</a>
+  </div>
+</div>
+
+<div class="page">
+  <div class="page-h">
+    <div>
+      <div class="page-h-sub">Comptes</div>
+      <div class="page-h-title">Membres <em>inscrits</em></div>
+    </div>
+    <div style="font-size:13px;color:var(--t3);font-weight:600;">{{ members|length }} compte(s)</div>
+  </div>
+
+  {% if request.query_params.get('deleted') %}
+  <div class="alert-ok">✓ Le compte {{ request.query_params.get('deleted') }} et toutes ses données ont été supprimés définitivement.</div>
+  {% endif %}
+  {% if request.query_params.get('err') == 'confirmation' %}
+  <div class="alert-err">✕ Suppression annulée : l'email saisi ne correspond pas au compte. Aucune donnée n'a été touchée.</div>
+  {% endif %}
+  {% if request.query_params.get('err') == 'introuvable' %}
+  <div class="alert-err">✕ Compte introuvable.</div>
+  {% endif %}
+
+  <div class="card">
+    <form method="get" class="filters">
+      <input name="q" value="{{ q }}" class="inp" placeholder="Rechercher par email, nom ou entreprise…">
+      <button type="submit" class="btn btn-p">Rechercher</button>
+      {% if q %}<a href="/admin/members" class="btn btn-l">✕ Effacer</a>{% endif %}
+    </form>
+
+    {% if members %}
+    <table>
+      <tr><th>Membre</th><th>Plan</th><th>Statut</th><th>Paiements</th><th>Inscrit</th><th>Actions</th></tr>
+      {% for m in members %}
+      <tr>
+        <td>
+          <div class="m-name">{{ (m.nom or '—')[:32] }}</div>
+          <div class="muted">{{ m.email[:38] }}</div>
+          {% if m.company %}<div class="muted">{{ m.company[:32] }}</div>{% endif %}
+        </td>
+        <td>
+          <form method="post" action="/admin/member/{{ m.id }}/plan">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <select name="plan" class="sel" onchange="this.form.submit()">
+              <option value="free" {% if m.plan=='free' %}selected{% endif %}>Inactif</option>
+              <option value="monthly" {% if m.plan=='monthly' %}selected{% endif %}>Mensuel 250</option>
+              <option value="pro" {% if m.plan=='pro' %}selected{% endif %}>Annuel 2499</option>
+              <option value="business" {% if m.plan=='business' %}selected{% endif %}>Biennal 4299</option>
+            </select>
+          </form>
+        </td>
+        <td>
+          {% set st = m.subscription_status or '—' %}
+          <span class="badge {% if st=='ACTIVE' %}b-grn{% elif st=='TRIAL' %}b-g{% else %}b-gray{% endif %}">{{ st }}</span>
+          {% if m.subscription_end %}<div class="muted">→ {{ m.subscription_end }}</div>
+          {% elif st=='TRIAL' and m.trial_ends %}<div class="muted">→ {{ m.trial_ends }}</div>{% endif %}
+          {% if not m.actif %}<div><span class="badge b-r">bloqué</span></div>{% endif %}
+        </td>
+        <td>
+          {% if m.n_payments %}<span class="badge b-grn">{{ m.n_payments }}</span>
+            <div class="muted">{{ m.total_paid|round(0)|int }} MAD</div>
+          {% else %}<span class="badge b-gray">0</span>{% endif %}
+        </td>
+        <td style="color:var(--t3);white-space:nowrap;">{{ m.created_at[:10] }}</td>
+        <td>
+          <form method="post" action="/admin/member/{{ m.id }}/toggle" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="btn btn-l" style="padding:6px 10px;">{{ 'Bloquer' if m.actif else 'Débloquer' }}</button>
+          </form>
+          <details class="del">
+            <summary>🗑 Supprimer</summary>
+            <div class="del-box">
+              <div class="del-warn">
+                Suppression définitive et irréversible : profil, favoris, alertes, annonces et messages de sous-traitance.
+                Les reçus et paiements sont conservés pour la comptabilité mais détachés du compte.
+              </div>
+              <form method="post" action="/admin/member/{{ m.id }}/delete"
+                    onsubmit="return confirm('Supprimer définitivement {{ m.email }} ? Cette action est irréversible.');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <input name="confirm" class="inp" autocomplete="off"
+                       placeholder="Retapez : {{ m.email }}" required>
+                <button type="submit" class="btn btn-d btn-full">Supprimer définitivement</button>
+              </form>
+            </div>
+          </details>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <div class="empty">Aucun membre trouvé.</div>
+    {% endif %}
+  </div>
+</div>
+</body>
+</html>
