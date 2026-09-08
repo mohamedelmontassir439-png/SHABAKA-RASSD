@@ -67,6 +67,33 @@ def _search(s: requests.Session) -> str:
     return r.text
 
 
+_CELL_RE  = re.compile(r"<td[^>]*>(.*?)</td>", re.S)
+# Format monétaire marocain: 1.160.000,00 — les dates (30/09/2026) et les
+# références (71/26/S) ne correspondent pas à ce motif.
+_MONEY_RE = re.compile(r"\d{1,3}(?:\.\d{3})*,\d{2}")
+
+
+def _parse_budget(row_html: str) -> str:
+    """Extrait le budget estimé de la colonne « Caution/Budget ».
+
+    La cellule contient deux montants: la caution provisoire puis le budget
+    (la caution représente 1 à 3 % du budget, elle est donc toujours le plus
+    petit des deux). On retient le plus élevé, ce qui reste correct même si
+    l'ordre des deux valeurs changeait. Les lignes « ------ » signifient que
+    le montant n'est pas publié: on renvoie une chaîne vide plutôt que de
+    deviner un chiffre.
+    """
+    cells = _CELL_RE.findall(row_html)
+    montants = _MONEY_RE.findall(cells[3]) if len(cells) > 3 else []
+    if not montants:
+        # Repli si la structure du tableau change: on balaie toute la ligne.
+        montants = _MONEY_RE.findall(row_html)
+    if not montants:
+        return ""
+    plus_eleve = max(montants, key=lambda v: float(v.replace(".", "").replace(",", ".")))
+    return f"{plus_eleve} MAD"
+
+
 def _parse_row(row_html: str):
     id_m = ID_RE.search(row_html)
     if not id_m:
@@ -101,7 +128,7 @@ def _parse_row(row_html: str):
         "region":           region[:100],
         "date_publication": "",
         "date_limite":      date_limite,
-        "montant":          "",
+        "montant":          _parse_budget(row_html),
         "secteur":          classify(full_text),
         "url":              url,
         "type_offre":       "Privé",
@@ -322,7 +349,7 @@ def _parse_po_row(row_html: str, type_offre: str):
         "region":           region[:100],
         "date_publication": "",
         "date_limite":      date_limite,
-        "montant":          "",
+        "montant":          _parse_budget(row_html),
         "secteur":          classify(full_text),
         "url":              url,
         "type_offre":       type_offre,
