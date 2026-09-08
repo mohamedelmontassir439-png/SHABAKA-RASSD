@@ -94,6 +94,88 @@ tr:hover td{background:var(--surface2)}
     Ces entreprises proviennent des <strong>adjudicataires réellement retenus</strong> sur les marchés collectés : ce sont des sociétés actives, pas une liste achetée. Les noms sont ramenés à une forme canonique (« STE ATLAS B.T.P. SARL » = « Atlas BTP ») et les doublons fusionnés. Les résultats officiels d'adjudication ne publient ni téléphone ni email : utilisez le nom pour les retrouver sur les annuaires professionnels, l'OMPIC ou LinkedIn, puis complétez la fiche.
   </div>
 
+  {% if request.query_params.get('collect') == 'lance' %}
+  <div class="alert-ok">✓ Collecte lancée. Elle continue même si vous fermez cette page — le journal ci-dessous se met à jour tout seul.</div>
+  {% elif request.query_params.get('collect') == 'nokey' %}
+  <div class="alert-ok" style="background:rgba(214,69,69,.1);border-color:rgba(214,69,69,.3);color:var(--red);">
+    ✕ Clé <code>GOOGLE_PLACES_API_KEY</code> absente — ajoutez-la dans les variables d'environnement Railway.</div>
+  {% elif request.query_params.get('collect') == 'deja' %}
+  <div class="alert-ok">⏳ Une collecte est déjà en cours.</div>
+  {% endif %}
+
+  <div class="card">
+    <div class="card-h" style="display:flex;justify-content:space-between;align-items:center;">
+      <span class="card-ht">Collecte annuaire — Google Places API</span>
+      <span id="collect-state" class="badge {% if places_running %}b-g{% else %}b-gray{% endif %}">
+        {% if places_running %}● en cours{% else %}○ inactif{% endif %}</span>
+    </div>
+    <div class="card-b">
+      <div class="note" style="margin-bottom:18px;">
+        Les fiches proviennent de l'<strong>API officielle Google Places</strong>, pas d'un scraping de Google Maps
+        (interdit par les conditions d'utilisation de Google, bloqué par CAPTCHA et suivi d'un bannissement d'IP).
+        L'API fournit nom, adresse, téléphone et site web. <strong>Google ne publie aucun email</strong> :
+        s'il est activé, l'email est cherché sur le site de l'entreprise, en respectant son <code>robots.txt</code>.
+        <br><br>
+        <strong>Attention au coût :</strong> chaque couple secteur × ville consomme 1 à 3 requêtes facturées par Google.
+        Commencez petit (un secteur, une ville) pour mesurer le coût réel sur votre console Google avant de lancer large.
+      </div>
+
+      {% if not places_ready %}
+      <div class="alert-ok" style="background:rgba(214,69,69,.08);border-color:rgba(214,69,69,.3);color:var(--red);">
+        Clé API absente. Ajoutez <code>GOOGLE_PLACES_API_KEY</code> dans Railway, puis rechargez cette page.
+      </div>
+      {% else %}
+      <form method="post" action="/admin/companies/collect" id="collect-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;">
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--t3);margin-bottom:8px;">
+              Secteurs <span style="font-weight:500;">(aucun coché = les 83)</span>
+            </div>
+            <div style="max-height:250px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:10px;">
+              {% for gname, gsectors in sector_groups.items() %}
+              <div style="font-size:11px;font-weight:700;color:var(--amberd);text-transform:uppercase;margin:8px 0 6px;">{{ gname }}</div>
+              {% for code, label in gsectors.items() %}
+              <label style="display:flex;gap:7px;align-items:flex-start;font-size:12.5px;padding:3px 0;cursor:pointer;">
+                <input type="checkbox" name="secteurs" value="{{ code }}" style="margin-top:2px;">
+                <span><b>{{ code }}</b> {{ label[:42] }}</span>
+              </label>
+              {% endfor %}
+              {% endfor %}
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size:12px;font-weight:700;color:var(--t3);margin-bottom:8px;">
+              Villes <span style="font-weight:500;">(aucune cochée = les 5 principales)</span>
+            </div>
+            <div style="max-height:250px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:10px;">
+              {% for v in villes %}
+              <label style="display:flex;gap:7px;align-items:center;font-size:12.5px;padding:3px 0;cursor:pointer;">
+                <input type="checkbox" name="villes" value="{{ v }}" {% if loop.index <= 3 %}checked{% endif %}>
+                <span>{{ v }}</span>
+              </label>
+              {% endfor %}
+            </div>
+            <label style="display:flex;gap:8px;align-items:flex-start;margin-top:14px;font-size:12.5px;cursor:pointer;">
+              <input type="checkbox" name="avec_email" checked style="margin-top:2px;">
+              <span>Chercher aussi l'email sur le site de chaque entreprise <span style="color:var(--t4);">(plus lent, mais c'est la seule source d'emails)</span></span>
+            </label>
+          </div>
+        </div>
+
+        <div style="margin-top:18px;">
+          <button type="submit" class="btn btn-p" {% if places_running %}disabled{% endif %}>▶ Lancer la collecte</button>
+          <span style="font-size:12.5px;color:var(--t3);margin-left:10px;">Les doublons sont fusionnés automatiquement.</span>
+        </div>
+      </form>
+
+      <div id="collect-log" style="display:{% if places_running %}block{% else %}none{% endif %};margin-top:18px;background:#0c1120;color:#d7e0f5;padding:14px 16px;font-family:var(--mono);font-size:12px;height:220px;overflow-y:auto;border-radius:8px;line-height:1.75;"></div>
+      {% endif %}
+    </div>
+  </div>
+
   <div class="stats-row">
     <div class="stat"><div class="stat-n">{{ stats.total }}</div><div class="stat-l">Entreprises</div></div>
     <div class="stat"><div class="stat-n">{{ stats.sectors }}</div><div class="stat-l">Secteurs couverts</div></div>
@@ -165,5 +247,39 @@ tr:hover td{background:var(--surface2)}
     {% endif %}
   </div>
 </div>
+
+<script>
+// Suivi de la collecte: on interroge l'état tant qu'elle tourne, puis on
+// recharge une fois terminée pour afficher les nouvelles fiches.
+(function () {
+  const box   = document.getElementById('collect-log');
+  const pill  = document.getElementById('collect-state');
+  const form  = document.getElementById('collect-form');
+  if (!box || !pill) return;
+  let tournait = {{ 'true' if places_running else 'false' }};
+
+  async function verifier() {
+    try {
+      const r = await fetch('/admin/companies/collect_status', { credentials: 'include' });
+      const d = await r.json();
+      if (!d.ok) return;
+
+      pill.textContent = d.running ? '● en cours' : '○ inactif';
+      pill.className   = 'badge ' + (d.running ? 'b-g' : 'b-gray');
+      if (form) form.querySelector('button[type=submit]').disabled = d.running;
+
+      if (d.running || (d.logs && d.logs.length)) {
+        box.style.display = 'block';
+        box.textContent = (d.logs || []).join('\n');
+        box.scrollTop = box.scrollHeight;
+      }
+      if (tournait && !d.running) { location.reload(); return; }
+      tournait = d.running;
+    } catch (e) { /* le suivi n'est qu'informatif */ }
+  }
+  verifier();
+  setInterval(verifier, 3000);
+})();
+</script>
 </body>
 </html>

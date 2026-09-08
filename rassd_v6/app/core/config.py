@@ -48,6 +48,17 @@ class Settings:
     # Abonnement (mise à niveau manuelle via WhatsApp)
     PAYMENT_PHONE: str = os.getenv("PAYMENT_PHONE", "")
     PAYMENT_MSG:   str = os.getenv("PAYMENT_MSG", "Bonjour, je souhaite m'abonner à MAROC ENTREPRENEURIAT")
+    # Annuaire d'entreprises — Google Places API (officielle).
+    # On n'utilise pas le scraping direct de Google Maps: il viole les
+    # conditions d'utilisation de Google, déclenche des CAPTCHA et fait
+    # bannir l'IP du serveur. L'API officielle renvoie les mêmes données
+    # (nom, adresse, téléphone, site) de façon stable et autorisée.
+    GOOGLE_PLACES_API_KEY: str = os.getenv("GOOGLE_PLACES_API_KEY", "")
+    PLACES_MAX_PER_QUERY:  int = int(os.getenv("PLACES_MAX_PER_QUERY", "60"))
+    PLACES_DELAY_MS:       int = int(os.getenv("PLACES_DELAY_MS", "400"))
+    # Enrichissement email depuis le site web de l'entreprise
+    EMAIL_FINDER_ENABLED:  bool = os.getenv("EMAIL_FINDER_ENABLED", "true").lower() == "true"
+    EMAIL_FINDER_TIMEOUT:  int = int(os.getenv("EMAIL_FINDER_TIMEOUT", "12"))
     # Identité légale (à renseigner via variables d'environnement Railway —
     # les pages légales affichent un placeholder tant que ces champs sont vides,
     # plutôt que d'inventer de fausses informations d'entreprise)

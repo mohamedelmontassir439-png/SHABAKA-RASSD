@@ -1730,14 +1730,89 @@ async def admin_companies(req: Request, q:str="", s:str="", r:str="", page:int=1
     regions = [x[0] for x in db.execute(
         "SELECT DISTINCT region FROM companies WHERE region!='' ORDER BY region LIMIT 60").fetchall()]
     db.close()
+    from app.services.places_scraper import VILLES
     csrf_tok = get_csrf_token(req) or secrets.token_urlsafe(24)
     resp = templates.TemplateResponse("admin_companies.html", {
         "request": req, "cfg": cfg, "rows": rows, "total": total, "stats": stats,
         "page": page, "pages": max(1,(total+per-1)//per), "q": q, "sf": s, "rf": r,
-        "regions": regions, "sector_groups": cfg.SECTOR_GROUPS, "csrf_token": csrf_tok})
+        "regions": regions, "sector_groups": cfg.SECTOR_GROUPS, "csrf_token": csrf_tok,
+        "villes": VILLES, "places_ready": bool(cfg.GOOGLE_PLACES_API_KEY),
+        "places_running": PlacesState.running})
     if not req.cookies.get("_csrf"):
         resp.set_cookie("_csrf", csrf_tok, max_age=86400*30, httponly=True, samesite="lax", secure=COOKIE_SECURE)
     return resp
+
+class PlacesState:
+    """État de la collecte annuaire, partagé entre la tâche de fond et l'UI."""
+    running   = False
+    logs      = []
+    stats     = {}
+    started   = ""
+    finished  = ""
+
+    @classmethod
+    def log(cls, msg: str):
+        ligne = f"{datetime.now().strftime('%H:%M:%S')} │ {msg}"
+        cls.logs.append(ligne)
+        if len(cls.logs) > 400:
+            del cls.logs[:-400]
+        logger.info(f"[places] {msg}")
+
+
+async def _run_places_collect(secteurs: list, villes: list, avec_email: bool):
+    from app.services.places_scraper import collecter
+    PlacesState.running  = True
+    PlacesState.logs     = []
+    PlacesState.stats    = {}
+    PlacesState.started  = datetime.now().isoformat()
+    PlacesState.finished = ""
+    debut = datetime.now()
+    PlacesState.log(f"Démarrage — {len(secteurs)} secteur(s) × {len(villes)} ville(s)")
+    try:
+        loop = asyncio.get_event_loop()
+        stats = await loop.run_in_executor(
+            None, lambda: collecter(secteurs, villes, PlacesState.log, avec_email))
+        PlacesState.stats = stats
+        _record_run("google-places", "SUCCESS" if not stats.get("erreurs") else "PARTIAL",
+                    stats.get("trouvees", 0), stats.get("creees", 0),
+                    stats.get("erreurs", 0), started=debut)
+    except Exception as e:
+        PlacesState.log(f"❌ {e}")
+        logger.error(f"[places] {e}", exc_info=True)
+        _record_run("google-places", "FAILED", errors=1, started=debut, message=str(e))
+    finally:
+        PlacesState.running  = False
+        PlacesState.finished = datetime.now().isoformat()
+
+@app.post("/admin/companies/collect")
+async def admin_companies_collect(req: Request, csrf_token: str = Form("")):
+    """Lance la collecte annuaire (Google Places API) en tâche de fond."""
+    if not _is_admin(req): return JSONResponse({"ok": False}, 401)
+    csrf_guard(req, csrf_token)
+    if PlacesState.running:
+        return RedirectResponse("/admin/companies?collect=deja", 302)
+    if not cfg.GOOGLE_PLACES_API_KEY:
+        return RedirectResponse("/admin/companies?collect=nokey", 302)
+    from app.services.places_scraper import VILLES
+    form     = await req.form()
+    secteurs = [s for s in form.getlist("secteurs") if s in cfg.SECTEURS]
+    villes   = [v for v in form.getlist("villes") if v in VILLES]
+    if not secteurs:
+        secteurs = list(cfg.SECTEURS.keys())
+    if not villes:
+        villes = VILLES[:5]
+    avec_email = bool(form.get("avec_email"))
+    asyncio.create_task(_run_places_collect(secteurs, villes, avec_email))
+    return RedirectResponse("/admin/companies?collect=lance", 302)
+
+@app.get("/admin/companies/collect_status")
+async def admin_companies_collect_status(req: Request):
+    if not _is_admin(req): return JSONResponse({"ok": False}, 401)
+    return JSONResponse({
+        "ok": True, "running": PlacesState.running,
+        "logs": PlacesState.logs[-60:], "stats": PlacesState.stats,
+        "started": PlacesState.started, "finished": PlacesState.finished,
+    })
 
 @app.post("/admin/companies/seed")
 async def admin_companies_seed(req: Request, csrf_token: str = Form("")):
