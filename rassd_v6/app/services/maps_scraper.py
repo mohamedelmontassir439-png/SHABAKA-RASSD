@@ -21,7 +21,7 @@ import time
 from urllib.parse import quote_plus
 
 from app.core.config import cfg
-from app.core.sectors import SECTORS
+from app.services.sector_queries import requete_secteur  # noqa: F401
 
 logger = logging.getLogger("atlas.maps")
 
@@ -34,17 +34,6 @@ VILLES = [
     "Essaouira",
 ]
 
-REQUETES_SECTEUR = {
-    "T101": "entreprise de construction bâtiment",
-    "T102": "entreprise de terrassement travaux publics",
-    "T103": "menuiserie métallerie charpente",
-    "T104": "plomberie chauffage climatisation",
-    "T105": "entreprise de peinture vitrerie",
-    "T106": "étanchéité isolation bâtiment",
-    "S931": "société développement logiciel informatique",
-    "S922": "laboratoire d'analyses médicales",
-    "S923": "laboratoire d'analyses BTP",
-}
 
 # Marqueurs d'une page de vérification anti-robot: on s'arrête si l'un
 # d'eux apparaît, on ne cherche pas à passer outre.
@@ -60,12 +49,6 @@ class BlocageGoogle(RuntimeError):
     """Google a présenté une vérification anti-robot: la collecte s'arrête."""
 
 
-def requete_secteur(code: str) -> str:
-    if code in REQUETES_SECTEUR:
-        return REQUETES_SECTEUR[code]
-    libelle = SECTORS.get(code, "")
-    parties = [p.strip() for p in re.split(r"[–\-,&/]", libelle) if p.strip()]
-    return " ".join(parties[:2]) if parties else libelle
 
 
 def _pause(base_ms: int):

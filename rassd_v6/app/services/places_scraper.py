@@ -20,7 +20,7 @@ from datetime import datetime
 import requests
 
 from app.core.config import cfg
-from app.core.sectors import SECTORS
+from app.services.sector_queries import requete_secteur as _requete_secteur
 
 logger = logging.getLogger("atlas.places")
 
@@ -51,29 +51,8 @@ VILLES = [
     "Essaouira",
 ]
 
-# Termes de recherche plus efficaces que le libellé officiel pour les
-# secteurs les plus demandés. Les autres retombent sur le libellé nettoyé.
-REQUETES_SECTEUR = {
-    "T101": "entreprise de construction bâtiment",
-    "T102": "entreprise de terrassement travaux publics",
-    "T103": "menuiserie métallerie charpente",
-    "T104": "plomberie chauffage climatisation",
-    "T105": "entreprise de peinture vitrerie",
-    "T106": "étanchéité isolation bâtiment",
-    "S931": "société développement logiciel informatique",
-    "S922": "laboratoire d'analyses médicales",
-    "S923": "laboratoire d'analyses BTP",
-}
 
 
-def _requete_secteur(code: str) -> str:
-    """Construit un terme de recherche exploitable à partir d'un code secteur."""
-    if code in REQUETES_SECTEUR:
-        return REQUETES_SECTEUR[code]
-    libelle = SECTORS.get(code, "")
-    # « Menuiserie – Métallerie – Charpente » -> « Menuiserie Métallerie »
-    parties = [p.strip() for p in re.split(r"[–\-,&/]", libelle) if p.strip()]
-    return " ".join(parties[:2]) if parties else libelle
 
 
 def _composant(place: dict, *types_recherches) -> str:
