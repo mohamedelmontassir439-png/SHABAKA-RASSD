@@ -1707,19 +1707,35 @@ async def admin_subtraitance_delete(req: Request, pid: str, csrf_token:str=Form(
     return RedirectResponse("/admin/sous-traitance", 302)
 
 @app.get("/admin/companies", response_class=HTMLResponse)
-async def admin_companies(req: Request, q:str="", s:str="", r:str="", page:int=1):
+async def admin_companies(req: Request, q:str="", s:str="", r:str="",
+                           src:str="", avec:str="", page:int=1):
     if not _is_admin(req): return RedirectResponse("/admin/login", 302)
     db = get_db(); per = 40; page = max(1, page)
     where, params = ["1=1"], []
     if q:
-        where.append("(legal_name LIKE ? OR normalized_name LIKE ? OR email LIKE ?)")
-        params += [f"%{q}%"]*3
+        where.append("(legal_name LIKE ? OR normalized_name LIKE ? OR email LIKE ? OR phone LIKE ?)")
+        params += [f"%{q}%"]*4
     if s: where.append("sector=?"); params.append(s)
     if r: where.append("region=?"); params.append(r)
+    if src: where.append("source=?"); params.append(src)
+    # Filtres de prospection: ne montrer que les fiches réellement contactables.
+    if avec == "tel":   where.append("phone!=''")
+    elif avec == "mail": where.append("email!=''")
+    elif avec == "both": where.append("phone!='' AND email!=''")
     wh = " AND ".join(where)
     total = db.execute(f"SELECT COUNT(*) FROM companies WHERE {wh}", params).fetchone()[0]
+    # Par défaut, les fiches les plus exploitables d'abord: une liste de
+    # prospection ne sert à rien si la première page ne contient que des
+    # entreprises sans aucun moyen de contact (cas des fiches issues des
+    # adjudications, qui ont des marchés gagnés mais ni téléphone ni email).
+    tri = {
+        "contact": "(email!='') DESC, (phone!='') DESC, wins DESC, legal_name",
+        "marches": "wins DESC, (phone!='') DESC, legal_name",
+        "nom":     "legal_name",
+        "recent":  "id DESC",
+    }.get(req.query_params.get("tri", "contact"), "(email!='') DESC, (phone!='') DESC, wins DESC, legal_name")
     rows = [dict(x) for x in db.execute(
-        f"SELECT * FROM companies WHERE {wh} ORDER BY wins DESC, legal_name LIMIT ? OFFSET ?",
+        f"SELECT * FROM companies WHERE {wh} ORDER BY {tri} LIMIT ? OFFSET ?",
         params+[per,(page-1)*per]).fetchall()]
     stats = {
         "total":    db.execute("SELECT COUNT(*) FROM companies").fetchone()[0],
@@ -1729,12 +1745,15 @@ async def admin_companies(req: Request, q:str="", s:str="", r:str="", page:int=1
     }
     regions = [x[0] for x in db.execute(
         "SELECT DISTINCT region FROM companies WHERE region!='' ORDER BY region LIMIT 60").fetchall()]
+    sources = [dict(x) for x in db.execute(
+        "SELECT source, COUNT(*) n FROM companies WHERE source!='' GROUP BY source ORDER BY n DESC").fetchall()]
     db.close()
     from app.services.places_scraper import VILLES
     csrf_tok = get_csrf_token(req) or secrets.token_urlsafe(24)
     resp = templates.TemplateResponse("admin_companies.html", {
         "request": req, "cfg": cfg, "rows": rows, "total": total, "stats": stats,
         "page": page, "pages": max(1,(total+per-1)//per), "q": q, "sf": s, "rf": r,
+        "src": src, "avec": avec, "sources": sources, "tri": req.query_params.get("tri","contact"),
         "regions": regions, "sector_groups": cfg.SECTOR_GROUPS, "csrf_token": csrf_tok,
         "villes": VILLES, "places_ready": bool(cfg.GOOGLE_PLACES_API_KEY),
         "places_running": PlacesState.running})
@@ -1884,7 +1903,8 @@ async def admin_companies_seed(req: Request, csrf_token: str = Form("")):
         f"/admin/companies?seeded={stats['created']}&merged={stats['merged']}&rejected={stats['rejected']}", 302)
 
 @app.get("/admin/companies/export")
-async def admin_companies_export(req: Request, q:str="", s:str="", r:str=""):
+async def admin_companies_export(req: Request, q:str="", s:str="", r:str="",
+                                  src:str="", avec:str=""):
     if not _is_admin(req): return JSONResponse({"ok": False}, 401)
     db = get_db()
     where, params = ["1=1"], []
@@ -1892,6 +1912,10 @@ async def admin_companies_export(req: Request, q:str="", s:str="", r:str=""):
         where.append("(legal_name LIKE ? OR normalized_name LIKE ?)"); params += [f"%{q}%"]*2
     if s: where.append("sector=?"); params.append(s)
     if r: where.append("region=?"); params.append(r)
+    if src: where.append("source=?"); params.append(src)
+    if avec == "tel":    where.append("phone!=''")
+    elif avec == "mail": where.append("email!=''")
+    elif avec == "both": where.append("phone!='' AND email!=''")
     rows = db.execute(
         f"SELECT * FROM companies WHERE {' AND '.join(where)} ORDER BY wins DESC", params).fetchall()
     db.close()

@@ -51,6 +51,10 @@ tr:hover td{background:var(--surface2)}
 .b-gray{background:var(--surface2);color:var(--t3)}
 .b-grn{background:rgba(29,154,108,.1);color:var(--grn)}
 .muted{color:var(--t4);font-size:11.5px}
+.b-blue{background:rgba(61,122,122,.12);color:#3d7a7a}
+.lien-contact{color:var(--navy);font-weight:600;font-size:12.5px;text-decoration:none}
+.lien-contact:hover{text-decoration:underline}
+.lien-contact.muted{color:var(--t4);font-weight:500}
 .pagination{display:flex;gap:8px;justify-content:center;padding:18px;flex-wrap:wrap}
 .pag-btn{padding:8px 13px;border:1px solid var(--line2);font-size:12.5px;font-weight:600;color:var(--t3);border-radius:6px;background:var(--surface)}
 .pag-btn.current{background:var(--navy);color:#fff;border-color:var(--navy)}
@@ -85,7 +89,7 @@ tr:hover td{background:var(--surface2)}
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <button type="submit" class="btn btn-p">⟳ Alimenter depuis les adjudications</button>
       </form>
-      <a href="/admin/companies/export?q={{ q }}&s={{ sf }}&r={{ rf }}" class="btn btn-l">⬇ Export CSV</a>
+      <a href="/admin/companies/export?q={{ q }}&s={{ sf }}&r={{ rf }}&src={{ src }}&avec={{ avec }}" class="btn btn-l">⬇ Export CSV</a>
     </div>
   </div>
 
@@ -244,34 +248,74 @@ tr:hover td{background:var(--surface2)}
         {% for reg in regions %}<option value="{{ reg }}" {% if reg==rf %}selected{% endif %}>{{ reg[:26] }}</option>{% endfor %}
       </select>
       {% endif %}
+      <select name="avec" class="sel">
+        <option value="">Toutes les fiches</option>
+        <option value="tel"  {% if avec=='tel' %}selected{% endif %}>Avec téléphone</option>
+        <option value="mail" {% if avec=='mail' %}selected{% endif %}>Avec email</option>
+        <option value="both" {% if avec=='both' %}selected{% endif %}>Téléphone + email</option>
+      </select>
+      {% if sources|length > 1 %}
+      <select name="src" class="sel">
+        <option value="">Toutes origines</option>
+        {% for s in sources %}
+        <option value="{{ s.source }}" {% if src==s.source %}selected{% endif %}>{{ s.source }} ({{ s.n }})</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+      <select name="tri" class="sel">
+        <option value="contact" {% if tri=='contact' %}selected{% endif %}>Trier : plus complètes</option>
+        <option value="marches" {% if tri=='marches' %}selected{% endif %}>Trier : marchés gagnés</option>
+        <option value="recent"  {% if tri=='recent' %}selected{% endif %}>Trier : ajout récent</option>
+        <option value="nom"     {% if tri=='nom' %}selected{% endif %}>Trier : nom</option>
+      </select>
       <button type="submit" class="btn btn-p">Filtrer</button>
-      {% if q or sf or rf %}<a href="/admin/companies" class="btn btn-l">✕ Effacer</a>{% endif %}
+      {% if q or sf or rf or src or avec %}<a href="/admin/companies" class="btn btn-l">✕ Effacer</a>{% endif %}
       <span style="margin-left:auto;font-size:12.5px;color:var(--t3);">{{ total }} résultat(s)</span>
     </form>
 
     {% if rows %}
     <table>
-      <tr><th>Entreprise</th><th>Secteur</th><th>Région</th><th>Contact</th><th>Identifiants</th><th>Marchés</th></tr>
+      <tr><th style="width:26%">Entreprise</th><th>Activité</th><th>Localisation</th>
+          <th style="width:24%">Contact</th><th>Origine</th></tr>
       {% for c in rows %}
       <tr>
         <td>
-          <div class="co-name">{{ c.legal_name[:52] }}</div>
-          <div class="muted">{{ c.normalized_name[:44] }}</div>
+          <div class="co-name">{{ c.legal_name[:60] }}</div>
+          {% if c.ice %}<div class="muted">ICE {{ c.ice }}</div>{% endif %}
+          {% if c.rc %}<div class="muted">RC {{ c.rc }}</div>{% endif %}
+          {% if c.wins %}<div style="margin-top:4px;"><span class="badge b-grn">{{ c.wins }} marché(s) gagné(s)</span></div>{% endif %}
         </td>
-        <td>{% if c.sector %}<span class="badge b-g">{{ get_label(c.sector)[:22] }}</span>{% else %}—{% endif %}</td>
-        <td>{{ c.region[:22] or '—' }}{% if c.city %}<div class="muted">{{ c.city[:22] }}</div>{% endif %}</td>
         <td>
-          {% if c.phone %}<div>{{ c.phone }}</div>{% endif %}
-          {% if c.email %}<div class="muted">{{ c.email[:30] }}</div>{% endif %}
-          {% if c.website %}<div class="muted">{{ c.website[:30] }}</div>{% endif %}
+          {% if c.sector %}<span class="badge b-g">{{ get_label(c.sector)[:26] }}</span>{% else %}—{% endif %}
+          {% if c.subsector %}<div class="muted" style="margin-top:4px;">{{ c.subsector[:34] }}</div>{% endif %}
+        </td>
+        <td>
+          {% if c.city %}<div style="font-weight:600;color:var(--t2);">{{ c.city[:26] }}</div>{% endif %}
+          {% if c.region and c.region != c.city %}<div class="muted">{{ c.region[:26] }}</div>{% endif %}
+          {% if c.address %}<div class="muted" style="margin-top:3px;">{{ c.address[:52] }}</div>{% endif %}
+          {% if not c.city and not c.region and not c.address %}—{% endif %}
+        </td>
+        <td>
+          {% if c.phone %}
+            <div><a href="tel:+{{ c.phone }}" class="lien-contact">📞 {{ c.phone }}</a></div>
+          {% endif %}
+          {% if c.email %}
+            <div><a href="mailto:{{ c.email }}" class="lien-contact">✉ {{ c.email[:32] }}</a></div>
+          {% endif %}
+          {% if c.website %}
+            <div><a href="{% if not c.website.startswith('http') %}https://{% endif %}{{ c.website }}"
+                    target="_blank" rel="noopener" class="lien-contact muted">🔗 {{ c.website[:30] }}</a></div>
+          {% endif %}
           {% if not c.phone and not c.email and not c.website %}<span class="badge b-gray">à compléter</span>{% endif %}
         </td>
         <td>
-          {% if c.ice %}<div class="muted">ICE {{ c.ice }}</div>{% endif %}
-          {% if c.rc %}<div class="muted">RC {{ c.rc }}</div>{% endif %}
-          {% if not c.ice and not c.rc %}—{% endif %}
+          <span class="badge {% if c.source=='google-maps' %}b-blue{% elif c.source=='google-places' %}b-g{% else %}b-gray{% endif %}">
+            {{ c.source or '—' }}</span>
+          {% if c.source_url %}
+          <div style="margin-top:4px;"><a href="{{ c.source_url }}" target="_blank" rel="noopener"
+             class="muted" style="text-decoration:underline;">voir la source</a></div>
+          {% endif %}
         </td>
-        <td><span class="badge b-grn">{{ c.wins }}</span></td>
       </tr>
       {% endfor %}
     </table>
@@ -279,7 +323,7 @@ tr:hover td{background:var(--surface2)}
     <div class="pagination">
       {% for pp in range(1, pages+1) %}
         {% if pp==page %}<span class="pag-btn current">{{ pp }}</span>
-        {% elif pp==1 or pp==pages or (pp>=page-2 and pp<=page+2) %}<a href="?q={{ q }}&s={{ sf }}&r={{ rf }}&page={{ pp }}" class="pag-btn">{{ pp }}</a>
+        {% elif pp==1 or pp==pages or (pp>=page-2 and pp<=page+2) %}<a href="?q={{ q }}&s={{ sf }}&r={{ rf }}&src={{ src }}&avec={{ avec }}&tri={{ tri }}&page={{ pp }}" class="pag-btn">{{ pp }}</a>
         {% elif pp==page-3 or pp==page+3 %}<span style="padding:8px 4px;color:var(--t4);">…</span>{% endif %}
       {% endfor %}
     </div>
