@@ -351,6 +351,23 @@ async def backup_scheduler():
             logger.error(f"[backup_scheduler] {e}")
         await asyncio.sleep(86400)
 
+async def wa_digest_scheduler():
+    """Vérifie toutes les 15 minutes s'il faut envoyer les résumés WhatsApp.
+
+    send_daily_wa_digests() ne fait rien avant WA_DIGEST_HOUR et n'envoie
+    qu'une fois par membre et par jour: les passages répétés sont sans effet.
+    """
+    from app.services.notifications import send_daily_wa_digests
+    await asyncio.sleep(120)
+    while True:
+        try:
+            loop = asyncio.get_event_loop()
+            n = await loop.run_in_executor(None, send_daily_wa_digests)
+            if n: logger.info(f"[wa_digest] {n} résumé(s) envoyé(s)")
+        except Exception as e:
+            logger.error(f"[wa_digest_scheduler] {e}")
+        await asyncio.sleep(900)
+
 # ══════════════════════════════════════════════════════════
 # MIDDLEWARE
 # ══════════════════════════════════════════════════════════
@@ -411,6 +428,7 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(scheduler())
     asyncio.create_task(digest_scheduler())
     asyncio.create_task(backup_scheduler())
+    asyncio.create_task(wa_digest_scheduler())
     yield
 
 app = FastAPI(lifespan=lifespan, title=cfg.APP_NAME,
@@ -1443,6 +1461,23 @@ def _create_document(db, doc_type: str, member: dict, payload: dict,
          json.dumps(payload, ensure_ascii=False), datetime.now().isoformat()))
     return number
 
+@app.get("/opportunites-du-jour", response_class=HTMLResponse)
+async def opportunites_du_jour(req: Request):
+    """Page ouverte depuis le résumé WhatsApp: les marchés mis en file pour
+    ce membre sur les 7 derniers jours, les plus récents d'abord."""
+    member = get_member(req)
+    if not member: return RedirectResponse("/login?next=/opportunites-du-jour", 302)
+    if not has_access(member): return RedirectResponse("/tarifs?locked=1", 302)
+    db = get_db()
+    items = [dict(r) for r in db.execute(
+        """SELECT t.*, q.created_at AS queued_at, q.sent_at
+           FROM wa_digest_queue q JOIN tenders t ON t.id = q.tender_id
+           WHERE q.member_id=? AND q.created_at>=?
+           ORDER BY q.created_at DESC LIMIT 300""",
+        (member["id"], (datetime.now() - timedelta(days=7)).isoformat())).fetchall()]
+    db.close()
+    return render(req, "opportunites_jour.html", {"items": items})
+
 @app.get("/mon-abonnement", response_class=HTMLResponse)
 async def my_subscription(req: Request):
     member = get_member(req)
@@ -1977,6 +2012,15 @@ async def admin_backups_download(req: Request, filename: str):
     if not safe_name.startswith("atlas_") or not safe_name.endswith(".db") or not os.path.isfile(path):
         return HTMLResponse("Fichier introuvable", 404)
     return FileResponse(path, filename=safe_name, media_type="application/octet-stream")
+
+@app.get("/admin/wa_digest/run")
+async def admin_wa_digest_run(req: Request):
+    """Envoie tout de suite les résumés WhatsApp en attente (test Sandbox)."""
+    if not _is_admin(req): return JSONResponse({"ok": False}, 401)
+    from app.services.notifications import send_daily_wa_digests
+    loop = asyncio.get_event_loop()
+    n = await loop.run_in_executor(None, lambda: send_daily_wa_digests(force=True))
+    return JSONResponse({"ok": True, "envoyes": n})
 
 @app.get("/admin/scrape")
 async def admin_scrape(req: Request):

@@ -157,6 +157,16 @@ CREATE TABLE IF NOT EXISTS notif_queue (
     created_at TEXT DEFAULT '',
     UNIQUE(member_id, tender_id)
 );
+-- File du résumé WhatsApp quotidien: un marché correspondant est mis en
+-- file au moment du scraping, puis envoyé dans un seul message par jour.
+CREATE TABLE IF NOT EXISTS wa_digest_queue (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    member_id  INTEGER NOT NULL,
+    tender_id  TEXT NOT NULL,
+    created_at TEXT DEFAULT '',
+    sent_at    TEXT DEFAULT '',
+    UNIQUE(member_id, tender_id)
+);
 -- ── Abonnements / paiements ────────────────────────────────
 -- Le paiement est encaissé hors plateforme (virement, espèces, WhatsApp) puis
 -- enregistré par l'admin : ces tables tracent la réalité comptable, elles ne
@@ -310,6 +320,7 @@ CREATE INDEX IF NOT EXISTS idx_sm_recip   ON subcontract_messages(recipient_id);
 CREATE INDEX IF NOT EXISTS idx_sr_post    ON subcontract_ratings(post_id);
 CREATE INDEX IF NOT EXISTS idx_sr_rated   ON subcontract_ratings(rated_id);
 CREATE INDEX IF NOT EXISTS idx_nq_member  ON notif_queue(member_id);
+CREATE INDEX IF NOT EXISTS idx_waq_member ON wa_digest_queue(member_id, sent_at);
 CREATE INDEX IF NOT EXISTS idx_srep_post  ON subcontract_reports(post_id);
 CREATE INDEX IF NOT EXISTS idx_err_created ON error_log(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_sub_member  ON subscriptions(member_id);
@@ -364,6 +375,7 @@ def migrate_db():
         "ALTER TABLE members ADD COLUMN notif_keywords TEXT DEFAULT ''",
         "ALTER TABLE members ADD COLUMN notif_min_budget INTEGER DEFAULT 0",
         "ALTER TABLE members ADD COLUMN notif_types TEXT DEFAULT '[]'",
+        "ALTER TABLE members ADD COLUMN last_wa_digest TEXT DEFAULT ''",
         # Journal de notification: statut de livraison
         "ALTER TABLE notif_log ADD COLUMN status TEXT DEFAULT 'SENT'",
         "ALTER TABLE notif_log ADD COLUMN error TEXT DEFAULT ''",

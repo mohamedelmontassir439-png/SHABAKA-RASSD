@@ -12,13 +12,17 @@ logger = logging.getLogger("atlas.notif")
 from app.services.matching import matches
 
 try:
-    from app.services.whatsapp import send_wa, format_tender_wa, twilio_configured
+    from app.services.whatsapp import (send_wa, format_tender_wa, twilio_configured,
+                                       send_wa_template, clean_template_var, is_twilio_sandbox)
     WA_OK = True
 except Exception:
     WA_OK = False
     def send_wa(*a, **kw): return False
     def format_tender_wa(t): return ""
     def twilio_configured(): return False
+    def send_wa_template(*a, **kw): return False
+    def clean_template_var(v, fallback="-", max_len=180): return str(v or fallback)
+    def is_twilio_sandbox(): return False
 
 
 def _log_notif(db, member_id: int, tender_id: str, channel: str,
@@ -40,7 +44,14 @@ def _log_notif(db, member_id: int, tender_id: str, channel: str,
 
 
 def send_wa_verification(phone: str, code: str) -> bool:
-    """Envoie le code de vérification WhatsApp (opt-in)."""
+    """Envoie le code de vérification WhatsApp (opt-in).
+
+    En production, un code envoyé à l'initiative de l'entreprise doit passer
+    par un modèle d'authentification approuvé (TWILIO_OTP_CONTENT_SID). Sans
+    lui, le texte libre ne fonctionne qu'avec le Sandbox Twilio.
+    """
+    if twilio_configured() and cfg.TWILIO_OTP_CONTENT_SID:
+        return send_wa_template(phone, cfg.TWILIO_OTP_CONTENT_SID, {"1": code})
     return send_wa(phone, (
         f"🔐 Maroc Entrepreneuriat\n\n"
         f"Votre code de vérification WhatsApp : *{code}*\n\n"
@@ -364,24 +375,26 @@ def dispatch_notifications(tenders: list):
                         _log_notif(db, member["id"], t["id"], "whatsapp", False,
                                    "numéro non vérifié (opt-in requis)", "")
                     else:
-                        ok = send_wa(member["whatsapp"], format_tender_wa(t))
-                        _log_notif(db, member["id"], t["id"], "whatsapp", ok,
-                                   "" if ok else "échec envoi WhatsApp",
-                                   "twilio" if twilio_configured() else "baileys")
-                        if ok:
-                            total_wa += 1
-                        else:
-                            logger.warning(f"[Notif] WA failed pour {member['email']}")
+                        # WhatsApp ne part plus marché par marché: chaque message
+                        # est facturé par Meta, et plusieurs alertes par jour sur
+                        # WhatsApp sont vécues comme du spam. Le marché est mis en
+                        # file et part dans le résumé quotidien
+                        # (send_daily_wa_digests). Email et Telegram restent
+                        # instantanés.
+                        db.execute(
+                            "INSERT OR IGNORE INTO wa_digest_queue(member_id,tender_id,created_at) VALUES(?,?,?)",
+                            (member["id"], t["id"], now))
+                        total_wa += 1
 
         db.commit()
         logger.info(
-            f"[Notif] ✅ {total_tg} TG + {total_email} Email + {total_wa} WhatsApp "
+            f"[Notif] ✅ {total_tg} TG + {total_email} Email + {total_wa} WhatsApp en file "
             f"pour {len(tenders)} marchés ({total_skip} filtrés)"
         )
         if total_tg + total_email + total_wa > 0:
             tg_admin(
                 f"✅ <b>{len(tenders)} nouveaux marchés</b>\n"
-                f"📱 {total_tg} Telegram · 📧 {total_email} Email · 💬 {total_wa} WhatsApp"
+                f"📱 {total_tg} Telegram · 📧 {total_email} Email · 💬 {total_wa} WhatsApp en file"
             )
     except Exception as e:
         logger.error(f"[Notif] Exception: {e}", exc_info=True)
@@ -411,3 +424,116 @@ def test_notifications(email: str = "", telegram_id: str = "", whatsapp: str = "
     if whatsapp:
         results["whatsapp"] = send_wa(whatsapp, format_tender_wa(fake_tender))
     return results
+
+
+# ── Résumé WhatsApp quotidien ─────────────────────────────
+
+def _morocco_now():
+    """Heure du Maroc — le serveur Railway tourne en UTC."""
+    try:
+        from zoneinfo import ZoneInfo
+        return datetime.now(ZoneInfo("Africa/Casablanca")).replace(tzinfo=None)
+    except Exception:
+        from datetime import timedelta, timezone
+        return datetime.now(timezone(timedelta(hours=1))).replace(tzinfo=None)
+
+
+def build_wa_digest_vars(member: dict, items: list, link: str) -> dict:
+    """Variables du modèle approuvé (catégorie UTILITY).
+
+    Texte du modèle à créer dans la console Twilio:
+      Bonjour {{1}}, {{2}} nouvelle(s) opportunité(s) correspondent à vos
+      secteurs. La plus récente : {{3}}. Liste complète : {{4}} —
+      Maroc Entrepreneuriat
+    """
+    prenom = ((member.get("nom") or "").strip().split(" ") or [""])[0]
+    plus_recente = items[0].get("objet", "") if items else ""
+    return {
+        "1": clean_template_var(prenom, "cher membre", 40),
+        "2": str(len(items)),
+        "3": clean_template_var(plus_recente, "voir la liste", 120),
+        "4": clean_template_var(link, link, 200),
+    }
+
+
+def build_wa_digest_text(member: dict, items: list, link: str) -> str:
+    """Version texte libre du résumé (Sandbox Twilio, ou service Baileys)."""
+    prenom = ((member.get("nom") or "").strip().split(" ") or [""])[0]
+    lignes = ["🔔 *Maroc Entrepreneuriat* — résumé du jour", "",
+              f"Bonjour {prenom}," if prenom else "Bonjour,",
+              f"*{len(items)} nouvelle(s) opportunité(s)* correspondent à vos secteurs :", ""]
+    for t in items[:5]:
+        dl = f" · ⏰ {t['date_limite']}" if t.get("date_limite") else ""
+        lignes.append(f"• {(t.get('objet') or '')[:90]}{dl}")
+    if len(items) > 5:
+        lignes.append(f"… et {len(items) - 5} autre(s)")
+    lignes += ["", f"👉 {link}"]
+    return "\n".join(lignes)
+
+
+def send_daily_wa_digests(force: bool = False, now=None) -> int:
+    """Envoie à chaque membre un seul message WhatsApp par jour.
+
+    Idempotent: last_wa_digest (date du Maroc) empêche un second envoi le
+    même jour, et un résumé vide n'est jamais envoyé. Un échec n'est pas
+    marqué comme envoyé — il sera retenté, mais au plus 3 fois par jour
+    pour ne pas enchaîner des appels facturés qui échouent tous.
+    """
+    import time as _time
+    now = now or _morocco_now()
+    if not force and now.hour < cfg.WA_DIGEST_HOUR:
+        return 0
+    today = now.strftime("%Y-%m-%d")
+    link  = f"{cfg.SITE_URL}/opportunites-du-jour"
+    envoyes = 0
+    db = get_db()
+    try:
+        membres = [dict(m) for m in db.execute(
+            """SELECT * FROM members WHERE actif=1 AND notif_wa=1 AND whatsapp_verified=1
+               AND whatsapp!='' AND (last_wa_digest IS NULL OR last_wa_digest!=?)""",
+            (today,)).fetchall()]
+        for m in membres:
+            if not has_access(m):
+                continue
+            echecs = db.execute(
+                """SELECT COUNT(*) FROM notif_log WHERE member_id=? AND channel='whatsapp'
+                   AND tender_id=? AND status='FAILED'""",
+                (m["id"], f"digest:{today}")).fetchone()[0]
+            if echecs >= 3:
+                continue
+            items = [dict(r) for r in db.execute(
+                """SELECT t.id, t.objet, t.date_limite, t.secteur, q.id AS qid
+                   FROM wa_digest_queue q JOIN tenders t ON t.id = q.tender_id
+                   WHERE q.member_id=? AND (q.sent_at IS NULL OR q.sent_at='')
+                   ORDER BY t.scraped_at DESC LIMIT 200""",
+                (m["id"],)).fetchall()]
+            if not items:
+                continue
+
+            if twilio_configured() and cfg.TWILIO_CONTENT_SID:
+                ok = send_wa_template(m["whatsapp"], cfg.TWILIO_CONTENT_SID,
+                                      build_wa_digest_vars(m, items, link))
+                provider = "twilio-template"
+            else:
+                ok = send_wa(m["whatsapp"], build_wa_digest_text(m, items, link))
+                provider = "twilio" if twilio_configured() else "baileys"
+
+            _log_notif(db, m["id"], f"digest:{today}", "whatsapp", ok,
+                       "" if ok else "échec envoi résumé WhatsApp", provider)
+            if ok:
+                ids = [it["qid"] for it in items]
+                ph = ",".join("?" * len(ids))
+                db.execute(f"UPDATE wa_digest_queue SET sent_at=? WHERE id IN ({ph})",
+                           [now.isoformat()] + ids)
+                db.execute("UPDATE members SET last_wa_digest=? WHERE id=?", (today, m["id"]))
+                envoyes += 1
+            db.commit()
+            # Le Sandbox Twilio n'accepte qu'un message toutes les 3 secondes.
+            _time.sleep(3.1 if is_twilio_sandbox() else 0.3)
+    except Exception as e:
+        logger.error(f"[WA digest] {e}", exc_info=True)
+    finally:
+        db.close()
+    if envoyes:
+        logger.info(f"[WA digest] {envoyes} résumé(s) WhatsApp envoyé(s)")
+    return envoyes

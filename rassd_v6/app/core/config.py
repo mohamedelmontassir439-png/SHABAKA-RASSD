@@ -45,6 +45,14 @@ class Settings:
     TWILIO_SID:        str = os.getenv("TWILIO_ACCOUNT_SID", "")
     TWILIO_AUTH_TOKEN: str = os.getenv("TWILIO_AUTH_TOKEN", "")
     TWILIO_WA_FROM:    str = os.getenv("TWILIO_WHATSAPP_FROM", "")
+    # Modèle WhatsApp approuvé par Meta pour le résumé quotidien. Sans lui,
+    # le message part en texte libre — accepté seulement par le Sandbox
+    # Twilio ou dans les 24 h qui suivent un message du membre.
+    TWILIO_CONTENT_SID:     str = os.getenv("TWILIO_CONTENT_SID", "")
+    # Modèle d'authentification pour le code de vérification du numéro.
+    TWILIO_OTP_CONTENT_SID: str = os.getenv("TWILIO_OTP_CONTENT_SID", "")
+    # Heure d'envoi du résumé WhatsApp quotidien (heure du Maroc).
+    WA_DIGEST_HOUR:         int = int(os.getenv("WA_DIGEST_HOUR", "9"))
     # Abonnement (mise à niveau manuelle via WhatsApp)
     PAYMENT_PHONE: str = os.getenv("PAYMENT_PHONE", "")
     PAYMENT_MSG:   str = os.getenv("PAYMENT_MSG", "Bonjour, je souhaite m'abonner à MAROC ENTREPRENEURIAT")

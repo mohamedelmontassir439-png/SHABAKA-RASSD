@@ -2,7 +2,7 @@
 Maroc Entrepreneuriat — WhatsApp Client (Baileys bridge)
 Envoie des messages via le service Node.js Baileys local
 """
-import logging, requests
+import json, logging, re, requests
 from app.core.config import cfg
 from app.core.sectors import get_label
 
@@ -65,6 +65,58 @@ def send_wa_twilio(phone: str, message: str) -> bool:
             logger.info(f"[WA/Twilio] ✅ → {p}")
             return True
         logger.error(f"[WA/Twilio] Erreur {r.status_code}: {r.text[:200]}")
+        return False
+    except Exception as e:
+        logger.error(f"[WA/Twilio] ❌ {e}")
+        return False
+
+SANDBOX_NUMBER = "14155238886"
+
+def is_twilio_sandbox() -> bool:
+    """L'expéditeur est-il le numéro partagé du Sandbox Twilio ?"""
+    return SANDBOX_NUMBER in "".join(ch for ch in (cfg.TWILIO_WA_FROM or "") if ch.isdigit())
+
+def clean_template_var(value, fallback: str = "-", max_len: int = 180) -> str:
+    """Rend une valeur acceptable comme variable de modèle WhatsApp.
+
+    Meta refuse une variable contenant un saut de ligne, une tabulation ou
+    plus de quatre espaces consécutifs, ainsi qu'une variable vide: le
+    message entier serait rejeté à cause d'un seul titre mal formé.
+    """
+    text = re.sub(r"\s+", " ", str(value if value is not None else "")).strip()
+    if len(text) > max_len:
+        text = text[: max_len - 1].rstrip() + "…"
+    return text or fallback
+
+def _twilio_from() -> str:
+    frm = cfg.TWILIO_WA_FROM or ""
+    return frm if frm.startswith("whatsapp:") else f"whatsapp:+{frm.lstrip('+')}"
+
+def send_wa_template(phone: str, content_sid: str, variables: dict) -> bool:
+    """Envoie un modèle WhatsApp approuvé (ContentSid) via Twilio.
+
+    Obligatoire pour tout message à l'initiative de l'entreprise en dehors
+    de la fenêtre de 24 h — c'est le cas du résumé quotidien.
+    """
+    if not twilio_configured() or not content_sid:
+        return False
+    p = normalize_ma_phone(phone)
+    if not p:
+        logger.warning(f"[WA/Twilio] Numéro invalide: {phone}")
+        return False
+    propres = {str(k): clean_template_var(v) for k, v in (variables or {}).items()}
+    try:
+        r = requests.post(
+            f"https://api.twilio.com/2010-04-01/Accounts/{cfg.TWILIO_SID}/Messages.json",
+            auth=(cfg.TWILIO_SID, cfg.TWILIO_AUTH_TOKEN),
+            data={"From": _twilio_from(), "To": f"whatsapp:+{p}",
+                  "ContentSid": content_sid,
+                  "ContentVariables": json.dumps(propres, ensure_ascii=False)},
+            timeout=15)
+        if r.status_code in (200, 201):
+            logger.info(f"[WA/Twilio] ✅ modèle → {p}")
+            return True
+        logger.error(f"[WA/Twilio] Erreur modèle {r.status_code}: {r.text[:200]}")
         return False
     except Exception as e:
         logger.error(f"[WA/Twilio] ❌ {e}")
