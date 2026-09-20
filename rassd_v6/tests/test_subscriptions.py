@@ -92,11 +92,12 @@ class TestInscriptionAccordeUnEssai:
         assert sub is not None, "une ligne d'abonnement doit être ouverte à l'inscription"
         assert sub["status"] == "TRIAL"
 
-    def test_nouvel_inscrit_accede_aux_marches(self, client):
+    def test_nouvel_inscrit_accede_aux_marches(self, client, confirmer_email):
         page = client.get("/register")
         token = page.cookies.get("_csrf")
         client.post("/register", data={
             "email": "acces@example.com", "pw": "MotDePasse1!", "pw2": "MotDePasse1!",
             "nom": "Acces", "csrf_token": token}, follow_redirects=False)
+        confirmer_email("acces@example.com")
         r = client.get("/tenders", follow_redirects=False)
         assert r.status_code == 200, "pendant l'essai, les marchés doivent être accessibles"

@@ -352,8 +352,11 @@ def dispatch_notifications(tenders: list):
                     else:
                         logger.warning(f"[Notif] TG failed pour {member['email']}")
 
-                # Email
-                if member.get("notif_email") and member.get("email"):
+                # Email — une adresse non confirmée n'a jamais prouvé son
+                # existence: lui écrire ne fait qu'accumuler des rebonds, ce
+                # qui dégrade la réputation d'envoi du domaine.
+                if (member.get("notif_email") and member.get("email")
+                        and member.get("email_verified", 1)):
                     html = build_email(t, member.get("nom", ""))
                     ok   = email_send(
                         member["email"],

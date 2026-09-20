@@ -16,7 +16,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from app.core.config   import cfg
 from app.core.database import get_db, init_db
 from app.core.security import (hash_pw, verify_pw, make_token, make_session_token,
-                                get_member, has_access, validate_email,
+                                get_member, has_access, email_ok, validate_email,
                                 validate_password, days_left,
                                 get_csrf_token, verify_csrf, subscription_state)
 from app.core.sectors import get_label
@@ -406,6 +406,42 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         })
         return resp
 
+# Chemins accessibles sans avoir confirmé son adresse: pages publiques,
+# gestion du compte et, bien sûr, la page de vérification elle-même. Tout le
+# reste (marchés, bons de commande, résultats, sous-traitance, API) attend la
+# confirmation. Liste blanche plutôt que liste noire: une nouvelle route de
+# données est protégée par défaut, pas oubliée.
+# "/" est comparé exactement: en préfixe il laisserait passer tout le site.
+CHEMINS_LIBRES_EXACTS = frozenset((
+    "/", "/login", "/register", "/logout", "/forgot", "/reset", "/tarifs",
+    "/contact", "/cgu", "/confidentialite", "/mentions-legales", "/health",
+    "/robots.txt", "/sitemap.xml", "/manifest.json", "/sw.js",
+))
+CHEMINS_LIBRES_PREFIXES = (
+    "/verifier-email", "/settings", "/static", "/admin", "/icon-",
+)
+
+
+class VerificationEmailMiddleware(BaseHTTPMiddleware):
+    """Bloque l'accès aux données tant que l'adresse n'est pas confirmée.
+
+    Une adresse inventée passe la validation de forme: sans ce filtre, un
+    compte ouvert sur une boîte inexistante obtient un essai gratuit complet
+    et ne recevra jamais la moindre alerte.
+    """
+    async def dispatch(self, req, call_next):
+        chemin = req.url.path
+        if (chemin not in CHEMINS_LIBRES_EXACTS
+                and not chemin.startswith(CHEMINS_LIBRES_PREFIXES)):
+            membre = get_member(req)
+            if membre and not email_ok(membre):
+                if chemin.startswith("/api/"):
+                    return JSONResponse(
+                        {"ok": False, "msg": "Adresse email non confirmée"}, 403)
+                return RedirectResponse("/verifier-email?requis=1", 302)
+        return await call_next(req)
+
+
 def csrf_guard(req: Request, csrf_token: str = ""):
     """Vérification CSRF appelée en première ligne de chaque route POST.
 
@@ -434,6 +470,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan, title=cfg.APP_NAME,
               version=cfg.APP_VERSION, docs_url=None, redoc_url=None)
 app.add_middleware(SecurityMiddleware)
+app.add_middleware(VerificationEmailMiddleware)
 
 @app.exception_handler(404)
 async def not_found(req: Request, exc):
@@ -1154,12 +1191,16 @@ async def register_post(req: Request,
         if ref:
             r = db.execute("SELECT id FROM members WHERE referral_code=?", (ref.strip().upper(),)).fetchone()
             if r: referred_by = r["id"]
+        email_token   = secrets.token_urlsafe(32)
+        token_expires = (now + timedelta(days=7)).isoformat()
         cur = db.execute(
             """INSERT INTO members(nom,email,phone,company,pw_hash,secteurs,plan,created_at,
-               trial_start,trial_ends,subscription_status,session_token,referral_code,referred_by)
-               VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+               trial_start,trial_ends,subscription_status,session_token,referral_code,referred_by,
+               email_verified,email_token,email_token_expires)
+               VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (nom,email,phone,company,hash_pw(pw),json.dumps(sects),"free",created_at,
-             trial_start,trial_ends,"TRIAL",session_tok,my_ref_code,referred_by))
+             trial_start,trial_ends,"TRIAL",session_tok,my_ref_code,referred_by,
+             0,email_token,token_expires))
         db.execute(
             """INSERT INTO subscriptions(member_id,plan_id,price,currency,status,
                trial_start,trial_end,created_at,updated_at)
@@ -1167,10 +1208,87 @@ async def register_post(req: Request,
             (cur.lastrowid, "trial", 0, "MAD", "TRIAL", trial_start, trial_ends, created_at, created_at))
         db.commit()
     finally: db.close()
-    resp = RedirectResponse("/dashboard?welcome=1",302)
+    envoyer_lien_verification(email, email_token, lang)
+    resp = RedirectResponse("/verifier-email?envoye=1",302)
     resp.set_cookie("_session", session_tok,
                     max_age=86400*30, httponly=True, samesite="lax", secure=COOKIE_SECURE)
     return resp
+
+def envoyer_lien_verification(email: str, token: str, lang: str = "fr"):
+    """Envoie le lien de confirmation, hors du thread de la requête.
+
+    Un provider lent ne doit jamais retarder l'inscription: l'envoi part en
+    tâche de fond, exactement comme le lien de réinitialisation.
+    """
+    lien = f"{cfg.SITE_URL}/verifier-email?token={token}"
+    try:
+        from app.services.notifications import email_send
+        loop = asyncio.get_event_loop()
+        loop.run_in_executor(None, lambda: email_send(
+            email, tr_("email_verif_subject", lang),
+            f"""<h2>{tr_("email_verif_h2", lang)}</h2>
+            <p>{tr_("email_verif_p", lang)}</p>
+            <a href="{lien}" style="display:inline-block;padding:12px 24px;background:#f2662d;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">
+              {tr_("email_verif_btn", lang)}
+            </a>
+            <p style="color:#666;font-size:12px;margin-top:16px">{tr_("email_verif_expiry", lang)}</p>"""))
+    except Exception as e:
+        logger.error(f"[verif email] {e}")
+
+
+@app.get("/verifier-email", response_class=HTMLResponse)
+async def verifier_email(req: Request, token: str = "", envoye: int = 0, requis: int = 0):
+    lang   = get_lang(req)
+    membre = get_member(req)
+    if token:
+        db = get_db()
+        m  = db.execute("SELECT * FROM members WHERE email_token=? AND email_token!=''",
+                        (token,)).fetchone()
+        if not m:
+            db.close()
+            return render(req, "verifier_email.html",
+                          {"err": tr_("verif_err_invalide", lang)}, status_code=400)
+        expire = datetime.fromisoformat(m["email_token_expires"] or "2000-01-01")
+        if expire < datetime.now():
+            db.close()
+            return render(req, "verifier_email.html",
+                          {"expire": True, "email": m["email"]}, status_code=400)
+        db.execute("""UPDATE members SET email_verified=1, email_token='',
+                      email_token_expires='' WHERE id=?""", (m["id"],))
+        db.commit(); db.close()
+        logger.info(f"[Verif] ✅ {m['email']} a confirmé son adresse")
+        # Le lien peut être ouvert depuis un autre appareil que celui de
+        # l'inscription: sans session, on renvoie vers la connexion.
+        return RedirectResponse("/dashboard?verifie=1" if membre else "/login?verifie=1", 302)
+
+    if not membre:
+        return RedirectResponse("/login", 302)
+    if email_ok(membre):
+        return RedirectResponse("/dashboard", 302)
+    return render(req, "verifier_email.html",
+                  {"envoye": bool(envoye), "requis": bool(requis), "email": membre["email"]})
+
+
+@app.post("/verifier-email/renvoyer")
+async def renvoyer_verification(req: Request, csrf_token: str = Form("")):
+    lang = get_lang(req)
+    csrf_guard(req, csrf_token)
+    membre = get_member(req)
+    if not membre:
+        return RedirectResponse("/login", 302)
+    if email_ok(membre):
+        return RedirectResponse("/dashboard", 302)
+    if not check_rate_limit(f"verif_{membre['id']}", 3, 3600):
+        return render(req, "verifier_email.html",
+                      {"err": tr_("err_too_many_generic", lang), "email": membre["email"]})
+    token = secrets.token_urlsafe(32)
+    db = get_db()
+    db.execute("UPDATE members SET email_token=?, email_token_expires=? WHERE id=?",
+               (token, (datetime.now() + timedelta(days=7)).isoformat(), membre["id"]))
+    db.commit(); db.close()
+    envoyer_lien_verification(membre["email"], token, lang)
+    return RedirectResponse("/verifier-email?envoye=1", 302)
+
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_get(req: Request, next:str=""):

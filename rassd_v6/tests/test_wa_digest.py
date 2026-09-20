@@ -220,11 +220,12 @@ class TestPageDuJour:
         r = client.get("/opportunites-du-jour")
         assert r.status_code == 302 and "/login" in r.headers["location"]
 
-    def test_affiche_les_marches_en_file(self, client, db):
+    def test_affiche_les_marches_en_file(self, client, db, confirmer_email):
         client.get("/register")
         client.post("/register", data={
             "email": "page@example.com", "pw": "MotDePasse1!", "pw2": "MotDePasse1!",
             "nom": "Page", "csrf_token": client.cookies.get("_csrf")})
+        confirmer_email("page@example.com")
         mid = db.execute("SELECT id FROM members WHERE email=?", ("page@example.com",)).fetchone()["id"]
         _marche(db, "t_page", objet="MARCHE VISIBLE DANS LE RESUME")
         db.execute("INSERT INTO wa_digest_queue(member_id,tender_id,created_at) VALUES(?,?,?)",

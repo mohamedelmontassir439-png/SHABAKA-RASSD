@@ -117,6 +117,9 @@
 </section>
 
 <div class="dash-wrap">
+{% if request.query_params.get('verifie') %}
+  <div class="alert alert-ok" style="margin-bottom: 18px;">{{ tr('verif_ok_banner') }}</div>
+{% endif %}
 {% if locked %}
   <div class="locked-panel">
     <div class="locked-panel-title">{{ tr('dash_locked_title') }}</div>

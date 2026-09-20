@@ -1,0 +1,56 @@
+{% extends "base_public.html" %}
+{% block title %}{{ tr('verif_title_plain') }} — Maroc Entrepreneuriat{% endblock %}
+{% block body %}
+<style>
+.auth-wrap { min-height: calc(100vh - 260px); display: flex; align-items: center; justify-content: center; padding: 56px 20px; }
+.auth-card { width: 100%; max-width: 480px; }
+.auth-title { font-family: var(--serif); font-weight: 700; font-size: 29px; color: var(--text1); line-height: 1.2; letter-spacing: -.01em; text-align: center; margin-bottom: 10px; }
+.auth-title em { font-style: italic; color: var(--ink); font-weight: 600; }
+.auth-sub { font-size: 15px; color: var(--text3); text-align: center; margin-bottom: 32px; line-height: 1.6; }
+.auth-panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); box-shadow: var(--sh2), var(--shg); padding: 32px; }
+.verif-mail { display: block; text-align: center; font-weight: 700; color: var(--text1); background: var(--golda); border-radius: var(--r2); padding: 12px 16px; margin-bottom: 22px; word-break: break-all; }
+.verif-steps { list-style: none; display: flex; flex-direction: column; gap: 12px; margin: 0 0 24px; padding: 0; }
+.verif-steps li { display: flex; gap: 10px; align-items: flex-start; font-size: 14.5px; color: var(--text2); line-height: 1.6; }
+.verif-steps li::before { content: "→"; color: var(--ink); font-weight: 700; flex-shrink: 0; }
+.verif-form { display: flex; flex-direction: column; gap: 12px; }
+.auth-foot { text-align: center; margin-top: 24px; font-size: 14px; color: var(--text3); }
+.auth-foot a { color: var(--navy); font-weight: 600; }
+.auth-foot a:hover { text-decoration: underline; }
+</style>
+
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h1 class="auth-title">{{ tr('verif_title')|safe }}</h1>
+    <p class="auth-sub">{{ tr('verif_sub') }}</p>
+
+    <div class="auth-panel">
+      {% if err %}<div class="alert alert-err" style="margin-bottom: 20px;">{{ err }}</div>{% endif %}
+      {% if expire %}<div class="alert alert-err" style="margin-bottom: 20px;">{{ tr('verif_expire') }}</div>{% endif %}
+      {% if envoye %}<div class="alert alert-ok" style="margin-bottom: 20px;">{{ tr('verif_envoye') }}</div>{% endif %}
+      {% if requis %}<div class="alert alert-warn" style="margin-bottom: 20px;">{{ tr('verif_requis') }}</div>{% endif %}
+
+      {% if email %}<span class="verif-mail">{{ email }}</span>{% endif %}
+
+      <ul class="verif-steps">
+        <li>{{ tr('verif_step1') }}</li>
+        <li>{{ tr('verif_step2') }}</li>
+        <li>{{ tr('verif_step3') }}</li>
+      </ul>
+
+      {% if member %}
+      <form method="post" action="/verifier-email/renvoyer" class="verif-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" class="btn btn-primary btn-full btn-lg">{{ tr('verif_renvoyer') }}</button>
+      </form>
+      {% else %}
+      <a href="/login" class="btn btn-primary btn-full btn-lg">{{ tr('verif_aller_login') }}</a>
+      {% endif %}
+    </div>
+
+    <div class="auth-foot">
+      {% if member %}<a href="/settings">{{ tr('verif_changer_email') }}</a> · <a href="/logout">{{ tr('nav_logout') }}</a>
+      {% else %}<a href="/login">{{ tr('nav_login') }}</a>{% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

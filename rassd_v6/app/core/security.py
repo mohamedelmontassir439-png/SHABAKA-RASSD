@@ -146,6 +146,20 @@ def has_access(member: Optional[dict]) -> bool:
     aux marchés est restreint."""
     return subscription_state(member)["is_active"]
 
+def email_ok(member: Optional[dict]) -> bool:
+    """L'adresse email a-t-elle été confirmée par son propriétaire?
+
+    Une adresse mal tapée (ou inventée) passe la validation de forme sans
+    problème: seul le clic sur le lien envoyé prouve que la boîte existe et
+    appartient bien à l'inscrit. Un membre chargé sans la colonne (anciens
+    tests, anciennes lignes) est considéré vérifié, jamais bloqué par erreur.
+    """
+    if not member:
+        return False
+    if "email_verified" not in member:
+        return True
+    return bool(member.get("email_verified"))
+
 def require_member(req: Request) -> dict:
     m = get_member(req)
     if not m:

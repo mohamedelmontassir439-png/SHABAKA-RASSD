@@ -97,3 +97,22 @@ def client(db):
     """Client HTTP de test sur l'application réelle."""
     import main
     return SyncASGIClient(main.app)
+
+
+@pytest.fixture()
+def confirmer_email(db):
+    """Valide l'adresse d'un inscrit, comme le ferait le clic sur le lien.
+
+    Depuis l'ajout de la vérification, un compte fraîchement créé n'atteint
+    aucune page de marchés. Les tests qui portent sur autre chose passent
+    par ce raccourci; ceux qui testent la vérification elle-même utilisent
+    le vrai lien (voir test_email_verification.py).
+    """
+    def _confirmer(email: str = ""):
+        if email:
+            db.execute("""UPDATE members SET email_verified=1, email_token='',
+                          email_token_expires='' WHERE email=?""", (email,))
+        else:
+            db.execute("UPDATE members SET email_verified=1, email_token=''")
+        db.commit()
+    return _confirmer

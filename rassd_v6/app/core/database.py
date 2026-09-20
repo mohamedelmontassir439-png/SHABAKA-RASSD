@@ -376,6 +376,8 @@ def migrate_db():
         "ALTER TABLE members ADD COLUMN notif_min_budget INTEGER DEFAULT 0",
         "ALTER TABLE members ADD COLUMN notif_types TEXT DEFAULT '[]'",
         "ALTER TABLE members ADD COLUMN last_wa_digest TEXT DEFAULT ''",
+        # Vérification de l'adresse email (lien envoyé à l'inscription)
+        "ALTER TABLE members ADD COLUMN email_token_expires TEXT DEFAULT ''",
         # Journal de notification: statut de livraison
         "ALTER TABLE notif_log ADD COLUMN status TEXT DEFAULT 'SENT'",
         "ALTER TABLE notif_log ADD COLUMN error TEXT DEFAULT ''",
@@ -391,6 +393,21 @@ def migrate_db():
                 logger.warning(f"[migrate] {col[:50]}...: {e}")
         except Exception as e:
             logger.error(f"[migrate] Erreur inattendue: {e}")
+
+    # La colonne email_token n'est ajoutée qu'une fois: sa création sert de
+    # marqueur pour dater l'arrivée de la vérification par email. Les comptes
+    # ouverts avant n'ont jamais reçu de lien, donc on les considère vérifiés
+    # — sinon ils perdraient l'accès du jour au lendemain sans rien avoir fait.
+    try:
+        db.execute("ALTER TABLE members ADD COLUMN email_token TEXT DEFAULT ''")
+        db.execute("UPDATE members SET email_verified=1")
+        db.commit()
+        logger.info("[migrate] vérification email activée — comptes existants validés")
+    except sqlite3.OperationalError as e:
+        if "duplicate column" not in str(e).lower():
+            logger.warning(f"[migrate] email_token: {e}")
+    except Exception as e:
+        logger.error(f"[migrate] email_token: {e}")
     db.close()
 
 def seed_source_registry():

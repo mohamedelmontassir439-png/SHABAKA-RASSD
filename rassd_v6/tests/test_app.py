@@ -10,7 +10,15 @@ def _register(client, email="membre@example.com", **extra):
     data = {"email": email, "pw": "MotDePasse1!", "pw2": "MotDePasse1!",
             "nom": "Membre Test", "csrf_token": token}
     data.update(extra)
-    return client.post("/register", data=data)
+    resp = client.post("/register", data=data)
+    # L'adresse est confirmée ici: ces tests portent sur les marchés, le
+    # paiement ou le tableau de bord, pas sur la vérification d'email — qui a
+    # sa propre suite (test_email_verification.py).
+    from app.core.database import get_db
+    d = get_db()
+    d.execute("UPDATE members SET email_verified=1, email_token='' WHERE email=?", (email,))
+    d.commit(); d.close()
+    return resp
 
 
 def _login_admin(client):
