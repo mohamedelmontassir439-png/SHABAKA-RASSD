@@ -35,7 +35,7 @@ T = {
     "nav_signup":           {"fr": "S'abonner →", "ar": "اشترك الآن ←"},
     "footer_desc":          {"fr": "La référence indépendante des marchés publics et privés au Maroc. Veille en temps réel, alertes intelligentes, conçu pour les entreprises sérieuses.",
                               "ar": "المرجع المستقل للصفقات العمومية والخاصة في المغرب. رصد لحظي وتنبيهات ذكية، مصمم للشركات الجادة."},
-    "footer_contact_email": {"fr": "→ contact@marocentrepreneuriat.ma", "ar": "← contact@marocentrepreneuriat.ma"},
+    "footer_contact_email": {"fr": "→ contact@marocentrepreneuriat.com", "ar": "← contact@marocentrepreneuriat.com"},
     "footer_contact_signup":{"fr": "→ Créer un compte", "ar": "← إنشاء حساب"},
     "footer_contact_phone": {"fr": "→ +212 5 37 62 96 30", "ar": "← 30 96 62 37 5 212+"},
     "footer_col_tenders":   {"fr": "Marchés", "ar": "الصفقات"},

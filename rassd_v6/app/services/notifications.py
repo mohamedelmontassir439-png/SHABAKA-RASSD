@@ -224,7 +224,7 @@ td{{padding:10px 0;border-bottom:1px solid #e3e7ef;vertical-align:top;font-size:
 <a href="{cta_url}" class="cta">{cta_label} ↗</a>
 <a href="{site}/tenders/{t["id"]}" class="cta2">Détails MAROC ENTREPRENEURIAT</a>
 </div>
-<div class="ftr"><p style="color:#98a1b3;font-size:11px">MAROC ENTREPRENEURIAT · <a href="{site}" style="color:#6b7488">marocentrepreneuriat.ma</a> · <a href="{site}/settings" style="color:#6b7488">Gérer mes alertes</a></p></div>
+<div class="ftr"><p style="color:#98a1b3;font-size:11px">MAROC ENTREPRENEURIAT · <a href="{site}" style="color:#6b7488">marocentrepreneuriat.com</a> · <a href="{site}/settings" style="color:#6b7488">Gérer mes alertes</a></p></div>
 </div></body></html>"""
 
 def build_digest_email(tenders: list, nom: str = "") -> str:
@@ -254,7 +254,7 @@ table{{width:100%;border-collapse:collapse}}
 <p style="color:#6b7488;font-size:13px;margin-bottom:20px">Bonjour {nom or "Madame/Monsieur"}, voici les {len(tenders)} marché(s) correspondant à votre profil publiés cette semaine :</p>
 <table>{rows}</table>
 </div>
-<div class="ftr"><p style="color:#98a1b3;font-size:11px">MAROC ENTREPRENEURIAT · <a href="{site}" style="color:#6b7488">marocentrepreneuriat.ma</a> · <a href="{site}/settings" style="color:#6b7488">Gérer mes alertes</a></p></div>
+<div class="ftr"><p style="color:#98a1b3;font-size:11px">MAROC ENTREPRENEURIAT · <a href="{site}" style="color:#6b7488">marocentrepreneuriat.com</a> · <a href="{site}/settings" style="color:#6b7488">Gérer mes alertes</a></p></div>
 </div></body></html>"""
 
 def send_weekly_digests(force: bool = False) -> int:

@@ -133,7 +133,7 @@ atlas-pro/
    ```
    SECRET_KEY = [مفتاح عشوائي 64 حرف]
    ADMIN_PASS = [كلمة مرور قوية]
-   SITE_URL = https://your-app.up.railway.app
+   SITE_URL = https://marocentrepreneuriat.com
    TELEGRAM_BOT = [token البوت]
    ADMIN_CHAT_ID = [chat ID الخاص بك]
    BREVO_API_KEY = [مفتاح API من Brevo]
@@ -141,7 +141,7 @@ atlas-pro/
 
 4. **Deploy** — Railway سيُشغّل `uvicorn main:app` تلقائياً
 
-5. **اختبر** أن `https://your-app.up.railway.app/health` يُعيد `{"status":"ok"}`
+5. **اختبر** أن `https://marocentrepreneuriat.com/health` يُعيد `{"status":"ok"}`
 
 ---
 
@@ -208,7 +208,7 @@ curl http://localhost:8000/health
 
 ## 💬 الدعم والاتصال
 
-- **الموقع:** [atlas-pro.ma](https://web-production-b4ae4.up.railway.app)
+- **الموقع:** [marocentrepreneuriat.com](https://marocentrepreneuriat.com)
 - **البريد:** للاستفسارات والدعم
 - **Feedback:** استخدم صفحة `/feedback` داخل التطبيق
 

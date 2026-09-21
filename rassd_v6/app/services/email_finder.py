@@ -23,7 +23,7 @@ from app.core.config import cfg
 logger = logging.getLogger("atlas.email")
 
 UA = ("Mozilla/5.0 (compatible; MarocEntrepreneuriatBot/1.0; "
-      "+https://marocentrepreneuriat.ma/contact)")
+      "+https://marocentrepreneuriat.com/contact)")
 
 _EMAIL_RE = re.compile(
     r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}"

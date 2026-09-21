@@ -13,7 +13,7 @@ class Settings:
     # App
     APP_NAME:    str  = "MAROC ENTREPRENEURIAT"
     APP_VERSION: str  = "3.0.0"
-    SITE_URL:    str  = os.getenv("SITE_URL", "https://web-production-b4ae4.up.railway.app")
+    SITE_URL:    str  = os.getenv("SITE_URL", "https://marocentrepreneuriat.com")
     SECRET_KEY:  str  = os.getenv("SECRET_KEY", secrets.token_hex(32))
     DEBUG:       bool = os.getenv("DEBUG","false").lower() == "true"
     # Database
@@ -79,7 +79,7 @@ class Settings:
     COMPANY_FORM:    str = os.getenv("COMPANY_FORM", "")
     COMPANY_ICE:     str = os.getenv("COMPANY_ICE", "")
     COMPANY_ADDRESS: str = os.getenv("COMPANY_ADDRESS", "")
-    CONTACT_EMAIL:   str = os.getenv("CONTACT_EMAIL", "contact@marocentrepreneuriat.ma")
+    CONTACT_EMAIL:   str = os.getenv("CONTACT_EMAIL", "contact@marocentrepreneuriat.com")
     # Essai gratuit (jours) accordé à chaque nouvelle inscription
     TRIAL_DAYS: int = int(os.getenv("TRIAL_DAYS", "7"))
     # Plans (paiement encaissé hors plateforme puis enregistré par l'admin)
