@@ -72,6 +72,39 @@ def is_expired(text):
         if d: return d < date.today()
     return False
 
+# La fiche du portail n'est pas un tableau: c'est une suite « libellé valeur »
+# dans le flux de texte. _cell() ne voyait donc jamais l'acheteur ni le lieu —
+# d'où 9 090 marchés sans acheteur ni région en base.
+LABELS_FICHE = (
+    "Objet", "Détails", "Acheteur public", "Date mise en ligne",
+    "Date limite de réception des devis", "Lieu d'exécution",
+    "Catégorie principale", "Nature de prestation", "Pièces jointes",
+    "Articles", "Caractéristiques", "Unité de mesure", "Quantité",
+)
+
+
+def _champ(texte: str, label: str) -> str:
+    """Valeur d'un champ, lue entre son libellé et le libellé suivant."""
+    i = texte.find(label)
+    if i < 0:
+        return ""
+    debut = i + len(label)
+    fin = len(texte)
+    for autre in LABELS_FICHE:
+        if autre == label:
+            continue
+        j = texte.find(autre, debut)
+        if 0 <= j < fin:
+            fin = j
+    return re.sub(r"\s+", " ", texte[debut:fin]).strip(" :–-")[:200]
+
+
+def _ville(valeur: str) -> str:
+    """« IFRANE » → « Ifrane »: le portail crie, pas les autres sources."""
+    v = valeur.strip(" .,;")
+    return v.title() if v.isupper() else v
+
+
 def _cell(soup, *labels):
     for row in soup.find_all("tr"):
         cells = row.find_all(["td","th"])
@@ -225,26 +258,41 @@ def parse_page(html, tid):
         if date_lim and is_expired(date_lim): return None
         if any(w in full.lower() for w in ["annulé","annulée","sans suite","infructueux"]): return None
 
-        acheteur = _cell(soup, "maître d'ouvrage","maître d ouvrage",
-                         "organisme acheteur","administration","organisme").strip()
-        montant = _cell(soup, "montant estimé","montant","budget") or ""
+        acheteur = (_champ(full, "Acheteur public")
+                    or _cell(soup, "maître d'ouvrage", "maître d ouvrage",
+                             "organisme acheteur", "administration", "organisme").strip())
+        region    = _ville(_champ(full, "Lieu d'exécution"))
+        categorie = _champ(full, "Catégorie principale")
+        nature    = _champ(full, "Nature de prestation")
+
+        # Un avis sur bon de commande ne publie pas d'estimation: le seul
+        # chiffre de la page est une quantité ou un taux de TVA. On ne retient
+        # un montant que s'il est explicitement présenté comme tel, plutôt que
+        # d'afficher au membre un nombre qui n'est pas un budget.
+        montant = _cell(soup, "montant estimé", "budget") or ""
         if not montant:
-            m2 = re.search(r'(\d[\d\s,.]+)\s*(?:DH|MAD)', full, re.I)
+            m2 = re.search(r'(?:montant\s+estim\w*|estimation|budget)\D{0,30}'
+                           r'(\d[\d\s.,]{2,})\s*(?:DH|MAD|dirhams)', full, re.I)
             if m2: montant = m2.group(0)[:80]
 
         return {
             "id": f"bdc_{tid}",
             "objet": objet[:400],
             "acheteur": acheteur[:200],
-            "date_publication": _extract_date(_cell(soup,"date de publication","publication")),
+            "region": region[:100],
+            "date_publication": _extract_date(_champ(full, "Date mise en ligne")
+                                              or _cell(soup, "date de publication", "publication")),
             "date_limite": date_lim,
             "montant": montant[:80],
-            "secteur": classify(objet + " " + full[:400]),
+            "secteur": classify(" ".join([objet, nature, categorie, full[:400]])),
             "url": f"{BASE}/show/{tid}",
             "source": "marchespublics",
             "statut": "actif",
             "description": full[:3000],
             "scraped_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            # Le portail n'expose ici que sa section « avis d'achat sur bon de
+            # commande »: les classer en marchés faussait les deux pages.
+            "type_procedure": "bon_commande",
         }
     except Exception as e:
         logger.error(f"[parse #{tid}] {e}")

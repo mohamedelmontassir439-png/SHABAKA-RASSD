@@ -2,7 +2,7 @@
 MAROC ENTREPRENEURIAT v3.2 — SaaS Veille Marchés Publics Maroc
 Full audit & fix — Production ready
 """
-import os, re, json, secrets, asyncio, logging, hashlib, csv, io, traceback
+import os, re, json, secrets, asyncio, logging, hashlib, csv, io, time, traceback
 from datetime import datetime, date, timedelta
 from contextlib import asynccontextmanager
 from collections import defaultdict
@@ -301,6 +301,16 @@ async def scheduler():
     while True:
         try: await do_scrape()
         except Exception as e: logger.error(f"[scheduler] {e}")
+        # Clôture des marchés dont la date limite est passée. Sans ce passage,
+        # expire_tenders() n'était appelé que par un bouton de l'admin: la
+        # plateforme affichait des milliers de consultations déjà fermées.
+        try:
+            loop = asyncio.get_event_loop()
+            expires, actifs = await loop.run_in_executor(None, expire_tenders)
+            if expires:
+                logger.info(f"[expiration] {expires} marché(s) clôturé(s), {actifs} encore ouverts")
+        except Exception as e:
+            logger.error(f"[expiration] {e}")
         await asyncio.sleep(cfg.SCAN_INTERVAL_MIN * 60)
 
 async def digest_scheduler():
@@ -599,9 +609,13 @@ def expire_tenders() -> tuple:
             except ValueError:
                 # Date mal formée, on skip sans crasher
                 pass
+    # Par lots: un IN (...) de plusieurs milliers d'identifiants dépasse la
+    # limite de paramètres de SQLite et ferait échouer toute la clôture.
+    for i in range(0, len(expired), 500):
+        lot = expired[i:i+500]
+        ph  = ",".join(["?"] * len(lot))
+        db.execute(f"UPDATE tenders SET statut='expire' WHERE id IN ({ph})", lot)
     if expired:
-        ph = ",".join(["?"]*len(expired))
-        db.execute(f"UPDATE tenders SET statut='expire' WHERE id IN ({ph})", expired)
         db.commit()
     active = db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif'").fetchone()[0]
     db.close()
@@ -2179,6 +2193,59 @@ async def admin_expire(req: Request):
     if not _is_admin(req): return JSONResponse({"ok":False},401)
     exp, active = expire_tenders()
     return JSONResponse({"ok":True,"expired":exp,"active":active})
+
+def _reparer_fiches_portail(limite: int = 400) -> dict:
+    """Recharge les fiches du portail public collectées avant la correction.
+
+    L'ancien extracteur cherchait un tableau HTML que la fiche n'a jamais eu:
+    des milliers de lignes sont en base sans acheteur ni région. On ne
+    retélécharge que les consultations encore ouvertes — les fermées ne sont
+    plus affichées, les recharger ne ferait que marteler le portail.
+    """
+    from app.services.scraper import make_session, parse_page, BASE
+    db = get_db()
+    cibles = [r["id"] for r in db.execute(
+        """SELECT id FROM tenders
+           WHERE source='marchespublics' AND statut='actif' AND acheteur=''
+           ORDER BY scraped_at DESC LIMIT ?""", (limite,)).fetchall()]
+    session, corriges, echecs = make_session(), 0, 0
+    for tid in cibles:
+        num = tid.replace("bdc_", "")
+        try:
+            r = session.get(f"{BASE}/show/{num}", timeout=25)
+            fiche = parse_page(r.text, num) if r.status_code == 200 else None
+            if not fiche:
+                echecs += 1
+            else:
+                db.execute("""UPDATE tenders SET acheteur=?, region=?, secteur=?,
+                              type_procedure=? WHERE id=?""",
+                           (fiche["acheteur"], fiche["region"], fiche["secteur"],
+                            fiche["type_procedure"], tid))
+                corriges += 1
+                if corriges % 25 == 0:
+                    db.commit()
+        except Exception as e:
+            echecs += 1
+            logger.warning(f"[reparation {tid}] {str(e)[:80]}")
+        time.sleep(0.4)
+    db.commit(); db.close()
+    logger.info(f"[reparation] {corriges} fiche(s) complétée(s), {echecs} échec(s)")
+    return {"corriges": corriges, "echecs": echecs, "examinees": len(cibles)}
+
+
+@app.get("/admin/reparer-fiches")
+async def admin_reparer_fiches(req: Request, limite: int = 400):
+    """Complète les fiches du portail et corrige leur type de procédure."""
+    if not _is_admin(req): return JSONResponse({"ok": False}, 401)
+    db = get_db()
+    reclasses = db.execute(
+        """UPDATE tenders SET type_procedure='bon_commande'
+           WHERE source='marchespublics' AND type_procedure!='bon_commande'""").rowcount
+    db.commit(); db.close()
+    loop = asyncio.get_event_loop()
+    resultat = await loop.run_in_executor(None, lambda: _reparer_fiches_portail(limite))
+    return JSONResponse({"ok": True, "reclasses": reclasses, **resultat})
+
 
 @app.post("/admin/member/{mid}/plan")
 async def set_plan(req: Request, mid:int, plan:str=Form(""), csrf_token:str=Form("")):
