@@ -187,6 +187,28 @@ async def do_scrape():
             logger.error(f"[scraper] {e}", exc_info=True)
             _record_run("marchespublics", "FAILED", errors=1, started=_t, message=str(e))
 
+        # ── Appels d'offres du portail ─────────────────────
+        # Section distincte des avis d'achat sur bon de commande: ce sont les
+        # marchés d'un montant significatif, avec leur estimation en dirhams.
+        _t = datetime.now()
+        try:
+            State.log("─" * 48)
+            State.log("  Appels d'offres — marchespublics.gov.ma")
+            from app.services.ao_scraper import run as ao_run
+            db     = get_db()
+            known_ao = {r[0] for r in db.execute("SELECT id FROM tenders").fetchall()}
+            db.close()
+            ao_results = await loop.run_in_executor(None, lambda: ao_run(known_ao, State.log))
+            State.found += len(ao_results)
+            saved_ao = _save_tenders(ao_results, new_tenders)
+            State.saved += saved_ao
+            State.log(f"✅ Appels d'offres: {saved_ao} nouveaux")
+            _record_run("marchespublics-ao", "SUCCESS", len(ao_results), saved_ao, started=_t)
+        except Exception as e:
+            State.log(f"❌ Appels d'offres: {e}")
+            logger.error(f"[ao_scraper] {e}", exc_info=True)
+            _record_run("marchespublics-ao", "FAILED", errors=1, started=_t, message=str(e))
+
         # ── Multi-sources ─────────────────────────────────
         if MULTI_OK:
             try:
