@@ -71,12 +71,17 @@
     </section>
 
     <section class="set-block">
+      {% if cfg.WA_ENABLED %}
       <div class="set-block-h"><em>WhatsApp</em></div>
       <div class="set-block-sub">{{ tr('set_wa_sub') }}</div>
       <div class="field"><label for="whatsapp">{{ tr('set_wa_number') }}</label><input id="whatsapp" name="whatsapp" value="{{ member.whatsapp }}" class="inp" placeholder="ex: 06 12 34 56 78"></div>
       <div class="tg-hint">
         {{ tr('set_wa_hint') }} <code>0612345678</code> {{ 'أو' if lang=='ar' else 'ou' }} <code>+212612345678</code>).
       </div>
+      {% else %}
+      <div class="set-block-h">{{ tr('wa_soon_title') }}</div>
+      <div class="set-block-sub">{{ tr('wa_soon_text') }}</div>
+      {% endif %}
     </section>
 
     <section class="set-block">
@@ -131,8 +136,8 @@
       <div class="set-block-sub">{{ tr('set_channels_sub') }}</div>
       {% for fn, label, desc in [
         ('notif_email', tr('set_ch_email'), tr('set_ch_email_desc')),
-        ('notif_tg', tr('set_ch_tg'), tr('set_ch_tg_desc')),
-        ('notif_wa', tr('set_ch_wa'), tr('set_ch_wa_desc')),
+        ('notif_tg', tr('set_ch_tg'), tr('set_ch_tg_desc'))]
+        + ([('notif_wa', tr('set_ch_wa'), tr('set_ch_wa_desc'))] if cfg.WA_ENABLED else []) + [
         ('notif_digest', tr('set_ch_digest'), tr('set_ch_digest_desc'))
       ] %}
       <label class="notif-channel">
@@ -172,6 +177,7 @@
     </div>
   </form>
 
+  {% if cfg.WA_ENABLED %}
   <section class="set-block">
     <div class="set-block-h">{{ tr('set_wa_verify_h') }}</div>
     <div class="set-block-sub">{{ tr('set_wa_verify_sub') }}</div>
@@ -218,6 +224,7 @@
     <div class="ab-empty" style="font-size:13.5px; color:var(--text3);">{{ tr('set_wa_no_number') }}</div>
     {% endif %}
   </section>
+  {% endif %}
 
   <section class="set-block">
     <div class="set-block-h">{{ tr('set_referral_h') }}</div>

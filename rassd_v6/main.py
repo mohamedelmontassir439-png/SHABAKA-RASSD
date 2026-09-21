@@ -358,6 +358,9 @@ async def wa_digest_scheduler():
     qu'une fois par membre et par jour: les passages répétés sont sans effet.
     """
     from app.services.notifications import send_daily_wa_digests
+    if not cfg.WA_ENABLED:
+        logger.info("[wa_digest] canal WhatsApp suspendu (WA_ENABLED=0) — planificateur inactif")
+        return
     await asyncio.sleep(120)
     while True:
         try:
@@ -1396,6 +1399,8 @@ async def settings_post(req: Request,
 @app.post("/settings/whatsapp/send-code")
 async def wa_send_code(req: Request, csrf_token: str = Form("")):
     """Envoie un code de vérification au numéro WhatsApp du membre (opt-in)."""
+    if not cfg.WA_ENABLED:
+        return RedirectResponse("/settings", 302)
     member = get_member(req)
     csrf_guard(req, csrf_token)
     if not member: return RedirectResponse("/login", 302)
@@ -1416,6 +1421,8 @@ async def wa_send_code(req: Request, csrf_token: str = Form("")):
 @app.post("/settings/whatsapp/confirm")
 async def wa_confirm(req: Request, code: str = Form(""), csrf_token: str = Form("")):
     """Confirme le code reçu et enregistre le consentement WhatsApp."""
+    if not cfg.WA_ENABLED:
+        return RedirectResponse("/settings", 302)
     member = get_member(req)
     csrf_guard(req, csrf_token)
     if not member: return RedirectResponse("/login", 302)
@@ -1585,6 +1592,7 @@ async def opportunites_du_jour(req: Request):
     ce membre sur les 7 derniers jours, les plus récents d'abord."""
     member = get_member(req)
     if not member: return RedirectResponse("/login?next=/opportunites-du-jour", 302)
+    if not cfg.WA_ENABLED: return RedirectResponse("/dashboard", 302)
     if not has_access(member): return RedirectResponse("/tarifs?locked=1", 302)
     db = get_db()
     items = [dict(r) for r in db.execute(

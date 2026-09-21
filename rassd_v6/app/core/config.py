@@ -37,6 +37,11 @@ class Settings:
     GMAIL_PASS:    str = os.getenv("GMAIL_PASS", "")
     FROM_EMAIL:    str = os.getenv("FROM_EMAIL", "alerts@atlas.ma")
     FROM_NAME:     str = "MAROC ENTREPRENEURIAT"
+    # WhatsApp: coupé tant qu'un expéditeur officiel n'est pas en place.
+    # Le code du canal reste entier — seule son exposition est suspendue —
+    # pour éviter de promettre aux membres une alerte qui ne part jamais.
+    # Repasser à WA_ENABLED=1 quand le compte Twilio/Meta est prêt.
+    WA_ENABLED:     bool = os.getenv("WA_ENABLED", "0").lower() in ("1", "true")
     # WhatsApp (service Baileys séparé)
     WA_SERVICE_URL: str = os.getenv("WA_SERVICE_URL", "http://localhost:3001")
     WA_SECRET:      str = os.getenv("WA_SECRET", "atlas_wa_secret_2024")

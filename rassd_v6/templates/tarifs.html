@@ -80,7 +80,7 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
       <div class="plan-desc">{{ tr('pr_monthly_desc') }}</div>
       <ul class="plan-feats">
         <li>{{ tr('pr_monthly_feat1') }}</li>
-        <li>{{ tr('pr_pro_feat2') }}</li>
+        <li>{{ tr('pr_pro_feat2_wa') if cfg.WA_ENABLED else tr('pr_pro_feat2') }}</li>
         <li>{{ tr('pr_pro_feat3') }}</li>
         <li>{{ tr('pr_pro_feat4') }}</li>
         <li>{{ tr('pr_monthly_feat5') }}</li>
@@ -96,7 +96,7 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
       <div class="plan-desc">{{ tr('pr_pro_desc') }}</div>
       <ul class="plan-feats">
         <li>{{ tr('pr_pro_feat1') }}</li>
-        <li>{{ tr('pr_pro_feat2') }}</li>
+        <li>{{ tr('pr_pro_feat2_wa') if cfg.WA_ENABLED else tr('pr_pro_feat2') }}</li>
         <li>{{ tr('pr_pro_feat3') }}</li>
         <li>{{ tr('pr_pro_feat4') }}</li>
         <li>{{ tr('pr_pro_feat5') }}</li>
@@ -140,8 +140,8 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
       <div class="faq-acc-a"><div class="faq-acc-a-inner">{{ tr('pr_faq2_a') }}</div></div>
     </div>
     <div class="faq-acc-item">
-      <button class="faq-acc-q" type="button">{{ tr('pr_faq3_q') }}<span class="faq-acc-icon">+</span></button>
-      <div class="faq-acc-a"><div class="faq-acc-a-inner">{{ tr('pr_faq3_a') }}</div></div>
+      <button class="faq-acc-q" type="button">{{ tr('pr_faq3_q_wa') if cfg.WA_ENABLED else tr('pr_faq3_q') }}<span class="faq-acc-icon">+</span></button>
+      <div class="faq-acc-a"><div class="faq-acc-a-inner">{{ tr('pr_faq3_a_wa') if cfg.WA_ENABLED else tr('pr_faq3_a') }}</div></div>
     </div>
     <div class="faq-acc-item">
       <button class="faq-acc-q" type="button">{{ tr('pr_faq4_q') }}<span class="faq-acc-icon">+</span></button>

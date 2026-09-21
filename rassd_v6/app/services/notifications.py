@@ -373,7 +373,7 @@ def dispatch_notifications(tenders: list):
                 # confirmé la propriété (opt-in vérifié par code). Sans cette
                 # condition on enverrait des messages non sollicités, ce que
                 # les règles WhatsApp/Twilio interdisent.
-                if member.get("notif_wa") and member.get("whatsapp"):
+                if cfg.WA_ENABLED and member.get("notif_wa") and member.get("whatsapp"):
                     if not member.get("whatsapp_verified"):
                         _log_notif(db, member["id"], t["id"], "whatsapp", False,
                                    "numéro non vérifié (opt-in requis)", "")
@@ -483,6 +483,8 @@ def send_daily_wa_digests(force: bool = False, now=None) -> int:
     pour ne pas enchaîner des appels facturés qui échouent tous.
     """
     import time as _time
+    if not cfg.WA_ENABLED:
+        return 0
     now = now or _morocco_now()
     if not force and now.hour < cfg.WA_DIGEST_HOUR:
         return 0

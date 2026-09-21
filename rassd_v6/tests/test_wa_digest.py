@@ -38,6 +38,16 @@ def _marche(db, tid, objet="Travaux de construction", scraped="2026-09-13 08:00:
             "type_offre": "Public", "type_procedure": "marche"}
 
 
+@pytest.fixture(autouse=True)
+def canal_actif(monkeypatch):
+    """Ce fichier décrit le canal WhatsApp en service.
+
+    Par défaut il est suspendu (WA_ENABLED=0, cf. test_wa_suspendu.py); on
+    l'active ici pour vérifier le comportement du jour où il rouvrira.
+    """
+    monkeypatch.setattr(notif.cfg, "WA_ENABLED", True)
+
+
 @pytest.fixture()
 def sans_attente(monkeypatch):
     monkeypatch.setattr("time.sleep", lambda s: None)

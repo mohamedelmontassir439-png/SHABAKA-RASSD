@@ -200,7 +200,7 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
     <div class="reveal in">
       <div class="hero-eyebrow">{{ tr('hero_eyebrow') }}</div>
       <h1 class="hero-title">{{ tr('hero_title')|safe }}</h1>
-      <p class="hero-sub">{{ tr('hero_sub') }}</p>
+      <p class="hero-sub">{{ tr('hero_sub_wa') if cfg.WA_ENABLED else tr('hero_sub') }}</p>
       <div class="hero-cta">
         <a href="/register" class="btn btn-accent btn-xl">{{ tr('hero_cta_trial', n=cfg.TRIAL_DAYS) }}</a>
         <a href="/tarifs" class="btn btn-outline btn-xl">{{ tr('hero_cta_free') }}</a>
@@ -286,7 +286,7 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
       <div class="feat-card reveal reveal-3">
         <div class="feat-icon" style="background: var(--purplea); color: var(--purple);">🔔</div>
         <div class="feat-title">{{ tr('feat3_title') }}</div>
-        <div class="feat-text">{{ tr('feat3_text') }}</div>
+        <div class="feat-text">{{ tr('feat3_text_wa') if cfg.WA_ENABLED else tr('feat3_text') }}</div>
       </div>
       <div class="feat-card reveal reveal-4">
         <div class="feat-icon" style="background: var(--grna); color: var(--grn);">🗂️</div>
@@ -493,8 +493,8 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
         <div class="faq-acc-a"><div class="faq-acc-a-inner">{{ tr('pr_faq2_a') }}</div></div>
       </div>
       <div class="faq-acc-item reveal reveal-3">
-        <button class="faq-acc-q" type="button">{{ tr('pr_faq3_q') }}<span class="faq-acc-icon">+</span></button>
-        <div class="faq-acc-a"><div class="faq-acc-a-inner">{{ tr('pr_faq3_a') }}</div></div>
+        <button class="faq-acc-q" type="button">{{ tr('pr_faq3_q_wa') if cfg.WA_ENABLED else tr('pr_faq3_q') }}<span class="faq-acc-icon">+</span></button>
+        <div class="faq-acc-a"><div class="faq-acc-a-inner">{{ tr('pr_faq3_a_wa') if cfg.WA_ENABLED else tr('pr_faq3_a') }}</div></div>
       </div>
       <div class="faq-acc-item reveal reveal-4">
         <button class="faq-acc-q" type="button">{{ tr('pr_faq4_q') }}<span class="faq-acc-icon">+</span></button>
@@ -520,7 +520,7 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
         <div class="trial-step">
           <div class="trial-step-n">2</div>
           <div class="trial-step-t">{{ tr('trial_step2_t', n=cfg.TRIAL_DAYS) }}</div>
-          <div class="trial-step-d">{{ tr('trial_step2_d') }}</div>
+          <div class="trial-step-d">{{ tr('trial_step2_d_wa') if cfg.WA_ENABLED else tr('trial_step2_d') }}</div>
         </div>
         <div class="trial-step">
           <div class="trial-step-n">3</div>
@@ -544,7 +544,7 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
     <div class="final-cta-note">
       <span>{{ tr('finalcta_note1') }}</span>
       <span>{{ tr('finalcta_note2') }}</span>
-      <span>{{ tr('finalcta_note3') }}</span>
+      <span>{{ tr('finalcta_note3_wa') if cfg.WA_ENABLED else tr('finalcta_note3') }}</span>
     </div>
   </div>
 </section>
