@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Paiements — Maroc Entrepreneuriat</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f8f1e1; --surface: #ffffff; --surface2: #f1e6cf;
+  --line: #e8dcc5; --line2: #d9c7a8;
+  --navy: #f2662d; --navy3: #1e1611;
+  --amber: #f2662d; --amberd: #c94e1f; --ambera: rgba(242,102,45,.14);
+  --t1: #2b211b; --t2: #4a3b32; --t3: #8a7a6a; --t4: #b7a896;
+  --grn: #2f9e5b; --red: #d6493f;
+  --serif: 'Fredoka', Georgia, serif;
+  --sans: 'Inter', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--t2); font-family: var(--sans); font-size: 14px; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+a { color: inherit; text-decoration: none; }
+
+.topbar { background: var(--navy3); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='84'%3E%3Cg fill='none' stroke='%23f2662d' stroke-opacity='.14' stroke-width='1'%3E%3Cpath d='M42 2 80 42 42 82 4 42Z'/%3E%3Cpath d='M42 18 66 42 42 66 18 42Z'/%3E%3Cpath d='M42 2V82M4 42H80'/%3E%3C/g%3E%3C/svg%3E"); background-size: 84px 84px; height: 60px; display: flex; align-items: center; padding: 0 28px; gap: 20px; position: sticky; top: 0; z-index: 100; }
+.brand { font-family: var(--serif); font-weight: 700; font-size: 19px; color: #fff; }
+.brand em { font-style: italic; color: var(--amber); font-weight: 600; }
+.brand-meta { font-size: 12px; color: rgba(255,255,255,.45); font-weight: 500; }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 14px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid transparent; transition: all .15s; border-radius: 8px; }
+.btn-p { background: linear-gradient(180deg,#ff8552,var(--amber)); color: #fff; border-color: var(--amber); font-weight: 700; }
+.btn-p:hover { filter: brightness(1.06); }
+.btn-o { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.16); color: #fff; }
+.btn-o:hover { border-color: var(--amber); color: var(--amber); }
+.btn-l { background: var(--surface); border-color: var(--line2); color: var(--t1); }
+.btn-l:hover { border-color: var(--navy); color: var(--navy); }
+
+.page { max-width: 1240px; margin: 0 auto; padding: 32px 28px; }
+.page-h { margin-bottom: 24px; }
+.page-h-title { font-family: var(--serif); font-weight: 700; font-size: 33px; color: var(--t1); line-height: 1.15; letter-spacing: -.01em; }
+.page-h-title em { font-style: italic; color: var(--navy); font-weight: 600; }
+.page-h-sub { font-size: 13px; font-weight: 700; color: var(--amberd); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; }
+
+.stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 22px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+.stat-n { font-weight: 800; font-size: 26px; color: var(--navy); line-height: 1; }
+.stat-l { font-size: 12px; color: var(--t3); margin-top: 8px; font-weight: 600; }
+
+.card { background: var(--surface); border: 1px solid var(--line); margin-bottom: 20px; border-radius: 12px; box-shadow: 0 1px 2px rgba(16,24,40,.04); overflow: hidden; }
+.card-h { padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.card-ht { font-size: 13px; font-weight: 700; color: var(--amberd); letter-spacing: .04em; text-transform: uppercase; }
+.card-b { padding: 20px; }
+
+.form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.fld { display: flex; flex-direction: column; gap: 6px; }
+.fld label { font-size: 12px; font-weight: 700; color: var(--t3); }
+.inp, .sel { background: var(--surface); border: 1px solid var(--line2); padding: 9px 11px; color: var(--t1); font-family: var(--sans); font-size: 13px; outline: none; border-radius: 6px; width: 100%; }
+.inp:focus, .sel:focus { border-color: var(--navy); }
+
+.alert-ok { background: rgba(29,154,108,.1); border: 1px solid rgba(29,154,108,.3); color: var(--grn); padding: 12px 16px; border-radius: 8px; margin-bottom: 18px; font-size: 13.5px; font-weight: 600; }
+.alert-err { background: rgba(214,69,69,.1); border: 1px solid rgba(214,69,69,.3); color: var(--red); padding: 12px 16px; border-radius: 8px; margin-bottom: 18px; font-size: 13.5px; font-weight: 600; }
+
+table { width: 100%; border-collapse: collapse; }
+th { font-size: 11.5px; font-weight: 700; color: var(--t3); letter-spacing: .04em; text-transform: uppercase; padding: 12px 20px; text-align: left; border-bottom: 1px solid var(--line); }
+td { padding: 13px 20px; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--t2); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.amount { font-weight: 800; color: var(--grn); }
+.mono { font-family: var(--mono); font-size: 12px; }
+.empty { text-align: center; padding: 50px 24px; color: var(--t3); }
+@media (max-width: 900px) { .form-grid, .stats-row { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand">Maroc<em>Entrepreneuriat</em></span>
+  <span class="brand-meta">Paiements &amp; abonnements</span>
+  <div style="margin-left: auto; display: flex; gap: 8px;">
+    <a href="/admin" class="btn btn-o">← Tableau de bord</a>
+  </div>
+</div>
+
+<div class="page">
+  <div class="page-h">
+    <div class="page-h-sub">Encaissements</div>
+    <div class="page-h-title">Paiements &amp; <em>reçus</em></div>
+  </div>
+
+  {% if request.query_params.get('ok') %}
+  <div class="alert-ok">✓ Paiement enregistré — abonnement activé et reçu {{ request.query_params.get('ok') }} généré.
+    <a href="/documents/{{ request.query_params.get('ok') }}" target="_blank" style="color:var(--grn); text-decoration:underline;">Voir le reçu</a>
+  </div>
+  {% endif %}
+  {% if request.query_params.get('err') %}
+  <div class="alert-err">✕ Enregistrement impossible ({{ request.query_params.get('err') }}).</div>
+  {% endif %}
+
+  <div class="stats-row">
+    <div class="stat"><div class="stat-n">{{ this_month|round(0)|int }} MAD</div><div class="stat-l">Encaissé ce mois</div></div>
+    <div class="stat"><div class="stat-n">{{ total|round(0)|int }} MAD</div><div class="stat-l">Total encaissé</div></div>
+    <div class="stat"><div class="stat-n">{{ payments|length }}</div><div class="stat-l">Paiements enregistrés</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><span class="card-ht">Enregistrer un paiement reçu</span></div>
+    <div class="card-b">
+      <form method="post" action="/admin/payments/record">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <div class="form-grid">
+          <div class="fld">
+            <label>Membre</label>
+            <select name="member_id" class="sel" required>
+              <option value="">— choisir —</option>
+              {% for m in members %}
+              <option value="{{ m.id }}">{{ (m.nom or m.email)[:40] }} · {{ m.email[:30] }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="fld">
+            <label>Offre</label>
+            <select name="plan" class="sel">
+              {% for key, p in cfg.PLANS.items() %}{% if key != 'free' %}
+              <option value="{{ key }}" {% if key=='monthly' %}selected{% endif %}>{{ p.name }} — {{ p.price }} MAD / {{ p.period }}</option>
+              {% endif %}{% endfor %}
+            </select>
+          </div>
+          <div class="fld">
+            <label>Montant encaissé (MAD)</label>
+            <input name="amount" type="number" step="0.01" class="inp" placeholder="250" >
+          </div>
+          <div class="fld">
+            <label>Moyen de paiement</label>
+            <select name="method" class="sel">
+              <option>Virement</option>
+              <option>Espèces</option>
+              <option>Chèque</option>
+              <option>Versement bancaire</option>
+              <option>Autre</option>
+            </select>
+          </div>
+          <div class="fld">
+            <label>Référence / n° transaction</label>
+            <input name="reference" class="inp" maxlength="80" placeholder="ex: VIR-88214">
+          </div>
+          <div class="fld">
+            <label>Note interne</label>
+            <input name="note" class="inp" maxlength="300">
+          </div>
+        </div>
+        <div style="margin-top:16px;">
+          <button type="submit" class="btn btn-p">✓ Enregistrer &amp; activer l'abonnement</button>
+          <span style="font-size:12.5px; color:var(--t3); margin-left:10px;">Le reçu et le contrat sont générés automatiquement.</span>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-h"><span class="card-ht">Historique des paiements ({{ payments|length }})</span></div>
+    {% if payments %}
+    <table>
+      <tr><th>Date</th><th>Membre</th><th>Montant</th><th>Moyen</th><th>Période couverte</th><th>Reçu</th></tr>
+      {% for p in payments %}
+      <tr>
+        <td style="color:var(--t3); white-space:nowrap;">{{ p.paid_at }}</td>
+        <td>{{ (p.member_nom or '—')[:28] }}<br><span style="color:var(--t4); font-size:11.5px;">{{ (p.member_email or '')[:32] }}</span></td>
+        <td class="amount">{{ p.amount|round(0)|int }} {{ p.currency }}</td>
+        <td>{{ p.method }}{% if p.reference %}<br><span class="mono" style="color:var(--t4);">{{ p.reference }}</span>{% endif %}</td>
+        <td style="white-space:nowrap;">{{ p.period_start }} → {{ p.period_end }}</td>
+        <td>{% if p.receipt %}<a href="/documents/{{ p.receipt }}" target="_blank" class="btn btn-l" style="padding:5px 10px;">{{ p.receipt }}</a>{% else %}—{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <div class="empty">Aucun paiement enregistré pour l'instant.</div>
+    {% endif %}
+  </div>
+</div>
+</body>
+</html>

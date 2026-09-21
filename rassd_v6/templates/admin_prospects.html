@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Prospects — Maroc Entrepreneuriat</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f8f1e1; --surface: #ffffff; --surface2: #f1e6cf;
+  --line: #e8dcc5; --line2: #d9c7a8;
+  --navy: #f2662d; --navy3: #1e1611;
+  --amber: #f2662d; --amberd: #c94e1f; --ambera: rgba(242,102,45,.14);
+  --t1: #2b211b; --t2: #4a3b32; --t3: #8a7a6a; --t4: #b7a896;
+  --grn: #2f9e5b; --red: #d6493f; --blue: #3d7a7a;
+  --serif: 'Fredoka', Georgia, serif;
+  --sans: 'Inter', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--t2); font-family: var(--sans); font-size: 14px; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+a { color: inherit; text-decoration: none; }
+
+.topbar { background: var(--navy3); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='84'%3E%3Cg fill='none' stroke='%23f2662d' stroke-opacity='.14' stroke-width='1'%3E%3Cpath d='M42 2 80 42 42 82 4 42Z'/%3E%3Cpath d='M42 18 66 42 42 66 18 42Z'/%3E%3Cpath d='M42 2V82M4 42H80'/%3E%3C/g%3E%3C/svg%3E"); background-size: 84px 84px; height: 60px; display: flex; align-items: center; padding: 0 28px; gap: 20px; position: sticky; top: 0; z-index: 100; }
+.brand { font-family: var(--serif); font-weight: 700; font-size: 19px; color: #fff; }
+.brand em { font-style: italic; color: var(--amber); font-weight: 600; }
+.brand-meta { font-size: 12px; color: rgba(255,255,255,.45); font-weight: 500; }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 14px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid transparent; transition: all .15s; border-radius: 8px; }
+.btn-p { background: linear-gradient(180deg,#ff8552,var(--amber)); color: #fff; border-color: var(--amber); font-weight: 700; }
+.btn-p:hover { filter: brightness(1.06); }
+.btn-o { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.16); color: #fff; }
+.btn-o:hover { border-color: var(--amber); color: var(--amber); }
+
+.page { max-width: 1280px; margin: 0 auto; padding: 32px 28px; }
+.page-h { display: flex; align-items: end; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+.page-h-title { font-family: var(--serif); font-weight: 700; font-size: 33px; color: var(--t1); line-height: 1.15; letter-spacing: -.01em; }
+.page-h-title em { font-style: italic; color: var(--navy); font-weight: 600; }
+.page-h-sub { font-size: 13px; font-weight: 700; color: var(--amberd); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; }
+
+.intro { font-size: 13.5px; color: var(--t3); line-height: 1.6; max-width: 760px; margin-bottom: 24px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+
+.stat-inline { font-size: 13px; color: var(--t3); font-weight: 600; }
+.stat-inline b { color: var(--navy); font-weight: 800; }
+
+.card { background: var(--surface); border: 1px solid var(--line); margin-bottom: 20px; border-radius: 12px; box-shadow: 0 1px 2px rgba(16,24,40,.04); overflow: hidden; }
+.card-b { padding: 20px; }
+
+.filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; padding: 18px 20px; border-bottom: 1px solid var(--line); }
+.inp, .sel { background: var(--surface); border: 1px solid var(--line2); padding: 8px 11px; color: var(--t1); font-family: var(--sans); font-size: 13px; outline: none; border-radius: 6px; }
+.inp:focus, .sel:focus { border-color: var(--navy); }
+.inp { flex: 1; min-width: 200px; max-width: 320px; }
+
+.badge { display: inline-flex; padding: 4px 10px; font-size: 11.5px; font-weight: 700; border-radius: 999px; }
+.b-g { background: var(--ambera); color: var(--amberd); }
+.b-gray { background: var(--surface2); color: var(--t3); }
+.tag-row { display: flex; flex-wrap: wrap; gap: 5px; max-width: 320px; }
+
+table { width: 100%; border-collapse: collapse; }
+th { font-size: 11.5px; font-weight: 700; color: var(--t3); letter-spacing: .04em; text-transform: uppercase; padding: 12px 20px; text-align: left; border-bottom: 1px solid var(--line); }
+td { padding: 14px 20px; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--t2); vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.company-name { color: var(--t1); font-weight: 700; font-size: 13.5px; }
+.wins-n { color: var(--navy); font-weight: 800; font-size: 15px; }
+
+.pagination { display: flex; gap: 8px; justify-content: center; padding: 20px; flex-wrap: wrap; align-items: center; }
+.pag-btn { padding: 8px 13px; border: 1px solid var(--line2); font-size: 12.5px; font-weight: 600; color: var(--t3); transition: all .15s; text-decoration: none; border-radius: 6px; background: var(--surface); }
+.pag-btn:hover { border-color: var(--navy); color: var(--navy); }
+.pag-btn.current { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+.empty { text-align: center; padding: 60px 24px; color: var(--t3); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand">Maroc<em>Entrepreneuriat</em></span>
+  <span class="brand-meta">Prospects — Entreprises adjudicataires</span>
+  <div style="margin-left: auto; display: flex; gap: 8px;">
+    <a href="/admin" class="btn btn-o">← Tableau de bord</a>
+  </div>
+</div>
+
+<div class="page">
+  <div class="page-h">
+    <div>
+      <div class="page-h-sub">Prospection commerciale</div>
+      <div class="page-h-title">Entreprises <em>adjudicataires</em></div>
+    </div>
+    <div class="stat-inline"><b>{{ total_companies }}</b> entreprise(s) distincte(s) au total</div>
+  </div>
+
+  <div class="intro">
+    Liste des entreprises ayant déjà remporté au moins un marché (public ou privé), extraite des résultats collectés — ce sont des entreprises réellement actives sur le marché marocain, donc des clients potentiels qualifiés pour l'abonnement. Aucun email ni téléphone n'est disponible dans les résultats officiels : utilisez le nom pour les retrouver sur Pages Jaunes, LinkedIn ou le registre de commerce (OMPIC).
+  </div>
+
+  <div class="card">
+    <form method="get" class="filters">
+      <input name="q" value="{{ q }}" class="inp" placeholder="Rechercher une entreprise…">
+      <select name="s" class="sel">
+        <option value="">Tous les secteurs</option>
+        {% for group_name, group_sectors in sector_groups.items() %}
+        <optgroup label="{{ group_name }}">
+          {% for code, label in group_sectors.items() %}
+          <option value="{{ code }}" {% if code==sf %}selected{% endif %}>{{ code }} – {{ label[:36] }}</option>
+          {% endfor %}
+        </optgroup>
+        {% endfor %}
+      </select>
+      {% if regions %}
+      <select name="r" class="sel">
+        <option value="">Toutes les régions</option>
+        {% for reg in regions %}
+        <option value="{{ reg }}" {% if reg==rf %}selected{% endif %}>{{ reg[:28] }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+      <select name="sort" class="sel">
+        <option value="wins" {% if sort=='wins' %}selected{% endif %}>Trier : plus de marchés gagnés</option>
+        <option value="recent" {% if sort=='recent' %}selected{% endif %}>Trier : activité récente</option>
+      </select>
+      <button type="submit" class="btn btn-p">Filtrer</button>
+      {% if q or sf or rf %}<a href="/admin/prospects" class="btn btn-o">✕ Effacer</a>{% endif %}
+      <a href="/admin/prospects/export?q={{ q }}&s={{ sf }}&r={{ rf }}" class="btn btn-o" style="margin-left: auto;">⬇ Exporter CSV</a>
+    </form>
+
+    {% if rows %}
+    <table>
+      <tr><th>Entreprise</th><th>Marchés gagnés</th><th>Secteurs</th><th>Régions</th><th>Dernière activité</th></tr>
+      {% for row in rows %}
+      <tr>
+        <td class="company-name">{{ row.name }}</td>
+        <td class="wins-n">{{ row.wins }}</td>
+        <td>
+          <div class="tag-row">
+            {% for code in (row.secteurs_raw or '').split(',')[:3] %}
+              {% if code %}<span class="badge b-g">{{ get_label(code)[:22] }}</span>{% endif %}
+            {% endfor %}
+            {% if (row.secteurs_raw or '').split(',')|select|list|length > 3 %}<span class="badge b-gray">+{{ (row.secteurs_raw or '').split(',')|select|list|length - 3 }}</span>{% endif %}
+          </div>
+        </td>
+        <td>
+          <div class="tag-row">
+            {% for reg in (row.regions_raw or '').split(',')[:2] %}
+              {% if reg %}<span class="badge b-gray">{{ reg[:18] }}</span>{% endif %}
+            {% endfor %}
+            {% if (row.regions_raw or '').split(',')|select|list|length > 2 %}<span class="badge b-gray">+{{ (row.regions_raw or '').split(',')|select|list|length - 2 }}</span>{% endif %}
+          </div>
+        </td>
+        <td style="color: var(--t3);">{{ (row.last_seen or '')[:10] }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+
+    {% if pages > 1 %}
+    <div class="pagination">
+      {% if page > 1 %}<a href="?q={{ q }}&s={{ sf }}&r={{ rf }}&sort={{ sort }}&page={{ page-1 }}" class="pag-btn">← Préc.</a>{% endif %}
+      {% for pp in range(1, pages+1) %}
+        {% if pp == page %}<span class="pag-btn current">{{ pp }}</span>
+        {% elif pp == 1 or pp == pages or (pp >= page-2 and pp <= page+2) %}<a href="?q={{ q }}&s={{ sf }}&r={{ rf }}&sort={{ sort }}&page={{ pp }}" class="pag-btn">{{ pp }}</a>
+        {% elif pp == page-3 or pp == page+3 %}<span style="color:var(--t4);padding:8px 4px;font-size:12.5px;">…</span>{% endif %}
+      {% endfor %}
+      {% if page < pages %}<a href="?q={{ q }}&s={{ sf }}&r={{ rf }}&sort={{ sort }}&page={{ page+1 }}" class="pag-btn">Suiv. →</a>{% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty">Aucune entreprise trouvée pour ces filtres.</div>
+    {% endif %}
+  </div>
+</div>
+</body>
+</html>

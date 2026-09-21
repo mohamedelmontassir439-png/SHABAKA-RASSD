@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% block title %}{{ (t.objet or '')[:60] }} — Maroc Entrepreneuriat{% endblock %}
+{% block body %}
+<style>
+.detail-back { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--text3); transition: color .15s; margin-bottom: 32px; }
+.detail-back:hover { color: var(--navy); }
+
+.detail-grid { display: grid; grid-template-columns: 1fr 320px; gap: 40px; align-items: flex-start; }
+
+.detail-eyebrow { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+
+.detail-title { font-family: var(--serif); font-weight: 700; font-size: clamp(24px, 3.6vw, 38px); color: var(--text1); line-height: 1.22; letter-spacing: -.01em; margin-bottom: 28px; }
+
+.deadline-banner { padding: 16px 22px; border-radius: var(--r2); font-size: 14px; font-weight: 700; margin-bottom: 32px; display: flex; align-items: center; gap: 10px; }
+
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r3); overflow: hidden; margin: 32px 0; }
+.info-cell { background: var(--surface); padding: 20px 24px; }
+.info-label { font-size: 12px; font-weight: 700; color: var(--amberd); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 8px; }
+.info-value { font-weight: 700; font-size: 19px; color: var(--text1); letter-spacing: -.005em; line-height: 1.25; }
+.info-value em { font-style: normal; color: var(--navy); }
+
+.desc-section { margin-top: 44px; padding-top: 32px; border-top: 1px solid var(--line); }
+.desc-label { font-size: 13px; font-weight: 700; color: var(--amberd); letter-spacing: .05em; text-transform: uppercase; margin-bottom: 18px; }
+.desc-content { font-size: 15.5px; color: var(--text2); line-height: 1.75; white-space: pre-wrap; max-height: 260px; overflow: hidden; transition: max-height .4s; }
+.desc-content.expanded { max-height: 4000px; }
+.desc-toggle { background: transparent; border: none; color: var(--navy); font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 14px; padding: 8px 0; }
+
+.related-section { margin-top: 56px; padding-top: 40px; border-top: 1px solid var(--line); }
+.related-label { font-size: 13px; font-weight: 700; color: var(--amberd); letter-spacing: .05em; text-transform: uppercase; margin-bottom: 20px; }
+.related-row { display: block; padding: 18px; border: 1px solid var(--line); border-radius: var(--r2); margin-bottom: 10px; transition: all .15s; text-decoration: none; }
+.related-row:hover { border-color: var(--navy); box-shadow: var(--sh); }
+.related-title { font-weight: 600; font-size: 15.5px; color: var(--text1); line-height: 1.3; margin-bottom: 6px; }
+.related-meta { font-size: 12.5px; color: var(--text3); }
+
+.sticky-box { position: sticky; top: 88px; }
+.action-card { background: var(--surface); border: 1px solid var(--line); padding: 22px; margin-bottom: 14px; border-radius: var(--r3); box-shadow: var(--sh), var(--shg); }
+.action-card-label { font-size: 12px; font-weight: 700; color: var(--amberd); letter-spacing: .05em; text-transform: uppercase; margin-bottom: 14px; }
+.action-card-info { display: flex; flex-direction: column; gap: 10px; }
+.action-card-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.action-card-row:last-child { border-bottom: none; }
+.action-card-key { font-size: 12.5px; color: var(--text3); font-weight: 600; }
+.action-card-val { font-size: 12.5px; color: var(--text1); font-weight: 600; }
+
+.alert-card { background: var(--ambera); border: 1px solid rgba(242,169,59,.3); padding: 24px 22px; border-radius: var(--r3); }
+.alert-card-title { font-family: var(--serif); font-weight: 700; font-size: 19px; color: var(--text1); margin-bottom: 10px; line-height: 1.3; }
+.alert-card-title span { color: var(--amberd); }
+.alert-card-text { font-size: 13.5px; color: var(--text3); line-height: 1.6; margin-bottom: 18px; }
+
+@media (max-width: 900px) {
+  .detail-grid { grid-template-columns: 1fr; gap: 28px; }
+  .sticky-box { position: relative; top: 0; }
+  .info-grid { grid-template-columns: 1fr; }
+}
+</style>
+
+<div class="page" style="max-width: 1200px;">
+  <a href="{% if t.type_procedure=='bon_commande' %}/bons-de-commande{% else %}/tenders{% endif %}" class="detail-back">{{ tr('detail_back') }}</a>
+
+  <div class="detail-grid">
+    <div>
+      <div class="detail-eyebrow">
+        {% if t.type_procedure=='bon_commande' %}<span class="badge badge-terra">{{ tr('tenders_bc') }}</span>{% endif %}
+        {% if t.type_offre=='Privé' %}<span class="badge badge-blue">{{ tr('tenders_private') }}</span>{% endif %}
+        <span class="badge badge-gold">{{ get_label(t.secteur) }}</span>
+        {% if t.region %}<span class="badge badge-gray">{{ t.region }}</span>{% endif %}
+        {% if source_label(t.source) %}<span class="badge badge-gray">{{ source_label(t.source) }}</span>{% endif %}
+      </div>
+
+      <h1 class="detail-title">{{ t.objet }}</h1>
+
+      {% if days_left is defined %}
+        {% set dl_n, dl_l = days_left(t.date_limite) %}
+      {% elif dl is defined %}
+        {% set dl_n, dl_l = dl(t.date_limite) %}
+      {% else %}
+        {% set dl_n = 999 %}{% set dl_l = "" %}
+      {% endif %}
+
+      {% if dl_l %}
+      <div class="deadline-banner" style="background: {% if dl_n < 0 %}var(--reda){% elif dl_n <= 3 %}var(--reda){% elif dl_n <= 7 %}var(--ambera){% else %}var(--grna){% endif %}; border: 1px solid {% if dl_n < 0 or dl_n <= 3 %}rgba(214,69,69,.25){% elif dl_n <= 7 %}rgba(242,169,59,.3){% else %}rgba(29,154,108,.25){% endif %}; color: {% if dl_n < 0 or dl_n <= 3 %}var(--red){% elif dl_n <= 7 %}var(--amberd){% else %}var(--grn){% endif %};">
+        ⏱ {{ dl_l }} {% if dl_n >= 0 and t.date_limite %}— {{ tr('detail_deadline') }} : {{ t.date_limite }}{% endif %}
+      </div>
+      {% endif %}
+
+      <div class="info-grid">
+        <div class="info-cell">
+          <div class="info-label">{{ tr('detail_buyer') }}</div>
+          <div class="info-value">{{ (t.acheteur or '—')[:60] }}</div>
+        </div>
+        <div class="info-cell">
+          <div class="info-label">{{ tr('detail_sector') }}</div>
+          <div class="info-value"><em>{{ get_label(t.secteur) }}</em></div>
+        </div>
+        <div class="info-cell">
+          <div class="info-label">{{ tr('detail_publication') }}</div>
+          <div class="info-value">{{ t.date_publication or '—' }}</div>
+        </div>
+        <div class="info-cell">
+          <div class="info-label">{{ tr('detail_deadline') }}</div>
+          <div class="info-value" style="color: var(--red);">{{ t.date_limite or '—' }}</div>
+        </div>
+        <div class="info-cell">
+          <div class="info-label">{{ tr('detail_amount') }}</div>
+          <div class="info-value" style="color: var(--grn);">{{ t.montant or '—' }}</div>
+        </div>
+        <div class="info-cell">
+          <div class="info-label">{{ tr('detail_views') }}</div>
+          <div class="info-value">{{ (t.views or 0) }}</div>
+        </div>
+      </div>
+
+      {% if t.description and (t.description or '')|length > 80 %}
+      <div class="desc-section">
+        <div class="desc-label">{{ tr('detail_desc') }}</div>
+        <div id="desc" class="desc-content">{{ t.description[:5000] }}</div>
+        <button class="desc-toggle" data-more="{{ tr('detail_readmore') }}" data-less="{{ tr('detail_collapse') }}" onclick="const d=document.getElementById('desc');const exp=d.classList.toggle('expanded');this.textContent=exp?this.dataset.less:this.dataset.more;">{{ tr('detail_readmore') }}</button>
+      </div>
+      {% endif %}
+
+      {% if related %}
+      <div class="related-section">
+        <div class="related-label">{{ tr('detail_related') }}</div>
+        {% for r2 in related %}
+        <a href="/tenders/{{ r2.id }}" class="related-row">
+          <div class="related-title">{{ r2.objet[:120] }}</div>
+          <div class="related-meta">⏰ {{ r2.date_limite or '—' }} · {{ (r2.acheteur or '')[:40] }}</div>
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="sticky-box">
+      <div class="action-card">
+        {% if t.source == 'marchespublics' %}
+        <a href="/tenders/{{ t.id }}/source" target="_blank" class="btn btn-primary btn-full" style="margin-bottom: 10px;">{{ tr('detail_source') }}</a>
+        {% endif %}
+        {% if member %}
+        <button onclick="toggleFav(this,'{{ t.id }}')" id="favbtn" class="btn btn-outline btn-full btn-sm {% if is_fav %}active{% endif %}" data-add="{{ tr('detail_fav_add') }}" data-remove="{{ tr('detail_fav_remove') }}">
+          {% if is_fav %}{{ tr('detail_fav_remove') }}{% else %}{{ tr('detail_fav_add') }}{% endif %}
+        </button>
+        {% else %}
+        <a href="/register" class="btn btn-outline btn-full btn-sm">{{ tr('detail_alert_signup') }}</a>
+        {% endif %}
+      </div>
+
+      <div class="action-card">
+        <div class="action-card-label">{{ tr('detail_meta') }}</div>
+        <div class="action-card-info">
+          <div class="action-card-row">
+            <span class="action-card-key">ID</span>
+            <span class="action-card-val">{{ t.id[:14] }}</span>
+          </div>
+          <div class="action-card-row">
+            <span class="action-card-key">{{ tr('detail_added') }}</span>
+            <span class="action-card-val">{{ t.scraped_at[:10] }}</span>
+          </div>
+          <div class="action-card-row">
+            <span class="action-card-key">{{ tr('detail_status') }}</span>
+            <span class="badge badge-grn">{{ t.statut }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert-card">
+        <div class="alert-card-title">{{ tr('detail_alert_title')|safe }}</div>
+        <div class="alert-card-text">{{ tr('detail_alert_text', sector=get_label(t.secteur)|e)|safe }}</div>
+        <a href="{% if member %}/settings{% else %}/register{% endif %}" class="btn btn-primary btn-full btn-sm">
+          {% if member %}{{ tr('detail_alert_manage') }}{% else %}{{ tr('detail_alert_create') }}{% endif %}
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+async function toggleFav(btn, tid) {
+  try {
+    const r = await fetch(`/tenders/${tid}/favorite`, {method: 'POST', headers: {'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content}});
+    const d = await r.json();
+    if (d.ok) {
+      btn.textContent = d.fav ? btn.dataset.remove : btn.dataset.add;
+      btn.classList.toggle('active', d.fav);
+    }
+  } catch(e) { console.error(e); }
+}
+</script>
+{% endblock %}

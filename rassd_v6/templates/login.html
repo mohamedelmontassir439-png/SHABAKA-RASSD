@@ -1,0 +1,41 @@
+{% extends "base_public.html" %}
+{% block title %}Connexion — Maroc Entrepreneuriat{% endblock %}
+{% block body %}
+<style>
+.auth-wrap { min-height: calc(100vh - 260px); display: flex; align-items: center; justify-content: center; padding: 56px 20px; }
+.auth-card { width: 100%; max-width: 420px; }
+.auth-title { font-family: var(--serif); font-weight: 700; font-size: 31px; color: var(--text1); line-height: 1.2; letter-spacing: -.01em; text-align: center; margin-bottom: 8px; }
+.auth-sub { font-size: 15px; color: var(--text3); text-align: center; margin-bottom: 36px; }
+.auth-panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); box-shadow: var(--sh2), var(--shg); padding: 32px; }
+.auth-form { display: flex; flex-direction: column; gap: 20px; }
+.auth-foot { text-align: center; margin-top: 28px; font-size: 14px; color: var(--text3); }
+.auth-foot a { color: var(--navy); font-weight: 600; }
+.auth-foot a:hover { text-decoration: underline; }
+.auth-foot-link { display: block; margin-bottom: 14px; color: var(--text3); }
+</style>
+
+<div class="auth-wrap">
+  <div class="auth-card">
+    <h1 class="auth-title">{{ tr('login_title') }}</h1>
+    <p class="auth-sub">{{ tr('login_sub') }}</p>
+
+    <div class="auth-panel">
+      {% if request.query_params.get("reset") %}<div class="alert alert-ok" style="margin-bottom: 20px;">{{ tr('login_reset_ok') }}</div>{% endif %}
+      {% if err %}<div class="alert alert-err" style="margin-bottom: 20px;">{{ err }}</div>{% endif %}
+
+      <form method="post" class="auth-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="next" value="{{ next }}">
+        <div class="field"><label for="email">{{ tr('login_email') }}</label><input id="email" name="email" type="email" class="inp" required autofocus value="{{ (vals or {}).get('email','') }}"></div>
+        <div class="field"><label for="pw">{{ tr('login_pw') }}</label><input id="pw" name="pw" type="password" class="inp" required></div>
+        <button type="submit" class="btn btn-primary btn-full btn-lg" style="margin-top: 4px;">{{ tr('login_submit') }}</button>
+      </form>
+    </div>
+
+    <div class="auth-foot">
+      <a href="/forgot" class="auth-foot-link">{{ tr('login_forgot') }}</a>
+      {{ tr('login_no_account') }} <a href="/register">{{ tr('login_signup_link') }}</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

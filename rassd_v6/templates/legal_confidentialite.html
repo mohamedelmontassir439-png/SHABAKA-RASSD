@@ -1,0 +1,55 @@
+{% extends "base_public.html" %}
+{% block title %}Politique de confidentialité — Maroc Entrepreneuriat{% endblock %}
+{% block body %}
+<style>
+.legal-wrap { max-width: 760px; margin: 0 auto; padding: 56px 24px 90px; }
+.legal-hero { margin-bottom: 32px; }
+.legal-body h2 { font-family: var(--serif); font-weight: 700; font-size: 20px; color: var(--text1); margin: 32px 0 12px; }
+.legal-body h2:first-child { margin-top: 0; }
+.legal-body p { font-size: 14.5px; color: var(--text2); line-height: 1.75; margin-bottom: 14px; }
+.legal-body ul { margin: 0 0 14px 22px; }
+.legal-body li { font-size: 14.5px; color: var(--text2); line-height: 1.75; margin-bottom: 6px; }
+.legal-body a { color: var(--ink); font-weight: 600; }
+.legal-note { background: var(--surface2); border: 1px solid var(--line); padding: 14px 18px; border-radius: var(--r2); font-size: 13px; color: var(--text3); margin-top: 28px; line-height: 1.6; }
+</style>
+
+<div class="legal-wrap">
+  <div class="legal-hero">
+    <div class="section-label">Vos données</div>
+    <h1 class="display-l">Politique de <em>confidentialité</em></h1>
+  </div>
+
+  <div class="legal-body">
+    <h2>1. Données collectées</h2>
+    <ul>
+      <li>Identité et contact : nom, email, téléphone, nom de l'entreprise</li>
+      <li>Préférences d'alerte : secteurs et régions suivis</li>
+      <li>Identifiants de canaux, uniquement si vous les renseignez : identifiant Telegram, numéro WhatsApp</li>
+      <li>Données d'usage : favoris, historique de connexion, journal des notifications envoyées</li>
+    </ul>
+
+    <h2>2. Finalité</h2>
+    <p>Ces données servent exclusivement à : vous envoyer les alertes correspondant à votre profil, gérer votre compte et votre abonnement, et améliorer le service (statistiques d'usage agrégées et anonymes). Elles ne sont jamais utilisées à des fins de prospection par des tiers.</p>
+
+    <h2>3. Destinataires</h2>
+    <p>Vos données ne sont jamais vendues ni cédées à des tiers. Elles sont partagées uniquement avec les prestataires techniques strictement nécessaires à l'acheminement des alertes que vous avez activées : un prestataire d'envoi d'email (Brevo ou Gmail), Telegram (si vous activez ce canal), et notre service WhatsApp interne (si vous activez ce canal). Aucun de ces prestataires n'a accès à autre chose qu'à ce qui est nécessaire à l'envoi du message.</p>
+
+    <h2>4. Durée de conservation</h2>
+    <p>Vos données sont conservées tant que votre compte est actif. Vous pouvez demander leur suppression à tout moment (voir section 6).</p>
+
+    <h2>5. Cookies</h2>
+    <p>Le site utilise uniquement des cookies strictement nécessaires à son fonctionnement : session de connexion, protection contre les attaques CSRF, et préférence de langue. Aucun cookie publicitaire ou de traçage tiers n'est déposé.</p>
+
+    <h2>6. Vos droits</h2>
+    <p>Conformément à la loi n° 09-08 relative à la protection des personnes physiques à l'égard du traitement des données à caractère personnel (CNDP), vous disposez d'un droit d'accès, de rectification, d'opposition et de suppression de vos données.</p>
+    <ul>
+      <li><strong>Modifier</strong> vos informations et préférences : page <a href="/settings">Réglages</a></li>
+      <li><strong>Exporter</strong> une copie de vos données : bouton dédié sur la page <a href="/settings">Réglages</a></li>
+      <li><strong>Supprimer</strong> définitivement votre compte : bouton dédié sur la page <a href="/settings">Réglages</a></li>
+      <li>Pour toute autre demande : <a href="mailto:{{ cfg.CONTACT_EMAIL }}">{{ cfg.CONTACT_EMAIL }}</a></li>
+    </ul>
+  </div>
+
+  <div class="legal-note">Dernière mise à jour : {{ now.strftime('%d/%m/%Y') if now else '' }}.</div>
+</div>
+{% endblock %}

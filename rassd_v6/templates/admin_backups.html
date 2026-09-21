@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Sauvegardes — Maroc Entrepreneuriat</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f8f1e1; --surface: #ffffff; --surface2: #f1e6cf;
+  --line: #e8dcc5; --line2: #d9c7a8;
+  --navy: #f2662d; --navy3: #1e1611;
+  --amber: #f2662d; --amberd: #c94e1f; --ambera: rgba(242,102,45,.14);
+  --t1: #2b211b; --t2: #4a3b32; --t3: #8a7a6a; --t4: #b7a896;
+  --grn: #2f9e5b; --red: #d6493f;
+  --serif: 'Fredoka', Georgia, serif;
+  --sans: 'Inter', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--t2); font-family: var(--sans); font-size: 14px; min-height: 100vh; -webkit-font-smoothing: antialiased; }
+a { color: inherit; text-decoration: none; }
+
+.topbar { background: var(--navy3); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='84'%3E%3Cg fill='none' stroke='%23f2662d' stroke-opacity='.14' stroke-width='1'%3E%3Cpath d='M42 2 80 42 42 82 4 42Z'/%3E%3Cpath d='M42 18 66 42 42 66 18 42Z'/%3E%3Cpath d='M42 2V82M4 42H80'/%3E%3C/g%3E%3C/svg%3E"); background-size: 84px 84px; height: 60px; display: flex; align-items: center; padding: 0 28px; gap: 20px; position: sticky; top: 0; z-index: 100; }
+.brand { font-family: var(--serif); font-weight: 700; font-size: 19px; color: #fff; }
+.brand em { font-style: italic; color: var(--amber); font-weight: 600; }
+.brand-meta { font-size: 12px; color: rgba(255,255,255,.45); font-weight: 500; }
+
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 14px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid transparent; transition: all .15s; border-radius: 8px; }
+.btn-p { background: linear-gradient(180deg,#ff8552,var(--amber)); color: #fff; border-color: var(--amber); font-weight: 700; }
+.btn-p:hover { filter: brightness(1.06); }
+.btn-o { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.16); color: #fff; }
+.btn-o:hover { border-color: var(--amber); color: var(--amber); }
+
+.page { max-width: 1000px; margin: 0 auto; padding: 32px 28px; }
+.page-h { display: flex; align-items: end; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 16px; }
+.page-h-title { font-family: var(--serif); font-weight: 700; font-size: 33px; color: var(--t1); line-height: 1.15; letter-spacing: -.01em; }
+.page-h-title em { font-style: italic; color: var(--navy); font-weight: 600; }
+.page-h-sub { font-size: 13px; font-weight: 700; color: var(--amberd); letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; }
+
+.intro { font-size: 13.5px; color: var(--t3); line-height: 1.6; max-width: 760px; margin-bottom: 24px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+
+.card { background: var(--surface); border: 1px solid var(--line); margin-bottom: 20px; border-radius: 12px; box-shadow: 0 1px 2px rgba(16,24,40,.04); overflow: hidden; }
+.card-h { padding: 16px 20px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; }
+.card-ht { font-size: 13px; font-weight: 700; color: var(--amberd); letter-spacing: .04em; text-transform: uppercase; }
+
+table { width: 100%; border-collapse: collapse; }
+th { font-size: 11.5px; font-weight: 700; color: var(--t3); letter-spacing: .04em; text-transform: uppercase; padding: 12px 20px; text-align: left; border-bottom: 1px solid var(--line); }
+td { padding: 14px 20px; border-bottom: 1px solid var(--line); font-size: 13px; color: var(--t2); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface2); }
+.fname { font-family: var(--mono); font-size: 12.5px; color: var(--t1); }
+.empty { text-align: center; padding: 60px 24px; color: var(--t3); }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand">Maroc<em>Entrepreneuriat</em></span>
+  <span class="brand-meta">Sauvegardes</span>
+  <div style="margin-left: auto; display: flex; gap: 8px;">
+    <a href="/admin" class="btn btn-o">← Tableau de bord</a>
+  </div>
+</div>
+
+<div class="page">
+  <div class="page-h">
+    <div>
+      <div class="page-h-sub">Continuité</div>
+      <div class="page-h-title">Sauvegardes <em>base de données</em></div>
+    </div>
+    <a href="/admin/backups/run" class="btn btn-p">▶ Sauvegarder maintenant</a>
+  </div>
+
+  <div class="intro">
+    Une copie automatique est créée chaque jour et les 14 dernières sont conservées ici — cela protège contre un bug applicatif qui corromprait ou effacerait des données. Cela ne protège <strong>pas</strong> contre la perte du volume Railway lui-même : téléchargez régulièrement la dernière sauvegarde pour en garder une copie hors-site (sur votre ordinateur, un cloud personnel, etc.).
+  </div>
+
+  <div class="card">
+    <div class="card-h"><span class="card-ht">{{ files|length }} sauvegarde(s) disponible(s)</span></div>
+    {% if files %}
+    <table>
+      <tr><th>Fichier</th><th>Créée le</th><th>Taille</th><th></th></tr>
+      {% for f in files %}
+      <tr>
+        <td class="fname">{{ f.name }}</td>
+        <td style="color:var(--t3);">{{ f.mtime }}</td>
+        <td>{{ f.size_mb }} Mo</td>
+        <td><a href="/admin/backups/download/{{ f.name }}" class="btn btn-o" style="padding:6px 10px; color:var(--t1); border-color:var(--line2);">⬇ Télécharger</a></td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <div class="empty">Aucune sauvegarde pour l'instant — la première sera créée automatiquement, ou cliquez sur « Sauvegarder maintenant ».</div>
+    {% endif %}
+  </div>
+</div>
+</body>
+</html>

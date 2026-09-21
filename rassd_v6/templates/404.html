@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Page introuvable — Maroc Entrepreneuriat{% endblock %}
+{% block body %}
+<style>
+.err-wrap { min-height: calc(100vh - 260px); display: flex; align-items: center; justify-content: center; padding: 56px 24px; text-align: center; }
+.err-content { max-width: 560px; }
+.err-num { font-family: var(--serif); font-weight: 700; font-size: clamp(96px, 16vw, 180px); line-height: .85; color: var(--gold); letter-spacing: -.02em; }
+.err-title { font-family: var(--serif); font-weight: 700; font-size: clamp(26px, 4vw, 38px); line-height: 1.18; letter-spacing: -.01em; color: var(--text1); margin: 16px 0; }
+.err-title em { font-style: italic; color: var(--ink); font-weight: 600; }
+.err-sub { font-size: 16px; color: var(--text3); line-height: 1.6; margin-bottom: 36px; }
+.err-cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+</style>
+
+<div class="err-wrap">
+  <div class="err-content">
+    <div class="err-num">404</div>
+    <h1 class="err-title">{{ tr('404_title')|safe }}</h1>
+    <p class="err-sub">{{ tr('404_text') }}</p>
+    <div class="err-cta">
+      <a href="/" class="btn btn-primary btn-lg">{{ tr('404_home') }}</a>
+      <a href="/tenders" class="btn btn-outline btn-lg">{{ tr('404_tenders') }}</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
