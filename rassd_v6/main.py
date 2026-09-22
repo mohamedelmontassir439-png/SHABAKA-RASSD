@@ -1001,14 +1001,105 @@ async def subtraitance_new_post(req: Request, type:str=Form("demande"), titre:st
         return render(req, "subtraitance_new.html", {"err": tr_("st_err_required", lang)})
     db  = get_db()
     pid = "st_" + secrets.token_urlsafe(8)
+    tender_id = (req.query_params.get("marche") or "")[:60]
     db.execute("""INSERT INTO subcontract_posts
-                  (id,member_id,type,titre,secteur,region,budget,date_limite,description,statut,created_at)
-                  VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
+                  (id,member_id,type,titre,secteur,region,budget,date_limite,description,
+                   statut,created_at,tender_id)
+                  VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
                (pid, m0["id"], type if type in ("demande","offre") else "demande",
                 titre.strip()[:200], secteur, region, budget.strip()[:100], date_limite,
-                description.strip()[:4000], "actif", datetime.now().isoformat()))
+                description.strip()[:4000], "actif", datetime.now().isoformat(), tender_id))
     db.commit(); db.close()
+    # Une annonce que personne ne voit ne sert à rien: les membres dont le
+    # métier et la zone correspondent sont prévenus immédiatement.
+    try:
+        from app.services.soustraitance import notifier_nouvelle_annonce
+        loop = asyncio.get_event_loop()
+        loop.run_in_executor(None, lambda: notifier_nouvelle_annonce({
+            "id": pid, "member_id": m0["id"], "titre": titre.strip()[:200],
+            "secteur": secteur, "region": region, "budget": budget.strip()[:100]}))
+    except Exception as e:
+        logger.error(f"[sous-traitance] alerte annonce: {e}")
     return RedirectResponse(f"/sous-traitance/{pid}?ok=1", 302)
+
+@app.get("/sous-traitance/profil", response_class=HTMLResponse)
+async def st_profil_get(req: Request):
+    """Profil de sous-traitance: ce que l'entreprise sait faire, où, avec quoi.
+
+    Sans lui, celui qui reçoit une offre ne sait rien de celui qui la fait.
+    """
+    m0 = get_member(req)
+    if not m0:
+        return RedirectResponse("/login?next=/sous-traitance/profil", 302)
+    if not has_access(m0):
+        return RedirectResponse("/tarifs?locked=1", 302)
+    db = get_db()
+    p = db.execute("SELECT * FROM subcontract_profiles WHERE member_id=?", (m0["id"],)).fetchone()
+    note = db.execute(
+        "SELECT ROUND(AVG(rating),1) a, COUNT(*) n FROM subcontract_ratings WHERE rated_id=?",
+        (m0["id"],)).fetchone()
+    offres = db.execute("SELECT COUNT(*) FROM subcontract_offers WHERE member_id=?",
+                        (m0["id"],)).fetchone()[0]
+    db.close()
+    profil = dict(p) if p else {}
+    return render(req, "st_profil.html", {
+        "profil": profil,
+        "metiers": json.loads(profil.get("metiers") or "[]"),
+        "zones": json.loads(profil.get("zones") or "[]"),
+        "note": {"avg": note["a"], "n": note["n"]} if note and note["n"] else None,
+        "nb_offres": offres})
+
+
+@app.post("/sous-traitance/profil")
+async def st_profil_post(req: Request, raison_sociale: str = Form(""), effectif: str = Form(""),
+                         moyens: str = Form(""), experience: str = Form(""),
+                         references_txt: str = Form(""), certifications: str = Form(""),
+                         disponible: str = Form(""), metiers: list = Form(default=[]),
+                         zones: list = Form(default=[]), csrf_token: str = Form("")):
+    m0 = get_member(req)
+    csrf_guard(req, csrf_token)
+    if not m0:
+        return RedirectResponse("/login", 302)
+    if not has_access(m0):
+        return RedirectResponse("/tarifs?locked=1", 302)
+    maintenant = datetime.now().isoformat()
+    db = get_db()
+    db.execute("""INSERT INTO subcontract_profiles(member_id,raison_sociale,metiers,zones,
+                     effectif,moyens,experience,references_txt,certifications,disponible,
+                     created_at,updated_at)
+                  VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+                  ON CONFLICT(member_id) DO UPDATE SET
+                     raison_sociale=excluded.raison_sociale, metiers=excluded.metiers,
+                     zones=excluded.zones, effectif=excluded.effectif, moyens=excluded.moyens,
+                     experience=excluded.experience, references_txt=excluded.references_txt,
+                     certifications=excluded.certifications, disponible=excluded.disponible,
+                     updated_at=excluded.updated_at""",
+               (m0["id"], raison_sociale[:200], json.dumps(clean_secteurs(metiers)),
+                json.dumps([z for z in zones if z][:12]), effectif[:60], moyens[:1000],
+                experience[:60], references_txt[:2000], certifications[:500],
+                1 if disponible else 0, maintenant, maintenant))
+    db.commit(); db.close()
+    return RedirectResponse("/sous-traitance/profil?ok=1", 302)
+
+
+@app.get("/sous-traitance/opportunites", response_class=HTMLResponse)
+async def st_opportunites(req: Request):
+    """Chantiers attribués qui vont chercher des sous-traitants.
+
+    C'est l'inverse d'une bourse d'annonces: personne n'a besoin de publier
+    quoi que ce soit pour que le membre voie une piste.
+    """
+    m0 = get_member(req)
+    if not m0:
+        return RedirectResponse("/login?next=/sous-traitance/opportunites", 302)
+    if not has_access(m0):
+        return RedirectResponse("/tarifs?locked=1", 302)
+    from app.services.soustraitance import opportunites_pour, message_de_contact
+    pistes = opportunites_pour(m0)
+    for p in pistes:
+        p["message"] = message_de_contact(m0, p)
+    return render(req, "st_opportunites.html", {"pistes": pistes})
+
 
 @app.get("/sous-traitance/{pid}", response_class=HTMLResponse)
 async def subtraitance_detail(req: Request, pid: str, with_:str=""):
@@ -1064,12 +1155,185 @@ async def subtraitance_detail(req: Request, pid: str, with_:str=""):
             "SELECT rating FROM subcontract_ratings WHERE post_id=? AND rater_id=? AND rated_id=?",
             (pid, m0["id"], counterpart_id)).fetchone()
         my_rating_given = mine["rating"] if mine else 0
+    # Offres structurées: l'auteur les compare toutes, un candidat ne voit
+    # que la sienne — le prix d'un concurrent ne le regarde pas.
+    if is_owner:
+        offres = [dict(x) for x in db.execute(
+            """SELECT o.*, m.nom, m.company,
+                      (SELECT ROUND(AVG(rating),1) FROM subcontract_ratings WHERE rated_id=o.member_id) AS note,
+                      (SELECT COUNT(*) FROM subcontract_ratings WHERE rated_id=o.member_id) AS nb_avis,
+                      (SELECT COUNT(*) FROM subcontract_offers WHERE member_id=o.member_id) AS nb_offres
+               FROM subcontract_offers o JOIN members m ON m.id=o.member_id
+               WHERE o.post_id=? ORDER BY o.created_at ASC""", (pid,)).fetchall()]
+    else:
+        offres = [dict(x) for x in db.execute(
+            "SELECT * FROM subcontract_offers WHERE post_id=? AND member_id=?",
+            (pid, m0["id"])).fetchall()]
+    marche = None
+    if post.get("tender_id"):
+        t = db.execute("SELECT id,objet,acheteur,date_limite,montant,region FROM tenders WHERE id=?",
+                       (post["tender_id"],)).fetchone()
+        marche = dict(t) if t else None
     db.close()
     return render(req, "subtraitance_detail.html", {
         "post": post, "author": dict(author) if author else {}, "is_owner": is_owner,
         "threads": threads, "thread_messages": thread_messages, "other_id": other_id,
         "counterpart_id": counterpart_id, "counterpart_rating": counterpart_rating,
-        "my_rating_given": my_rating_given})
+        "my_rating_given": my_rating_given, "offres": offres, "marche": marche,
+        "mon_offre": offres[0] if (offres and not is_owner) else None})
+
+UPLOAD_DIR = "data/uploads"
+
+
+@app.get("/sous-traitance/{pid}/declaration", response_class=HTMLResponse)
+async def st_declaration(req: Request, pid: str):
+    """Déclaration de sous-traitance à remettre au maître d'ouvrage.
+
+    Le document reprend l'offre retenue et le marché d'origine. Les limites
+    légales (part sous-traitable, corps d'état principal) sont rappelées mais
+    restent sous la responsabilité de l'entreprise: le texte applicable est
+    le décret des marchés publics, pas cette page.
+    """
+    m0 = get_member(req)
+    if not m0:
+        return RedirectResponse("/login", 302)
+    if not has_access(m0):
+        return RedirectResponse("/tarifs?locked=1", 302)
+    db = get_db()
+    post = db.execute("SELECT * FROM subcontract_posts WHERE id=?", (pid,)).fetchone()
+    if not post or post["member_id"] != m0["id"]:
+        db.close()
+        return HTMLResponse("Accès refusé", 403)
+    offre = db.execute(
+        """SELECT o.*, m.nom, m.company, m.phone, m.email,
+                  p.raison_sociale, p.certifications
+           FROM subcontract_offers o JOIN members m ON m.id=o.member_id
+           LEFT JOIN subcontract_profiles p ON p.member_id=o.member_id
+           WHERE o.post_id=? AND o.statut='retenue'""", (pid,)).fetchone()
+    marche = None
+    if post["tender_id"]:
+        t = db.execute("SELECT id,objet,acheteur FROM tenders WHERE id=?",
+                       (post["tender_id"],)).fetchone()
+        marche = dict(t) if t else None
+    db.close()
+    if not offre:
+        return RedirectResponse(f"/sous-traitance/{pid}?err=offre", 302)
+    return render(req, "st_declaration.html", {
+        "post": dict(post), "offre": dict(offre), "marche": marche,
+        "donneur": m0, "aujourdhui": date.today().strftime("%d/%m/%Y")})
+
+
+@app.post("/sous-traitance/{pid}/offre")
+async def subtraitance_offre(req: Request, pid: str):
+    """Dépôt d'une offre chiffrée: prix, délai, message et pièce jointe.
+
+    Une conversation libre ne se compare pas. Ici l'auteur de l'annonce
+    obtient des propositions alignées sur les mêmes colonnes.
+    """
+    m0 = get_member(req)
+    form = await req.form()
+    csrf_guard(req, form.get("csrf_token", ""))
+    if not m0:
+        return RedirectResponse(f"/login?next=/sous-traitance/{pid}", 302)
+    if not has_access(m0):
+        return RedirectResponse("/tarifs?locked=1", 302)
+
+    db = get_db()
+    post = db.execute("SELECT * FROM subcontract_posts WHERE id=?", (pid,)).fetchone()
+    if not post or post["member_id"] == m0["id"] or post["statut"] != "actif":
+        db.close()
+        return RedirectResponse(f"/sous-traitance/{pid}?err=1", 302)
+
+    nom_fichier = ""
+    fichier = form.get("piece_jointe")
+    if fichier is not None and getattr(fichier, "filename", ""):
+        contenu = await fichier.read()
+        if len(contenu) > 5 * 1024 * 1024:
+            db.close()
+            return RedirectResponse(f"/sous-traitance/{pid}?err=taille", 302)
+        ext = os.path.splitext(fichier.filename)[1].lower()
+        # Une pièce jointe de sous-traitance est un devis ou une référence:
+        # pas de format exécutable, jamais.
+        if ext not in (".pdf", ".jpg", ".jpeg", ".png"):
+            db.close()
+            return RedirectResponse(f"/sous-traitance/{pid}?err=format", 302)
+        os.makedirs(UPLOAD_DIR, exist_ok=True)
+        nom_fichier = f"{pid}_{m0['id']}_{secrets.token_urlsafe(6)}{ext}"
+        with open(os.path.join(UPLOAD_DIR, nom_fichier), "wb") as fh:
+            fh.write(contenu)
+
+    maintenant = datetime.now().isoformat()
+    db.execute("""INSERT INTO subcontract_offers(post_id,member_id,prix,delai,message,
+                     piece_jointe,statut,created_at,updated_at)
+                  VALUES(?,?,?,?,?,?,'envoyee',?,?)
+                  ON CONFLICT(post_id,member_id) DO UPDATE SET
+                     prix=excluded.prix, delai=excluded.delai, message=excluded.message,
+                     piece_jointe=CASE WHEN excluded.piece_jointe!='' THEN excluded.piece_jointe
+                                       ELSE subcontract_offers.piece_jointe END,
+                     updated_at=excluded.updated_at""",
+               (pid, m0["id"], (form.get("prix") or "")[:60], (form.get("delai") or "")[:60],
+                (form.get("message") or "")[:2000], nom_fichier, maintenant, maintenant))
+    db.commit()
+    auteur = db.execute("SELECT email,nom,notif_email FROM members WHERE id=?",
+                        (post["member_id"],)).fetchone()
+    db.close()
+
+    if auteur and auteur["notif_email"] and auteur["email"]:
+        from app.services.notifications import email_send
+        lien = f"{cfg.SITE_URL}/sous-traitance/{pid}"
+        loop = asyncio.get_event_loop()
+        loop.run_in_executor(None, lambda: email_send(
+            auteur["email"], f"Nouvelle offre pour « {post['titre'][:50]} »",
+            f"""<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto">
+              <h2 style="font-size:19px;color:#1e1611">Vous avez reçu une offre</h2>
+              <p style="font-size:15px;color:#4a4a4a">{(m0.get('company') or m0.get('nom') or '')} a répondu à votre annonce.</p>
+              <a href="{lien}" style="display:inline-block;padding:12px 24px;background:#f2662d;
+                 color:#fff;border-radius:8px;text-decoration:none;font-weight:600">Comparer les offres</a>
+            </div>"""))
+    return RedirectResponse(f"/sous-traitance/{pid}?offre=ok", 302)
+
+
+@app.get("/sous-traitance/{pid}/piece/{nom}")
+async def subtraitance_piece(req: Request, pid: str, nom: str):
+    """Pièce jointe d'une offre: visible par l'auteur de l'annonce et par
+    celui qui l'a déposée, personne d'autre."""
+    m0 = get_member(req)
+    if not m0 or not has_access(m0):
+        return RedirectResponse("/login", 302)
+    sur = os.path.basename(nom)
+    db = get_db()
+    offre = db.execute(
+        "SELECT o.*, p.member_id AS auteur FROM subcontract_offers o "
+        "JOIN subcontract_posts p ON p.id=o.post_id WHERE o.post_id=? AND o.piece_jointe=?",
+        (pid, sur)).fetchone()
+    db.close()
+    if not offre or m0["id"] not in (offre["member_id"], offre["auteur"]):
+        return HTMLResponse("Accès refusé", 403)
+    chemin = os.path.join(UPLOAD_DIR, sur)
+    if not os.path.isfile(chemin):
+        return HTMLResponse("Fichier introuvable", 404)
+    return FileResponse(chemin, filename=sur)
+
+
+@app.post("/sous-traitance/{pid}/offre/{oid}/retenir")
+async def subtraitance_retenir(req: Request, pid: str, oid: int, csrf_token: str = Form("")):
+    """L'auteur retient une offre: les autres candidats sont informés."""
+    m0 = get_member(req)
+    csrf_guard(req, csrf_token)
+    if not m0:
+        return RedirectResponse("/login", 302)
+    db = get_db()
+    post = db.execute("SELECT * FROM subcontract_posts WHERE id=?", (pid,)).fetchone()
+    if not post or post["member_id"] != m0["id"]:
+        db.close()
+        return HTMLResponse("Accès refusé", 403)
+    db.execute("UPDATE subcontract_offers SET statut='ecartee', updated_at=? WHERE post_id=?",
+               (datetime.now().isoformat(), pid))
+    db.execute("UPDATE subcontract_offers SET statut='retenue', updated_at=? WHERE id=? AND post_id=?",
+               (datetime.now().isoformat(), oid, pid))
+    db.commit(); db.close()
+    return RedirectResponse(f"/sous-traitance/{pid}?retenue=1", 302)
+
 
 @app.post("/sous-traitance/{pid}/message")
 async def subtraitance_send_message(req: Request, pid: str, body:str=Form(""), to:str=Form(""), csrf_token:str=Form("")):

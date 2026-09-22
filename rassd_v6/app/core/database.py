@@ -131,6 +131,39 @@ CREATE TABLE IF NOT EXISTS subcontract_posts (
     statut       TEXT DEFAULT 'actif',
     created_at   TEXT DEFAULT ''
 );
+-- Profil de sous-traitance: ce qu'une entreprise sait faire, où, et avec
+-- quels moyens. Sans lui, une annonce ne dit rien de celui qui la publie.
+CREATE TABLE IF NOT EXISTS subcontract_profiles (
+    member_id      INTEGER PRIMARY KEY,
+    raison_sociale TEXT DEFAULT '',
+    metiers        TEXT DEFAULT '[]',
+    zones          TEXT DEFAULT '[]',
+    effectif       TEXT DEFAULT '',
+    moyens         TEXT DEFAULT '',
+    experience     TEXT DEFAULT '',
+    references_txt TEXT DEFAULT '',
+    certifications TEXT DEFAULT '',
+    disponible     INTEGER DEFAULT 1,
+    created_at     TEXT DEFAULT '',
+    updated_at     TEXT DEFAULT ''
+);
+-- Offres structurées: un prix, un délai et des références se comparent;
+-- une conversation libre ne se compare pas.
+CREATE TABLE IF NOT EXISTS subcontract_offers (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    post_id     TEXT NOT NULL,
+    member_id   INTEGER NOT NULL,
+    prix        TEXT DEFAULT '',
+    delai       TEXT DEFAULT '',
+    message     TEXT DEFAULT '',
+    piece_jointe TEXT DEFAULT '',
+    statut      TEXT DEFAULT 'envoyee',
+    created_at  TEXT DEFAULT '',
+    updated_at  TEXT DEFAULT '',
+    UNIQUE(post_id, member_id)
+);
+CREATE INDEX IF NOT EXISTS idx_so_post   ON subcontract_offers(post_id);
+CREATE INDEX IF NOT EXISTS idx_so_member ON subcontract_offers(member_id);
 CREATE TABLE IF NOT EXISTS subcontract_messages (
     id           INTEGER PRIMARY KEY AUTOINCREMENT,
     post_id      TEXT NOT NULL,
@@ -402,6 +435,10 @@ def migrate_db():
         "ALTER TABLE tenders ADD COLUMN quantite TEXT DEFAULT ''",
         # Séquence d'emails pendant l'essai gratuit (étape déjà envoyée)
         "ALTER TABLE members ADD COLUMN trial_seq INTEGER DEFAULT 0",
+        # Une annonce de sous-traitance née d'un marché garde le lien vers lui:
+        # l'objet, l'acheteur et l'échéance viennent alors de la source.
+        "ALTER TABLE subcontract_posts ADD COLUMN tender_id TEXT DEFAULT ''",
+        "ALTER TABLE subcontract_posts ADD COLUMN part_marche TEXT DEFAULT ''",
         # Journal de notification: statut de livraison
         "ALTER TABLE notif_log ADD COLUMN status TEXT DEFAULT 'SENT'",
         "ALTER TABLE notif_log ADD COLUMN error TEXT DEFAULT ''",

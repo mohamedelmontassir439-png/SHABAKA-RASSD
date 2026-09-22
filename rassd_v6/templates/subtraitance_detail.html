@@ -92,6 +92,84 @@
       </div>
     </div>
 
+    <div class="msg-panel" style="margin-bottom:18px">
+      <div class="msg-panel-title">📋 {{ tr('off_title') }}</div>
+
+      {% if marche %}
+      <div style="background:var(--golda); border-radius:var(--r2); padding:12px 14px; margin-bottom:16px; font-size:13.5px;">
+        {{ tr('off_from_tender') }} <a href="/tenders/{{ marche.id }}" style="font-weight:700; color:var(--ink);">{{ marche.objet[:80] }}</a>
+        {% if marche.date_limite %} · {{ tr('detail_deadline') }} {{ marche.date_limite }}{% endif %}
+      </div>
+      {% endif %}
+
+      {% if is_owner %}
+        {% if offres %}
+        <div style="overflow-x:auto">
+          <table style="width:100%; border-collapse:collapse; min-width:560px; font-size:13.5px;">
+            <thead>
+              <tr style="color:var(--text3); font-size:12px;">
+                <th style="padding:8px 10px; text-align:start;">{{ tr('off_candidate') }}</th>
+                <th style="padding:8px 10px; text-align:start;">{{ tr('off_price') }}</th>
+                <th style="padding:8px 10px; text-align:start;">{{ tr('off_delay') }}</th>
+                <th style="padding:8px 10px; text-align:start;">{{ tr('off_rating') }}</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for o in offres %}
+              <tr style="border-top:1px solid var(--line); {% if o.statut == 'retenue' %}background:var(--golda);{% endif %}">
+                <td style="padding:10px;">
+                  <b>{{ (o.company or o.nom or '—')[:38] }}</b>
+                  {% if o.statut == 'retenue' %}<span class="badge badge-grn">{{ tr('off_selected') }}</span>{% endif %}
+                  {% if o.message %}<div style="color:var(--text3); font-size:12.5px; margin-top:3px;">{{ o.message[:110] }}</div>{% endif %}
+                  {% if o.piece_jointe %}<div style="margin-top:4px;"><a href="/sous-traitance/{{ post.id }}/piece/{{ o.piece_jointe }}" style="color:var(--ink); font-weight:600; font-size:12.5px;">📎 {{ tr('off_attachment') }}</a></div>{% endif %}
+                </td>
+                <td style="padding:10px; font-weight:700; white-space:nowrap;">{{ o.prix or '—' }}</td>
+                <td style="padding:10px; white-space:nowrap;">{{ o.delai or '—' }}</td>
+                <td style="padding:10px; white-space:nowrap;">{% if o.note %}★ {{ o.note }} ({{ o.nb_avis }}){% else %}—{% endif %}</td>
+                <td style="padding:10px; white-space:nowrap;">
+                  <a class="btn btn-outline btn-sm" href="?with={{ o.member_id }}">{{ tr('off_discuss') }}</a>
+                  {% if o.statut != 'retenue' %}
+                  <form method="post" action="/sous-traitance/{{ post.id }}/offre/{{ o.id }}/retenir" style="display:inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                    <button type="submit" class="btn btn-primary btn-sm">{{ tr('off_select') }}</button>
+                  </form>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% if offres | selectattr('statut', 'equalto', 'retenue') | list %}
+        <a class="btn btn-outline btn-sm" style="margin-top:14px" href="/sous-traitance/{{ post.id }}/declaration">{{ tr('off_declaration') }}</a>
+        {% endif %}
+        {% else %}
+        <div style="color:var(--text3); font-size:14px;">{{ tr('off_none') }}</div>
+        {% endif %}
+
+      {% elif post.statut == 'actif' %}
+        {% if request.query_params.get('offre') %}<div class="alert alert-ok" style="margin-bottom:14px;">{{ tr('off_sent') }}</div>{% endif %}
+        {% if request.query_params.get('err') == 'format' %}<div class="alert alert-err" style="margin-bottom:14px;">{{ tr('off_err_format') }}</div>{% endif %}
+        {% if request.query_params.get('err') == 'taille' %}<div class="alert alert-err" style="margin-bottom:14px;">{{ tr('off_err_size') }}</div>{% endif %}
+        <div style="font-size:13.5px; color:var(--text3); margin-bottom:14px;">{{ tr('off_hint') }}</div>
+        <form method="post" action="/sous-traitance/{{ post.id }}/offre" enctype="multipart/form-data" style="display:grid; gap:12px;">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+            <div class="field"><label for="prix">{{ tr('off_price') }}</label>
+              <input id="prix" name="prix" class="inp" value="{{ mon_offre.prix if mon_offre else '' }}" placeholder="Ex : 180 000 MAD"></div>
+            <div class="field"><label for="delai">{{ tr('off_delay') }}</label>
+              <input id="delai" name="delai" class="inp" value="{{ mon_offre.delai if mon_offre else '' }}" placeholder="Ex : 45 jours"></div>
+          </div>
+          <div class="field"><label for="message">{{ tr('off_message') }}</label>
+            <textarea id="message" name="message" class="inp" style="min-height:90px" placeholder="{{ tr('off_message_ph') }}">{{ mon_offre.message if mon_offre else '' }}</textarea></div>
+          <div class="field"><label for="piece_jointe">{{ tr('off_file') }}</label>
+            <input id="piece_jointe" type="file" name="piece_jointe" accept=".pdf,.jpg,.jpeg,.png" class="inp"></div>
+          <button type="submit" class="btn btn-primary">{{ tr('off_submit') if not mon_offre else tr('off_update') }}</button>
+        </form>
+      {% endif %}
+    </div>
+
     <div class="msg-panel">
       <div class="msg-panel-title">💬 {{ tr('st_msg_title') }}</div>
 

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}{{ tr('dec_title_plain') }} — {{ post.titre[:40] }}{% endblock %}
+{% block body %}
+<style>
+.dec-wrap { max-width: 860px; margin: 0 auto; padding: 32px 20px 70px; }
+.dec-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+.dec-sheet { background: #fff; border: 1px solid var(--line); border-radius: var(--r3); padding: 42px 46px; box-shadow: var(--sh); color: #1d2430; }
+.dec-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; border-bottom: 2px solid #1d2430; padding-bottom: 16px; }
+.dec-brand { font-family: var(--serif); font-weight: 700; font-size: 17px; color: #1d2430; }
+.dec-ref { font-size: 12.5px; color: #6b7280; text-align: end; }
+.dec-t { font-family: var(--serif); font-weight: 700; font-size: 22px; text-align: center; margin: 30px 0 6px; }
+.dec-st { text-align: center; color: #6b7280; font-size: 13px; margin-bottom: 30px; }
+.dec-sec { margin-bottom: 24px; }
+.dec-sec h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: #6b7280; margin-bottom: 10px; font-weight: 700; }
+.dec-line { display: grid; grid-template-columns: 200px 1fr; gap: 12px; padding: 7px 0; border-bottom: 1px solid #eceff3; font-size: 14px; }
+.dec-line span { color: #6b7280; }
+.dec-line b { color: #1d2430; font-weight: 600; }
+.dec-fill { display: inline-block; min-width: 180px; border-bottom: 1px dotted #9aa3b0; }
+.dec-sign { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 42px; }
+.dec-sign div { border-top: 1px solid #1d2430; padding-top: 8px; font-size: 13px; color: #6b7280; min-height: 90px; }
+.dec-note { margin-top: 28px; font-size: 11.5px; color: #6b7280; line-height: 1.7; border-top: 1px solid #eceff3; padding-top: 14px; }
+@media print {
+  .dec-actions, nav, header, footer, .topbar { display: none !important; }
+  .dec-sheet { border: none; box-shadow: none; padding: 0; }
+}
+</style>
+
+<div class="dec-wrap">
+  <div class="dec-actions">
+    <button type="button" class="btn btn-primary" onclick="window.print()">{{ tr('dec_print') }}</button>
+    <a class="btn btn-outline" href="/sous-traitance/{{ post.id }}">{{ tr('dec_back') }}</a>
+  </div>
+
+  <div class="dec-sheet">
+    <div class="dec-head">
+      <div class="dec-brand">Maroc<em>Entrepreneuriat</em></div>
+      <div class="dec-ref">{{ tr('dec_ref') }} {{ post.id }}<br>{{ aujourdhui }}</div>
+    </div>
+
+    <div class="dec-t">{{ tr('dec_title') }}</div>
+    <div class="dec-st">{{ tr('dec_subtitle') }}</div>
+
+    <div class="dec-sec">
+      <h3>{{ tr('dec_market') }}</h3>
+      <div class="dec-line"><span>{{ tr('dec_object') }}</span><b>{{ (marche.objet if marche else post.titre)[:200] }}</b></div>
+      <div class="dec-line"><span>{{ tr('dec_buyer') }}</span><b>{% if marche and marche.acheteur %}{{ marche.acheteur[:120] }}{% else %}<span class="dec-fill"></span>{% endif %}</b></div>
+      <div class="dec-line"><span>{{ tr('dec_market_ref') }}</span><b><span class="dec-fill"></span></b></div>
+    </div>
+
+    <div class="dec-sec">
+      <h3>{{ tr('dec_prime') }}</h3>
+      <div class="dec-line"><span>{{ tr('dec_company') }}</span><b>{{ donneur.company or donneur.nom or '' }}</b></div>
+      <div class="dec-line"><span>{{ tr('dec_ice') }}</span><b><span class="dec-fill"></span></b></div>
+      <div class="dec-line"><span>{{ tr('dec_contact') }}</span><b>{{ donneur.phone or donneur.email or '' }}</b></div>
+    </div>
+
+    <div class="dec-sec">
+      <h3>{{ tr('dec_sub') }}</h3>
+      <div class="dec-line"><span>{{ tr('dec_company') }}</span><b>{{ offre.raison_sociale or offre.company or offre.nom or '' }}</b></div>
+      <div class="dec-line"><span>{{ tr('dec_ice') }}</span><b><span class="dec-fill"></span></b></div>
+      <div class="dec-line"><span>{{ tr('dec_contact') }}</span><b>{{ offre.phone or offre.email or '' }}</b></div>
+      {% if offre.certifications %}<div class="dec-line"><span>{{ tr('dec_quals') }}</span><b>{{ offre.certifications[:120] }}</b></div>{% endif %}
+    </div>
+
+    <div class="dec-sec">
+      <h3>{{ tr('dec_scope') }}</h3>
+      <div class="dec-line"><span>{{ tr('dec_works') }}</span><b>{{ post.titre[:160] }}</b></div>
+      <div class="dec-line"><span>{{ tr('dec_amount') }}</span><b>{{ offre.prix or '—' }}</b></div>
+      <div class="dec-line"><span>{{ tr('dec_delay') }}</span><b>{{ offre.delai or '—' }}</b></div>
+      <div class="dec-line"><span>{{ tr('dec_share') }}</span><b><span class="dec-fill"></span> %</b></div>
+    </div>
+
+    <div class="dec-sign">
+      <div>{{ tr('dec_sign_prime') }}</div>
+      <div>{{ tr('dec_sign_sub') }}</div>
+    </div>
+
+    <div class="dec-note">{{ tr('dec_legal') }}</div>
+  </div>
+</div>
+{% endblock %}

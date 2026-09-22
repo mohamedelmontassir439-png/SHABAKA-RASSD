@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}{{ tr('opp_title_plain') }} — Maroc Entrepreneuriat{% endblock %}
+{% block body %}
+<style>
+.opp-wrap { max-width: 1000px; margin: 0 auto; padding: 40px 20px 80px; }
+.opp-head { margin-bottom: 26px; }
+.opp-h1 { font-family: var(--serif); font-weight: 700; font-size: clamp(25px, 4vw, 33px); color: var(--text1); line-height: 1.25; }
+.opp-h1 em { font-style: italic; color: var(--ink); }
+.opp-sub { color: var(--text3); font-size: 15px; line-height: 1.65; margin-top: 10px; max-width: 65ch; }
+.opp-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 20px 22px; margin-bottom: 14px; box-shadow: var(--sh); }
+.opp-top { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
+.opp-obj { font-weight: 700; color: var(--text1); font-size: 16px; line-height: 1.45; }
+.opp-mt { font-family: var(--serif); font-weight: 700; font-size: 19px; color: var(--grn); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.opp-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.badge-win { background: var(--indigoa); color: var(--ink); font-weight: 700; }
+.opp-contact { margin-top: 14px; padding: 13px 15px; background: var(--golda); border-radius: var(--r2); font-size: 14px; }
+.opp-contact a { color: var(--ink); font-weight: 700; }
+.opp-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px; align-items: center; }
+.opp-msg { display: none; margin-top: 12px; }
+.opp-msg.on { display: block; }
+.opp-msg textarea { width: 100%; min-height: 150px; font: inherit; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r2); background: var(--bg); color: var(--text1); resize: vertical; }
+.opp-empty { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 44px 26px; text-align: center; }
+.opp-empty-t { font-family: var(--serif); font-size: 19px; color: var(--text1); margin-bottom: 8px; }
+.opp-note { color: var(--text3); font-size: 13px; margin-top: 18px; line-height: 1.6; }
+</style>
+
+<div class="opp-wrap">
+  <div class="opp-head">
+    <h1 class="opp-h1">{{ tr('opp_title')|safe }}</h1>
+    <p class="opp-sub">{{ tr('opp_sub') }}</p>
+  </div>
+
+  {% if pistes %}
+    {% for p in pistes %}
+    <div class="opp-card">
+      <div class="opp-top">
+        <div style="flex:1; min-width:240px;">
+          <div class="opp-obj">{{ p.objet[:170] }}</div>
+          <div class="opp-meta">
+            <span class="badge badge-win">{{ tr('opp_winner') }} {{ p.adjudicataire[:46] }}</span>
+            {% if p.region %}<span class="badge badge-gray">{{ p.region[:24] }}</span>{% endif %}
+            {% if p.secteur_label %}<span class="badge badge-gold">{{ p.secteur_label[:28] }}</span>{% endif %}
+            {% if p.date_adjudication %}<span class="badge">{{ p.date_adjudication }}</span>{% endif %}
+          </div>
+        </div>
+        {% if p.montant %}<div class="opp-mt">{{ p.montant }}</div>{% endif %}
+      </div>
+
+      {% if p.contact_phone or p.contact_email %}
+      <div class="opp-contact">
+        {{ tr('opp_contact_known') }}
+        {% if p.contact_phone %}<a href="tel:{{ p.contact_phone|replace(' ','') }}">{{ p.contact_phone }}</a>{% endif %}
+        {% if p.contact_email %} · <a href="mailto:{{ p.contact_email }}">{{ p.contact_email }}</a>{% endif %}
+      </div>
+      {% endif %}
+
+      <div class="opp-actions">
+        <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('m{{ loop.index }}').classList.toggle('on')">
+          {{ tr('opp_show_message') }}
+        </button>
+        {% if p.pv_url %}<a class="btn btn-outline btn-sm" href="{{ p.pv_url }}" target="_blank" rel="noopener">{{ tr('res_pv') }}</a>{% endif %}
+        <a class="btn btn-primary btn-sm" href="/sous-traitance/nouveau">{{ tr('opp_publish') }}</a>
+      </div>
+
+      <div class="opp-msg" id="m{{ loop.index }}">
+        <textarea id="t{{ loop.index }}" readonly>{{ p.message }}</textarea>
+        <button type="button" class="btn btn-outline btn-sm" style="margin-top:8px"
+                onclick="const t=document.getElementById('t{{ loop.index }}'); t.select(); navigator.clipboard.writeText(t.value); this.textContent='{{ tr('opp_copied') }}';">
+          {{ tr('opp_copy') }}
+        </button>
+      </div>
+    </div>
+    {% endfor %}
+    <p class="opp-note">{{ tr('opp_note') }}</p>
+  {% else %}
+    <div class="opp-empty">
+      <div class="opp-empty-t">{{ tr('opp_empty_t') }}</div>
+      <p class="opp-sub" style="margin:0 auto 18px;">{{ tr('opp_empty_d') }}</p>
+      <a class="btn btn-primary" href="/settings">{{ tr('opp_empty_cta') }}</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

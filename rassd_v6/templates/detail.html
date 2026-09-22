@@ -157,6 +157,12 @@
         {% else %}
         <a href="/register" class="btn btn-outline btn-full btn-sm">{{ tr('detail_alert_signup') }}</a>
         {% endif %}
+        {% if member %}
+        {# Celui qui prépare son offre cherche souvent un sous-traitant pour
+           un lot: l'annonce part d'ici, déjà rattachée à ce marché. #}
+        <a href="/sous-traitance/nouveau?marche={{ t.id }}&secteur={{ t.secteur }}&region={{ t.region|urlencode }}"
+           class="btn btn-outline btn-full btn-sm" style="margin-top:10px">{{ tr('detail_need_sub') }}</a>
+        {% endif %}
       </div>
 
       <div class="action-card">

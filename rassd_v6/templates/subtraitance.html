@@ -49,7 +49,11 @@
       <h1 class="display-m">{{ tr('st_title')|safe }}</h1>
       <p style="color: var(--text3); font-size: 14.5px; margin-top: 8px; max-width: 620px;">{{ tr('st_sub') }}</p>
     </div>
-    <a href="/sous-traitance/nouveau" class="btn btn-accent btn-lg">{{ tr('st_new_cta') }}</a>
+    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+      <a href="/sous-traitance/opportunites" class="btn btn-outline">{{ tr('opp_title_plain') }}</a>
+      <a href="/sous-traitance/profil" class="btn btn-outline">{{ tr('prof_title_plain') }}</a>
+      <a href="/sous-traitance/nouveau" class="btn btn-accent btn-lg">{{ tr('st_new_cta') }}</a>
+    </div>
   </div>
 </div>
 

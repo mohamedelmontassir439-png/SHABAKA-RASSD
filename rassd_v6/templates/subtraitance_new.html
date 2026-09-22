@@ -1,5 +1,16 @@
 {% extends "base.html" %}
-{% block title %}Nouvelle annonce — Sous-traitance — Maroc Entrepreneuriat{% endblock %}
+{% block title %}Nouvelle annonce — Sous-traitance — Maroc Entrepreneuriat<script>
+// Marché d'origine: on pré-sélectionne son secteur et sa région pour que
+// l'annonce parte en deux clics depuis la page du marché.
+(function(){
+  const p = new URLSearchParams(location.search);
+  const sel = document.querySelector('[name=secteur]');
+  if (sel && p.get('secteur')) sel.value = p.get('secteur');
+  const reg = document.querySelector('[name=region]');
+  if (reg && p.get('region')) reg.value = p.get('region');
+})();
+</script>
+{% endblock %}
 {% block body %}
 <style>
 .stn-wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 80px; }
@@ -37,7 +48,7 @@
     <div class="grid-2" style="gap: 18px; margin-bottom:18px;">
       <div class="field">
         <label for="secteur">{{ tr('st_field_secteur') }}</label>
-        <select id="secteur" name="secteur" class="sel">
+        <select id="secteur" name="secteur" data-prefill="{{ request.query_params.get('secteur','') }}" class="sel">
           <option value="">—</option>
           {% for group_name, group_sectors in sector_groups.items() %}
           <optgroup label="{{ group_name }}">
