@@ -99,10 +99,25 @@
           <div class="info-label">{{ tr('detail_deadline') }}</div>
           <div class="info-value" style="color: var(--red);">{{ t.date_limite or '—' }}</div>
         </div>
+        {% if t.montant or not t.quantite %}
         <div class="info-cell">
           <div class="info-label">{{ tr('detail_amount') }}</div>
           <div class="info-value" style="color: var(--grn);">{{ t.montant or '—' }}</div>
         </div>
+        {% else %}
+        {# Un bon de commande ne publie pas d'estimation: la quantité commandée
+           renseigne mieux le membre qu'une case vide. #}
+        <div class="info-cell">
+          <div class="info-label">{{ tr('detail_quantite') }}</div>
+          <div class="info-value" style="color: var(--grn);">{{ t.quantite }}</div>
+        </div>
+        {% endif %}
+        {% if t.nature %}
+        <div class="info-cell">
+          <div class="info-label">{{ tr('detail_nature') }}</div>
+          <div class="info-value">{{ t.nature[:80] }}</div>
+        </div>
+        {% endif %}
         <div class="info-cell">
           <div class="info-label">{{ tr('detail_views') }}</div>
           <div class="info-value">{{ (t.views or 0) }}</div>

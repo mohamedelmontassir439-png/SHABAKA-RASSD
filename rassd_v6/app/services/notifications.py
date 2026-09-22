@@ -542,3 +542,103 @@ def send_daily_wa_digests(force: bool = False, now=None) -> int:
     if envoyes:
         logger.info(f"[WA digest] {envoyes} résumé(s) WhatsApp envoyé(s)")
     return envoyes
+
+
+# ── Accompagnement de l'essai gratuit ─────────────────────
+
+# Jour depuis l'inscription → (étape, clés de texte). Un membre reçoit au
+# plus une étape par passage, et jamais deux fois la même (members.trial_seq).
+SEQUENCE_ESSAI = ((0, 1, "j0"), (2, 2, "j2"), (5, 3, "j5"), (7, 4, "j7"))
+
+
+def _enveloppe_email(titre: str, texte: str, lien: str, libelle_bouton: str) -> str:
+    """Même habillage que les alertes, sans dépendre d'un marché précis."""
+    return f"""
+    <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:auto">
+      <h2 style="color:#1e1611;font-size:20px;margin:0 0 12px">{titre}</h2>
+      <p style="color:#4a4a4a;font-size:15px;line-height:1.7;margin:0 0 20px">{texte}</p>
+      <a href="{lien}" style="display:inline-block;padding:12px 24px;background:#f2662d;
+         color:#fff;border-radius:8px;text-decoration:none;font-weight:600">{libelle_bouton}</a>
+      <p style="color:#98a1b3;font-size:11px;margin-top:24px">
+        MAROC ENTREPRENEURIAT · <a href="{cfg.SITE_URL}" style="color:#6b7488">marocentrepreneuriat.com</a>
+        · <a href="{cfg.SITE_URL}/settings" style="color:#6b7488">Gérer mes alertes</a></p>
+    </div>"""
+
+
+def _marches_du_membre(db, membre: dict) -> int:
+    """Nombre de marchés actifs correspondant aux secteurs du membre."""
+    try:
+        secteurs = json.loads(membre.get("secteurs") or "[]")
+    except Exception:
+        secteurs = []
+    if not secteurs:
+        return 0
+    ph = ",".join("?" * len(secteurs))
+    return db.execute(
+        f"""SELECT COUNT(*) FROM tenders WHERE statut='actif' AND secteur IN ({ph})
+            AND scraped_at >= ?""",
+        secteurs + [membre.get("created_at", "")[:10]]).fetchone()[0]
+
+
+def send_trial_sequence(now=None) -> int:
+    """Accompagne chaque membre pendant son essai: 4 emails en 7 jours.
+
+    Idempotent: trial_seq retient la dernière étape envoyée, donc un
+    redémarrage ou un double passage ne renvoie rien. Une adresse non
+    confirmée ne reçoit rien non plus — elle n'a jamais prouvé son existence.
+    """
+    from app.core.i18n import tr as _tr
+    now = now or datetime.now()
+    db, envoyes = get_db(), 0
+    try:
+        membres = [dict(m) for m in db.execute(
+            """SELECT * FROM members WHERE actif=1 AND notif_email=1
+               AND email_verified=1 AND trial_start!=''""").fetchall()]
+        for membre in membres:
+            try:
+                debut = datetime.strptime(membre["trial_start"][:10], "%Y-%m-%d")
+            except (ValueError, TypeError):
+                continue
+            jours = (now - debut).days
+            etape_faite = membre.get("trial_seq") or 0
+
+            cible = None
+            for jour_min, etape, cle in SEQUENCE_ESSAI:
+                if jours >= jour_min and etape > etape_faite:
+                    cible = (etape, cle)
+            if not cible:
+                continue
+            etape, cle = cible
+
+            # L'étape « fin d'essai » n'a de sens que pour qui n'a pas payé.
+            if cle == "j7" and (membre.get("subscription_status") == "ACTIVE"):
+                db.execute("UPDATE members SET trial_seq=? WHERE id=?", (etape, membre["id"]))
+                db.commit()
+                continue
+
+            lang = "fr"
+            n = _marches_du_membre(db, membre) if cle == "j2" else 0
+            if cle == "j2" and n == 0:
+                continue  # rien à montrer: on n'envoie pas un email vide
+            destination = {"j0": "/settings", "j2": "/tenders",
+                           "j5": "/tarifs", "j7": "/tarifs"}[cle]
+            html = _enveloppe_email(
+                _tr(f"mail_{cle}_h2", lang),
+                _tr(f"mail_{cle}_p", lang, n=n),
+                f"{cfg.SITE_URL}{destination}",
+                _tr(f"mail_{cle}_btn", lang))
+            ok = email_send(membre["email"], _tr(f"mail_{cle}_subject", lang, n=n), html)
+            _log_notif(db, membre["id"], f"essai:{cle}", "email", ok,
+                       "" if ok else "échec email d'accompagnement",
+                       "brevo" if cfg.BREVO_KEY else "gmail")
+            if ok:
+                db.execute("UPDATE members SET trial_seq=? WHERE id=?", (etape, membre["id"]))
+                envoyes += 1
+            db.commit()
+    except Exception as e:
+        logger.error(f"[essai] {e}", exc_info=True)
+    finally:
+        db.close()
+    if envoyes:
+        logger.info(f"[essai] {envoyes} email(s) d'accompagnement envoyé(s)")
+    return envoyes

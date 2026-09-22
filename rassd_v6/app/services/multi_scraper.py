@@ -203,24 +203,45 @@ def scrape_onee(s: requests.Session, log) -> list:
 # SOURCE 4: ONCF — Train Maroc
 # ══════════════════════════════════════════════════════════
 def scrape_oncf(s: requests.Session, log) -> list:
+    """Le tableau de l'ONCF donne référence, objet, date limite, catégorie et
+    estimation. L'ancienne version ratissait n'importe quel bloc « row|item »
+    et ne ramenait plus rien depuis la refonte du site."""
     url = "https://www.oncf.ma/fr/Entreprise/Fournisseurs/Appels-d-offres"
     try:
-        r = s.get(url, timeout=20)
-        if r.status_code != 200: return []
-        soup = BS(r.text, "lxml")
-        results = []
-        seen = set()
-        for row in soup.find_all(["tr","div"], class_=re.compile(r'row|item|appel|offre', re.I)):
-            t  = row.get_text(" ", strip=True)
-            dl = _extract_date(t)
-            if len(t) > 25 and t[:40] not in seen:
-                seen.add(t[:40])
-                td = _tender("ONCF", t[:200], "ONCF", dl, url)
-                if td: results.append(td)
-        log(f"✅ ONCF: {len(results)} marchés")
-        return results[:20]
+        r = s.get(url, timeout=25)
+        if r.status_code != 200:
+            log(f"⚠ ONCF: HTTP {r.status_code}")
+            return []
+        table = BS(r.text, "html.parser").find("table")
+        if not table:
+            log("⚠ ONCF: tableau introuvable")
+            return []
+
+        resultats = []
+        for ligne in table.find_all("tr")[1:]:
+            cellules = [re.sub(r"\s+", " ", td.get_text(" ", strip=True))
+                        for td in ligne.find_all("td")]
+            if len(cellules) < 3:
+                continue
+            ref, objet, limite = cellules[0], cellules[1], _extract_date(cellules[2])
+            categorie = cellules[4] if len(cellules) > 4 else ""
+            montant = ""
+            if len(cellules) > 5 and re.search(r"\d", cellules[5]):
+                # Le site écrit tantôt « 462 288 000,00 » tantôt « 180000000 ».
+                montant = f"{cellules[5].strip()} MAD"
+            fiche = _tender("ONCF", objet, "ONCF — Office National des Chemins de Fer",
+                            limite, url, ref, montant)
+            if fiche:
+                # La catégorie du site (« Travaux ferroviaires », « Prestations
+                # de services ») affine le classement là où l'objet est ambigu.
+                if categorie:
+                    fiche["secteur"] = _detect_secteur(f"{objet} {categorie}")
+                resultats.append(fiche)
+        log(f"✅ ONCF: {len(resultats)} marchés")
+        return resultats
     except Exception as e:
-        log(f"⚠ ONCF: {e}"); return []
+        log(f"⚠ ONCF: {e}")
+        return []
 
 # ══════════════════════════════════════════════════════════
 # SOURCE 5: IAM — Maroc Telecom
@@ -561,24 +582,19 @@ def scrape_education(s: requests.Session, log) -> list:
 # ══════════════════════════════════════════════════════════
 # RUNNER PRINCIPAL
 # ══════════════════════════════════════════════════════════
+# Seules les sources vérifiées le 22/09/2026 tournent: une source qui ramène
+# le texte des menus d'un site pollue la base autant qu'une source absente.
+# Les autres fonctions restent dans ce fichier, prêtes à être réparées.
+#
+#   ONDA, IAM          → HTTP 403 (protection anti-robot). On ne la contourne pas.
+#   SNRT               → redirection vers une application JavaScript, à revoir.
+#   ONEE, Le Matin     → pages toujours en ligne mais structure changée: les
+#                        anciens sélecteurs ne trouvent plus rien.
+#   Crédit Agricole,
+#   BCP, AMMC          → ne renvoient que la navigation du site, pas des avis.
+#   Autres             → 0 résultat.
 SCRAPERS = [
-    ("ONDA",            scrape_onda),
-    ("Le Matin",        scrape_lematin),
-    ("ONEE",            scrape_onee),
     ("ONCF",            scrape_oncf),
-    ("IAM",             scrape_iam),
-    ("SNRT",            scrape_snrt),
-    ("Crédit Agricole", scrape_creditagricole),
-    ("BCP",             scrape_bcp),
-    ("Équipement",      scrape_equipement),
-    ("AMMC",            scrape_ammc),
-    # Nouveaux ajouts v2.0 — sources originales
-    ("Global-Marchés",  scrape_global_marches),  # actualités uniquement (paywall)
-    ("Marsa Maroc",     scrape_marsamaroc),
-    ("RADEEM",          scrape_radeem),
-    ("LYDEC",           scrape_lydec),
-    ("Min. Santé",      scrape_sante),
-    ("Min. Éducation",  scrape_education),
 ]
 
 def run_all(known_ids: set, log_fn=print) -> list:

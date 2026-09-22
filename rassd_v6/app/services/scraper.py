@@ -264,6 +264,14 @@ def parse_page(html, tid):
         region    = _ville(_champ(full, "Lieu d'exécution"))
         categorie = _champ(full, "Catégorie principale")
         nature    = _champ(full, "Nature de prestation")
+        # L'avis ne chiffre pas un budget mais il chiffre la commande: la
+        # quantité et l'unité disent au membre s'il s'agit de 3 ordinateurs
+        # ou de 300, information plus utile qu'une case montant vide.
+        quantite = ""
+        mq = re.search(r"Quantité\s+([\d\s.,]+)", full)
+        if mq:
+            unite = _champ(full, "Unité de mesure")
+            quantite = f"{mq.group(1).strip()} {unite}".strip()[:40]
 
         # Un avis sur bon de commande ne publie pas d'estimation: le seul
         # chiffre de la page est une quantité ou un taux de TVA. On ne retient
@@ -293,6 +301,8 @@ def parse_page(html, tid):
             # Le portail n'expose ici que sa section « avis d'achat sur bon de
             # commande »: les classer en marchés faussait les deux pages.
             "type_procedure": "bon_commande",
+            "nature": nature[:150],
+            "quantite": quantite,
         }
     except Exception as e:
         logger.error(f"[parse #{tid}] {e}")

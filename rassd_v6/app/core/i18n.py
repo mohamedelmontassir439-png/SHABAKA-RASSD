@@ -595,6 +595,35 @@ T = {
     "err_pw_too_common":     {"fr": "Mot de passe trop commun", "ar": "كلمة المرور شائعة جداً"},
     "err_pw_need_digit":     {"fr": "Ajoute au moins un chiffre ou un caractère spécial", "ar": "أضف رقماً أو رمزاً خاصاً واحداً على الأقل"},
 
+    # ── Bons de commande: quantité au lieu d'un montant absent ──────
+    "bc_quantite":          {"fr": "Quantité :", "ar": "الكمية:"},
+    "detail_quantite":      {"fr": "Quantité commandée", "ar": "الكمية المطلوبة"},
+    "detail_nature":        {"fr": "Nature de la prestation", "ar": "نوع الخدمة"},
+
+    # ── Emails d'accompagnement pendant l'essai gratuit ──────────────
+    "mail_j0_subject":      {"fr": "Bienvenue — configurez vos alertes en 2 minutes",
+                             "ar": "مرحباً بك — اضبط تنبيهاتك في دقيقتين"},
+    "mail_j0_h2":           {"fr": "Votre essai gratuit a commencé", "ar": "بدأت تجربتك المجانية"},
+    "mail_j0_p":            {"fr": "Choisissez vos secteurs d'activité: c'est ce qui détermine les marchés que vous recevrez. Sans secteur, pas d'alerte.",
+                             "ar": "اختر مجالات نشاطك، فهي التي تحدد الصفقات التي تصلك. بلا مجالات لا تصلك تنبيهات."},
+    "mail_j0_btn":          {"fr": "Choisir mes secteurs →", "ar": "← اختيار مجالاتي"},
+    "mail_j2_subject":      {"fr": "{n} marché(s) correspondent à vos secteurs",
+                             "ar": "{n} صفقة تطابق مجالاتك"},
+    "mail_j2_h2":           {"fr": "Ce que la veille a trouvé pour vous", "ar": "ما وجدته الرقابة من أجلك"},
+    "mail_j2_p":            {"fr": "Depuis votre inscription, {n} marché(s) de vos secteurs ont été publiés. Consultez-les et mettez en favori ceux qui vous intéressent.",
+                             "ar": "منذ تسجيلك، نُشرت {n} صفقة في مجالاتك. اطّلع عليها وأضف ما يهمك إلى المفضلة."},
+    "mail_j2_btn":          {"fr": "Voir les marchés →", "ar": "← عرض الصفقات"},
+    "mail_j5_subject":      {"fr": "Votre essai se termine dans 2 jours", "ar": "تنتهي تجربتك بعد يومين"},
+    "mail_j5_h2":           {"fr": "Plus que 2 jours d'accès", "ar": "بقي يومان من الولوج"},
+    "mail_j5_p":            {"fr": "À la fin de l'essai, votre compte et vos favoris sont conservés — seul l'accès aux marchés est suspendu. Pour continuer: 250 MAD par mois, sans engagement.",
+                             "ar": "عند انتهاء التجربة يبقى حسابك ومفضلتك محفوظين، ويتوقف الولوج إلى الصفقات فقط. للمتابعة: 250 درهماً شهرياً بلا التزام."},
+    "mail_j5_btn":          {"fr": "Voir les offres →", "ar": "← عرض العروض"},
+    "mail_j7_subject":      {"fr": "Votre essai gratuit est terminé", "ar": "انتهت تجربتك المجانية"},
+    "mail_j7_h2":           {"fr": "Vos données vous attendent", "ar": "بياناتك في انتظارك"},
+    "mail_j7_p":            {"fr": "Votre compte, vos secteurs et vos favoris sont intacts. Un abonnement les réactive immédiatement, sans rien reconfigurer.",
+                             "ar": "حسابك ومجالاتك ومفضلتك كما هي. الاشتراك يعيد تفعيلها فوراً دون إعادة ضبط أي شيء."},
+    "mail_j7_btn":          {"fr": "Réactiver mon accès →", "ar": "← إعادة تفعيل ولوجي"},
+
     # ── Textes sans WhatsApp (canal suspendu, cf. cfg.WA_ENABLED) ────
     # Les variantes "_wa" plus haut reprennent dès la réouverture du canal.
     "hero_sub":             {"fr": "Maroc Entrepreneuriat surveille en continu les marchés publics et privés au Maroc et vous alerte dès qu'une opportunité correspond à votre secteur — par Email et Telegram.",

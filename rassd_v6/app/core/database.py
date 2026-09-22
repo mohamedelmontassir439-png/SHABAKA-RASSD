@@ -378,6 +378,13 @@ def migrate_db():
         "ALTER TABLE members ADD COLUMN last_wa_digest TEXT DEFAULT ''",
         # Vérification de l'adresse email (lien envoyé à l'inscription)
         "ALTER TABLE members ADD COLUMN email_token_expires TEXT DEFAULT ''",
+        # Un avis sur bon de commande ne publie jamais d'estimation, mais il
+        # publie la nature de la prestation et la quantité demandée: les
+        # afficher vaut mieux qu'une case « montant » vide.
+        "ALTER TABLE tenders ADD COLUMN nature TEXT DEFAULT ''",
+        "ALTER TABLE tenders ADD COLUMN quantite TEXT DEFAULT ''",
+        # Séquence d'emails pendant l'essai gratuit (étape déjà envoyée)
+        "ALTER TABLE members ADD COLUMN trial_seq INTEGER DEFAULT 0",
         # Journal de notification: statut de livraison
         "ALTER TABLE notif_log ADD COLUMN status TEXT DEFAULT 'SENT'",
         "ALTER TABLE notif_log ADD COLUMN error TEXT DEFAULT ''",

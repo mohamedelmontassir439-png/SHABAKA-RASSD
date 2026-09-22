@@ -23,7 +23,9 @@ from app.core.sectors import get_label
 from app.core.i18n import get_lang, make_t, SUPPORTED_LANGS, tr as tr_
 from app.services.notifications import dispatch_notifications, tg_admin, test_notifications
 
-MULTI_OK = False
+# Sources secondaires: activées, mais la liste réelle vit dans
+# multi_scraper.SCRAPERS — seules celles qui ramènent de vrais avis y figurent.
+MULTI_OK = True
 
 logging.basicConfig(
     level=logging.INFO,
@@ -95,15 +97,17 @@ def _save_tenders(tenders: list, new_list: list) -> int:
             db.execute("""INSERT OR IGNORE INTO tenders
                 (id,objet,acheteur,secteur,region,montant,
                  date_publication,date_limite,description,
-                 url,statut,scraped_at,updated_at,type_offre,source,type_procedure)
-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                 url,statut,scraped_at,updated_at,type_offre,source,type_procedure,
+                 nature,quantite)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (t["id"], t["objet"], t["acheteur"],
                  t.get("secteur",""), t.get("region",""),
                  t.get("montant",""), t.get("date_publication",""),
                  t.get("date_limite",""), t.get("description",""),
                  t["url"], t["statut"], t["scraped_at"], t["scraped_at"],
                  t.get("type_offre","Public"), t.get("source","marchespublics"),
-                 t.get("type_procedure","marche")))
+                 t.get("type_procedure","marche"),
+                 t.get("nature",""), t.get("quantite","")))
             if db.execute("SELECT changes()").fetchone()[0]:
                 saved += 1
                 new_list.append(t)
@@ -350,6 +354,24 @@ async def digest_scheduler():
             logger.error(f"[digest_scheduler] {e}")
         await asyncio.sleep(3600)
 
+async def trial_sequence_scheduler():
+    """Accompagne les essais gratuits: une vérification toutes les 6 heures.
+
+    send_trial_sequence() est idempotent (members.trial_seq), donc plusieurs
+    passages le même jour n'envoient jamais deux fois la même étape.
+    """
+    from app.services.notifications import send_trial_sequence
+    await asyncio.sleep(180)
+    while True:
+        try:
+            loop = asyncio.get_event_loop()
+            n = await loop.run_in_executor(None, send_trial_sequence)
+            if n: logger.info(f"[essai] {n} email(s) d'accompagnement")
+        except Exception as e:
+            logger.error(f"[trial_sequence_scheduler] {e}")
+        await asyncio.sleep(6 * 3600)
+
+
 BACKUP_DIR  = "data/backups"
 BACKUP_KEEP = 14
 
@@ -372,13 +394,60 @@ def make_db_backup():
         except OSError: pass
     return dest
 
+def envoyer_sauvegarde_telegram(chemin: str) -> bool:
+    """Expédie la sauvegarde compressée sur Telegram, à l'administrateur.
+
+    Une copie qui dort sur le même disque que la base ne protège de rien: si
+    le volume Railway disparaît, tout part avec lui. Telegram accepte 50 Mo
+    par document, et la base compressée tient largement dedans.
+    """
+    import gzip, shutil
+    if not (cfg.TELEGRAM_BOT and cfg.ADMIN_CHAT_ID):
+        return False
+    archive = f"{chemin}.gz"
+    try:
+        with open(chemin, "rb") as src, gzip.open(archive, "wb", compresslevel=6) as dst:
+            shutil.copyfileobj(src, dst)
+        taille = os.path.getsize(archive)
+        if taille > 49 * 1024 * 1024:
+            logger.warning(f"[backup] archive trop lourde pour Telegram ({taille/1e6:.0f} Mo)")
+            return False
+        import requests as _rq
+        with open(archive, "rb") as fh:
+            r = _rq.post(
+                f"https://api.telegram.org/bot{cfg.TELEGRAM_BOT}/sendDocument",
+                data={"chat_id": cfg.ADMIN_CHAT_ID,
+                      "caption": f"Sauvegarde {os.path.basename(chemin)} — "
+                                 f"{taille/1e6:.1f} Mo compressés"},
+                files={"document": fh}, timeout=180)
+        if r.status_code == 200:
+            logger.info("[backup] ✅ copie hors Railway envoyée sur Telegram")
+            return True
+        logger.error(f"[backup] Telegram {r.status_code}: {r.text[:200]}")
+        return False
+    except Exception as e:
+        logger.error(f"[backup] envoi Telegram: {e}")
+        return False
+    finally:
+        try:
+            if os.path.exists(archive): os.remove(archive)
+        except OSError:
+            pass
+
+
 async def backup_scheduler():
     await asyncio.sleep(90)
+    jour = 0
     while True:
         try:
             loop = asyncio.get_event_loop()
             path = await loop.run_in_executor(None, make_db_backup)
-            if path: logger.info(f"[backup] ✅ {path}")
+            if path:
+                logger.info(f"[backup] ✅ {path}")
+                # Une fois par semaine, la copie quitte Railway.
+                if jour % 7 == 0:
+                    await loop.run_in_executor(None, lambda: envoyer_sauvegarde_telegram(path))
+            jour += 1
         except Exception as e:
             logger.error(f"[backup_scheduler] {e}")
         await asyncio.sleep(86400)
@@ -500,6 +569,7 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(digest_scheduler())
     asyncio.create_task(backup_scheduler())
     asyncio.create_task(wa_digest_scheduler())
+    asyncio.create_task(trial_sequence_scheduler())
     yield
 
 app = FastAPI(lifespan=lifespan, title=cfg.APP_NAME,
@@ -2255,6 +2325,27 @@ def _reparer_fiches_portail(limite: int = 400) -> dict:
     return {"corriges": corriges, "echecs": echecs, "examinees": len(cibles)}
 
 
+@app.get("/admin/import-archive")
+async def admin_import_archive(req: Request, pages: int = 40):
+    """Rattrape l'archive des appels d'offres encore ouverts.
+
+    La veille courante ne lit que les premières pages à chaque cycle: elle
+    suffit pour le flux quotidien, pas pour repartir de zéro. Cette route
+    remonte l'ensemble des consultations ouvertes, une seule fois.
+    """
+    if not _is_admin(req): return JSONResponse({"ok": False}, 401)
+    from app.services.ao_scraper import run as ao_run
+    db = get_db()
+    connus = {r[0] for r in db.execute("SELECT id FROM tenders").fetchall()}
+    db.close()
+    loop = asyncio.get_event_loop()
+    marches = await loop.run_in_executor(
+        None, lambda: ao_run(connus, logger.info, pages=pages))
+    enregistres = _save_tenders(marches, [])
+    logger.info(f"[import-archive] {enregistres} marché(s) importé(s) sur {len(marches)} trouvés")
+    return JSONResponse({"ok": True, "trouves": len(marches), "enregistres": enregistres})
+
+
 @app.get("/admin/reparer-fiches")
 async def admin_reparer_fiches(req: Request, limite: int = 400):
     """Complète les fiches du portail et corrige leur type de procédure."""
@@ -2534,17 +2625,21 @@ async def api_secteurs():
 
 @app.get("/api/v1/sources")
 async def api_sources():
+    # Le statut suit la réalité de la collecte: une source n'est « active »
+    # que si un collecteur tourne réellement pour elle.
+    from app.services.multi_scraper import SCRAPERS
+    actives = {nom for nom, _ in SCRAPERS}
+    secondaires = [("ONDA", "semi-public"), ("ONEE", "semi-public"),
+                   ("ONCF", "semi-public"), ("IAM", "semi-private"),
+                   ("SNRT", "semi-public"), ("Le Matin", "journal"),
+                   ("Crédit Agricole", "private"), ("BCP", "private")]
     sources = [
-        {"name":"marchespublics.gov.ma","type":"public",      "status":"active"},
-        {"name":"ONDA",                 "type":"semi-public", "status":"active" if MULTI_OK else "disabled"},
-        {"name":"ONEE",                 "type":"semi-public", "status":"active" if MULTI_OK else "disabled"},
-        {"name":"ONCF",                 "type":"semi-public", "status":"active" if MULTI_OK else "disabled"},
-        {"name":"IAM",                  "type":"semi-private","status":"active" if MULTI_OK else "disabled"},
-        {"name":"SNRT",                 "type":"semi-public", "status":"active" if MULTI_OK else "disabled"},
-        {"name":"Le Matin",             "type":"journal",     "status":"active" if MULTI_OK else "disabled"},
-        {"name":"Crédit Agricole",      "type":"private",     "status":"active" if MULTI_OK else "disabled"},
-        {"name":"BCP",                  "type":"private",     "status":"active" if MULTI_OK else "disabled"},
-    ]
+        {"name": "marchespublics.gov.ma — bons de commande", "type": "public", "status": "active"},
+        {"name": "marchespublics.gov.ma — appels d'offres",  "type": "public", "status": "active"},
+        {"name": "Plateforme privée",                        "type": "private", "status": "active"},
+    ] + [{"name": nom, "type": typ,
+          "status": "active" if (MULTI_OK and nom in actives) else "disabled"}
+         for nom, typ in secondaires]
     return {"ok":True,"total":len(sources),"sources":sources}
 
 # ══════════════════════════════════════════════════════════

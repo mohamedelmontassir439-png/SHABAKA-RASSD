@@ -60,7 +60,7 @@
       <div>
         <div class="doc-brand">Maroc<em>Entrepreneuriat</em></div>
         <div class="doc-issuer">
-          {% if issuer.name %}{{ issuer.name }}{% if issuer.form %} — {{ issuer.form }}{% endif %}<br>{% else %}<span class="doc-todo">[Raison sociale à compléter]</span><br>{% endif %}
+          {% if issuer.name %}{{ issuer.name }}{% if issuer.form %} — {{ issuer.form }}{% endif %}<br>{% endif %}
           {% if issuer.address %}{{ issuer.address }}<br>{% endif %}
           {% if issuer.ice %}ICE : {{ issuer.ice }}<br>{% endif %}
           {{ issuer.email or cfg.CONTACT_EMAIL }}
@@ -170,7 +170,6 @@
     <div class="doc-foot">
       Maroc Entrepreneuriat · Plateforme de veille des marchés publics &amp; privés au Maroc<br>
       Document généré automatiquement le {{ doc.created_at[:10] }} — {{ doc.number }}
-      {% if not issuer.ice %}<br><span class="doc-todo">Mentions fiscales à compléter par l'éditeur (ICE, RC, IF) avant usage comptable.</span>{% endif %}
     </div>
   </div>
 </div>

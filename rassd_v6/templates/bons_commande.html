@@ -140,7 +140,8 @@
             {% if my_secteurs and t.secteur in my_secteurs %}<span class="badge badge-grn">✓ {{ tr('tenders_match') }}</span>{% endif %}
             <span class="badge badge-terra">{{ tr('tenders_bc') }}</span>
             <span class="badge badge-gold">{{ get_label(t.secteur)[:24] }}</span>
-            {% if t.montant %}<span class="badge badge-grn">{{ t.montant[:30] }}</span>{% endif %}
+            {% if t.montant %}<span class="badge badge-grn">{{ t.montant[:30] }}</span>
+            {% elif t.quantite %}<span class="badge badge-gray">{{ tr('bc_quantite') }} {{ t.quantite[:22] }}</span>{% endif %}
             {% if dl_l and dl_n <= 7 and dl_n >= 0 %}
             <span class="badge {% if dl_n <= 2 %}badge-red{% elif dl_n <= 5 %}badge-gold{% else %}badge-blue{% endif %}">{{ dl_l }}</span>
             {% endif %}
