@@ -597,6 +597,28 @@ T = {
 
     "detail_need_sub":      {"fr": "Chercher un sous-traitant pour ce marché", "ar": "البحث عن مناول لهذه الصفقة"},
 
+    # ── Invitation personnelle des entreprises collectées ───────────
+    "inv_title_plain":      {"fr": "Votre invitation", "ar": "دعوتك"},
+    "inv_eyebrow":          {"fr": "INVITATION PERSONNELLE", "ar": "دعوة شخصية"},
+    "inv_headline":         {"fr": "voici les marchés <em>ouverts dans votre domaine</em>", "ar": "هذه هي الصفقات <em>المفتوحة في مجالك</em>"},
+    "inv_lede":             {"fr": "Maroc Entrepreneuriat surveille en continu les marchés publics, les bons de commande et les appels d'offres privés au Maroc. Votre compte est déjà pré-rempli : il ne manque que votre email et un mot de passe.",
+                             "ar": "ترصد Maroc Entrepreneuriat باستمرار الصفقات العمومية وسندات الطلب وطلبات العروض الخاصة في المغرب. حسابك شبه جاهز: ينقصه بريدك وكلمة سر فقط."},
+    "inv_open_now":         {"fr": "marchés ouverts dans votre secteur", "ar": "صفقة مفتوحة في مجالك"},
+    "inv_no_example":       {"fr": "Aucun marché ouvert dans ce secteur à cet instant — la veille tourne en continu, les prochains arriveront dans vos alertes.",
+                             "ar": "لا توجد صفقة مفتوحة في هذا المجال الآن — الرصد مستمر، والصفقات القادمة ستصلك في تنبيهاتك."},
+    "inv_step1":            {"fr": "Accès complet pendant 7 jours, sans carte bancaire.", "ar": "ولوج كامل لمدة 7 أيام، بلا بطاقة بنكية."},
+    "inv_step2":            {"fr": "Alertes par email et Telegram dès qu'un marché de votre secteur paraît.", "ar": "تنبيهات بالبريد وتيليغرام فور ظهور صفقة في مجالك."},
+    "inv_step3":            {"fr": "Demandes de sous-traitance des autres entreprises de votre région.", "ar": "طلبات المناولة من شركات أخرى في جهتك."},
+    "inv_email":            {"fr": "Votre email professionnel", "ar": "بريدك المهني"},
+    "inv_password":         {"fr": "Mot de passe (8 caractères minimum)", "ar": "كلمة السر (8 أحرف على الأقل)"},
+    "inv_cta":              {"fr": "Ouvrir mon accès gratuit →", "ar": "← فتح ولوجي المجاني"},
+    "inv_prefill":          {"fr": "Votre raison sociale, votre métier et votre ville ({ville}) sont déjà enregistrés. Vous pourrez tout corriger ensuite.",
+                             "ar": "اسمك التجاري وتخصصك ومدينتك ({ville}) مسجّلة سلفاً. يمكنك تصحيح كل شيء لاحقاً."},
+    "inv_already":          {"fr": "Un compte a déjà été créé avec cette invitation. Connectez-vous pour y accéder.",
+                             "ar": "سبق أن أُنشئ حساب بهذه الدعوة. سجّل الدخول للولوج إليه."},
+    "inv_source":           {"fr": "Vos coordonnées proviennent de votre fiche publique en ligne.", "ar": "معطياتك مأخوذة من بطاقتك العمومية على الإنترنت."},
+    "inv_remove":           {"fr": "Demander leur retrait", "ar": "طلب حذفها"},
+
     # ── Sous-traitance: profil, opportunités, offres, déclaration ───
     "prof_title":           {"fr": "Votre profil de <em>sous-traitance</em>", "ar": "ملفك في <em>المناولة</em>"},
     "prof_title_plain":     {"fr": "Profil de sous-traitance", "ar": "ملف المناولة"},

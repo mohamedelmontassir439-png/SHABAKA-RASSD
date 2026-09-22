@@ -131,6 +131,21 @@ CREATE TABLE IF NOT EXISTS subcontract_posts (
     statut       TEXT DEFAULT 'actif',
     created_at   TEXT DEFAULT ''
 );
+-- Invitations envoyées aux entreprises collectées. Le jeton est personnel:
+-- il pré-remplit le profil de sous-traitance et permet de savoir quelles
+-- campagnes convertissent, entreprise par entreprise.
+CREATE TABLE IF NOT EXISTS invitations (
+    token      TEXT PRIMARY KEY,
+    company_id INTEGER NOT NULL,
+    canal      TEXT DEFAULT '',
+    created_at TEXT DEFAULT '',
+    sent_at    TEXT DEFAULT '',
+    opened_at  TEXT DEFAULT '',
+    member_id  INTEGER DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_inv_company ON invitations(company_id);
+CREATE INDEX IF NOT EXISTS idx_inv_member  ON invitations(member_id);
+
 -- Profil de sous-traitance: ce qu'une entreprise sait faire, où, et avec
 -- quels moyens. Sans lui, une annonce ne dit rien de celui qui la publie.
 CREATE TABLE IF NOT EXISTS subcontract_profiles (

@@ -1,0 +1,86 @@
+{% extends "base_public.html" %}
+{% block title %}{{ inv.legal_name[:50] }} — {{ tr('inv_title_plain') }}{% endblock %}
+{% block body %}
+<style>
+.iv-wrap { max-width: 900px; margin: 0 auto; padding: 46px 20px 80px; }
+.iv-eyebrow { font-size: 13px; font-weight: 700; color: var(--ink); letter-spacing: .04em; margin-bottom: 10px; }
+.iv-h1 { font-family: var(--serif); font-weight: 700; font-size: clamp(27px, 5vw, 40px); color: var(--text1); line-height: 1.22; }
+.iv-h1 em { font-style: italic; color: var(--ink); }
+.iv-lede { color: var(--text3); font-size: 16px; line-height: 1.7; margin: 14px 0 30px; max-width: 60ch; }
+.iv-cols { display: grid; grid-template-columns: 1.15fr .85fr; gap: 26px; align-items: start; }
+@media (max-width: 860px) { .iv-cols { grid-template-columns: 1fr; } }
+.iv-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 24px; box-shadow: var(--sh); }
+.iv-count { font-family: var(--serif); font-weight: 700; font-size: 38px; color: var(--ink); line-height: 1; font-variant-numeric: tabular-nums; }
+.iv-count-l { color: var(--text3); font-size: 14px; margin-top: 4px; }
+.iv-market { border-top: 1px solid var(--line); padding: 12px 0; }
+.iv-market:first-of-type { border-top: 0; }
+.iv-obj { font-weight: 600; color: var(--text1); font-size: 14.5px; line-height: 1.45; }
+.iv-meta { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 7px; }
+.iv-steps { list-style: none; display: flex; flex-direction: column; gap: 11px; margin: 0 0 22px; padding: 0; }
+.iv-steps li { display: flex; gap: 10px; font-size: 14.5px; color: var(--text2); line-height: 1.6; }
+.iv-steps li b { color: var(--ink); }
+.iv-form { display: flex; flex-direction: column; gap: 15px; }
+.iv-note { font-size: 12.5px; color: var(--text4); line-height: 1.65; margin-top: 16px; }
+.iv-done { background: var(--golda); border-radius: var(--r2); padding: 18px 20px; font-size: 15px; }
+</style>
+
+<div class="iv-wrap">
+  <div class="iv-eyebrow">{{ tr('inv_eyebrow') }}</div>
+  <h1 class="iv-h1">{{ inv.legal_name }}, {{ tr('inv_headline')|safe }}</h1>
+  <p class="iv-lede">{{ tr('inv_lede') }}</p>
+
+  <div class="iv-cols">
+    <div class="iv-card">
+      {% if ouverts %}
+      <div class="iv-count">{{ ouverts }}</div>
+      <div class="iv-count-l">{{ tr('inv_open_now') }}{% if inv.subsector %} · {{ inv.subsector[:44] }}{% endif %}</div>
+      <div style="margin-top:18px">
+        {% for m in exemples %}
+        <div class="iv-market">
+          <div class="iv-obj">{{ m.objet[:110] }}</div>
+          <div class="iv-meta">
+            {% if m.montant %}<span class="badge badge-grn">{{ m.montant[:22] }}</span>{% endif %}
+            {% if m.date_limite %}<span class="badge badge-gold">{{ tr('detail_deadline') }} {{ m.date_limite }}</span>{% endif %}
+            {% if m.region %}<span class="badge badge-gray">{{ m.region[:20] }}</span>{% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="iv-obj">{{ tr('inv_no_example') }}</div>
+      {% endif %}
+    </div>
+
+    <div class="iv-card">
+      {% if deja %}
+        <div class="iv-done">{{ tr('inv_already') }}</div>
+        <a href="/login" class="btn btn-primary btn-full btn-lg" style="margin-top:16px">{{ tr('nav_login') }}</a>
+      {% else %}
+        <ul class="iv-steps">
+          <li>✓ <span>{{ tr('inv_step1') }}</span></li>
+          <li>✓ <span>{{ tr('inv_step2') }}</span></li>
+          <li>✓ <span>{{ tr('inv_step3') }}</span></li>
+        </ul>
+
+        {% if err %}<div class="alert alert-err" style="margin-bottom:16px;">{{ err }}</div>{% endif %}
+
+        <form method="post" class="iv-form">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <div class="field">
+            <label for="email">{{ tr('inv_email') }}</label>
+            <input id="email" name="email" type="email" class="inp" required autofocus
+                   value="{{ inv.company_email or '' }}" placeholder="contact@votre-entreprise.ma">
+          </div>
+          <div class="field">
+            <label for="pw">{{ tr('inv_password') }}</label>
+            <input id="pw" name="pw" type="password" class="inp" required minlength="8">
+          </div>
+          <button type="submit" class="btn btn-primary btn-full btn-lg">{{ tr('inv_cta') }}</button>
+        </form>
+        <div class="iv-note">{{ tr('inv_prefill', ville=(inv.city or '—')) }}</div>
+      {% endif %}
+      <div class="iv-note">{{ tr('inv_source') }} <a href="/contact" style="color:var(--ink); font-weight:600;">{{ tr('inv_remove') }}</a></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -114,6 +114,35 @@ textarea{min-height:92px;resize:vertical}
   </div>
 
   <div class="card">
+    <h2>Invitation</h2>
+    {% if lien_invitation %}
+      <p class="meta">Lien personnel de cette entreprise. Il ouvre une page à son nom, avec les marchés ouverts dans son secteur, et crée son compte en deux champs.</p>
+      <input id="lien" class="inp" readonly value="{{ lien_invitation }}" style="margin:12px 0" onclick="this.select()">
+      <label for="msg">Message prêt à envoyer</label>
+      <textarea id="msg" readonly style="min-height:120px">{{ message_invitation }}</textarea>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px">
+        <button type="button" class="btn btn-p"
+                onclick="navigator.clipboard.writeText(document.getElementById('msg').value); this.textContent='✓ Message copié';">Copier le message</button>
+        {% if c.phone %}
+        <a class="btn" target="_blank" rel="noopener"
+           href="https://wa.me/{{ c.phone|replace(' ','')|replace('+','')|replace('-','') }}?text={{ message_invitation|urlencode }}">Ouvrir WhatsApp</a>
+        {% endif %}
+        {% if c.email %}
+        <a class="btn" href="mailto:{{ c.email }}?subject=Marchés%20publics%20dans%20votre%20secteur&body={{ message_invitation|urlencode }}">Envoyer par email</a>
+        {% endif %}
+      </div>
+      {% if invitation.opened_at %}<p class="meta" style="margin-top:12px">Lien ouvert le {{ invitation.opened_at[:16]|replace('T',' à ') }}{% if invitation.member_id %} · compte créé{% endif %}</p>{% endif %}
+    {% else %}
+      <p class="meta">Génère un lien personnel à envoyer à cette entreprise par WhatsApp ou par email.</p>
+      <form method="post" action="/admin/prospection/{{ c.id }}/invitation" style="margin-top:12px">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="canal" value="whatsapp">
+        <button class="btn btn-p" type="submit">Générer le lien d'invitation</button>
+      </form>
+    {% endif %}
+  </div>
+
+  <div class="card">
     <h2>Résultat de l'appel</h2>
     <form method="post" action="/admin/prospection/{{ c.id }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">

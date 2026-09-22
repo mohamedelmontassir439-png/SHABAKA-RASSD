@@ -531,6 +531,9 @@ CHEMINS_LIBRES_EXACTS = frozenset((
 ))
 CHEMINS_LIBRES_PREFIXES = (
     "/verifier-email", "/settings", "/static", "/admin", "/icon-",
+    # L'invitation est une page publique: l'entreprise invitée n'a pas encore
+    # de compte, elle ne peut donc pas avoir confirmé d'adresse.
+    "/invitation",
 )
 
 
@@ -2697,10 +2700,29 @@ async def admin_prospection_fiche(req: Request, cid: int):
     marches = _marches_pour_secteur(db, entreprise.get("sector", ""), 3)
     ouverts = db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif' AND secteur=?",
                          (entreprise.get("sector", ""),)).fetchone()[0]
+    inv = db.execute("SELECT * FROM invitations WHERE company_id=? ORDER BY created_at DESC",
+                     (cid,)).fetchone()
     db.close()
+    invitation = dict(inv) if inv else None
+    lien = f"{cfg.SITE_URL}/invitation/{invitation['token']}" if invitation else ""
+    # Message prêt à envoyer: il ouvre sur des marchés réels, pas sur une
+    # offre commerciale — c'est ce qui fait ouvrir le lien.
+    message = ""
+    if lien:
+        exemple = marches[0]["objet"][:90] if marches else ""
+        message = (
+            f"Bonjour, ici {cfg.FROM_NAME}. Nous suivons les marchés publics au Maroc.\n\n"
+            f"Il y a actuellement {ouverts} marché(s) ouvert(s) dans votre domaine"
+            f"{' à ' + entreprise['city'] if entreprise.get('city') else ''}"
+            + (f", dont : {exemple}." if exemple else ".") +
+            f"\n\nVoici votre lien personnel pour les consulter gratuitement pendant "
+            f"{cfg.TRIAL_DAYS} jours et recevoir les demandes de sous-traitance de votre "
+            f"secteur :\n{lien}\n\nSi vous ne souhaitez plus être contacté, dites-le nous "
+            f"et nous retirons vos coordonnées.")
     return templates.TemplateResponse("admin_prospection_fiche.html", {
         "request": req, "cfg": cfg, "c": entreprise, "marches": marches,
         "ouverts": ouverts, "statuts": STATUTS_PROSPECTION, "get_label": get_label,
+        "invitation": invitation, "lien_invitation": lien, "message_invitation": message,
         "csrf_token": get_csrf_token(req) or secrets.token_urlsafe(24)})
 
 
@@ -2732,6 +2754,152 @@ async def admin_prospection_maj(req: Request, cid: int, statut: str = Form("a_ap
     db.commit(); db.close()
     logger.info(f"[prospection] entreprise {cid} → {statut}")
     return RedirectResponse(f"/admin/prospection/{cid}?ok=1", 302)
+
+
+@app.post("/admin/prospection/{cid}/invitation")
+async def admin_invitation(req: Request, cid: int, canal: str = Form("whatsapp"),
+                           csrf_token: str = Form("")):
+    """Crée le lien d'invitation personnel d'une entreprise.
+
+    Un lien par entreprise: il pré-remplit son profil de sous-traitance et
+    dit, campagne après campagne, qui a ouvert et qui s'est inscrit.
+    """
+    if not _is_admin(req): return JSONResponse({"ok": False}, 401)
+    csrf_guard(req, csrf_token)
+    db = get_db()
+    entreprise = db.execute("SELECT id FROM companies WHERE id=?", (cid,)).fetchone()
+    if not entreprise:
+        db.close()
+        return HTMLResponse("Entreprise introuvable", 404)
+    ligne = db.execute("SELECT token FROM invitations WHERE company_id=? ORDER BY created_at DESC",
+                       (cid,)).fetchone()
+    if ligne:
+        token = ligne["token"]
+        db.execute("UPDATE invitations SET sent_at=?, canal=? WHERE token=?",
+                   (datetime.now().isoformat(), canal[:20], token))
+    else:
+        token = secrets.token_urlsafe(9)
+        db.execute("""INSERT INTO invitations(token,company_id,canal,created_at,sent_at)
+                      VALUES(?,?,?,?,?)""",
+                   (token, cid, canal[:20], datetime.now().isoformat(),
+                    datetime.now().isoformat()))
+    db.commit(); db.close()
+    return RedirectResponse(f"/admin/prospection/{cid}?invite={token}", 302)
+
+
+def _invitation_contexte(token: str):
+    """Charge l'entreprise derrière un jeton d'invitation."""
+    db = get_db()
+    ligne = db.execute(
+        """SELECT i.*, c.legal_name, c.sector, c.city, c.phone, c.email AS company_email,
+                  c.subsector
+           FROM invitations i JOIN companies c ON c.id=i.company_id
+           WHERE i.token=?""", (token,)).fetchone()
+    db.close()
+    return dict(ligne) if ligne else None
+
+
+@app.get("/invitation/{token}", response_class=HTMLResponse)
+async def invitation_get(req: Request, token: str):
+    """Page d'accueil d'une entreprise invitée — sans compte, sans mot de passe."""
+    inv = _invitation_contexte(token)
+    if not inv:
+        return render(req, "404.html", {}, status_code=404)
+    if not inv["opened_at"]:
+        db = get_db()
+        db.execute("UPDATE invitations SET opened_at=? WHERE token=?",
+                   (datetime.now().isoformat(), token))
+        db.commit(); db.close()
+    db = get_db()
+    ouverts = db.execute(
+        "SELECT COUNT(*) FROM tenders WHERE statut='actif' AND secteur=?",
+        (inv.get("sector") or "",)).fetchone()[0]
+    exemples = [dict(r) for r in db.execute(
+        """SELECT objet, montant, date_limite, region FROM tenders
+           WHERE statut='actif' AND secteur=? ORDER BY scraped_at DESC LIMIT 3""",
+        (inv.get("sector") or "",)).fetchall()]
+    db.close()
+    return render(req, "invitation.html", {
+        "inv": inv, "ouverts": ouverts, "exemples": exemples,
+        "deja": bool(inv["member_id"])})
+
+
+@app.post("/invitation/{token}")
+async def invitation_post(req: Request, token: str, email: str = Form(""),
+                          pw: str = Form(""), csrf_token: str = Form("")):
+    """Inscription en deux champs: le reste vient de la fiche entreprise."""
+    lang = get_lang(req)
+    csrf_guard(req, csrf_token)
+    inv = _invitation_contexte(token)
+    if not inv:
+        return render(req, "404.html", {}, status_code=404)
+    if not check_rate_limit(f"invit_{get_ip(req)}", 8, 600):
+        return render(req, "invitation.html",
+                      {"inv": inv, "err": tr_("err_too_many_generic", lang),
+                       "ouverts": 0, "exemples": []})
+    erreur = None
+    if not email or not pw:
+        erreur = tr_("err_email_pw_required", lang)
+    elif not validate_email(email):
+        erreur = tr_("err_email_invalid", lang)
+    else:
+        ok, msg = validate_password(pw, lang)
+        if not ok:
+            erreur = msg
+    db = get_db()
+    if not erreur and db.execute("SELECT id FROM members WHERE email=?", (email,)).fetchone():
+        erreur = tr_("err_email_taken", lang)
+    if erreur:
+        db.close()
+        return render(req, "invitation.html",
+                      {"inv": inv, "err": erreur, "ouverts": 0, "exemples": []})
+
+    maintenant = datetime.now()
+    session_tok = make_session_token()
+    email_token = secrets.token_urlsafe(32)
+    secteurs = json.dumps([inv["sector"]] if inv.get("sector") else [])
+    cur = db.execute(
+        """INSERT INTO members(nom,email,phone,company,pw_hash,secteurs,regions,plan,
+              created_at,trial_start,trial_ends,subscription_status,session_token,
+              referral_code,referred_by,email_verified,email_token,email_token_expires)
+           VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+        (inv.get("legal_name", "")[:120], email, inv.get("phone", ""),
+         inv.get("legal_name", "")[:200], hash_pw(pw), secteurs,
+         json.dumps([inv["city"]] if inv.get("city") else []), "free",
+         maintenant.isoformat(), maintenant.strftime("%Y-%m-%d"),
+         (maintenant + timedelta(days=cfg.TRIAL_DAYS)).strftime("%Y-%m-%d"),
+         "TRIAL", session_tok,
+         secrets.token_urlsafe(5).upper().replace("_", "A").replace("-", "B")[:7], 0,
+         0, email_token, (maintenant + timedelta(days=7)).isoformat()))
+    mid = cur.lastrowid
+    db.execute("""INSERT INTO subscriptions(member_id,plan_id,price,currency,status,
+                     trial_start,trial_end,created_at,updated_at)
+                  VALUES(?,?,?,?,?,?,?,?,?)""",
+               (mid, "trial", 0, "MAD", "TRIAL", maintenant.strftime("%Y-%m-%d"),
+                (maintenant + timedelta(days=cfg.TRIAL_DAYS)).strftime("%Y-%m-%d"),
+                maintenant.isoformat(), maintenant.isoformat()))
+    # Le profil de sous-traitance démarre déjà rempli: métier, ville et
+    # raison sociale viennent de la fiche collectée.
+    db.execute("""INSERT OR IGNORE INTO subcontract_profiles(member_id,raison_sociale,
+                     metiers,zones,disponible,created_at,updated_at)
+                  VALUES(?,?,?,?,1,?,?)""",
+               (mid, inv.get("legal_name", "")[:200], secteurs,
+                json.dumps([inv["city"]] if inv.get("city") else []),
+                maintenant.isoformat(), maintenant.isoformat()))
+    db.execute("UPDATE invitations SET member_id=? WHERE token=?", (mid, token))
+    # L'entreprise invitée devient un prospect « essai ouvert » dans le suivi.
+    db.execute("""INSERT INTO prospection(company_id,statut,created_at,updated_at)
+                  VALUES(?,'essai',?,?)
+                  ON CONFLICT(company_id) DO UPDATE SET statut='essai', updated_at=excluded.updated_at""",
+               (inv["company_id"], maintenant.isoformat(), maintenant.isoformat()))
+    db.commit(); db.close()
+
+    envoyer_lien_verification(email, email_token, lang)
+    logger.info(f"[invitation] {inv.get('legal_name','')} → compte {mid} créé")
+    resp = RedirectResponse("/verifier-email?envoye=1", 302)
+    resp.set_cookie("_session", session_tok, max_age=86400 * 30, httponly=True,
+                    samesite="lax", secure=COOKIE_SECURE)
+    return resp
 
 
 @app.get("/admin/import-archive")
