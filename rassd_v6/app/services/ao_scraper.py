@@ -174,7 +174,10 @@ def _lister(session, pages: int, log_fn) -> list:
     lignes, vues = [], set()
     for numero in range(1, pages + 1):
         trouvees = 0
-        for tr in soup.select("tr.on, tr.off"):
+        # Une ligne sur deux porte la classe « on », l'autre n'a aucune classe:
+        # se fier aux classes faisait perdre la moitié des résultats. On retient
+        # donc toute ligne qui contient un lien de consultation.
+        for tr in soup.find_all("tr"):
             fiche = parse_ligne(tr)
             if fiche and fiche["ref"] not in vues:
                 vues.add(fiche["ref"])
