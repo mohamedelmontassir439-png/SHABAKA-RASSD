@@ -327,6 +327,23 @@ CREATE INDEX IF NOT EXISTS idx_sub_member  ON subscriptions(member_id);
 CREATE INDEX IF NOT EXISTS idx_sub_status  ON subscriptions(status);
 CREATE INDEX IF NOT EXISTS idx_pay_member  ON payments(member_id);
 CREATE INDEX IF NOT EXISTS idx_pay_paid    ON payments(paid_at DESC);
+-- Suivi de prospection: une ligne par entreprise contactée ou à contacter.
+-- Le refus d'être rappelé est une donnée à conserver (loi 09-08): on ne
+-- supprime pas la fiche, on la marque, sinon la même entreprise ressort à
+-- la prochaine campagne.
+CREATE TABLE IF NOT EXISTS prospection (
+    company_id      INTEGER PRIMARY KEY,
+    statut          TEXT DEFAULT 'a_appeler',
+    canal           TEXT DEFAULT '',
+    notes           TEXT DEFAULT '',
+    dernier_contact TEXT DEFAULT '',
+    prochain_contact TEXT DEFAULT '',
+    appels          INTEGER DEFAULT 0,
+    created_at      TEXT DEFAULT '',
+    updated_at      TEXT DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS idx_prosp_statut ON prospection(statut);
+CREATE INDEX IF NOT EXISTS idx_prosp_next   ON prospection(prochain_contact);
 CREATE INDEX IF NOT EXISTS idx_doc_member  ON documents(member_id);
 CREATE INDEX IF NOT EXISTS idx_doc_number  ON documents(number);
 CREATE INDEX IF NOT EXISTS idx_co_norm     ON companies(normalized_name);

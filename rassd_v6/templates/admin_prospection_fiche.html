@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>{{ c.legal_name[:40] }} — Prospection</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f8f1e1; --surface:#fff; --surface2:#f1e6cf; --line:#e8dcc5; --line2:#d9c7a8;
+  --navy3:#1e1611; --amber:#f2662d; --ambera:rgba(242,102,45,.14);
+  --t1:#2b211b; --t2:#4a3b32; --t3:#8a7a6a; --grn:#2f9e5b; --red:#d6493f;
+  --serif:'Fredoka',Georgia,serif; --sans:'Inter',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--t2);font-family:var(--sans);font-size:14px}
+a{color:inherit;text-decoration:none}
+.topbar{background:var(--navy3);height:60px;display:flex;align-items:center;padding:0 28px;gap:20px;position:sticky;top:0;z-index:100}
+.brand{font-family:var(--serif);font-weight:700;font-size:19px;color:#fff}
+.topbar a{color:#e8dcc5;font-size:13.5px;font-weight:600}
+.wrap{max-width:1000px;margin:0 auto;padding:26px 24px 60px;display:grid;gap:18px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 22px}
+h1{font-family:var(--serif);font-size:25px;color:var(--t1)}
+h2{font-family:var(--serif);font-size:17px;color:var(--t1);margin-bottom:12px}
+.meta{color:var(--t3);font-size:13px}
+.tel{font-family:var(--mono);font-size:22px;color:var(--t1);font-weight:600}
+.tel a{color:var(--amber)}
+.ligne{display:flex;flex-wrap:wrap;gap:18px;align-items:baseline}
+.ok{background:#e6f5ec;color:var(--grn);padding:10px 14px;border-radius:10px;font-weight:600}
+.marche{border-top:1px solid var(--line);padding:12px 0;display:grid;gap:4px}
+.marche:first-of-type{border-top:none}
+.marche .obj{font-weight:700;color:var(--t1)}
+.badges{display:flex;gap:6px;flex-wrap:wrap}
+.b{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:700;background:var(--surface2);color:var(--t2)}
+.b.mt{background:#e6f5ec;color:var(--grn)}
+.b.dl{background:var(--ambera);color:var(--amber)}
+.script{background:var(--surface2);border-radius:10px;padding:14px 16px;line-height:1.75;font-size:14.5px}
+.script b{color:var(--t1)}
+form{display:grid;gap:14px}
+label{font-weight:600;color:var(--t1);font-size:13.5px;display:block;margin-bottom:5px}
+select,input,textarea{font:inherit;width:100%;padding:9px 12px;border:1px solid var(--line2);border-radius:9px;background:#fff;color:var(--t1)}
+textarea{min-height:92px;resize:vertical}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:700px){.grid2{grid-template-columns:1fr}}
+.btn{display:inline-block;padding:10px 18px;border-radius:9px;border:1px solid var(--line2);background:var(--surface);font-weight:600;cursor:pointer;font-size:14px}
+.btn-p{background:var(--amber);color:#fff;border-color:var(--amber)}
+.check{display:flex;align-items:center;gap:9px;font-weight:600;color:var(--t1)}
+.check input{width:auto}
+.alerte{background:#fae8e6;color:var(--red);padding:12px 14px;border-radius:10px;font-weight:600}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <span class="brand">Maroc<em>Entrepreneuriat</em></span>
+  <a href="/admin/prospection">← Liste de prospection</a>
+</div>
+
+<div class="wrap">
+  {% if request.query_params.get('ok') %}<div class="ok">✓ Fiche enregistrée</div>{% endif %}
+
+  <div class="card">
+    <div class="ligne" style="justify-content:space-between">
+      <div>
+        <h1>{{ c.legal_name }}</h1>
+        <p class="meta">{{ c.subsector or get_label(c.sector) }} · {{ c.city or '—' }}{% if c.address %} · {{ c.address[:60] }}{% endif %}</p>
+      </div>
+      <div style="text-align:right">
+        <div class="tel">{% if c.phone %}<a href="tel:{{ c.phone|replace(' ','') }}">{{ c.phone }}</a>{% else %}—{% endif %}</div>
+        {% if c.email %}<div class="meta">{{ c.email }}</div>{% endif %}
+        {% if c.website %}<div class="meta">{{ c.website[:44] }}</div>{% endif %}
+      </div>
+    </div>
+    {% if c.statut == 'ne_pas_contacter' %}
+    <div class="alerte" style="margin-top:14px">Cette entreprise a demandé à ne plus être contactée. Ne l'appelez pas.</div>
+    {% endif %}
+    <p class="meta" style="margin-top:12px">
+      {{ c.appels }} appel(s) · dernier contact : {{ c.dernier_contact or 'jamais' }}
+      {% if c.source_url %}· <a href="{{ c.source_url }}" target="_blank" rel="noopener" style="color:var(--amber)">fiche d'origine</a>{% endif %}
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Marchés ouverts dans son secteur {% if ouverts %}<span class="meta">({{ ouverts }} au total)</span>{% endif %}</h2>
+    {% if marches %}
+      {% for m in marches %}
+      <div class="marche">
+        <div class="obj">{{ m.objet[:130] }}</div>
+        <div class="badges">
+          {% if m.montant %}<span class="b mt">{{ m.montant[:24] }}</span>{% endif %}
+          {% if m.date_limite %}<span class="b dl">clôture {{ m.date_limite }}</span>{% endif %}
+          {% if m.region %}<span class="b">{{ m.region[:20] }}</span>{% endif %}
+          <span class="b">{{ 'Bon de commande' if m.type_procedure == 'bon_commande' else "Appel d'offres" }}</span>
+        </div>
+        {% if m.acheteur %}<div class="meta">{{ m.acheteur[:80] }}</div>{% endif %}
+      </div>
+      {% endfor %}
+    {% else %}
+      <p class="meta">Aucun marché ouvert dans ce secteur aujourd'hui. Ouvrez l'appel sur le nombre de marchés collectés plutôt que sur une consultation précise.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Ce que vous dites</h2>
+    <div class="script">
+      <b>Ouverture :</b> السلام عليكم، معايا السيد المسؤول؟ أنا [اسمك] من Maroc Entrepreneuriat.
+      عيطت ليك حيت شفت واحد الصفقات مفتوحة دابا فمجال {{ (c.subsector or get_label(c.sector))[:40] }}
+      {% if c.city %}ف{{ c.city }}{% endif %}. عندك دقيقتين نقول ليك علاش؟<br><br>
+      {% if marches %}<b>الصفقة :</b> {{ marches[0].objet[:90] }}{% if marches[0].date_limite %} — كتسالي {{ marches[0].date_limite }}{% endif %}. واش كنتي عارف بيها؟<br><br>{% endif %}
+      <b>السؤال :</b> كيفاش كتلقى الصفقات دابا؟ وشحال ديال الوقت كياخد ليك فالسيمانة؟<br><br>
+      <b>الاقتراح :</b> جرب 7 أيام بالمجان، بلا كارطة بنكية. نحلو الحساب دابا مع بعض؟
+    </div>
+    <p class="meta" style="margin-top:10px">Ne promettez jamais de gagner un marché. Si la personne demande à ne plus être appelée, choisissez « Ne plus contacter » ci-dessous.</p>
+  </div>
+
+  <div class="card">
+    <h2>Résultat de l'appel</h2>
+    <form method="post" action="/admin/prospection/{{ c.id }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <div class="grid2">
+        <div>
+          <label for="statut">Statut</label>
+          <select id="statut" name="statut">
+            {% for k, label in statuts.items() %}
+            <option value="{{ k }}" {% if c.statut == k %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="prochain">Rappeler le</label>
+          <input id="prochain" type="date" name="prochain" value="{{ c.prochain_contact or '' }}">
+        </div>
+      </div>
+      <div>
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes" placeholder="Ce qu'il a dit, son objection, le nom de l'interlocuteur…">{{ c.notes or '' }}</textarea>
+      </div>
+      <label class="check"><input type="checkbox" name="appel" value="1" checked> Compter cet appel</label>
+      <div><button class="btn btn-p" type="submit">Enregistrer</button>
+           <a class="btn" href="/admin/prospection">Retour à la liste</a></div>
+    </form>
+  </div>
+</div>
+</body>
+</html>

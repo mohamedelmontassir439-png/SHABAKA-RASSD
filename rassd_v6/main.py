@@ -2325,6 +2325,143 @@ def _reparer_fiches_portail(limite: int = 400) -> dict:
     return {"corriges": corriges, "echecs": echecs, "examinees": len(cibles)}
 
 
+# ══════════════════════════════════════════════════════════
+# PROSPECTION — appeler les entreprises collectées
+# ══════════════════════════════════════════════════════════
+STATUTS_PROSPECTION = {
+    "a_appeler":  "À appeler",
+    "rappeler":   "À rappeler",
+    "interesse":  "Intéressé",
+    "essai":      "Essai ouvert",
+    "abonne":     "Abonné",
+    "refus":      "Pas intéressé",
+    "injoignable": "Injoignable",
+    "ne_pas_contacter": "Ne plus contacter",
+}
+
+
+def _marches_pour_secteur(db, secteur: str, limite: int = 3) -> list:
+    """Les marchés ouverts du secteur de l'entreprise appelée.
+
+    C'est le cœur de l'appel: on n'ouvre pas sur une offre commerciale mais
+    sur des consultations réelles que l'entreprise peut encore déposer.
+    """
+    if not secteur:
+        return []
+    return [dict(r) for r in db.execute(
+        """SELECT id, objet, acheteur, region, montant, date_limite, type_procedure
+           FROM tenders WHERE statut='actif' AND secteur=?
+           ORDER BY scraped_at DESC LIMIT ?""", (secteur, limite)).fetchall()]
+
+
+@app.get("/admin/prospection", response_class=HTMLResponse)
+async def admin_prospection(req: Request, statut: str = "", s: str = "",
+                            ville: str = "", q: str = "", page: int = 1):
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    db = get_db(); per = 40; page = max(1, page)
+    where = ["c.phone!='' OR c.email!=''"]
+    params = []
+    if q:
+        where.append("(c.legal_name LIKE ? OR c.phone LIKE ? OR c.city LIKE ?)")
+        params += [f"%{q}%"] * 3
+    if s:     where.append("c.sector=?");        params.append(s)
+    if ville: where.append("c.city=?");          params.append(ville)
+    if statut:
+        where.append("COALESCE(p.statut,'a_appeler')=?")
+        params.append(statut)
+    else:
+        # Par défaut on masque les entreprises qui ont demandé à ne plus être
+        # contactées: les faire réapparaître dans la liste, c'est les rappeler.
+        where.append("COALESCE(p.statut,'a_appeler')!='ne_pas_contacter'")
+    wh = " AND ".join(f"({w})" for w in where)
+
+    total = db.execute(
+        f"SELECT COUNT(*) FROM companies c LEFT JOIN prospection p ON p.company_id=c.id WHERE {wh}",
+        params).fetchone()[0]
+    rows = [dict(r) for r in db.execute(f"""
+        SELECT c.*, COALESCE(p.statut,'a_appeler') AS statut, p.notes,
+               p.prochain_contact, p.dernier_contact, COALESCE(p.appels,0) AS appels
+        FROM companies c LEFT JOIN prospection p ON p.company_id=c.id
+        WHERE {wh}
+        ORDER BY (p.prochain_contact!='' AND p.prochain_contact<=date('now')) DESC,
+                 (COALESCE(p.statut,'a_appeler')='a_appeler') DESC,
+                 (c.phone!='') DESC, c.legal_name
+        LIMIT ? OFFSET ?""", params + [per, (page - 1) * per]).fetchall()]
+
+    compteurs = {k: 0 for k in STATUTS_PROSPECTION}
+    for st, n in db.execute("""SELECT COALESCE(p.statut,'a_appeler'), COUNT(*)
+                               FROM companies c LEFT JOIN prospection p ON p.company_id=c.id
+                               WHERE c.phone!='' OR c.email!='' GROUP BY 1"""):
+        compteurs[st] = n
+    rappels = db.execute(
+        """SELECT COUNT(*) FROM prospection WHERE prochain_contact!=''
+           AND prochain_contact<=date('now') AND statut NOT IN ('abonne','ne_pas_contacter')"""
+    ).fetchone()[0]
+    villes = [r[0] for r in db.execute(
+        "SELECT DISTINCT city FROM companies WHERE city!='' ORDER BY city LIMIT 60").fetchall()]
+    secteurs = [r[0] for r in db.execute(
+        "SELECT DISTINCT sector FROM companies WHERE sector!='' ORDER BY sector").fetchall()]
+    db.close()
+    return templates.TemplateResponse("admin_prospection.html", {
+        "request": req, "cfg": cfg, "rows": rows, "total": total, "page": page,
+        "pages": max(1, (total + per - 1) // per), "statuts": STATUTS_PROSPECTION,
+        "compteurs": compteurs, "rappels": rappels, "villes": villes,
+        "secteurs": secteurs, "f": {"statut": statut, "s": s, "ville": ville, "q": q},
+        "get_label": get_label, "now": datetime.now()})
+
+
+@app.get("/admin/prospection/{cid}", response_class=HTMLResponse)
+async def admin_prospection_fiche(req: Request, cid: int):
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    db = get_db()
+    c = db.execute("""SELECT c.*, COALESCE(p.statut,'a_appeler') AS statut, p.notes,
+                             p.prochain_contact, p.dernier_contact, COALESCE(p.appels,0) AS appels
+                      FROM companies c LEFT JOIN prospection p ON p.company_id=c.id
+                      WHERE c.id=?""", (cid,)).fetchone()
+    if not c:
+        db.close()
+        return render(req, "404.html", {}, status_code=404)
+    entreprise = dict(c)
+    marches = _marches_pour_secteur(db, entreprise.get("sector", ""), 3)
+    ouverts = db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif' AND secteur=?",
+                         (entreprise.get("sector", ""),)).fetchone()[0]
+    db.close()
+    return templates.TemplateResponse("admin_prospection_fiche.html", {
+        "request": req, "cfg": cfg, "c": entreprise, "marches": marches,
+        "ouverts": ouverts, "statuts": STATUTS_PROSPECTION, "get_label": get_label,
+        "csrf_token": get_csrf_token(req) or secrets.token_urlsafe(24)})
+
+
+@app.post("/admin/prospection/{cid}")
+async def admin_prospection_maj(req: Request, cid: int, statut: str = Form("a_appeler"),
+                                notes: str = Form(""), prochain: str = Form(""),
+                                appel: str = Form(""), csrf_token: str = Form("")):
+    if not _is_admin(req): return JSONResponse({"ok": False}, 401)
+    csrf_guard(req, csrf_token)
+    if statut not in STATUTS_PROSPECTION:
+        statut = "a_appeler"
+    maintenant = datetime.now().isoformat()
+    db = get_db()
+    existe = db.execute("SELECT appels FROM prospection WHERE company_id=?", (cid,)).fetchone()
+    appels = (existe["appels"] if existe else 0) + (1 if appel else 0)
+    dernier = maintenant[:10] if appel else (
+        db.execute("SELECT dernier_contact FROM prospection WHERE company_id=?",
+                   (cid,)).fetchone() or {"dernier_contact": ""})["dernier_contact"]
+    db.execute("""INSERT INTO prospection(company_id,statut,notes,prochain_contact,
+                     dernier_contact,appels,created_at,updated_at)
+                  VALUES(?,?,?,?,?,?,?,?)
+                  ON CONFLICT(company_id) DO UPDATE SET
+                     statut=excluded.statut, notes=excluded.notes,
+                     prochain_contact=excluded.prochain_contact,
+                     dernier_contact=excluded.dernier_contact,
+                     appels=excluded.appels, updated_at=excluded.updated_at""",
+               (cid, statut, notes[:2000], prochain[:10], dernier or "", appels,
+                maintenant, maintenant))
+    db.commit(); db.close()
+    logger.info(f"[prospection] entreprise {cid} → {statut}")
+    return RedirectResponse(f"/admin/prospection/{cid}?ok=1", 302)
+
+
 @app.get("/admin/import-archive")
 async def admin_import_archive(req: Request, pages: int = 40):
     """Rattrape l'archive des appels d'offres encore ouverts.
