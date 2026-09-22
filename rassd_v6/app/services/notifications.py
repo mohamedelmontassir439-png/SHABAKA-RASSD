@@ -303,7 +303,14 @@ def send_weekly_digests(force: bool = False) -> int:
 
 # ── Dispatch principal ────────────────────────────────────
 
-def dispatch_notifications(tenders: list):
+def dispatch_notifications(tenders: list, max_par_membre: int = 40):
+    """Envoie les alertes pour une liste de marchés.
+
+    max_par_membre borne ce qu'un membre reçoit en un seul passage: après un
+    gros import, une rafale de centaines d'alertes ferait fuir le destinataire.
+    Le reste part au cycle suivant, la déduplication garantissant qu'aucun
+    marché n'est ni perdu ni envoyé deux fois.
+    """
     if not tenders:
         return
     db = get_db()
@@ -314,6 +321,7 @@ def dispatch_notifications(tenders: list):
         total_tg = total_email = total_wa = total_skip = 0
 
         for m in members:
+            envoyes_ce_membre = 0
             member = dict(m)
             # Un membre dont l'abonnement n'a pas été activé par l'admin ne
             # doit recevoir aucun détail de marché, sur aucun canal — le même
@@ -333,7 +341,10 @@ def dispatch_notifications(tenders: list):
                     (member["id"], t["id"])
                 ).fetchone():
                     continue
+                if envoyes_ce_membre >= max_par_membre:
+                    break
 
+                envoyes_ce_membre += 1
                 now = datetime.now().isoformat()
 
                 # Digest hebdomadaire : mise en file, envoyée groupée le lundi
@@ -542,6 +553,34 @@ def send_daily_wa_digests(force: bool = False, now=None) -> int:
     if envoyes:
         logger.info(f"[WA digest] {envoyes} résumé(s) WhatsApp envoyé(s)")
     return envoyes
+
+
+# ── Rattrapage des alertes manquées ───────────────────────
+
+def dispatch_pending(heures: int = 48, limite: int = 400) -> int:
+    """Renvoie les marchés récents qu'aucune alerte n'a encore couverts.
+
+    Les alertes partaient uniquement pour les marchés de la collecte en
+    cours, gardés en mémoire: un redémarrage du serveur entre l'écriture en
+    base et l'envoi les perdait définitivement, et un import lancé depuis
+    l'admin n'alertait personne. On repart donc de la base, seule source
+    fiable: tout marché actif récent sans ligne dans notif_log est repris.
+    """
+    db = get_db()
+    try:
+        lignes = [dict(r) for r in db.execute(
+            """SELECT t.* FROM tenders t
+               WHERE t.statut='actif'
+                 AND t.scraped_at >= datetime('now', ?)
+                 AND NOT EXISTS (SELECT 1 FROM notif_log n WHERE n.tender_id = t.id)
+               ORDER BY t.scraped_at DESC LIMIT ?""",
+            (f"-{int(heures)} hours", limite)).fetchall()]
+    finally:
+        db.close()
+    if lignes:
+        logger.info(f"[rattrapage] {len(lignes)} marché(s) sans alerte — reprise")
+        dispatch_notifications(lignes)
+    return len(lignes)
 
 
 # ── Accompagnement de l'essai gratuit ─────────────────────

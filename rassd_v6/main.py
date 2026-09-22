@@ -315,6 +315,14 @@ async def do_scrape():
 
         if new_tenders:
             await loop.run_in_executor(None, lambda: dispatch_notifications(new_tenders))
+        # Filet de sécurité: les marchés écrits en base mais jamais notifiés
+        # (redémarrage du serveur entre l'écriture et l'envoi, import lancé
+        # depuis l'admin) sont repris ici. La déduplication évite les doublons.
+        try:
+            from app.services.notifications import dispatch_pending
+            await loop.run_in_executor(None, dispatch_pending)
+        except Exception as e:
+            logger.error(f"[rattrapage] {e}")
 
     except Exception as e:
         State.log(f"❌ {e}")
