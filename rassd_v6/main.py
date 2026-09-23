@@ -599,6 +599,27 @@ CHEMINS_LIBRES_PREFIXES = (
 )
 
 
+class DomaineCanoniqueMiddleware(BaseHTTPMiddleware):
+    """Renvoie www.exemple.com vers exemple.com, une fois pour toutes.
+
+    Servir le même site sous deux domaines fait voir à Google deux sites
+    identiques qui se concurrencent, et coupe en deux le bénéfice du
+    référencement. Le domaine de référence est celui de SITE_URL.
+    """
+    async def dispatch(self, req, call_next):
+        hote = (req.headers.get("host") or "").split(":")[0].lower()
+        canonique = cfg.SITE_URL.split("//")[-1].split("/")[0].lower()
+        if hote.startswith("www.") and not canonique.startswith("www.") \
+                and hote[4:] == canonique:
+            cible = f"{cfg.SITE_URL.rstrip('/')}{req.url.path}"
+            if req.url.query:
+                cible += f"?{req.url.query}"
+            # 301: le moteur de recherche transfère l'antériorité au domaine
+            # retenu, au lieu de traiter la redirection comme provisoire.
+            return RedirectResponse(cible, status_code=301)
+        return await call_next(req)
+
+
 class VerificationEmailMiddleware(BaseHTTPMiddleware):
     """Bloque l'accès aux données tant que l'adresse n'est pas confirmée.
 
@@ -651,6 +672,7 @@ app = FastAPI(lifespan=lifespan, title=cfg.APP_NAME,
               version=cfg.APP_VERSION, docs_url=None, redoc_url=None)
 app.add_middleware(SecurityMiddleware)
 app.add_middleware(VerificationEmailMiddleware)
+app.add_middleware(DomaineCanoniqueMiddleware)
 
 @app.exception_handler(404)
 async def not_found(req: Request, exc):
