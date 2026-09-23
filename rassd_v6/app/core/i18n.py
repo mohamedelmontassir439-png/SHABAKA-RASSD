@@ -40,6 +40,7 @@ T = {
     "footer_contact_phone": {"fr": "→ +212 5 37 62 96 30", "ar": "← 30 96 62 37 5 212+"},
     "footer_col_tenders":   {"fr": "Marchés", "ar": "الصفقات"},
     "footer_tenders_all":   {"fr": "Tous les marchés", "ar": "جميع الصفقات"},
+    "footer_by_sector":     {"fr": "Marchés par secteur", "ar": "الصفقات حسب المجال"},
     "footer_col_services":  {"fr": "Services", "ar": "الخدمات"},
     "footer_portal":        {"fr": "Portail", "ar": "البوابة"},
     "footer_pricing":       {"fr": "Abonnements", "ar": "الاشتراكات"},

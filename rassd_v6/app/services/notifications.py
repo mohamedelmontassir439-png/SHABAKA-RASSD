@@ -555,6 +555,84 @@ def send_daily_wa_digests(force: bool = False, now=None) -> int:
     return envoyes
 
 
+# ── Fin d'abonnement: prévenir avant la coupure ───────────
+
+# Jours restants → étape. Un abonné prévenu renouvelle; un abonné coupé sans
+# préavis se sent puni et ne revient pas.
+RELANCES_ABONNEMENT = ((7, "j7"), (1, "j1"), (0, "fin"))
+
+
+def send_renewal_reminders(now=None) -> int:
+    """Relance les abonnements payants qui arrivent à échéance.
+
+    Idempotent par étape grâce au journal des notifications: un même membre
+    ne reçoit jamais deux fois la relance « J-7 » pour la même échéance.
+    """
+    now = now or datetime.now()
+    aujourdhui = now.date()
+    db, envoyes = get_db(), 0
+    try:
+        membres = [dict(m) for m in db.execute(
+            """SELECT * FROM members WHERE actif=1 AND notif_email=1 AND email_verified=1
+               AND subscription_status='ACTIVE' AND subscription_end!=''""").fetchall()]
+        for m in membres:
+            try:
+                fin = datetime.strptime(m["subscription_end"][:10], "%Y-%m-%d").date()
+            except (ValueError, TypeError):
+                continue
+            restant = (fin - aujourdhui).days
+            if restant < 0 or restant > 7:
+                continue
+            # On retient l'étape la plus proche atteinte (7 → 1 → fin).
+            etape = None
+            for seuil, cle in RELANCES_ABONNEMENT:
+                if restant <= seuil:
+                    etape = cle
+            if not etape:
+                continue
+
+            marqueur = f"abo:{etape}:{m['subscription_end'][:10]}"
+            if db.execute("SELECT id FROM notif_log WHERE member_id=? AND tender_id=?",
+                          (m["id"], marqueur)).fetchone():
+                continue
+
+            if etape == "fin":
+                sujet = "Votre abonnement arrive à échéance aujourd'hui"
+                titre = "Votre accès se termine aujourd'hui"
+                corps = ("Vos secteurs, vos favoris et vos alertes restent enregistrés. "
+                         "Un renouvellement les réactive immédiatement.")
+            else:
+                jours = "7 jours" if etape == "j7" else "demain"
+                sujet = f"Votre abonnement expire {'dans 7 jours' if etape == 'j7' else 'demain'}"
+                titre = f"Votre abonnement expire {jours}"
+                corps = ("Pour ne pas interrompre vos alertes, renouvelez avant la date "
+                         f"d'échéance du {fin.strftime('%d/%m/%Y')}.")
+            html = f"""
+            <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:auto">
+              <h2 style="color:#1e1611;font-size:20px;margin:0 0 12px">{titre}</h2>
+              <p style="color:#4a4a4a;font-size:15px;line-height:1.7;margin:0 0 20px">{corps}</p>
+              <a href="{cfg.SITE_URL}/mon-abonnement" style="display:inline-block;padding:12px 24px;
+                 background:#f2662d;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">
+                 Renouveler mon abonnement</a>
+              <p style="color:#98a1b3;font-size:11px;margin-top:24px">
+                MAROC ENTREPRENEURIAT · <a href="{cfg.SITE_URL}/settings" style="color:#6b7488">Gérer mes alertes</a></p>
+            </div>"""
+            ok = email_send(m["email"], sujet, html)
+            _log_notif(db, m["id"], marqueur, "email", ok,
+                       "" if ok else "échec relance abonnement",
+                       "brevo" if cfg.BREVO_KEY else "gmail")
+            if ok:
+                envoyes += 1
+            db.commit()
+    except Exception as e:
+        logger.error(f"[relance abo] {e}", exc_info=True)
+    finally:
+        db.close()
+    if envoyes:
+        logger.info(f"[relance abo] {envoyes} relance(s) envoyée(s)")
+    return envoyes
+
+
 # ── Rattrapage des alertes manquées ───────────────────────
 
 def dispatch_pending(heures: int = 48, limite: int = 400) -> int:

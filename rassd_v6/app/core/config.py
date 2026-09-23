@@ -85,6 +85,8 @@ class Settings:
     COMPANY_ICE:     str = os.getenv("COMPANY_ICE", "")
     COMPANY_ADDRESS: str = os.getenv("COMPANY_ADDRESS", "")
     CONTACT_EMAIL:   str = os.getenv("CONTACT_EMAIL", "contact@marocentrepreneuriat.com")
+    # Heure d'envoi du bilan quotidien de supervision (heure du serveur).
+    DAILY_REPORT_HOUR: int = int(os.getenv("DAILY_REPORT_HOUR", "8"))
     # Essai gratuit (jours) accordé à chaque nouvelle inscription
     TRIAL_DAYS: int = int(os.getenv("TRIAL_DAYS", "7"))
     # Plans (paiement encaissé hors plateforme puis enregistré par l'admin)

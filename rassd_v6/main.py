@@ -2,7 +2,7 @@
 MAROC ENTREPRENEURIAT v3.2 — SaaS Veille Marchés Publics Maroc
 Full audit & fix — Production ready
 """
-import os, re, json, secrets, asyncio, logging, hashlib, csv, io, time, traceback
+import os, re, json, secrets, asyncio, logging, hashlib, csv, io, time, traceback, unicodedata
 from datetime import datetime, date, timedelta
 from contextlib import asynccontextmanager
 from collections import defaultdict
@@ -89,10 +89,33 @@ class State:
 # ══════════════════════════════════════════════════════════
 # SCRAPER ENGINE
 # ══════════════════════════════════════════════════════════
+def _empreinte(objet: str) -> str:
+    """Signature d'un marché, indépendante de la source qui l'a publié.
+
+    Le portail et l'agrégateur privé publient parfois la même consultation
+    avec une ponctuation ou une casse différente. Sans cette empreinte, le
+    membre reçoit deux alertes pour un seul marché.
+    """
+    base = unicodedata.normalize("NFD", (objet or "").lower())
+    base = "".join(c for c in base if unicodedata.category(c) != "Mn")
+    return re.sub(r"[^a-z0-9]+", " ", base).strip()[:110]
+
+
 def _save_tenders(tenders: list, new_list: list) -> int:
     if not tenders: return 0
     db = get_db(); saved = 0
+    # Empreintes des marchés déjà ouverts: la même consultation venue d'une
+    # autre source ne doit pas créer un second enregistrement.
+    deja = {}
+    for ligne in db.execute(
+            "SELECT id, objet, date_limite FROM tenders WHERE statut='actif'").fetchall():
+        deja[(_empreinte(ligne["objet"]), (ligne["date_limite"] or "").strip())] = ligne["id"]
     for t in tenders:
+        cle = (_empreinte(t.get("objet")), (t.get("date_limite") or "").strip())
+        if cle[0] and cle in deja and deja[cle] != t.get("id"):
+            logger.info(f"[doublon] {t.get('id')} ignoré — déjà en base sous {deja[cle]}")
+            continue
+        deja[cle] = t.get("id")
         try:
             db.execute("""INSERT OR IGNORE INTO tenders
                 (id,objet,acheteur,secteur,region,montant,
@@ -362,6 +385,44 @@ async def digest_scheduler():
             logger.error(f"[digest_scheduler] {e}")
         await asyncio.sleep(3600)
 
+async def supervision_scheduler():
+    """Surveille la plateforme et prévient l'administrateur.
+
+    Une veille qui s'arrête ne se voit pas: le site reste debout et les
+    membres cessent simplement de recevoir des marchés. Contrôle toutes les
+    heures, bilan complet une fois par jour.
+    """
+    from app.services.supervision import verifier
+    await asyncio.sleep(300)
+    dernier_bilan = ""
+    while True:
+        try:
+            aujourdhui = date.today().isoformat()
+            bilan = (datetime.now().hour >= cfg.DAILY_REPORT_HOUR
+                     and dernier_bilan != aujourdhui)
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, lambda: verifier(envoyer_bilan=bilan))
+            if bilan:
+                dernier_bilan = aujourdhui
+        except Exception as e:
+            logger.error(f"[supervision_scheduler] {e}")
+        await asyncio.sleep(3600)
+
+
+async def renewal_scheduler():
+    """Relance les abonnements qui arrivent à échéance (J-7, J-1, jour J)."""
+    from app.services.notifications import send_renewal_reminders
+    await asyncio.sleep(420)
+    while True:
+        try:
+            loop = asyncio.get_event_loop()
+            n = await loop.run_in_executor(None, send_renewal_reminders)
+            if n: logger.info(f"[relance abo] {n} relance(s)")
+        except Exception as e:
+            logger.error(f"[renewal_scheduler] {e}")
+        await asyncio.sleep(12 * 3600)
+
+
 async def trial_sequence_scheduler():
     """Accompagne les essais gratuits: une vérification toutes les 6 heures.
 
@@ -531,6 +592,7 @@ CHEMINS_LIBRES_EXACTS = frozenset((
 ))
 CHEMINS_LIBRES_PREFIXES = (
     "/verifier-email", "/settings", "/static", "/admin", "/icon-",
+    "/marches-publics",
     # L'invitation est une page publique: l'entreprise invitée n'a pas encore
     # de compte, elle ne peut donc pas avoir confirmé d'adresse.
     "/invitation",
@@ -581,6 +643,8 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(backup_scheduler())
     asyncio.create_task(wa_digest_scheduler())
     asyncio.create_task(trial_sequence_scheduler())
+    asyncio.create_task(supervision_scheduler())
+    asyncio.create_task(renewal_scheduler())
     yield
 
 app = FastAPI(lifespan=lifespan, title=cfg.APP_NAME,
@@ -3322,18 +3386,73 @@ async def health():
             "active":act,"running":State.running,"last_run":State.last_run,
             "multi_scraper":False}
 
+def _slug(texte: str) -> str:
+    """« Études TIC & développement » → « etudes-tic-developpement »."""
+    base = unicodedata.normalize("NFD", (texte or "").lower())
+    base = "".join(c for c in base if unicodedata.category(c) != "Mn")
+    base = re.sub(r"[^a-z0-9]+", "-", base).strip("-")
+    return re.sub(r"-{2,}", "-", base)[:60]
+
+
+def _secteurs_publics() -> list:
+    """Secteurs exposés au référencement, du plus fourni au moins fourni."""
+    db = get_db()
+    try:
+        compte = {r[0]: r[1] for r in db.execute(
+            "SELECT secteur, COUNT(*) FROM tenders WHERE statut='actif' GROUP BY 1").fetchall()}
+    finally:
+        db.close()
+    pages = [{"code": code, "label": label, "slug": _slug(label), "n": compte.get(code, 0)}
+             for code, label in cfg.SECTEURS.items()]
+    return sorted(pages, key=lambda p: -p["n"])
+
+
+@app.get("/marches-publics", response_class=HTMLResponse)
+async def marches_index(req: Request):
+    """Annuaire public des secteurs — porte d'entrée depuis les moteurs.
+
+    Le site n'exposait que quatre URLs: impossible de le trouver en cherchant
+    « appel d'offres nettoyage Casablanca ». Ces pages annoncent le volume
+    réel et un aperçu, sans livrer le détail réservé aux membres.
+    """
+    return render(req, "seo_index.html", {"pages": _secteurs_publics()})
+
+
+@app.get("/marches-publics/{slug}", response_class=HTMLResponse)
+async def marches_secteur(req: Request, slug: str):
+    pages = _secteurs_publics()
+    page = next((p for p in pages if p["slug"] == slug), None)
+    if not page:
+        return render(req, "404.html", {}, status_code=404)
+    db = get_db()
+    apercu = [dict(r) for r in db.execute(
+        """SELECT id, objet, acheteur, region, date_limite, montant, type_procedure
+           FROM tenders WHERE statut='actif' AND secteur=?
+           ORDER BY scraped_at DESC LIMIT 6""", (page["code"],)).fetchall()]
+    villes = [r[0] for r in db.execute(
+        """SELECT region FROM tenders WHERE statut='actif' AND secteur=? AND region!=''
+           GROUP BY region ORDER BY COUNT(*) DESC LIMIT 8""", (page["code"],)).fetchall()]
+    db.close()
+    proches = [p for p in pages if p["code"] != page["code"] and p["n"]][:8]
+    return render(req, "seo_secteur.html",
+                  {"page": page, "apercu": apercu, "villes": villes, "proches": proches})
+
+
 @app.get("/sitemap.xml")
 async def sitemap():
-    # Les marchés sont réservés aux membres — on ne référence ici que les
-    # pages publiques, pas les fiches individuelles (inutile pour le SEO
-    # puisqu'elles redirigent vers /login, et ça évite d'exposer les IDs).
-    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>{cfg.SITE_URL}/</loc></url>
-  <url><loc>{cfg.SITE_URL}/tarifs</loc></url>
-  <url><loc>{cfg.SITE_URL}/login</loc></url>
-  <url><loc>{cfg.SITE_URL}/register</loc></url>
-</urlset>"""
+    # Les fiches de marchés restent hors du plan du site: elles redirigent
+    # vers /login et exposeraient des identifiants sans rien apporter. Les
+    # pages sectorielles, elles, ont du contenu public et un volume réel.
+    urls = [f"{cfg.SITE_URL}/", f"{cfg.SITE_URL}/tarifs", f"{cfg.SITE_URL}/login",
+            f"{cfg.SITE_URL}/register", f"{cfg.SITE_URL}/contact",
+            f"{cfg.SITE_URL}/marches-publics", f"{cfg.SITE_URL}/sous-traitance",
+            f"{cfg.SITE_URL}/mentions-legales", f"{cfg.SITE_URL}/cgu",
+            f"{cfg.SITE_URL}/confidentialite"]
+    urls += [f"{cfg.SITE_URL}/marches-publics/{p['slug']}" for p in _secteurs_publics()]
+    corps = "\n".join(f"  <url><loc>{u}</loc></url>" for u in urls)
+    xml = ('<?xml version="1.0" encoding="UTF-8"?>\n'
+           '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+           f"{corps}\n</urlset>")
     return Response(xml, media_type="application/xml")
 
 @app.get("/robots.txt")

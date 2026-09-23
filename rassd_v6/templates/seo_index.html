@@ -1,0 +1,65 @@
+{% extends "base_public.html" %}
+{% block title %}Appels d'offres et marchés publics au Maroc, par secteur — Maroc Entrepreneuriat{% endblock %}
+{% block head %}
+<meta name="description" content="Tous les appels d'offres, bons de commande et marchés privés en cours au Maroc, classés par secteur d'activité. Consultez les volumes du jour, secteur par secteur.">
+<link rel="canonical" href="{{ cfg.SITE_URL }}/marches-publics">
+<meta property="og:title" content="Marchés publics au Maroc, secteur par secteur">
+<meta property="og:description" content="Appels d'offres, bons de commande et marchés privés en cours au Maroc, classés par secteur.">
+<meta property="og:url" content="{{ cfg.SITE_URL }}/marches-publics">
+<meta property="og:type" content="website">
+{% endblock %}
+{% block body %}
+<style>
+.sx-wrap { max-width: 1040px; margin: 0 auto; padding: 48px 20px 80px; }
+.sx-h1 { font-family: var(--serif); font-weight: 700; font-size: clamp(27px, 5vw, 40px); color: var(--text1); line-height: 1.22; max-width: 20ch; }
+.sx-h1 em { font-style: italic; color: var(--ink); }
+.sx-lede { color: var(--text3); font-size: 16px; line-height: 1.7; margin: 14px 0 12px; max-width: 64ch; }
+.sx-count { font-size: 14px; color: var(--text2); margin-bottom: 32px; }
+.sx-count b { color: var(--ink); font-weight: 700; }
+.sx-group { font-family: var(--serif); font-size: 20px; color: var(--text1); margin: 34px 0 14px; }
+.sx-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(258px, 1fr)); gap: 12px; }
+.sx-card { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); padding: 14px 16px; text-decoration: none; }
+.sx-card:hover { border-color: var(--ink); }
+.sx-name { font-size: 14.5px; color: var(--text1); font-weight: 600; line-height: 1.4; }
+.sx-n { font-family: var(--serif); font-weight: 700; font-size: 17px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.sx-n.zero { color: var(--text4); font-weight: 500; font-size: 14px; }
+.sx-cta { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 30px; margin-top: 42px; text-align: center; box-shadow: var(--sh); }
+.sx-cta h2 { font-family: var(--serif); font-size: 22px; color: var(--text1); margin-bottom: 10px; }
+.sx-cta p { color: var(--text3); font-size: 15px; margin-bottom: 20px; }
+</style>
+
+<div class="sx-wrap">
+  <h1 class="sx-h1">Marchés publics au Maroc, <em>secteur par secteur</em></h1>
+  <p class="sx-lede">Appels d'offres, bons de commande et marchés privés actuellement ouverts, classés selon le référentiel officiel des 83 secteurs. Les volumes ci-dessous sont mis à jour en continu.</p>
+  <p class="sx-count"><b>{{ pages | sum(attribute='n') }}</b> marchés ouverts en ce moment · mise à jour permanente</p>
+
+  {% set actifs = pages | selectattr('n') | list %}
+  {% if actifs %}
+  <div class="sx-group">Secteurs avec des marchés ouverts</div>
+  <div class="sx-grid">
+    {% for p in actifs %}
+    <a class="sx-card" href="/marches-publics/{{ p.slug }}">
+      <span class="sx-name">{{ p.label }}</span>
+      <span class="sx-n">{{ p.n }}</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="sx-group">Autres secteurs suivis</div>
+  <div class="sx-grid">
+    {% for p in pages if not p.n %}
+    <a class="sx-card" href="/marches-publics/{{ p.slug }}">
+      <span class="sx-name">{{ p.label }}</span>
+      <span class="sx-n zero">veille active</span>
+    </a>
+    {% endfor %}
+  </div>
+
+  <div class="sx-cta">
+    <h2>Recevez les marchés de votre secteur</h2>
+    <p>Alerte par email et Telegram dès qu'une consultation correspond à votre activité. Essai gratuit de {{ cfg.TRIAL_DAYS }} jours, sans carte bancaire.</p>
+    <a href="/register" class="btn btn-primary btn-lg">Créer mon compte gratuitement →</a>
+  </div>
+</div>
+{% endblock %}

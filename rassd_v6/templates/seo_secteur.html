@@ -1,0 +1,99 @@
+{% extends "base_public.html" %}
+{% block title %}{{ page.label }} — {{ page.n }} appels d'offres ouverts au Maroc{% endblock %}
+{% block head %}
+<meta name="description" content="{{ page.n }} marchés et bons de commande ouverts en {{ page.label }} au Maroc. Objet, acheteur public, date limite : la veille tourne en continu.">
+<link rel="canonical" href="{{ cfg.SITE_URL }}/marches-publics/{{ page.slug }}">
+<meta property="og:title" content="{{ page.label }} — marchés ouverts au Maroc">
+<meta property="og:description" content="{{ page.n }} consultations en cours dans ce secteur, mises à jour en continu.">
+<meta property="og:url" content="{{ cfg.SITE_URL }}/marches-publics/{{ page.slug }}">
+<meta property="og:type" content="website">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": "{{ page.label }} — marchés publics au Maroc",
+  "description": "{{ page.n }} marchés ouverts en {{ page.label }} au Maroc.",
+  "url": "{{ cfg.SITE_URL }}/marches-publics/{{ page.slug }}",
+  "isPartOf": { "@type": "WebSite", "name": "Maroc Entrepreneuriat", "url": "{{ cfg.SITE_URL }}" }
+}
+</script>
+{% endblock %}
+{% block body %}
+<style>
+.ss-wrap { max-width: 900px; margin: 0 auto; padding: 44px 20px 80px; }
+.ss-fil { font-size: 13.5px; color: var(--text3); margin-bottom: 14px; }
+.ss-fil a { color: var(--ink); font-weight: 600; }
+.ss-h1 { font-family: var(--serif); font-weight: 700; font-size: clamp(26px, 4.6vw, 36px); color: var(--text1); line-height: 1.25; }
+.ss-lede { color: var(--text3); font-size: 16px; line-height: 1.7; margin: 14px 0 26px; max-width: 64ch; }
+.ss-stats { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 30px; }
+.ss-stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); padding: 12px 18px; }
+.ss-stat b { font-family: var(--serif); font-size: 22px; color: var(--ink); display: block; font-variant-numeric: tabular-nums; }
+.ss-stat span { font-size: 12.5px; color: var(--text3); }
+.ss-item { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); padding: 16px 18px; margin-bottom: 10px; }
+.ss-obj { font-weight: 600; color: var(--text1); font-size: 15px; line-height: 1.5; }
+.ss-meta { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 9px; }
+.ss-locked { background: var(--golda); border-radius: var(--r2); padding: 18px 20px; font-size: 14.5px; color: var(--text2); margin: 18px 0 30px; }
+.ss-locked b { color: var(--text1); }
+.ss-villes { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 30px; }
+.ss-cta { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 28px; text-align: center; box-shadow: var(--sh); }
+.ss-cta h2 { font-family: var(--serif); font-size: 21px; color: var(--text1); margin-bottom: 10px; }
+.ss-cta p { color: var(--text3); font-size: 14.5px; margin-bottom: 18px; }
+.ss-proches { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 34px; }
+.ss-proches a { font-size: 13.5px; color: var(--text2); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 13px; text-decoration: none; }
+.ss-proches a:hover { border-color: var(--ink); color: var(--ink); }
+</style>
+
+<div class="ss-wrap">
+  <div class="ss-fil"><a href="/">Accueil</a> › <a href="/marches-publics">Marchés publics</a> › {{ page.label }}</div>
+
+  <h1 class="ss-h1">{{ page.label }} : {{ page.n }} marché{{ 's' if page.n > 1 else '' }} ouvert{{ 's' if page.n > 1 else '' }} au Maroc</h1>
+  <p class="ss-lede">
+    {% if page.n %}
+    Consultations en cours dans ce secteur : appels d'offres des administrations et établissements publics, bons de commande et marchés privés. La veille tourne en continu et les marchés clôturés sortent automatiquement de la liste.
+    {% else %}
+    Aucune consultation ouverte dans ce secteur à cet instant. La veille reste active : dès qu'un marché paraît, il apparaît ici et part en alerte aux membres concernés.
+    {% endif %}
+  </p>
+
+  {% if page.n %}
+  <div class="ss-stats">
+    <div class="ss-stat"><b>{{ page.n }}</b><span>marchés ouverts</span></div>
+    {% if villes %}<div class="ss-stat"><b>{{ villes|length }}</b><span>villes concernées</span></div>{% endif %}
+  </div>
+
+  {% for t in apercu %}
+  <div class="ss-item">
+    <div class="ss-obj">{{ t.objet[:150] }}{% if t.objet|length > 150 %}…{% endif %}</div>
+    <div class="ss-meta">
+      <span class="badge badge-terra">{{ 'Bon de commande' if t.type_procedure == 'bon_commande' else "Appel d'offres" }}</span>
+      {% if t.region %}<span class="badge badge-gray">{{ t.region[:22] }}</span>{% endif %}
+      {% if t.date_limite %}<span class="badge badge-gold">Clôture {{ t.date_limite }}</span>{% endif %}
+      {% if t.montant %}<span class="badge badge-grn">{{ t.montant[:22] }}</span>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+
+  <div class="ss-locked">
+    <b>L'acheteur, le dossier et le lien officiel</b> de chaque consultation sont réservés aux membres — comme les {{ page.n }} marchés de ce secteur, dont ceux publiés aujourd'hui.
+  </div>
+
+  {% if villes %}
+  <div class="ss-villes">
+    {% for v in villes %}<span class="badge badge-gray">{{ v[:24] }}</span>{% endfor %}
+  </div>
+  {% endif %}
+  {% endif %}
+
+  <div class="ss-cta">
+    <h2>Soyez alerté dès la publication</h2>
+    <p>Choisissez « {{ page.label }} » à l'inscription et recevez chaque nouvelle consultation par email et Telegram. Essai gratuit de {{ cfg.TRIAL_DAYS }} jours, sans carte bancaire.</p>
+    <a href="/register" class="btn btn-primary btn-lg">Créer mon compte →</a>
+  </div>
+
+  {% if proches %}
+  <div class="ss-proches">
+    {% for p in proches %}<a href="/marches-publics/{{ p.slug }}">{{ p.label[:34] }} ({{ p.n }})</a>{% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
