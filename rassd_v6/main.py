@@ -701,12 +701,37 @@ async def server_error(req: Request, exc):
     logger.error(f"[500] {req.url}: {exc}")
     return HTMLResponse(_server_error_html(), 500)
 
+def _client_parti(exc: Exception) -> bool:
+    """L'exception vient-elle d'un visiteur qui a coupé la connexion ?
+
+    Quand un onglet se ferme pendant l'envoi de la réponse, Starlette remonte
+    l'incident comme une exception applicative: « No response returned. » ou
+    une ressource fermée. Ce n'est pas un bug, il n'y a rien à corriger, et
+    l'inscrire au journal des erreurs finit par déclencher la supervision
+    pour du trafic parfaitement normal — robots inclus.
+    """
+    nom = type(exc).__name__
+    if nom in ("ClientDisconnect", "ClosedResourceError", "BrokenResourceError",
+               "EndOfStream", "ConnectionResetError", "BrokenPipeError"):
+        return True
+    texte = str(exc).lower()
+    return ("no response returned" in texte
+            or "response content shorter" in texte
+            or "client disconnected" in texte)
+
+
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(req: Request, exc: Exception):
     """Filet de sécurité pour toute exception Python non gérée explicitement
     (@app.exception_handler(500) ne couvre que les HTTPException(500) levées
     volontairement — sans ce handler, un bug applicatif imprévu remontait
     jusqu'à la page d'erreur générique non brandée de Starlette)."""
+    if _client_parti(exc):
+        logger.info(f"[client parti] {req.method} {req.url.path}")
+        # 499 (nginx): le client a fermé avant la fin. La réponse ne partira
+        # nulle part, mais le code dit la vérité dans les journaux d'accès.
+        return Response(status_code=499)
+
     logger.error(f"[unhandled] {req.method} {req.url.path}: {exc}", exc_info=True)
     try:
         db = get_db()
