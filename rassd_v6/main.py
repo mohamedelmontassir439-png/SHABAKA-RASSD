@@ -599,6 +599,42 @@ CHEMINS_LIBRES_PREFIXES = (
 )
 
 
+class PorteAdminMiddleware(BaseHTTPMiddleware):
+    """Rend l'administration invisible tant qu'on n'a pas ouvert sa porte.
+
+    Le lien « Admin » a été retiré du site, mais l'adresse /admin reste
+    devinable: les robots la testent en permanence. Quand ADMIN_GATE est
+    renseignée, /admin répond 404 — comme une page qui n'existe pas — sauf
+    pour un navigateur ayant d'abord visité l'URL secrète, qui dépose un
+    cookie de passage valable trente jours.
+    """
+    async def dispatch(self, req, call_next):
+        chemin = req.url.path
+        if not cfg.ADMIN_GATE:
+            return await call_next(req)
+
+        if chemin == f"/{cfg.ADMIN_GATE.strip('/')}":
+            resp = RedirectResponse("/admin/login", 302)
+            resp.set_cookie("_gate", make_token("gate", cfg.ADMIN_GATE),
+                            max_age=86400 * 30, httponly=True,
+                            samesite="lax", secure=COOKIE_SECURE)
+            logger.info("[porte admin] ouverture par l'URL privée")
+            return resp
+
+        if chemin.startswith("/admin"):
+            if req.cookies.get("_gate", "") != make_token("gate", cfg.ADMIN_GATE):
+                logger.info(f"[porte admin] accès refusé à {chemin} depuis {get_ip(req)}")
+                # 404 et non 403: un « accès refusé » confirmerait au visiteur
+                # que l'administration se trouve bien à cette adresse.
+                return templates.TemplateResponse("404.html", {"request": req, "cfg": cfg,
+                                                               "tr": make_t(get_lang(req)),
+                                                               "lang": get_lang(req),
+                                                               "dir": "rtl" if get_lang(req) == "ar" else "ltr",
+                                                               "member": None},
+                                                  status_code=404)
+        return await call_next(req)
+
+
 class DomaineCanoniqueMiddleware(BaseHTTPMiddleware):
     """Renvoie www.exemple.com vers exemple.com, une fois pour toutes.
 
@@ -673,6 +709,7 @@ app = FastAPI(lifespan=lifespan, title=cfg.APP_NAME,
 app.add_middleware(SecurityMiddleware)
 app.add_middleware(VerificationEmailMiddleware)
 app.add_middleware(DomaineCanoniqueMiddleware)
+app.add_middleware(PorteAdminMiddleware)
 
 @app.exception_handler(404)
 async def not_found(req: Request, exc):

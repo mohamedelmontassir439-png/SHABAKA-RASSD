@@ -85,6 +85,12 @@ class Settings:
     COMPANY_ICE:     str = os.getenv("COMPANY_ICE", "")
     COMPANY_ADDRESS: str = os.getenv("COMPANY_ADDRESS", "")
     CONTACT_EMAIL:   str = os.getenv("CONTACT_EMAIL", "contact@marocentrepreneuriat.com")
+    # Porte d'entrée privée de l'administration. Tant qu'elle est vide,
+    # /admin reste accessible directement (utile en local et pour les tests).
+    # Renseignée, elle rend /admin invisible: le serveur répond 404 à qui n'a
+    # pas d'abord ouvert https://.../<ADMIN_GATE> — une page qui n'existe pas
+    # n'est ni scannée, ni attaquée par force brute.
+    ADMIN_GATE: str = os.getenv("ADMIN_GATE", "")
     # Heure d'envoi du bilan quotidien de supervision (heure du serveur).
     DAILY_REPORT_HOUR: int = int(os.getenv("DAILY_REPORT_HOUR", "8"))
     # Essai gratuit (jours) accordé à chaque nouvelle inscription

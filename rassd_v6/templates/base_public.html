@@ -207,10 +207,12 @@ html[dir="rtl"] .sel { background-position: left 14px center; padding-right: 14p
 .skip-link { position: absolute; left: -999px; top: 0; background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 0 0 8px 0; z-index: 9999; }
 .skip-link:focus { left: 0; }
 
-.lang-switch { display: flex; align-items: center; gap: 2px; }
-.lang-switch a { padding: 4px 8px; font-size: 11.5px; font-weight: 700; letter-spacing: .03em; border-radius: 5px; color: rgba(255,255,255,.5); transition: all .15s; }
-.lang-switch a:hover { color: #fff; }
-.lang-switch a.active { color: var(--ink3); background: rgba(255,255,255,.85); }
+/* Le sélecteur de langue vit maintenant dans la barre de navigation claire:
+   ses couleurs d'origine (blanc sur fond noir) y seraient illisibles. */
+.lang-switch { display: flex; align-items: center; gap: 2px; margin-inline-end: 10px; }
+.lang-switch a { padding: 4px 9px; font-size: 11.5px; font-weight: 700; letter-spacing: .03em; border-radius: 5px; color: var(--text3); transition: all .15s; }
+.lang-switch a:hover { color: var(--ink); background: var(--indigoa); }
+.lang-switch a.active { color: #fff; background: var(--ink3); }
 
 /* ── RTL ─────────────────────────────────────────────── */
 html[dir="rtl"] body { font-family: 'Tajawal', system-ui, sans-serif; }
@@ -243,22 +245,10 @@ html[dir="rtl"] .section-label::before { order: 2; }
 <body>
 <a href="#main" class="skip-link">{{ tr('skip_to_content') }}</a>
 
-<div class="topbar">
-  <div class="topbar-left">
-    <span><span class="dot-live"></span>{{ tr('topbar_live') }}</span>
-    <span class="topbar-sep">/</span>
-    <a href="mailto:contact@marocentrepreneuriat.com">contact@marocentrepreneuriat.com</a>
-  </div>
-  <div class="topbar-right">
-    {% if not member %}<a href="/tarifs">{{ tr('topbar_free_trial') }}</a>{% endif %}
-    <a href="/admin">{{ tr('topbar_admin') }}</a>
-    <span class="lang-switch">
-      <a href="?lang=fr" class="{% if lang=='fr' %}active{% endif %}">FR</a>
-      <a href="?lang=ar" class="{% if lang=='ar' %}active{% endif %}">عربي</a>
-    </span>
-  </div>
-</div>
-
+{# La barre noire supérieure a été retirée: elle répétait l'adresse de
+   contact déjà présente en pied de page et exposait l'entrée d'administration
+   à tous les visiteurs. Le choix de la langue, lui, reste indispensable: il
+   rejoint la barre de navigation. #}
 <nav class="nav">
   <a href="/" class="nav-logo-wrap">
     <span class="nav-logo">ME</span>
@@ -279,6 +269,10 @@ html[dir="rtl"] .section-label::before { order: 2; }
     {% endif %}
   </div>
   <div class="nav-right">
+    <span class="lang-switch">
+      <a href="?lang=fr" class="{% if lang=='fr' %}active{% endif %}">FR</a>
+      <a href="?lang=ar" class="{% if lang=='ar' %}active{% endif %}">عربي</a>
+    </span>
     {% if member %}
       <span class="nav-user-info">{{ (member.nom or member.email)[:20] }}</span>
       <a href="/logout" class="btn btn-ghost btn-sm">{{ tr('nav_logout') }}</a>
