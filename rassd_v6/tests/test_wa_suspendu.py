@@ -114,7 +114,10 @@ class TestReglages:
         assert page.status_code == 200
         assert 'name="whatsapp"' not in page.text, "pas de champ numéro"
         assert 'name="notif_wa"' not in page.text, "pas de case à cocher WhatsApp"
-        assert "bientôt disponible" in page.text.lower() or "قريباً" in page.text
+        # Plus aucune trace du canal: ni champ, ni promesse « bientôt ». On ne
+        # mentionne pas un service qu'on ne rend pas.
+        assert "whatsapp" not in page.text.lower()
+        assert "واتساب" not in page.text
 
     def test_envoi_de_code_refuse(self, client, monkeypatch):
         monkeypatch.setattr(cfg, "WA_ENABLED", False)

@@ -59,7 +59,7 @@ T = {
     "hero_title":         {"fr": "La veille qui trouve <em>les marchés avant vous.</em>",
                             "ar": "الرصد الذي يجد <em>الصفقات قبلك.</em>"},
     "hero_sub_wa":           {"fr": "Maroc Entrepreneuriat surveille en continu les marchés publics et privés au Maroc et vous alerte dès qu'une opportunité correspond à votre secteur — par Email, Telegram et WhatsApp.",
-                            "ar": "Maroc Entrepreneuriat يراقب باستمرار الصفقات العمومية والخاصة في المغرب وينبهك فور ظهور فرصة تناسب قطاعك — عبر البريد الإلكتروني وتيليغرام وواتساب."},
+                            "ar": "Maroc Entrepreneuriat يراقب باستمرار الصفقات العمومية والخاصة في المغرب وينبهك فور ظهور فرصة تناسب قطاعك — عبر البريد الإلكتروني وتيليغرام."},
     "hero_cta_free":      {"fr": "Découvrir les offres →", "ar": "اكتشف العروض ←"},
     "hero_cta_tenders":   {"fr": "Voir les marchés", "ar": "عرض الصفقات"},
     "hero_locked_text":   {"fr": "Abonnez-vous pour voir les marchés en direct", "ar": "اشترك لمشاهدة الصفقات مباشرة"},
@@ -751,18 +751,17 @@ T = {
                              "ar": "ترصد Maroc Entrepreneuriat الصفقات العمومية والخاصة في المغرب باستمرار، وتنبّهك فور ظهور فرصة تطابق قطاعك — عبر البريد الإلكتروني وتيليغرام."},
     "trial_step2_d":        {"fr": "Tous les marchés, les résultats d'adjudication, la sous-traitance et les alertes Email et Telegram.",
                              "ar": "جميع الصفقات، ونتائج الترسية، والمناولة، وتنبيهات البريد وتيليغرام."},
-    "feat3_text":           {"fr": "Recevez vos alertes par Email et Telegram, selon vos préférences. WhatsApp arrive bientôt.",
-                             "ar": "استلم تنبيهاتك عبر البريد الإلكتروني وتيليغرام، حسب تفضيلك. واتساب قريباً."},
+    "feat3_text":           {"fr": "Recevez vos alertes par Email et Telegram, selon vos préférences.",
+                             "ar": "استلم تنبيهاتك عبر البريد الإلكتروني وتيليغرام، حسب تفضيلك."},
     "finalcta_note3":       {"fr": "Alertes Email & Telegram", "ar": "تنبيهات عبر البريد وتيليغرام"},
     "pr_free_feat4":        {"fr": "Alertes Telegram", "ar": "تنبيهات تيليغرام"},
     "pr_pro_feat2":         {"fr": "Alertes Email + Telegram", "ar": "تنبيهات البريد + تيليغرام"},
     "pr_faq3_q":            {"fr": "Les alertes sont-elles vraiment en temps réel ?", "ar": "هل التنبيهات فعلاً لحظية؟"},
-    "pr_faq3_a":            {"fr": "Oui. Dès qu'un marché correspondant à votre secteur est détecté par notre veille, la notification part immédiatement par Email et Telegram, selon les canaux activés dans vos réglages. WhatsApp sera proposé dans une prochaine étape.",
-                             "ar": "نعم. بمجرد رصد صفقة تطابق قطاعك، يُرسل التنبيه فوراً عبر البريد الإلكتروني وتيليغرام، حسب القنوات المفعّلة في إعداداتك. واتساب سيُضاف في مرحلة لاحقة."},
-    "wa_soon_badge":        {"fr": "Bientôt disponible", "ar": "قريباً"},
-    "wa_soon_title":        {"fr": "WhatsApp — bientôt disponible", "ar": "واتساب — قريباً"},
-    "wa_soon_text":         {"fr": "Le canal WhatsApp est en cours de mise en place avec un expéditeur officiel. En attendant, vos alertes partent par Email et Telegram — vous ne manquez aucun marché.",
-                             "ar": "قناة واتساب قيد التجهيز عبر مُرسِل رسمي. في انتظار ذلك تصلك تنبيهاتك عبر البريد الإلكتروني وتيليغرام، ولا تفوتك أي صفقة."},
+    "pr_faq3_a":            {"fr": "Oui. Dès qu'un marché correspondant à votre secteur est détecté par notre veille, la notification part immédiatement par Email et Telegram, selon les canaux activés dans vos réglages.",
+                             "ar": "نعم. بمجرد رصد صفقة تطابق قطاعك، يُرسل التنبيه فوراً عبر البريد الإلكتروني وتيليغرام، حسب القنوات المفعّلة في إعداداتك."},
+    
+    
+    
 
     # ── Vérification de l'adresse email ──────────────────────
     "verif_title":          {"fr": "Confirmez votre <em>adresse email</em>", "ar": "أكّد <em>بريدك الإلكتروني</em>"},

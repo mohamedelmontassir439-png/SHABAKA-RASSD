@@ -23,9 +23,11 @@ from app.core.sectors import get_label
 from app.core.i18n import get_lang, make_t, SUPPORTED_LANGS, tr as tr_
 from app.services.notifications import dispatch_notifications, tg_admin, test_notifications
 
-# Sources secondaires: activées, mais la liste réelle vit dans
-# multi_scraper.SCRAPERS — seules celles qui ramènent de vrais avis y figurent.
-MULTI_OK = True
+# Les sources secondaires (ONDA, ONEE, ONCF, IAM, SNRT, Le Matin, banques)
+# ont été retirées: deux bloquent les robots, les autres ne renvoyaient plus
+# que la navigation de leur site. Ne restent que les sources qui ramènent de
+# vrais avis: le portail public (bons de commande et appels d'offres) et la
+# plateforme privée.
 
 logging.basicConfig(
     level=logging.INFO,
@@ -235,23 +237,6 @@ async def do_scrape():
             State.log(f"❌ Appels d'offres: {e}")
             logger.error(f"[ao_scraper] {e}", exc_info=True)
             _record_run("marchespublics-ao", "FAILED", errors=1, started=_t, message=str(e))
-
-        # ── Multi-sources ─────────────────────────────────
-        if MULTI_OK:
-            try:
-                State.log("─" * 48)
-                State.log("  Sources secondaires: ONDA, ONEE, ONCF, IAM...")
-                from app.services.multi_scraper import run_all
-                db     = get_db()
-                known2 = {r[0] for r in db.execute("SELECT id FROM tenders").fetchall()}
-                db.close()
-                multi = await loop.run_in_executor(None, lambda: run_all(known2, State.log))
-                State.found += len(multi)
-                saved2 = _save_tenders(multi, new_tenders)
-                State.saved += saved2
-                State.log(f"✅ Multi-sources: {saved2} nouveaux")
-            except Exception as e:
-                State.log(f"⚠ Multi: {e}")
 
         # ── Marchés privés ─────────────────────────────────
         _t = datetime.now()
@@ -692,7 +677,7 @@ def csrf_guard(req: Request, csrf_token: str = ""):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
-    State.log(f"MAROC ENTREPRENEURIAT v{cfg.APP_VERSION} | Multi-source: {'✅' if MULTI_OK else '❌'}")
+    State.log(f"MAROC ENTREPRENEURIAT v{cfg.APP_VERSION}")
     if cfg.WA_SECRET == "atlas_wa_secret_2024":
         logger.warning("[startup] WA_SECRET utilise sa valeur par défaut — configure-la dans les variables d'environnement Railway.")
     asyncio.create_task(scheduler())
@@ -2255,7 +2240,7 @@ async def admin_panel(req: Request):
         "request":req,"stats":stats,"sectors":sectors,
         "members":members,"scrapes":scrapes,
         "logs":State.logs[-100:],"running":State.running,
-        "last_run":State.last_run,"cfg":cfg,"multi_ok":MULTI_OK,
+        "last_run":State.last_run,"cfg":cfg,"multi_ok":False,
         "member_growth":member_growth,"plan_dist":plan_dist,
         "mrr_estimate":mrr_estimate,"total_active_members":total_active_members,
         "referral_top":referral_top,"recent_errors":recent_errors,"errors_7j":errors_7j,
@@ -3350,21 +3335,13 @@ async def api_secteurs():
 
 @app.get("/api/v1/sources")
 async def api_sources():
-    # Le statut suit la réalité de la collecte: une source n'est « active »
-    # que si un collecteur tourne réellement pour elle.
-    from app.services.multi_scraper import SCRAPERS
-    actives = {nom for nom, _ in SCRAPERS}
-    secondaires = [("ONDA", "semi-public"), ("ONEE", "semi-public"),
-                   ("ONCF", "semi-public"), ("IAM", "semi-private"),
-                   ("SNRT", "semi-public"), ("Le Matin", "journal"),
-                   ("Crédit Agricole", "private"), ("BCP", "private")]
+    # L'inventaire ne liste que les sources réellement collectées: annoncer
+    # une source « désactivée » depuis des mois n'informe personne.
     sources = [
         {"name": "marchespublics.gov.ma — bons de commande", "type": "public", "status": "active"},
         {"name": "marchespublics.gov.ma — appels d'offres",  "type": "public", "status": "active"},
         {"name": "Plateforme privée",                        "type": "private", "status": "active"},
-    ] + [{"name": nom, "type": typ,
-          "status": "active" if (MULTI_OK and nom in actives) else "disabled"}
-         for nom, typ in secondaires]
+    ]
     return {"ok":True,"total":len(sources),"sources":sources}
 
 # ══════════════════════════════════════════════════════════

@@ -1,5 +1,5 @@
 {% extends "base_public.html" %}
-{% block title %}Mentions légales — Maroc Entrepreneuriat{% endblock %}
+{% block title %}{{ 'المعلومات القانونية' if lang == 'ar' else 'Mentions légales' }} — Maroc Entrepreneuriat{% endblock %}
 {% block body %}
 <style>
 .legal-wrap { max-width: 760px; margin: 0 auto; padding: 56px 24px 90px; }
@@ -8,11 +8,38 @@
 .legal-body h2:first-child { margin-top: 0; }
 .legal-body p { font-size: 14.5px; color: var(--text2); line-height: 1.75; margin-bottom: 14px; }
 .legal-body a { color: var(--ink); font-weight: 600; }
-.legal-todo { color: var(--goldd); font-weight: 700; }
 .legal-note { background: var(--surface2); border: 1px solid var(--line); padding: 14px 18px; border-radius: var(--r2); font-size: 13px; color: var(--text3); margin-top: 28px; line-height: 1.6; }
 </style>
 
 <div class="legal-wrap">
+  {# Les pages légales étaient rédigées en français seulement: en arabe, le
+     texte restait français dans une mise en page de droite à gauche, et la
+     ponctuation se retrouvait en début de ligne. Chaque page a désormais sa
+     version arabe complète. #}
+  {% if lang == 'ar' %}
+  <div class="legal-hero">
+    <div class="section-label">معلومات قانونية</div>
+    <h1 class="display-l">المعلومات <em>القانونية</em></h1>
+  </div>
+
+  <div class="legal-body">
+    <h2>ناشر الموقع</h2>
+    <p>
+      موقع Maroc Entrepreneuriat ينشره
+      {% if cfg.COMPANY_NAME %}{{ cfg.COMPANY_NAME }}{% if cfg.COMPANY_FORM %} ({{ cfg.COMPANY_FORM }}){% endif %}{% if cfg.COMPANY_ICE %}، المسجَّل تحت رقم ICE {{ cfg.COMPANY_ICE }}{% endif %}{% if cfg.COMPANY_ADDRESS %}، ومقره {{ cfg.COMPANY_ADDRESS }}{% endif %}.
+      {% else %}فريق Maroc Entrepreneuriat.{% endif %}
+    </p>
+    <p>للتواصل: <a href="mailto:{{ cfg.CONTACT_EMAIL }}">{{ cfg.CONTACT_EMAIL }}</a></p>
+
+    <h2>الملكية الفكرية</h2>
+    <p>جميع عناصر الموقع (النصوص والتصميم وقاعدة البيانات) محمية. أما المعلومات المتعلقة بالصفقات العمومية والخاصة فمصدرها جهات خارجية، وعلى رأسها البوابة الرسمية <a href="https://www.marchespublics.gov.ma" target="_blank" rel="noopener">marchespublics.gov.ma</a>، وتُقدَّم على سبيل الإخبار فقط. لا تضمن Maroc Entrepreneuriat شمولية هذه المعلومات ولا دقتها، وتدعو كل مستعمل إلى التحقق منها لدى المصدر الرسمي قبل اتخاذ أي قرار مُلزِم، كالترشح لصفقة مثلاً.</p>
+  </div>
+
+  <div class="legal-note">
+    هذه الصفحة نموذج عام ولا تُغني عن استشارة قانونية.
+  </div>
+
+  {% else %}
   <div class="legal-hero">
     <div class="section-label">Informations légales</div>
     <h1 class="display-l">Mentions <em>légales</em></h1>
@@ -34,5 +61,6 @@
   <div class="legal-note">
     Cette page est un modèle générique et ne remplace pas un conseil juridique.
   </div>
+  {% endif %}
 </div>
 {% endblock %}

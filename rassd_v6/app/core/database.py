@@ -509,6 +509,12 @@ def seed_source_registry():
         ("tender_results", "derived", "", "", "internal", "n/a", 1, "own_data", 0, "active",
          "Données dérivées des résultats d'adjudication déjà collectés — sert de base à la table companies."),
     ]
+    # Sources retirées définitivement: deux bloquaient les robots (403) et les
+    # autres ne renvoyaient plus que la navigation de leur site. Les laisser
+    # dans le registre ferait croire à une couverture qui n'existe pas.
+    obsoletes = ("ONDA", "ONEE", "ONCF", "IAM", "SNRT", "Le Matin",
+                 "Crédit Agricole", "BCP", "Équipement", "AMMC", "Marsa Maroc",
+                 "RADEEM", "LYDEC", "Min. Santé", "Min. Éducation")
     db = get_db()
     try:
         for r in rows:
@@ -518,6 +524,8 @@ def seed_source_registry():
                     terms_checked,scraping_allowed,api_available,status,last_checked,notes)
                    VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (*r[:10], datetime.now().strftime("%Y-%m-%d"), r[10]))
+        ph = ",".join("?" * len(obsoletes))
+        db.execute(f"DELETE FROM source_registry WHERE source_name IN ({ph})", obsoletes)
         db.commit()
     except Exception as e:
         logger.error(f"[seed_source_registry] {e}")
