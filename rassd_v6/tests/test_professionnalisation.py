@@ -39,6 +39,14 @@ def _marche(db, tid, objet="TRAVAUX DE VOIRIE", secteur="T101", heures=1, statut
     db.commit()
 
 
+def _run_ok(db, il_y_a_heures=1):
+    """Trace une exécution réussie de la veille."""
+    db.execute("""INSERT INTO scraper_runs(source,status,started_at,records_found,
+                  records_saved,errors) VALUES('marchespublics','SUCCESS',?,0,0,0)""",
+               ((datetime.now() - timedelta(hours=il_y_a_heures)).isoformat(),))
+    db.commit()
+
+
 @pytest.fixture()
 def sauvegarde_fraiche(tmp_path, monkeypatch):
     """Isole la vérification des sauvegardes du dossier réel de la machine."""
@@ -49,15 +57,17 @@ def sauvegarde_fraiche(tmp_path, monkeypatch):
 @pytest.mark.usefixtures("sauvegarde_fraiche")
 class TestSupervision:
     def test_veille_arretee_declenche_une_alerte(self, db, monkeypatch):
+        # Aucune exécution récente: la collecte est en panne.
         _marche(db, "t_vieux", heures=30)
         alertes = []
         monkeypatch.setattr(notif, "tg_admin", lambda m: alertes.append(m))
         ind = sup.verifier()
-        assert ind["heures_sans_marche"] > 6
-        assert alertes and "Aucun marché collecté" in alertes[0]
+        assert ind["runs_ok_3h"] == 0
+        assert alertes and "ne s'exécute plus" in alertes[0]
 
     def test_veille_normale_ne_reveille_personne(self, db, monkeypatch):
         _marche(db, "t_frais", heures=1)
+        _run_ok(db)
         alertes = []
         monkeypatch.setattr(notif, "tg_admin", lambda m: alertes.append(m))
         sup.verifier()
@@ -73,6 +83,7 @@ class TestSupervision:
 
     def test_collectes_en_echec_signalees(self, db, monkeypatch):
         _marche(db, "t_frais", heures=1)
+        _run_ok(db)
         for i in range(3):
             db.execute("""INSERT INTO scraper_runs(source,status,started_at,records_found,
                           records_saved,errors) VALUES('marchespublics','FAILED',?,0,0,1)""",
@@ -85,6 +96,7 @@ class TestSupervision:
 
     def test_bilan_quotidien_chiffre(self, db, monkeypatch):
         _marche(db, "t_frais", heures=1)
+        _run_ok(db)
         _membre(db)
         envois = []
         monkeypatch.setattr(notif, "tg_admin", lambda m: envois.append(m))
