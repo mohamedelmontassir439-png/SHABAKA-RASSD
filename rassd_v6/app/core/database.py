@@ -357,6 +357,15 @@ CREATE INDEX IF NOT EXISTS idx_t_type     ON tenders(type_offre);
 CREATE INDEX IF NOT EXISTS idx_t_proc     ON tenders(type_procedure);
 CREATE INDEX IF NOT EXISTS idx_m_email    ON members(email);
 CREATE INDEX IF NOT EXISTS idx_fav_member ON favorites(member_id);
+-- La déduplication des alertes interroge notif_log pour CHAQUE couple
+-- membre × marché. Sans index, SQLite parcourait toute la table à chaque
+-- vérification: des dizaines de milliers de lignes lues par cycle de veille.
+CREATE INDEX IF NOT EXISTS idx_nl_membre_marche ON notif_log(member_id, tender_id);
+CREATE INDEX IF NOT EXISTS idx_nl_tender        ON notif_log(tender_id);
+CREATE INDEX IF NOT EXISTS idx_nl_sent          ON notif_log(sent_at DESC);
+-- Index composite pour la requête la plus fréquente du site: les marchés
+-- ouverts d'un secteur, du plus récent au plus ancien.
+CREATE INDEX IF NOT EXISTS idx_t_actif_secteur  ON tenders(statut, secteur, scraped_at DESC);
 CREATE INDEX IF NOT EXISTS idx_r_scraped  ON tender_results(scraped_at DESC);
 CREATE INDEX IF NOT EXISTS idx_r_secteur  ON tender_results(secteur);
 CREATE INDEX IF NOT EXISTS idx_sp_statut  ON subcontract_posts(statut);

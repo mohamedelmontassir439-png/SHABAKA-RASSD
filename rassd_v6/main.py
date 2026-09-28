@@ -57,11 +57,22 @@ def get_ip(req: Request) -> str:
     à chaque requête). Seul le DERNIER élément (ajouté par le proxy Railway,
     le plus proche de nous) est fiable.
     """
+    # Constaté en production: prendre le DERNIER élément de X-Forwarded-For
+    # revenait à compter par nœud de l'hébergeur, lequel change d'une requête
+    # à l'autre. Le compteur anti-force-brute se dispersait et ne déclenchait
+    # qu'au hasard (12 tentatives de connexion → 9 bloquées, mais 8
+    # inscriptions → 1 seule bloquée). X-Real-IP est posé par le proxy
+    # lui-même et désigne le vrai client; il ne peut pas être falsifié de
+    # l'extérieur puisque le proxy écrase ce que le client aurait envoyé.
+    for entete in ("x-real-ip", "cf-connecting-ip"):
+        valeur = req.headers.get(entete, "").strip()
+        if valeur:
+            return valeur
     xff = req.headers.get("x-forwarded-for", "")
     if xff:
         parts = [p.strip() for p in xff.split(",") if p.strip()]
         if parts:
-            return parts[-1]
+            return parts[0]
     return req.client.host if req.client else "unknown"
 
 # Cookies "Secure" en production (HTTPS) — désactivé seulement si SITE_URL
@@ -3033,6 +3044,53 @@ async def invitation_post(req: Request, token: str, email: str = Form(""),
     resp.set_cookie("_session", session_tok, max_age=86400 * 30, httponly=True,
                     samesite="lax", secure=COOKIE_SECURE)
     return resp
+
+
+@app.get("/admin/nettoyer-doublons")
+async def admin_nettoyer_doublons(req: Request, appliquer: int = 0):
+    """Clôture les doublons antérieurs au filtre d'enregistrement.
+
+    Le filtre pose une empreinte sur les nouveaux marchés, mais 56 groupes
+    existaient déjà — jusqu'à 17 copies d'une même consultation venue de la
+    même source. On garde l'exemplaire le plus complet (montant, acheteur,
+    région renseignés) et le plus récent; les autres passent en « expire »
+    plutôt que d'être détruits, pour rester traçables.
+    """
+    if not _is_admin(req): return JSONResponse({"ok": False}, 401)
+    db = get_db()
+    groupes, clos = 0, 0
+    try:
+        lignes = db.execute(
+            """SELECT id, objet, date_limite, montant, acheteur, region, scraped_at
+               FROM tenders WHERE statut='actif'""").fetchall()
+        paquets = {}
+        for r in lignes:
+            paquets.setdefault((_empreinte(r["objet"]), (r["date_limite"] or "").strip()),
+                               []).append(dict(r))
+        for cle, lot in paquets.items():
+            if not cle[0] or len(lot) < 2:
+                continue
+            groupes += 1
+            # Le meilleur exemplaire d'abord: le plus renseigné, et à égalité
+            # le plus récemment collecté.
+            lot.sort(key=lambda t: (
+                sum(1 for c in ("montant", "acheteur", "region") if (t.get(c) or "").strip()),
+                t.get("scraped_at") or ""), reverse=True)
+            garde = lot[0]
+            for t in lot:
+                if t["id"] == garde["id"]:
+                    continue
+                if appliquer:
+                    db.execute("UPDATE tenders SET statut='expire' WHERE id=?", (t["id"],))
+                clos += 1
+        if appliquer:
+            db.commit()
+    finally:
+        db.close()
+    logger.info(f"[doublons] {groupes} groupe(s), {clos} exemplaire(s) "
+                f"{'clôturés' if appliquer else 'à clôturer'}")
+    return JSONResponse({"ok": True, "groupes": groupes, "exemplaires": clos,
+                         "applique": bool(appliquer)})
 
 
 @app.get("/admin/import-archive")

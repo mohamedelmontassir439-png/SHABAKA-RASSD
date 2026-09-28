@@ -49,14 +49,23 @@ def collecter_indicateurs() -> dict:
         ind = {
             "dernier_marche": dernier,
             "heures_sans_marche": round(heures, 1),
+            # Les dates des journaux sont écrites au format ISO avec un « T »;
+            # SQLite compare des chaînes, d'où la normalisation systématique.
+            # Ce qui compte n'est pas qu'un marché paraisse — les acheteurs ne
+            # publient rien la nuit — mais que la collecte tourne. Une veille
+            # muette faute de publication est normale; une veille qui ne
+            # s'exécute plus est une panne.
+            "runs_ok_3h": _un(db, """SELECT COUNT(*) FROM scraper_runs
+                                     WHERE status='SUCCESS'
+                                       AND REPLACE(started_at,'T',' ')>=datetime('now','-3 hours')"""),
             "marches_actifs": _un(db, "SELECT COUNT(*) FROM tenders WHERE statut='actif'"),
             "marches_24h": _un(db, "SELECT COUNT(*) FROM tenders WHERE scraped_at>=datetime('now','-24 hours')"),
             "runs_echec_24h": _un(db, """SELECT COUNT(*) FROM scraper_runs
-                                         WHERE status='FAILED' AND started_at>=datetime('now','-24 hours')"""),
+                                         WHERE status='FAILED' AND REPLACE(started_at,'T',' ')>=datetime('now','-24 hours')"""),
             "notif_ok_24h": _un(db, """SELECT COUNT(*) FROM notif_log
-                                       WHERE status='SENT' AND sent_at>=datetime('now','-24 hours')"""),
+                                       WHERE status='SENT' AND REPLACE(sent_at,'T',' ')>=datetime('now','-24 hours')"""),
             "notif_echec_24h": _un(db, """SELECT COUNT(*) FROM notif_log
-                                          WHERE status='FAILED' AND sent_at>=datetime('now','-24 hours')"""),
+                                          WHERE status='FAILED' AND REPLACE(sent_at,'T',' ')>=datetime('now','-24 hours')"""),
             "membres": _un(db, "SELECT COUNT(*) FROM members WHERE actif=1"),
             "essais": _un(db, "SELECT COUNT(*) FROM members WHERE subscription_status='TRIAL' AND actif=1"),
             "abonnes": _un(db, "SELECT COUNT(*) FROM members WHERE subscription_status='ACTIVE' AND actif=1"),
@@ -68,7 +77,7 @@ def collecter_indicateurs() -> dict:
         }
         try:
             ind["erreurs_24h"] = _un(db, """SELECT COUNT(*) FROM error_log
-                                            WHERE created_at>=datetime('now','-24 hours')""")
+                                            WHERE REPLACE(created_at,'T',' ')>=datetime('now','-24 hours')""")
         except Exception:
             pass
     finally:
@@ -91,9 +100,13 @@ def collecter_indicateurs() -> dict:
 def anomalies(ind: dict) -> list:
     """Ce qui mérite de réveiller quelqu'un, formulé en clair."""
     alertes = []
-    if ind["heures_sans_marche"] > HEURES_SANS_MARCHE:
-        alertes.append(f"Aucun marché collecté depuis {ind['heures_sans_marche']} h "
-                       f"(dernier : {ind['dernier_marche'][:16] or 'jamais'})")
+    # La collecte tourne toutes les heures: trois heures sans la moindre
+    # exécution réussie signalent une vraie panne. Se fier à l'arrivée de
+    # nouveaux marchés produisait une alerte chaque nuit, quand les acheteurs
+    # publics ne publient rien — 15 fausses alertes en une semaine.
+    if ind["runs_ok_3h"] == 0:
+        alertes.append("La collecte ne s'exécute plus depuis au moins 3 h "
+                       f"(dernier marché reçu : {ind['dernier_marche'][:16] or 'jamais'})")
     if ind["runs_echec_24h"] >= ECHECS_RUNS_ALERTE:
         alertes.append(f"{ind['runs_echec_24h']} collecte(s) en échec sur 24 h")
     if ind["notif_echec_24h"] >= ECHECS_NOTIF_ALERTE:
@@ -145,7 +158,7 @@ def verifier(envoyer_bilan: bool = False) -> dict:
             signature = " | ".join(problemes)[:300]
             deja = db.execute(
                 """SELECT COUNT(*) FROM notif_log WHERE channel='supervision'
-                   AND error=? AND sent_at>=datetime('now','-6 hours')""",
+                   AND error=? AND REPLACE(sent_at,'T',' ')>=datetime('now','-6 hours')""",
                 (signature,)).fetchone()[0]
             if not deja:
                 tg_admin("🚨 <b>Alerte plateforme</b>\n\n• " + "\n• ".join(problemes)
