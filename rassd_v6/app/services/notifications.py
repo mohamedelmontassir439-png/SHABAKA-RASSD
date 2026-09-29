@@ -301,6 +301,86 @@ def send_weekly_digests(force: bool = False) -> int:
         db.close()
     return sent
 
+def send_daily_digests(force: bool = False) -> int:
+    """Un seul email par jour et par membre, avec tous ses marchés de la veille.
+
+    Sans cela, un membre suivant un secteur actif reçoit jusqu'à 48 emails
+    par jour: insupportable pour lui, et intenable côté quota d'envoi.
+    """
+    from datetime import timedelta
+    db, envoyes = get_db(), 0
+    try:
+        membres = [dict(m) for m in db.execute(
+            """SELECT * FROM members WHERE actif=1 AND notif_email=1 AND email_verified=1
+               AND notif_rythme='quotidien'""").fetchall()]
+        for membre in membres:
+            if not has_access(membre):
+                continue
+            dernier = membre.get("last_daily_digest") or ""
+            if dernier[:10] == datetime.now().strftime("%Y-%m-%d"):
+                continue
+            lignes = db.execute(
+                """SELECT t.* FROM notif_queue q JOIN tenders t ON t.id=q.tender_id
+                   WHERE q.member_id=? AND t.statut='actif'
+                   ORDER BY q.created_at ASC LIMIT 60""", (membre["id"],)).fetchall()
+            if not lignes:
+                continue
+            marches = [dict(r) for r in lignes]
+            html = build_digest_email(marches, membre.get("nom", ""))
+            ok = email_send(membre["email"],
+                            f"📋 {len(marches)} marché(s) dans vos secteurs aujourd'hui", html)
+            _log_notif(db, membre["id"], f"quotidien:{datetime.now():%Y-%m-%d}", "email", ok,
+                       "" if ok else "échec résumé quotidien",
+                       "brevo" if cfg.BREVO_KEY else "gmail")
+            if ok:
+                db.execute("DELETE FROM notif_queue WHERE member_id=?", (membre["id"],))
+                db.execute("UPDATE members SET last_daily_digest=? WHERE id=?",
+                           (datetime.now().isoformat(), membre["id"]))
+                envoyes += 1
+            db.commit()
+    except Exception as e:
+        logger.error(f"[résumé quotidien] {e}", exc_info=True)
+    finally:
+        db.close()
+    if envoyes:
+        logger.info(f"[résumé quotidien] {envoyes} email(s) groupé(s)")
+    return envoyes
+
+
+def traiter_evenement_brevo(evenement: dict) -> str:
+    """Applique un événement de livraison reçu de Brevo.
+
+    Une adresse qui rebondit définitivement ou qui nous classe en spam doit
+    cesser d'être sollicitée immédiatement: continuer à lui écrire fait
+    chuter la réputation du domaine, et donc la livraison de TOUS les autres.
+    """
+    type_ev = (evenement.get("event") or "").strip()
+    adresse = (evenement.get("email") or "").strip().lower()
+    if not adresse:
+        return "ignoré"
+
+    coupures = {"hard_bounce": "adresse inexistante", "hardBounce": "adresse inexistante",
+                "spam": "plainte pour spam", "blocked": "adresse bloquée",
+                "invalid_email": "adresse invalide", "invalid": "adresse invalide",
+                "unsubscribed": "désinscription"}
+    if type_ev not in coupures:
+        return "ignoré"
+
+    db = get_db()
+    try:
+        membre = db.execute("SELECT id FROM members WHERE LOWER(email)=?", (adresse,)).fetchone()
+        if not membre:
+            return "inconnu"
+        db.execute("UPDATE members SET notif_email=0 WHERE id=?", (membre["id"],))
+        _log_notif(db, membre["id"], f"brevo:{type_ev}", "email", False,
+                   coupures[type_ev][:300], "brevo")
+        db.commit()
+        logger.warning(f"[brevo] {adresse}: {coupures[type_ev]} — alertes email coupées")
+        return "coupé"
+    finally:
+        db.close()
+
+
 # ── Dispatch principal ────────────────────────────────────
 
 def dispatch_notifications(tenders: list, max_par_membre: int = 40):
@@ -348,7 +428,7 @@ def dispatch_notifications(tenders: list, max_par_membre: int = 40):
                 now = datetime.now().isoformat()
 
                 # Digest hebdomadaire : mise en file, envoyée groupée le lundi
-                if member.get("notif_digest"):
+                if member.get("notif_digest") or (member.get("notif_rythme") or "direct") != "direct":
                     db.execute(
                         "INSERT OR IGNORE INTO notif_queue(member_id,tender_id,created_at) VALUES(?,?,?)",
                         (member["id"], t["id"], now))
@@ -365,9 +445,13 @@ def dispatch_notifications(tenders: list, max_par_membre: int = 40):
 
                 # Email — une adresse non confirmée n'a jamais prouvé son
                 # existence: lui écrire ne fait qu'accumuler des rebonds, ce
-                # qui dégrade la réputation d'envoi du domaine.
+                # qui dégrade la réputation d'envoi du domaine. Et un membre
+                # qui a choisi le résumé quotidien ne reçoit rien marché par
+                # marché: tout part groupé le lendemain matin (un secteur actif
+                # publie jusqu'à 48 marchés par jour — autant d'emails).
                 if (member.get("notif_email") and member.get("email")
-                        and member.get("email_verified", 1)):
+                        and member.get("email_verified", 1)
+                        and (member.get("notif_rythme") or "direct") == "direct"):
                     html = build_email(t, member.get("nom", ""))
                     ok   = email_send(
                         member["email"],

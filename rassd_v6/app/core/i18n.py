@@ -717,6 +717,12 @@ T = {
                              "ar": "وثيقة مساعدة أُعدّت تلقائياً انطلاقاً من العرض المعتمد. لا تُغني عن المطبوع الذي يطلبه صاحب المشروع ولا عن استشارة قانونية. تنظيم الصفقات العمومية يؤطّر المناولة (النسبة القصوى، الخدمات غير القابلة للمناولة، موافقة صاحب المشروع): تحقق من النص الجاري به العمل ومن دفتر التحملات قبل إيداع هذا التصريح."},
 
     # ── Bons de commande: quantité au lieu d'un montant absent ──────
+    "set_rythme_h":         {"fr": "Rythme des alertes email", "ar": "إيقاع التنبيهات بالبريد"},
+    "set_rythme_sub":       {"fr": "Un secteur actif publie jusqu'à 48 marchés par jour.", "ar": "المجال النشط تُنشر فيه حتى 48 صفقة يومياً."},
+    "set_rythme_direct":    {"fr": "Un email par marché", "ar": "رسالة لكل صفقة"},
+    "set_rythme_direct_desc": {"fr": "Vous êtes averti dans la minute, marché par marché.", "ar": "يصلك التنبيه خلال دقيقة، صفقة بصفقة."},
+    "set_rythme_quotidien": {"fr": "Un seul email par jour", "ar": "رسالة واحدة في اليوم"},
+    "set_rythme_quotidien_desc": {"fr": "Tous vos marchés regroupés, chaque matin.", "ar": "كل صفقاتك مجمَّعة، كل صباح."},
     "bc_quantite":          {"fr": "Quantité :", "ar": "الكمية:"},
     "detail_quantite":      {"fr": "Quantité commandée", "ar": "الكمية المطلوبة"},
     "detail_nature":        {"fr": "Nature de la prestation", "ar": "نوع الخدمة"},

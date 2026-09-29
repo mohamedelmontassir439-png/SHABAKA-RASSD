@@ -91,6 +91,11 @@ class Settings:
     # pas d'abord ouvert https://.../<ADMIN_GATE> — une page qui n'existe pas
     # n'est ni scannée, ni attaquée par force brute.
     ADMIN_GATE: str = os.getenv("ADMIN_GATE", "")
+    # Jeton attendu dans l'URL du webhook Brevo (?t=...). Vide = pas de
+    # contrôle, à réserver au développement local.
+    BREVO_WEBHOOK_TOKEN: str = os.getenv("BREVO_WEBHOOK_TOKEN", "")
+    # Heure d'envoi du résumé quotidien des marchés aux membres.
+    DAILY_DIGEST_HOUR: int = int(os.getenv("DAILY_DIGEST_HOUR", "7"))
     # Heure d'envoi du bilan quotidien de supervision (heure du serveur).
     DAILY_REPORT_HOUR: int = int(os.getenv("DAILY_REPORT_HOUR", "8"))
     # Essai gratuit (jours) accordé à chaque nouvelle inscription

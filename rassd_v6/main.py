@@ -405,6 +405,21 @@ async def supervision_scheduler():
         await asyncio.sleep(3600)
 
 
+async def daily_digest_scheduler():
+    """Envoie les résumés quotidiens le matin, heure du Maroc."""
+    from app.services.notifications import send_daily_digests
+    await asyncio.sleep(240)
+    while True:
+        try:
+            if datetime.now().hour >= cfg.DAILY_DIGEST_HOUR:
+                loop = asyncio.get_event_loop()
+                n = await loop.run_in_executor(None, send_daily_digests)
+                if n: logger.info(f"[résumé quotidien] {n} envoi(s)")
+        except Exception as e:
+            logger.error(f"[daily_digest_scheduler] {e}")
+        await asyncio.sleep(1800)
+
+
 async def renewal_scheduler():
     """Relance les abonnements qui arrivent à échéance (J-7, J-1, jour J)."""
     from app.services.notifications import send_renewal_reminders
@@ -585,6 +600,7 @@ CHEMINS_LIBRES_EXACTS = frozenset((
     "/", "/login", "/register", "/logout", "/forgot", "/reset", "/tarifs",
     "/contact", "/cgu", "/confidentialite", "/mentions-legales", "/health",
     "/robots.txt", "/sitemap.xml", "/manifest.json", "/sw.js",
+    "/webhooks/brevo",
 ))
 CHEMINS_LIBRES_PREFIXES = (
     "/verifier-email", "/settings", "/static", "/admin", "/icon-",
@@ -698,6 +714,7 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(trial_sequence_scheduler())
     asyncio.create_task(supervision_scheduler())
     asyncio.create_task(renewal_scheduler())
+    asyncio.create_task(daily_digest_scheduler())
     yield
 
 app = FastAPI(lifespan=lifespan, title=cfg.APP_NAME,
@@ -1892,6 +1909,10 @@ async def settings_post(req: Request,
     n_tg     = 1 if form.get("notif_tg")     else 0
     n_digest = 1 if form.get("notif_digest") else 0
     n_wa     = 1 if form.get("notif_wa")     else 0
+    # Rythme des alertes email: un message par marché, ou un seul par jour.
+    rythme   = form.get("notif_rythme", "direct")
+    if rythme not in ("direct", "quotidien"):
+        rythme = "direct"
     whatsapp = form.get("whatsapp","").strip()
     sects    = clean_secteurs(secteurs_sel)
     # Filtres du moteur de correspondance
@@ -1911,10 +1932,10 @@ async def settings_post(req: Request,
     try:
         db.execute(
             """UPDATE members SET nom=?,phone=?,company=?,telegram=?,whatsapp=?,
-               notif_email=?,notif_tg=?,notif_wa=?,notif_digest=?,secteurs=?,
-               notif_regions=?,notif_types=?,notif_keywords=?,notif_min_budget=?,
-               whatsapp_verified=? WHERE id=?""",
-            (nom,phone,company,telegram.strip(),whatsapp,n_email,n_tg,n_wa,n_digest,
+               notif_email=?,notif_tg=?,notif_wa=?,notif_digest=?,notif_rythme=?,
+               secteurs=?,notif_regions=?,notif_types=?,notif_keywords=?,
+               notif_min_budget=?,whatsapp_verified=? WHERE id=?""",
+            (nom,phone,company,telegram.strip(),whatsapp,n_email,n_tg,n_wa,n_digest,rythme,
              json.dumps(sects),json.dumps(regions),json.dumps(types),keywords,min_budget,
              wa_verified,member["id"]))
         db.commit()
@@ -3555,6 +3576,30 @@ async def marches_secteur(req: Request, slug: str):
     proches = [p for p in pages if p["code"] != page["code"] and p["n"]][:8]
     return render(req, "seo_secteur.html",
                   {"page": page, "apercu": apercu, "villes": villes, "proches": proches})
+
+
+@app.post("/webhooks/brevo")
+async def webhook_brevo(req: Request):
+    """Événements de livraison envoyés par Brevo (rebonds, spam, blocages).
+
+    Une adresse qui rebondit définitivement, ou dont le titulaire nous classe
+    en spam, doit cesser d'être sollicitée sur-le-champ: s'entêter fait
+    chuter la réputation du domaine et emporte la livraison de tous les
+    autres messages. L'URL porte un jeton, sans quoi n'importe qui pourrait
+    couper les alertes d'un membre en connaissant son adresse.
+    """
+    if cfg.BREVO_WEBHOOK_TOKEN and req.query_params.get("t") != cfg.BREVO_WEBHOOK_TOKEN:
+        return JSONResponse({"ok": False}, 403)
+    try:
+        evenement = await req.json()
+    except Exception:
+        return JSONResponse({"ok": False, "msg": "corps illisible"}, 400)
+    from app.services.notifications import traiter_evenement_brevo
+    loop = asyncio.get_event_loop()
+    resultat = await loop.run_in_executor(None, lambda: traiter_evenement_brevo(evenement))
+    # Toujours 200: un code d'erreur ferait retenter Brevo indéfiniment pour
+    # un événement qui, de notre côté, n'appelle aucune action.
+    return JSONResponse({"ok": True, "traitement": resultat})
 
 
 @app.get("/sitemap.xml")

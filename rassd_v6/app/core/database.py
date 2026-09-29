@@ -459,6 +459,11 @@ def migrate_db():
         "ALTER TABLE tenders ADD COLUMN quantite TEXT DEFAULT ''",
         # Séquence d'emails pendant l'essai gratuit (étape déjà envoyée)
         "ALTER TABLE members ADD COLUMN trial_seq INTEGER DEFAULT 0",
+        # Rythme des alertes email: « direct » (un email par marché) ou
+        # « quotidien » (un seul email groupé le matin). Un secteur actif
+        # publie jusqu'à 48 marchés par jour: le choix est vital.
+        "ALTER TABLE members ADD COLUMN notif_rythme TEXT DEFAULT 'direct'",
+        "ALTER TABLE members ADD COLUMN last_daily_digest TEXT DEFAULT ''",
         # Une annonce de sous-traitance née d'un marché garde le lien vers lui:
         # l'objet, l'acheteur et l'échéance viennent alors de la source.
         "ALTER TABLE subcontract_posts ADD COLUMN tender_id TEXT DEFAULT ''",

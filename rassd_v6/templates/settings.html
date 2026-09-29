@@ -148,6 +148,23 @@
         </div>
       </label>
       {% endfor %}
+
+      {# Un secteur actif publie jusqu'à 48 marchés par jour: recevoir un
+         email par marché devient vite insupportable. #}
+      <div class="set-block-h" style="margin-top:22px">{{ tr('set_rythme_h') }}</div>
+      <div class="set-block-sub">{{ tr('set_rythme_sub') }}</div>
+      {% for val, label, desc in [
+        ('direct', tr('set_rythme_direct'), tr('set_rythme_direct_desc')),
+        ('quotidien', tr('set_rythme_quotidien'), tr('set_rythme_quotidien_desc'))] %}
+      <label class="notif-channel">
+        <input type="radio" name="notif_rythme" value="{{ val }}"
+               {% if (member.notif_rythme or 'direct') == val %}checked{% endif %} class="notif-checkbox">
+        <div class="notif-content">
+          <div class="notif-title">{{ label }}</div>
+          <div class="notif-desc">{{ desc }}</div>
+        </div>
+      </label>
+      {% endfor %}
     </section>
 
     <section class="set-block">
