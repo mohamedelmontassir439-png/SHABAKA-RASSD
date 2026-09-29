@@ -102,3 +102,73 @@ class TestRattrapage:
         # Le reste part au passage suivant: rien n'est perdu.
         notif.dispatch_pending()
         assert len(envois) == 50
+
+
+class TestConvergenceDuRattrapage:
+    """Un marché que personne n'a demandé ne doit pas revenir chaque cycle.
+
+    Le rattrapage sélectionnait les marchés dépourvus de ligne dans
+    notif_log. Or un marché écarté par les filtres n'en produit aucune: il
+    était repris indéfiniment. Constaté en production le 29/09/2026, dans les
+    journaux: « 400 marché(s) sans alerte — reprise » puis « 400 filtrés », à
+    chaque cycle, 400 étant exactement le plafond de la requête.
+    """
+
+    def test_marche_sans_preneur_nest_repris_quune_fois(self, db, envois):
+        _membre(db, secteurs='["T101"]')
+        _marche(db, "bdc_hors_secteur", secteur="T999")
+
+        assert notif.dispatch_pending() == 1, "premier passage: le marché est évalué"
+        assert envois == [], "aucun membre ne le demande"
+        assert notif.dispatch_pending() == 0, "il ne revient pas au passage suivant"
+
+    def test_marche_reporte_par_le_plafond_reste_repechable(self, db, envois):
+        # Le marquage ne doit pas avaler ce que le plafond par passage a
+        # simplement remis à plus tard.
+        _membre(db)
+        for i in range(50):
+            _marche(db, f"bdc_p_{i}")
+        notif.dispatch_pending()
+        assert len(envois) == 40
+        assert notif.dispatch_pending() == 10, "le reste est toujours en attente"
+        assert len(envois) == 50
+
+    def test_les_plus_anciens_passent_en_premier(self, db, envois):
+        # La fenêtre étant plafonnée, on sert d'abord ce qui est le plus près
+        # de sortir des 48 heures — sinon un marché ancien n'entre jamais.
+        _membre(db)
+        _marche(db, "bdc_recent", minutes=5)
+        _marche(db, "bdc_ancien", minutes=60 * 40)
+        notif.dispatch_pending(limite=1)
+        assert len(envois) == 1
+        assert "bdc_ancien" in db.execute(
+            "SELECT tender_id FROM notif_log ORDER BY id DESC LIMIT 1").fetchone()[0]
+
+    def test_un_nouveau_membre_recoit_les_marches_deja_evalues(self, db, envois):
+        # Sans réouverture, un marché évalué avant l'arrivée du membre lui
+        # resterait invisible alors qu'il est encore ouvert.
+        _marche(db, "bdc_avant")
+        notif.dispatch_pending()
+        assert envois == []
+
+        _membre(db, email="nouveau@example.com")
+        assert notif.rouvrir_rattrapage() == 1
+        notif.dispatch_pending()
+        assert len(envois) == 1
+
+    def test_la_reouverture_ne_renvoie_pas_aux_deja_servis(self, db, envois):
+        _membre(db)
+        _marche(db, "bdc_servi")
+        notif.dispatch_pending()
+        assert len(envois) == 1
+
+        notif.rouvrir_rattrapage()
+        notif.dispatch_pending()
+        assert len(envois) == 1, "notif_log empêche le doublon"
+
+    def test_la_reouverture_ignore_les_marches_hors_fenetre(self, db, envois):
+        _membre(db)
+        _marche(db, "bdc_vieux2", minutes=60 * 24 * 5)
+        db.execute("UPDATE tenders SET alertes_faites_at='2026-01-01' WHERE id='bdc_vieux2'")
+        db.commit()
+        assert notif.rouvrir_rattrapage(heures=48) == 0

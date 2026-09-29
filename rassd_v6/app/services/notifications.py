@@ -399,6 +399,11 @@ def dispatch_notifications(tenders: list, max_par_membre: int = 40):
             "SELECT * FROM members WHERE actif=1"
         ).fetchall()
         total_tg = total_email = total_wa = total_skip = 0
+        # Un marché est « traité » quand tous les membres concernés l'ont vu
+        # passer devant leur filtre. S'il en reste un pour qui le plafond par
+        # passage a coupé court, le marché doit rester repêchable: le marquer
+        # comme traité le ferait disparaître sans qu'aucune alerte ne parte.
+        reportes = set()
 
         for m in members:
             envoyes_ce_membre = 0
@@ -408,7 +413,7 @@ def dispatch_notifications(tenders: list, max_par_membre: int = 40):
             # principe que le blocage appliqué aux pages du site.
             if not has_access(member):
                 continue
-            for t in tenders:
+            for rang, t in enumerate(tenders):
                 # Moteur de correspondance: secteur, région, type, budget
                 # minimum et mots-clés (un filtre vide = aucune restriction).
                 ok_match, _reason = matches(member, t)
@@ -422,6 +427,7 @@ def dispatch_notifications(tenders: list, max_par_membre: int = 40):
                 ).fetchone():
                     continue
                 if envoyes_ce_membre >= max_par_membre:
+                    reportes.update(str(x["id"]) for x in tenders[rang:])
                     break
 
                 envoyes_ce_membre += 1
@@ -484,6 +490,14 @@ def dispatch_notifications(tenders: list, max_par_membre: int = 40):
                             (member["id"], t["id"], now))
                         total_wa += 1
 
+        traites = [str(t["id"]) for t in tenders if str(t["id"]) not in reportes]
+        if traites:
+            maintenant = datetime.now().isoformat()
+            for debut in range(0, len(traites), 500):
+                lot = traites[debut:debut + 500]
+                db.execute(
+                    "UPDATE tenders SET alertes_faites_at=? WHERE id IN (%s)"
+                    % ",".join("?" * len(lot)), [maintenant] + lot)
         db.commit()
         logger.info(
             f"[Notif] ✅ {total_tg} TG + {total_email} Email + {total_wa} WhatsApp en file "
@@ -719,6 +733,36 @@ def send_renewal_reminders(now=None) -> int:
 
 # ── Rattrapage des alertes manquées ───────────────────────
 
+def rouvrir_rattrapage(heures: int = 48) -> int:
+    """Rend à nouveau évaluables les marchés récents déjà traités.
+
+    Le marquage pose une question: un marché écarté parce qu'aucun filtre ne
+    le retenait ne repasse plus jamais devant le moteur. Si un membre arrive,
+    ou affine ses secteurs, il ne verrait rien de ce qui a été collecté avant
+    son inscription — alors que ce sont précisément les marchés encore
+    ouverts qui l'intéressent. On efface donc le marquage sur la fenêtre de
+    rattrapage à chaque inscription et à chaque changement de filtres.
+
+    La déduplication par notif_log reste en place: les membres déjà servis ne
+    reçoivent rien en double.
+    """
+    db = get_db()
+    try:
+        cur = db.execute(
+            """UPDATE tenders SET alertes_faites_at=''
+               WHERE statut='actif'
+                 AND scraped_at >= datetime('now', ?)
+                 AND COALESCE(alertes_faites_at,'') <> ''""",
+            (f"-{int(heures)} hours",))
+        db.commit()
+        return cur.rowcount or 0
+    except Exception as e:
+        logger.error(f"[rattrapage] réouverture impossible: {e}")
+        return 0
+    finally:
+        db.close()
+
+
 def dispatch_pending(heures: int = 48, limite: int = 400) -> int:
     """Renvoie les marchés récents qu'aucune alerte n'a encore couverts.
 
@@ -726,7 +770,18 @@ def dispatch_pending(heures: int = 48, limite: int = 400) -> int:
     cours, gardés en mémoire: un redémarrage du serveur entre l'écriture en
     base et l'envoi les perdait définitivement, et un import lancé depuis
     l'admin n'alertait personne. On repart donc de la base, seule source
-    fiable: tout marché actif récent sans ligne dans notif_log est repris.
+    fiable: tout marché actif récent jamais passé devant le moteur de
+    correspondance est repris.
+
+    Le critère a été « aucune ligne dans notif_log ». Un marché qu'aucun
+    filtre ne retient n'en produit pourtant aucune, si bien qu'il revenait à
+    chaque cycle. Mesuré en production le 29/09/2026: 400 marchés repris
+    toutes les heures, 400 écartés, soit exactement le plafond de la requête
+    — les marchés non pertinents occupaient toute la fenêtre, et une alerte
+    réellement manquée plus ancienne n'avait aucune chance d'y entrer avant
+    de sortir des 48 heures. D'où le marquage explicite par
+    dispatch_notifications, et le tri du plus ancien au plus récent: si une
+    réserve subsiste, on traite d'abord ce qui est le plus près d'expirer.
     """
     db = get_db()
     try:
@@ -734,8 +789,8 @@ def dispatch_pending(heures: int = 48, limite: int = 400) -> int:
             """SELECT t.* FROM tenders t
                WHERE t.statut='actif'
                  AND t.scraped_at >= datetime('now', ?)
-                 AND NOT EXISTS (SELECT 1 FROM notif_log n WHERE n.tender_id = t.id)
-               ORDER BY t.scraped_at DESC LIMIT ?""",
+                 AND COALESCE(t.alertes_faites_at,'') = ''
+               ORDER BY t.scraped_at ASC LIMIT ?""",
             (f"-{int(heures)} hours", limite)).fetchall()]
     finally:
         db.close()

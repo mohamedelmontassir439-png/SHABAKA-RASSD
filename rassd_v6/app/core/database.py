@@ -472,6 +472,13 @@ def migrate_db():
         "ALTER TABLE notif_log ADD COLUMN status TEXT DEFAULT 'SENT'",
         "ALTER TABLE notif_log ADD COLUMN error TEXT DEFAULT ''",
         "ALTER TABLE notif_log ADD COLUMN provider TEXT DEFAULT ''",
+        # Horodatage du passage devant le moteur de correspondance. Le
+        # rattrapage se fondait sur l'absence de ligne dans notif_log, mais un
+        # marché qu'aucun filtre ne retient n'en produit aucune: il était donc
+        # resélectionné à chaque cycle, indéfiniment. La requête étant
+        # plafonnée, ces marchés occupaient la fenêtre en permanence et une
+        # alerte réellement manquée, plus ancienne, n'était jamais reprise.
+        "ALTER TABLE tenders ADD COLUMN alertes_faites_at TEXT DEFAULT ''",
     ]
     for col in cols:
         try:
@@ -483,6 +490,15 @@ def migrate_db():
                 logger.warning(f"[migrate] {col[:50]}...: {e}")
         except Exception as e:
             logger.error(f"[migrate] Erreur inattendue: {e}")
+
+    # Posé après les ALTER: l'index porte sur une colonne que la boucle
+    # ci-dessus vient seulement d'ajouter aux bases existantes.
+    try:
+        db.execute("CREATE INDEX IF NOT EXISTS idx_t_rattrapage "
+                   "ON tenders(statut, alertes_faites_at, scraped_at)")
+        db.commit()
+    except Exception as e:
+        logger.warning(f"[migrate] index rattrapage: {e}")
 
     # La colonne email_token n'est ajoutée qu'une fois: sa création sert de
     # marqueur pour dater l'arrivée de la vérification par email. Les comptes

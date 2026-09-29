@@ -1802,6 +1802,11 @@ async def verifier_email(req: Request, token: str = "", envoye: int = 0, requis:
                       email_token_expires='' WHERE id=?""", (m["id"],))
         db.commit(); db.close()
         logger.info(f"[Verif] ✅ {m['email']} a confirmé son adresse")
+        # Le membre devient joignable à cet instant. Les marchés collectés
+        # avant lui ont déjà été évalués — et marqués — sans le connaître:
+        # on rouvre la fenêtre pour qu'ils repassent devant ses filtres.
+        from app.services.notifications import rouvrir_rattrapage
+        rouvrir_rattrapage()
         # Le lien peut être ouvert depuis un autre appareil que celui de
         # l'inscription: sans session, on renvoie vers la connexion.
         return RedirectResponse("/dashboard?verifie=1" if membre else "/login?verifie=1", 302)
@@ -1940,6 +1945,10 @@ async def settings_post(req: Request,
              wa_verified,member["id"]))
         db.commit()
     finally: db.close()
+    # Les marchés déjà collectés n'ont vu que les anciens filtres: on rouvre
+    # la fenêtre de rattrapage pour qu'ils repassent devant les nouveaux.
+    from app.services.notifications import rouvrir_rattrapage
+    rouvrir_rattrapage()
     return RedirectResponse("/settings?ok=1",302)
 
 @app.post("/settings/whatsapp/send-code")
