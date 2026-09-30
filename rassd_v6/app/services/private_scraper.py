@@ -73,6 +73,12 @@ _CELL_RE  = re.compile(r"<td[^>]*>(.*?)</td>", re.S)
 _MONEY_RE = re.compile(r"\d{1,3}(?:\.\d{3})*,\d{2}")
 
 
+# Un achat public chiffré sous ce seuil n'existe pas: en dessous, le nombre
+# capté vient du texte de l'objet (une dimension, une quantité, un pourcentage)
+# et non d'un budget.
+_BUDGET_PLANCHER = 1000.0
+
+
 def _parse_budget(row_html: str) -> str:
     """Extrait le budget estimé de la colonne « Caution/Budget ».
 
@@ -82,15 +88,24 @@ def _parse_budget(row_html: str) -> str:
     l'ordre des deux valeurs changeait. Les lignes « ------ » signifient que
     le montant n'est pas publié: on renvoie une chaîne vide plutôt que de
     deviner un chiffre.
+
+    Un repli balayait toute la ligne quand la cellule ne donnait rien, au cas
+    où la structure du tableau changerait. Il inventait des montants: relevé
+    en production le 30/09/2026, « Dimensions unifiées : 18,00 m × 12,00 m »
+    dans l'objet est devenu « 18,00 MAD » pour des travaux de charpente. Un
+    chiffre faux sur une fiche coûte plus cher qu'une case vide — c'est
+    précisément la promesse d'exactitude qui fait acheter la plateforme. On
+    ne lit donc plus que la cellule prévue, et on se tait si elle manque.
     """
     cells = _CELL_RE.findall(row_html)
-    montants = _MONEY_RE.findall(cells[3]) if len(cells) > 3 else []
-    if not montants:
-        # Repli si la structure du tableau change: on balaie toute la ligne.
-        montants = _MONEY_RE.findall(row_html)
+    if len(cells) <= 3:
+        return ""
+    montants = _MONEY_RE.findall(cells[3])
     if not montants:
         return ""
     plus_eleve = max(montants, key=lambda v: float(v.replace(".", "").replace(",", ".")))
+    if float(plus_eleve.replace(".", "").replace(",", ".")) < _BUDGET_PLANCHER:
+        return ""
     return f"{plus_eleve} MAD"
 
 

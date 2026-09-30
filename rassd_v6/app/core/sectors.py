@@ -1,3 +1,6 @@
+import unicodedata
+import re
+from functools import lru_cache
 """
 ATLAS PRO — Classification officielle des marchés publics Maroc
 Basée sur le référentiel MB SA (maroc-business.com)
@@ -119,7 +122,9 @@ KEYWORDS: dict = {
     "T110": ["génie civil","voirie","vrd","terrassement divers","plateforme"],
     "T111": ["espace vert","jardin","plantation","gazon","arbre","paysag","horticulture"],
     "T112": ["aménagement bâtiment","aménagement intérieur","rénovation","réhabilitation"],
-    "T201": ["assainissement","canalisation","égout","collecteur","réseau eau usée"],
+    "T201": ["assainissement","canalisation","égout","collecteur","réseau eau usée",
+             "réseau d'eau potable","réseau d'assainissement","conduite d'eau",
+             "branchement en eau potable","adduction"],
     "T202": ["fondation","injection","sondage","forage","micropieu","pieux"],
     "T203": ["hydraulique","traitement eau","station pompage","adduction","automatisme"],
     "T204": ["maritime","fluvial","port","barrage","digue","jetée"],
@@ -134,7 +139,8 @@ KEYWORDS: dict = {
     "P802": ["équipement électronique","équipement télécoms","switch","routeur","hub","modem"],
     "P804": ["sono","sonorisation","vidéo","photographie","caméra","projecteur","audiovisuel","écran"],
     "P805": ["mobilier bureau","meuble de bureau","chaise","armoire de bureau","table de réunion","bureau"],
-    "P806": ["pompe","compresseur","vanne hydraulique","tuyauterie","raccord"],
+    "P806": ["pompe","compresseur","vanne hydraulique","tuyauterie","raccord",
+             "tuyau","polyéthylène","pehd"],
     "P808": ["matériel topographique","théodolite","gps topographie","station totale"],
     "P810": ["machinisme agricole","tracteur","moissonneuse","matériel agricole"],
     "P812": ["équipement électrique","tableau électrique","câble","disjoncteur","armoire électrique"],
@@ -143,12 +149,17 @@ KEYWORDS: dict = {
     "P815": ["chariot élévateur","grue","engin de manutention","nacelle","transpalette"],
     "P816": ["véhicule","camion","voiture","bus","ambulance","flotte automobile","minibus"],
     "P817": ["matériel didactique","équipement pédagogique","tableau interactif","tbi"],
-    "P818": ["ordinateur","serveur","laptop","imprimante","scanner","informatique","pc","réseau"],
+        # « réseau » seul a ete retire: au Maroc il designe le plus souvent un
+    # reseau d'eau ou d'electricite, et ramenait ces marches vers l'informatique.
+    # Le contexte informatique reste couvert par « réseau informatique » (T403).
+    "P818": ["ordinateur","serveur","laptop","imprimante","scanner","informatique","pc",
+             "réseau informatique","matériel informatique","onduleur","clé usb"],
     "P819": ["équipement sportif","stade","terrain","piscine","campement"],
     "P820": ["équipement technique","matériel spécifique","outillage industriel"],
     "P821": ["équipement sécurité","protection incendie","extincteur","gilet","casque","epi"],
     "P822": ["outillage précision","instrument mesure","balance","microscope"],
-    "P823": ["petit outillage","outil","matériel courant","consommable"],
+    "P823": ["petit outillage","outillage","outil","matériel courant","consommable",
+             "matériel d'atelier","quincaillerie"],
     "P824": ["cuisine","buanderie","restaurant collectif","cafétéria"],
     "P825": ["fourniture bureau","papeterie","cartouche","toner","ramette","stylo"],
     "P830": ["pièce rechange","spare parts","maintenance industrielle","produit industriel"],
@@ -161,7 +172,12 @@ KEYWORDS: dict = {
     "P838": ["minerai","métal","acier","plastique","bois","matière première"],
     "P839": ["matériaux construction","ciment","brique","préfabriqué","parpaing","béton prêt"],
     "P840": ["ameublement","literie","matelas","meuble","décoration"],
-    "P841": ["produit hygiène","nettoyage","détergent","désinfectant","produit d'entretien"],
+    # La lutte antiparasitaire relevait d'aucun secteur: faute de mot-cle, ces
+    # marches tombaient dans « Prestations diverses », invisibles pour les
+    # fournisseurs concernes.
+    "P841": ["produit hygiène","nettoyage","détergent","désinfectant","produit d'entretien",
+             "insecticide","raticide","dératisation","désinsectisation","pesticide",
+             "désinfection","antiparasitaire"],
     "P843": ["équipement laboratoire","paillasse","autoclave","centrifugeuse","spectromètre"],
     "P850": ["solaire","photovoltaïque","panneau solaire","énergie solaire","ingénierie solaire"],
     "P852": ["chauffe-eau solaire","pompe solaire","énergie renouvelable fourniture"],
@@ -193,32 +209,76 @@ KEYWORDS: dict = {
 }
 
 
+# Un mot-cle court ne vaut que comme mot entier. Meme adossee a une frontiere
+# de mot, la regle de prefixe reste un piege en dessous de ce seuil:
+# « plan » ouvre « planification » et « planning », « sol » ouvre « solution »
+# et « solde », « port » ouvre « portail » et « portefeuille ». Au-dela, le
+# prefixe reste utile et sur: « informatiq » n'ouvre que « informatique ».
+_PREFIXE_LONGUEUR_MIN = 6
+
+
+@lru_cache(maxsize=8192)
+def _sans_accents(texte: str) -> str:
+    """« DERATISATION » et « dératisation » doivent se rencontrer.
+
+    Les avis marocains sont largement saisis en capitales et sans accents,
+    alors que le referentiel de mots-cles les porte. Sans cette mise a plat,
+    « DESINFECTION », « ELECTRICITE » ou « BETON » ne trouvaient aucun
+    mot-cle et finissaient en « Prestations diverses ».
+    """
+    decompose = unicodedata.normalize("NFD", texte.lower())
+    return "".join(c for c in decompose if unicodedata.category(c) != "Mn")
+
+
+@lru_cache(maxsize=4096)
+def _motifs(kw: str):
+    """Deux expressions par mot-cle: le mot entier, puis le mot en prefixe."""
+    echappe = re.escape(_sans_accents(kw))
+    # Le pluriel francais fait partie du mot entier: « arbre » doit
+    # reconnaitre « arbres », « outil » reconnaitre « outils ». Sans cela,
+    # borner la regle de prefixe aux mots longs ferait perdre tous les
+    # pluriels des mots-cles courts.
+    entier = re.compile(r"\b" + echappe + r"(?:s|x)?" + r"\b")
+    return (entier, re.compile(r"\b" + echappe))
+
+
 def classify(text: str) -> str:
+    """Classe un marche d'apres son texte, et rend le code officiel MB SA.
+
+    Le score se lit en trois temps: un mot-cle present comme mot entier vaut
+    3 points, present au debut d'un mot plus long (« outil » dans
+    « outillage ») il en vaut 1, et le code du secteur ecrit noir sur blanc
+    dans le texte l'emporte sur le reste.
+
+    La correspondance se faisait par simple sous-chaine, sans frontiere de
+    mot. Sur 64 mots-cles de cinq lettres ou moins, l'effet etait ravageur:
+    « tic » (Etudes TIC) se trouve dans « insecticide » et « raticide »,
+    « port » (Travaux maritimes) dans « transport », « support », « rapport »
+    et « important », « sol » (Revetement) dans « solution » et
+    « isolation ». Ces mots reviennent dans presque chaque avis.
+
+    Releve en production le 30/09/2026: les marches de produits de
+    deratisation etaient classes en developpement informatique — invisibles
+    pour un fournisseur du secteur, et envoyes en alerte a des societes de
+    services numeriques. Le classement decide qui recoit quoi: une erreur ici
+    fait manquer le marche a celui qu'il concerne.
     """
-    Classe un marché selon le texte.
-    Algorithme de scoring pondéré:
-    - Mots exacts dans l'objet = 3 pts
-    - Mots partiels = 1 pt
-    Retourne le code officiel MB SA.
-    """
-    t = text.lower()
-    best_code  = "S904"
-    best_score = 0
+    t = _sans_accents(text)
+    best_code, best_score = "S904", 0
 
     for code, keywords in KEYWORDS.items():
         score = 0
         for kw in keywords:
-            kw_lower = kw.lower()
-            if f" {kw_lower} " in f" {t} ":
-                score += 3   # exact word match
-            elif kw_lower in t:
-                score += 1   # partial match
-        # Bonus: code in text (ex: "T101" mentioned)
-        if code.lower() in t:
+            entier, prefixe = _motifs(kw)
+            if entier.search(t):
+                score += 3
+            elif len(kw) >= _PREFIXE_LONGUEUR_MIN and prefixe.search(t):
+                score += 1
+        # Le code ecrit tel quel dans le texte: preuve directe, pas indice.
+        if re.search(r"\b" + code.lower() + r"\b", t):
             score += 10
         if score > best_score:
-            best_score = score
-            best_code  = code
+            best_score, best_code = score, code
 
     return best_code
 
