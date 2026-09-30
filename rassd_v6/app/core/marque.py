@@ -1,19 +1,26 @@
 # -*- coding: utf-8 -*-
-"""Identité visuelle: un seul endroit d'où sort le logo.
+"""Identité visuelle: un seul endroit d'où sort la marque.
 
-Le logo apparaît sur le site, dans les emails, sur l'icône de l'application
-et sur les documents qu'un membre imprime pour les remettre à un maître
-d'ouvrage. Le dessiner à chaque endroit garantissait qu'il finirait
-différent partout; il est donc produit ici, et partout appelé.
+Le signe est le khatim — l'étoile à huit branches née de deux carrés
+superposés dont l'un pivote d'un quart de tour. C'est le motif géométrique
+le plus répandu du zellige marocain: il se lit comme marocain sans qu'on ait
+à l'expliquer, et il dit ce que fait la plateforme, une étoile servant à
+s'orienter.
 
-Format SVG plutôt qu'une image: le trait reste net du favicon de 16 pixels
-à l'en-tête imprimé en A4, le fichier pèse quelques centaines d'octets, et
-il s'insère dans un email ou une page sans requête supplémentaire.
+Sa géométrie est exacte, pas approchée: pour un carré de rayon R (centre
+vers coin), les creux tombent à R·cos(45°)/cos(22,5°), soit 0,7654 R. Posé
+au jugé, ce rapport transforme l'étoile en fleur ou en roue dentée.
 
-Le dessin: un disque coupé en deux, le nom logé dans la fente. Le cercle
-dit le territoire, la coupure dit la mise en relation — une entreprise d'un
-côté, un marché de l'autre.
+Le centre est ajouré d'un carré tourné, en découpe réelle — règle de
+remplissage evenodd — et non peint en blanc: le fond traverse, si bien que
+la marque tient aussi bien sur la crème du site que sur le brun d'un en-tête
+ou le blanc d'un document imprimé.
+
+Format SVG: le trait reste net du favicon de seize pixels à l'en-tête
+imprimé en A4, le fichier pèse quelques centaines d'octets et s'insère sans
+requête supplémentaire. Les emails font exception, traités plus bas.
 """
+import math
 
 # Couleurs de la plateforme (variables CSS --gold, --terra, --text1, --bg).
 OR = "#f2662d"
@@ -21,138 +28,128 @@ TERRE = "#c94e1f"
 ENCRE = "#2b211b"
 CREME = "#f8f1e1"
 
+# Rapport du creux à la pointe: ce nombre fait le khatim.
+_CREUX = math.cos(math.radians(45)) / math.cos(math.radians(22.5))
 
-def marque(taille: int = 40, couleur: str = OR, fond: str = "none") -> str:
-    """Le disque coupé, sans le nom.
 
-    Réservé aux petites tailles — favicon, icône d'application, barre de
-    navigation — où le nom ne serait de toute façon pas lisible. La forme
-    seule reste reconnaissable à 16 pixels, ce qu'un texte ne fait pas.
+def _sommets(rayon: float, centre: float = 50.0) -> str:
+    """Les seize sommets de l'étoile, pointe en haut, en commandes SVG."""
+    parties = []
+    for i in range(16):
+        angle = math.radians(i * 22.5 - 90)
+        r = rayon if i % 2 == 0 else rayon * _CREUX
+        x = centre + r * math.cos(angle)
+        y = centre + r * math.sin(angle)
+        parties.append(f"{'M' if i == 0 else 'L'} {x:.2f} {y:.2f}")
+    return " ".join(parties) + " Z"
+
+
+def etoile(taille: int = 40, couleur: str = OR, fond: str = "none") -> str:
+    """La marque seule.
+
+    Pour le favicon, l'icône de l'application et la barre de navigation. Le
+    carré ajouré est dimensionné pour laisser une couronne régulière: plus
+    grand il romprait les branches, plus petit il deviendrait une tache et
+    se refermerait sous vingt pixels.
     """
     fond_rect = (f'<rect width="100" height="100" rx="22" fill="{fond}"/>'
                  if fond != "none" else "")
+    # Sous vingt pixels, l'ajour se referme en une bouillie de deux ou trois
+    # pixels: l'etoile pleine y est plus nette et reste reconnaissable.
+    ajour = "" if taille < 20 else " M 50 30 L 70 50 L 50 70 L 30 50 Z"
     return (
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{taille}" '
         f'height="{taille}" viewBox="0 0 100 100" role="img" '
         f'aria-label="Maroc Entrepreneuriat">{fond_rect}'
-        # Demi-disque haut, puis demi-disque bas: la fente entre les deux
-        # fait 10 unités, proportion tenue à toutes les tailles.
-        f'<path d="M 12.33 45 A 38 38 0 0 1 87.67 45 Z" fill="{couleur}"/>'
-        f'<path d="M 12.33 55 A 38 38 0 0 0 87.67 55 Z" fill="{couleur}"/>'
+        f'<path fill-rule="evenodd" fill="{couleur}" '
+        f'd="{_sommets(48)}{ajour}"/>'
         f'</svg>'
     )
 
 
-def logo(largeur: int = 280, couleur: str = OR,
-         couleur_texte: str = ENCRE, fond: str = "none") -> str:
-    """Le logo complet: disque coupé et nom dans la fente.
+def _mot(taille: float, espace: float, couleur: str, texte: str) -> str:
+    return (f'<div style="font-family:Georgia,Times New Roman,serif;'
+            f'font-weight:700;font-size:{taille:.1f}px;'
+            f'letter-spacing:{espace:.2f}px;color:{couleur};'
+            f'line-height:1.16;white-space:nowrap">{texte}</div>')
 
-    Pour les en-têtes de documents, les emails et le pied de page, où la
-    largeur disponible permet de lire le nom.
 
-    Le cadre est plus large que le disque parce que le nom l'est aussi: à
-    vingt-deux lettres espacées, il déborde de part et d'autre, et c'est ce
-    débordement qui fait tenir la composition. Un premier essai calé sur la
-    seule largeur du disque coupait le M et le T.
+def logo(hauteur: int = 44, couleur: str = OR, couleur_texte: str = ENCRE,
+         baseline: bool = False) -> str:
+    """Marque et nom côte à côte.
+
+    Le nom tient sur deux lignes — MAROC au-dessus, ENTREPRENEURIAT en
+    dessous. Sur une seule, vingt-deux lettres imposent soit une largeur
+    que la barre de navigation n'a pas, soit un corps qui ne se lit plus.
+    Empilé, le nom occupe la hauteur de l'étoile et la composition tient.
+
+    L'interlettrage de MAROC est calculé pour que les deux lignes finissent
+    à la même largeur: cinq lettres au-dessus de quinze, alignées à gauche
+    et à droite, c'est ce qui fait tenir le bloc.
     """
-    hauteur = round(largeur * 320 / 420)
-    fond_rect = (f'<rect width="420" height="320" fill="{fond}"/>'
-                 if fond != "none" else "")
+    ligne = (f'<div style="font-family:Arial,Helvetica,sans-serif;'
+             f'font-size:{hauteur * 0.16:.1f}px;'
+             f'letter-spacing:{hauteur * 0.018:.2f}px;color:#8a7a6a;'
+             f'text-transform:uppercase;margin-top:4px;white-space:nowrap">'
+             f'Veille des marchés publics et privés</div>'
+             if baseline else "")
     return (
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="{largeur}" '
-        f'height="{hauteur}" viewBox="0 0 420 320" role="img" '
-        f'aria-label="Maroc Entrepreneuriat">{fond_rect}'
-        # Disque de rayon 150 centré en (210,160), coupé par une fente de 40.
-        # Les extrémités des arcs sont posées sur le cercle: à 20 du centre,
-        # la demi-corde vaut racine(150² - 20²) = 148,66.
-        f'<path d="M 61.34 140 A 150 150 0 0 1 358.66 140 Z" fill="{couleur}"/>'
-        f'<path d="M 61.34 180 A 150 150 0 0 0 358.66 180 Z" fill="{couleur}"/>'
-        f'<text x="210" y="160" text-anchor="middle" dominant-baseline="central" '
-        f'font-family="Georgia, Times New Roman, serif" font-size="18" '
-        f'font-weight="600" letter-spacing="3" fill="{couleur_texte}">'
-        f'MAROC ENTREPRENEURIAT</text>'
-        f'</svg>'
+        f'<span style="display:inline-flex;align-items:center;'
+        f'gap:{max(9, round(hauteur * 0.25))}px;vertical-align:middle">'
+        f'{etoile(hauteur, couleur)}'
+        f'<span style="display:block">'
+        f'{_mot(hauteur * 0.295, hauteur * 0.0755, couleur_texte, "MAROC")}'
+        f'{_mot(hauteur * 0.295, hauteur * 0.0155, couleur_texte, "ENTREPRENEURIAT")}'
+        f'{ligne}</span></span>'
     )
+
+
+def entete_document(hauteur: int = 52) -> str:
+    """En-tête des documents qu'un membre imprime et remet.
+
+    Même composition, en plus grand et avec la ligne de description: la
+    déclaration de sous-traitance part chez un maître d'ouvrage, elle doit
+    dire d'où elle vient sans qu'on la cherche.
+    """
+    return logo(hauteur, baseline=True)
 
 
 def favicon_data_uri() -> str:
     """La marque encodée pour l'attribut href d'une balise <link>."""
     import urllib.parse
-    svg = marque(32, couleur=OR, fond=ENCRE)
-    return "data:image/svg+xml," + urllib.parse.quote(svg, safe="")
+    return "data:image/svg+xml," + urllib.parse.quote(
+        etoile(32, couleur=OR, fond=ENCRE), safe="")
+
+
+def _entete_email(couleur_texte: str, trait: str) -> str:
+    """En-tête d'email, en typographie seule.
+
+    Ni SVG ni image: Gmail supprime le premier et bloque la seconde par
+    défaut. Reconstituer l'étoile en CSS demanderait clip-path, qu'aucun
+    client de messagerie n'interprète. Le nom composé entre deux filets rend
+    la même chose partout.
+    """
+    return (
+        f'<div style="text-align:center;padding:2px 0 20px">'
+        f'<div style="height:2px;width:44px;background:{trait};'
+        f'margin:0 auto 13px"></div>'
+        f'<div style="font-family:Georgia,Times New Roman,serif;font-weight:700;'
+        f'font-size:17px;letter-spacing:6.4px;color:{couleur_texte};'
+        f'white-space:nowrap">MAROC</div>'
+        f'<div style="font-family:Georgia,Times New Roman,serif;font-weight:700;'
+        f'font-size:17px;letter-spacing:1.1px;color:{couleur_texte};'
+        f'white-space:nowrap">ENTREPRENEURIAT</div>'
+        f'<div style="height:2px;width:44px;background:{trait};'
+        f'margin:13px auto 0"></div>'
+        f'</div>'
+    )
 
 
 def logo_email(largeur: int = 210) -> str:
-    """En-tête d'email.
-
-    Les clients de messagerie ne savent pas tous afficher un SVG inséré dans
-    le corps d'un message: Gmail le supprime purement et simplement, et une
-    image distante est bloquée par défaut. Le logo y est donc reconstitué en
-    HTML et en CSS, que tous interprètent.
-
-    Le nom est posé sur sa propre ligne pleine largeur, centrée: logé dans
-    la colonne étroite du disque, il débordait vers la droite et décalait
-    toute la composition.
-    """
-    d = largeur // 2
-    return (
-        f'<div style="text-align:center;padding:2px 0 16px">'
-        f'<div style="width:{d}px;height:{d // 2}px;background:{OR};'
-        f'border-radius:{d}px {d}px 0 0;margin:0 auto"></div>'
-        f'<div style="font-family:Georgia,serif;font-size:12px;font-weight:600;'
-        f'letter-spacing:2px;color:{ENCRE};padding:6px 0;white-space:nowrap">'
-        f'MAROC ENTREPRENEURIAT</div>'
-        f'<div style="width:{d}px;height:{d // 2}px;background:{OR};'
-        f'border-radius:0 0 {d}px {d}px;margin:0 auto"></div>'
-        f'</div>'
-    )
+    """Bandeau des emails posés sur fond clair."""
+    return _entete_email(ENCRE, OR)
 
 
 def logo_email_sombre(largeur: int = 160) -> str:
-    """En-tête d'email.
-
-    Les clients de messagerie ne savent pas tous afficher un SVG inséré dans
-    le corps d'un message: Gmail le supprime purement et simplement, et une
-    image distante est bloquée par défaut. Le logo y est donc reconstitué en
-    HTML et en CSS, que tous interprètent.
-
-    Le nom est posé sur sa propre ligne pleine largeur, centrée: logé dans
-    la colonne étroite du disque, il débordait vers la droite et décalait
-    toute la composition.
-    """
-    d = largeur // 2
-    return (
-        f'<div style="text-align:center;padding:2px 0 16px">'
-        f'<div style="width:{d}px;height:{d // 2}px;background:{OR};'
-        f'border-radius:{d}px {d}px 0 0;margin:0 auto"></div>'
-        f'<div style="font-family:Georgia,serif;font-size:10px;font-weight:600;'
-        f'letter-spacing:1.6px;color:{CREME};padding:6px 0;white-space:nowrap">'
-        f'MAROC ENTREPRENEURIAT</div>'
-        f'<div style="width:{d}px;height:{d // 2}px;background:{OR};'
-        f'border-radius:0 0 {d}px {d}px;margin:0 auto"></div>'
-        f'</div>'
-    )
-
-def entete_document(hauteur: int = 54) -> str:
-    """En-tête de papier à lettre: la marque à gauche, le nom à côté.
-
-    Le logo empilé — disque coupé, nom dans la fente — demande de la largeur
-    pour rester lisible: réduit à la hauteur d'un en-tête, son nom devient
-    illisible. Un document imprimé et remis à une administration ne peut pas
-    se permettre ça, d'où cette disposition horizontale où le nom est composé
-    à sa taille propre.
-    """
-    d = hauteur
-    return (
-        f'<div style="display:flex;align-items:center;gap:{max(10, d // 4)}px">'
-        f'{marque(d, couleur=OR)}'
-        f'<div style="line-height:1.25">'
-        f'<div style="font-family:Georgia,Times New Roman,serif;font-weight:700;'
-        f'font-size:{round(d * 0.31)}px;letter-spacing:{d * 0.028:.1f}px;'
-        f'color:{ENCRE};white-space:nowrap">MAROC ENTREPRENEURIAT</div>'
-        f'<div style="font-family:Arial,Helvetica,sans-serif;'
-        f'font-size:{round(d * 0.17)}px;letter-spacing:{d * 0.02:.1f}px;'
-        f'color:#6b7280;text-transform:uppercase">'
-        f'Veille des marchés publics et privés</div>'
-        f'</div></div>'
-    )
+    """Bandeau des emails posés sur fond encre."""
+    return _entete_email(CREME, OR)

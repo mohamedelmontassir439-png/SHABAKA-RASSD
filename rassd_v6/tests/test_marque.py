@@ -1,5 +1,6 @@
-"""Le logo sort d'un seul endroit, et tient à toutes les tailles.
+"""La marque sort d'un seul endroit, et tient à toutes les tailles.
 
+Le signe est le khatim, l'étoile à huit branches du zellige marocain.
 Dessiné dans chaque gabarit, il aurait fini différent partout: une version
 dans la navigation, une autre dans les emails, une troisième sur le document
 qu'un membre imprime et remet à un maître d'ouvrage.
@@ -12,29 +13,47 @@ import pytest
 from app.core import marque as M
 
 
-class TestGeometrie:
-    def test_les_arcs_se_ferment_sur_le_cercle(self):
-        """Une extrémité posée au jugé laisse un décrochement visible.
+class TestGeometrieDuKhatim:
+    def test_le_rapport_creux_pointe_est_celui_du_khatim(self):
+        """Deux carrés superposés, l'un pivoté d'un quart de tour.
 
-        Pour une corde horizontale à distance e du centre, la demi-largeur
-        vaut racine(r² − e²). Le dessin doit respecter ce calcul.
+        Les creux tombent à R·cos(45°)/cos(22,5°). Posé au jugé, ce rapport
+        donne une fleur ou une roue dentée, pas une étoile marocaine.
         """
-        svg = M.logo(300)
-        xs = [float(v) for v in re.findall(r"M (\d+\.?\d*) 1[48]0", svg)]
-        attendu = 210 - math.sqrt(150 ** 2 - 20 ** 2)
-        for x in xs:
-            assert abs(x - attendu) < 0.05, f"{x} au lieu de {attendu:.2f}"
+        assert abs(M._CREUX - 0.76537) < 1e-4
 
-    def test_le_cadre_est_plus_large_que_le_disque(self):
-        # Le nom déborde du disque: sans marge, il serait coupé.
-        svg = M.logo(300)
-        assert 'viewBox="0 0 420 320"' in svg
-        assert "MAROC ENTREPRENEURIAT" in svg
+    def test_les_seize_sommets_alternent_pointe_et_creux(self):
+        coords = [(float(x), float(y)) for x, y in
+                  re.findall(r"[ML] (-?\d+\.\d+) (-?\d+\.\d+)", M._sommets(48))]
+        assert len(coords) == 16
+        for i, (x, y) in enumerate(coords):
+            rayon = math.hypot(x - 50, y - 50)
+            attendu = 48 if i % 2 == 0 else 48 * M._CREUX
+            assert abs(rayon - attendu) < 0.05, \
+                f"sommet {i}: {rayon:.2f} au lieu de {attendu:.2f}"
 
+    def test_la_pointe_est_en_haut(self):
+        premier = re.search(r"M (-?\d+\.\d+) (-?\d+\.\d+)", M._sommets(48))
+        assert abs(float(premier.group(1)) - 50) < 0.05
+        assert abs(float(premier.group(2)) - 2) < 0.05
+
+    def test_le_centre_est_ajoure_en_decoupe_reelle(self):
+        # Peint en blanc, l'ajour ferait une tache sur tout fond non blanc.
+        svg = M.etoile(48)
+        assert 'fill-rule="evenodd"' in svg
+        assert "#fff" not in svg.lower() and "white" not in svg.lower()
+
+
+class TestPetitesTailles:
     @pytest.mark.parametrize("taille", [16, 24, 32, 48, 96, 512])
     def test_la_marque_se_decline_a_toute_taille(self, taille):
-        svg = M.marque(taille)
+        svg = M.etoile(taille)
         assert f'width="{taille}"' in svg and 'viewBox="0 0 100 100"' in svg
+
+    def test_l_ajour_disparait_sous_vingt_pixels(self):
+        # À cette taille il se refermerait en deux ou trois pixels sales.
+        assert "L 70 50" not in M.etoile(16)
+        assert "L 70 50" in M.etoile(32)
 
 
 class TestUsages:
@@ -45,18 +64,27 @@ class TestUsages:
             assert interdit not in uri, f"{interdit} casserait l'attribut"
 
     @pytest.mark.parametrize("fabrique", [M.logo_email, M.logo_email_sombre])
-    def test_les_emails_n_embarquent_aucun_svg(self, fabrique):
-        """Gmail supprime les SVG insérés et bloque les images distantes."""
+    def test_les_emails_sont_en_typographie_seule(self, fabrique):
+        """Gmail supprime les SVG insérés et bloque les images distantes.
+
+        Reconstituer l'étoile en CSS demanderait clip-path, qu'aucun client
+        de messagerie n'interprète: le nom entre deux filets rend partout.
+        """
         html = fabrique()
         assert "<svg" not in html and "<img" not in html
-        assert "MAROC ENTREPRENEURIAT" in html
+        assert "clip-path" not in html
+        assert "MAROC" in html and "ENTREPRENEURIAT" in html
 
-    def test_l_en_tete_de_document_nomme_la_plateforme_en_toutes_lettres(self):
-        # Réduit à la hauteur d'un en-tête, le logo empilé rend son nom
-        # illisible: le document imprimé porte donc la version horizontale.
-        html = M.entete_document(54)
-        assert "MAROC ENTREPRENEURIAT" in html
-        assert "<svg" in html, "la marque reste vectorielle sur un document"
+    def test_le_logo_associe_la_marque_et_le_nom(self):
+        html = M.logo(44)
+        assert "<svg" in html, "la marque reste vectorielle"
+        assert "MAROC" in html and "ENTREPRENEURIAT" in html
+
+    def test_l_en_tete_de_document_porte_la_ligne_de_description(self):
+        # Ce document part chez un maître d'ouvrage: il doit dire d'où il
+        # vient sans qu'on le cherche.
+        assert "Veille des marchés" in M.entete_document(52)
+        assert "Veille des marchés" not in M.logo(44), "réservé aux documents"
 
 
 class TestCouleurs:
@@ -64,7 +92,6 @@ class TestCouleurs:
         assert (M.OR, M.TERRE, M.ENCRE, M.CREME) == \
                ("#f2662d", "#c94e1f", "#2b211b", "#f8f1e1")
 
-    def test_la_couleur_du_texte_s_adapte_au_fond(self):
-        clair = M.logo(300, couleur_texte=M.ENCRE)
-        sombre = M.logo(300, couleur_texte=M.CREME)
-        assert M.ENCRE in clair and M.CREME in sombre
+    def test_le_nom_s_adapte_au_fond(self):
+        assert M.ENCRE in M.logo(44, couleur_texte=M.ENCRE)
+        assert M.CREME in M.logo(44, couleur_texte=M.CREME)

@@ -817,7 +817,7 @@ templates.env.globals["source_label"] = source_label
 # Globales plutot que variables de contexte: toutes les pages ne passent pas
 # par render(), et une marque absente faisait echouer le rendu entier.
 templates.env.globals["logo"] = marque.logo
-templates.env.globals["logo_marque"] = marque.marque
+templates.env.globals["etoile"] = marque.etoile
 templates.env.globals["entete_document"] = marque.entete_document
 try:
     os.makedirs("static", exist_ok=True)
@@ -3702,7 +3702,7 @@ def _pwa_icon_svg(size: int) -> str:
     Les deux lettres « ME » ont laisse place au disque coupe: a la taille
     d'une icone de telephone, une forme se reconnait, un texte se devine.
     """
-    return marque.marque(size, fond=marque.ENCRE)
+    return marque.etoile(size, fond=marque.ENCRE)
 
 
 @app.get("/icon-192.svg")
