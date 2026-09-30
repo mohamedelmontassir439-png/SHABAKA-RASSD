@@ -20,6 +20,7 @@ from app.core.security import (hash_pw, verify_pw, make_token, make_session_toke
                                 validate_password, days_left,
                                 get_csrf_token, verify_csrf, subscription_state)
 from app.core.sectors import get_label
+from app.core import marque
 from app.core.i18n import get_lang, make_t, SUPPORTED_LANGS, tr as tr_
 from app.services.notifications import dispatch_notifications, tg_admin, test_notifications
 
@@ -813,6 +814,11 @@ def source_label(source: str, lang: str = "fr") -> str:
 templates = Jinja2Templates(directory="templates")
 templates.env.globals["get_label"] = get_label
 templates.env.globals["source_label"] = source_label
+# Globales plutot que variables de contexte: toutes les pages ne passent pas
+# par render(), et une marque absente faisait echouer le rendu entier.
+templates.env.globals["logo"] = marque.logo
+templates.env.globals["logo_marque"] = marque.marque
+templates.env.globals["entete_document"] = marque.entete_document
 try:
     os.makedirs("static", exist_ok=True)
     app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -3691,11 +3697,13 @@ async def robots():
 
 # ── PWA (installable sur mobile) ───────────────────────────
 def _pwa_icon_svg(size: int) -> str:
-    return f"""<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" viewBox="0 0 {size} {size}">
-<rect width="{size}" height="{size}" fill="#1e1611"/>
-<text x="50%" y="58%" dominant-baseline="middle" text-anchor="middle"
-      font-family="Georgia, serif" font-weight="800" font-size="{int(size*0.42)}" fill="#f2662d">ME</text>
-</svg>"""
+    """Icone de l'application installee, sur fond encre.
+
+    Les deux lettres « ME » ont laisse place au disque coupe: a la taille
+    d'une icone de telephone, une forme se reconnait, un texte se devine.
+    """
+    return marque.marque(size, fond=marque.ENCRE)
+
 
 @app.get("/icon-192.svg")
 async def icon_192():

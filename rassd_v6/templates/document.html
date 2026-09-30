@@ -6,8 +6,8 @@
 .doc-actions { display: flex; gap: 10px; justify-content: flex-end; margin-bottom: 18px; flex-wrap: wrap; }
 .doc-sheet { background: #fff; border: 1px solid var(--line); border-radius: var(--r3); padding: 44px 48px; box-shadow: var(--sh), var(--shg); }
 .doc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; border-bottom: 2px solid var(--ink3); padding-bottom: 20px; margin-bottom: 26px; flex-wrap: wrap; }
-.doc-brand { font-family: var(--serif); font-weight: 700; font-size: 22px; color: var(--ink3); }
-.doc-brand em { font-style: normal; color: var(--ink); }
+/* Ce document part chez le client: il porte l'en-tete complet. */
+.doc-brand { line-height: 0; margin-bottom: 8px; }
 .doc-issuer { font-size: 12px; color: var(--text3); line-height: 1.65; margin-top: 6px; }
 .doc-meta { text-align: end; }
 .doc-type { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink); }
@@ -37,6 +37,9 @@
   body { background: #fff !important; }
   .doc-wrap { padding: 0; max-width: none; }
   .doc-sheet { border: none; box-shadow: none; padding: 0; }
+  /* Les navigateurs retirent les aplats a l'impression: sans cette
+     instruction, l'en-tete sortirait blanc sur blanc. */
+  .doc-brand svg { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 @media (max-width: 700px) { .doc-parties, .doc-sign { grid-template-columns: 1fr; } .doc-sheet { padding: 26px 20px; } }
 </style>
@@ -58,7 +61,7 @@
   <div class="doc-sheet">
     <div class="doc-head">
       <div>
-        <div class="doc-brand">Maroc<em>Entrepreneuriat</em></div>
+        <div class="doc-brand">{{ entete_document(52) | safe }}</div>
         <div class="doc-issuer">
           {% if issuer.name %}{{ issuer.name }}{% if issuer.form %} — {{ issuer.form }}{% endif %}<br>{% endif %}
           {% if issuer.address %}{{ issuer.address }}<br>{% endif %}

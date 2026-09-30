@@ -182,6 +182,11 @@ def build_email(t: dict, nom: str = "") -> str:
     # marchés privés — leur source n'apparaît donc jamais dans l'email.
     cta_url         = t["url"] if is_public else f"{site}/tenders/{t['id']}/source"
     priv_badge      = '<div class="priv-badge">🔒 Marché privé</div>' if type_offre == "Privé" else ""
+    # Le bandeau portait le nom en deux morceaux colores. Il porte desormais
+    # la marque, en HTML et CSS: un SVG insere dans un email est supprime par
+    # Gmail, et une image distante est bloquee par defaut.
+    from app.core.marque import logo_email_sombre
+    logo_entete     = logo_email_sombre(160)
     badge_html      = f'''<div class="dl-badge">⏰ {dl_label}</div>''' if dl_label else ""
     region_row      = f'<tr><td class="lbl">📍 Région</td><td class="val">{t.get("region","")}</td></tr>' if t.get("region") else ""
     montant_row     = f'<tr><td class="lbl">💰 Montant</td><td class="val">{t.get("montant","")}</td></tr>' if t.get("montant") else ""
@@ -207,7 +212,7 @@ td{{padding:10px 0;border-bottom:1px solid #e3e7ef;vertical-align:top;font-size:
 .priv-badge{{display:inline-block;padding:6px 14px;background:rgba(59,68,87,.08);border:1px solid rgba(59,68,87,.25);border-radius:99px;font-size:12px;color:#3b4457;font-weight:700;margin-bottom:20px}}
 </style></head>
 <body><div class="wrap">
-<div class="hdr"><div class="logo">Maroc<em>Entrepreneuriat</em></div><div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:3px">MARCHÉS {type_offre.upper()}S · MAROC</div></div>
+<div class="hdr">{logo_entete}<div style="font-size:11px;color:rgba(255,255,255,.55);margin-top:2px;text-align:center;letter-spacing:.08em">MARCHÉS {type_offre.upper()}S · MAROC</div></div>
 <div class="body">
 <p style="color:#6b7488;font-size:13px;margin-bottom:16px">Bonjour {nom or "Madame/Monsieur"},</p>
 <p style="color:#6b7488;font-size:13px;margin-bottom:20px">Un nouveau marché correspondant à votre profil vient d'être publié :</p>
@@ -855,8 +860,10 @@ SEQUENCE_ESSAI = ((0, 1, "j0"), (2, 2, "j2"), (5, 3, "j5"), (7, 4, "j7"))
 
 def _enveloppe_email(titre: str, texte: str, lien: str, libelle_bouton: str) -> str:
     """Même habillage que les alertes, sans dépendre d'un marché précis."""
+    from app.core.marque import logo_email
     return f"""
     <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:auto">
+      {logo_email(170)}
       <h2 style="color:#1e1611;font-size:20px;margin:0 0 12px">{titre}</h2>
       <p style="color:#4a4a4a;font-size:15px;line-height:1.7;margin:0 0 20px">{texte}</p>
       <a href="{lien}" style="display:inline-block;padding:12px 24px;background:#f2662d;
