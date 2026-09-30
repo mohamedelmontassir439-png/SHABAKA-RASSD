@@ -144,31 +144,62 @@ class TestConvergenceDuRattrapage:
         assert "bdc_ancien" in db.execute(
             "SELECT tender_id FROM notif_log ORDER BY id DESC LIMIT 1").fetchone()[0]
 
-    def test_un_nouveau_membre_recoit_les_marches_deja_evalues(self, db, envois):
-        # Sans réouverture, un marché évalué avant l'arrivée du membre lui
-        # resterait invisible alors qu'il est encore ouvert.
-        _marche(db, "bdc_avant")
+    def test_le_nouveau_membre_ne_recoit_pas_l_historique(self, db, envois):
+        """Le piège que ce garde-fou referme.
+
+        Une première version rouvrait la fenêtre de rattrapage à chaque
+        inscription, pour que le nouveau venu ne rate rien. Effet réel, mesuré
+        le 29/09/2026 sur un compte de test en production: 17 puis 15 puis 23
+        emails en trois heures, la série continuant tant que la réserve des
+        48 h n'était pas épuisée. Un inscrit noyé se désabonne, et une plainte
+        pour spam abîme la réputation d'envoi de tout le domaine.
+        """
+        for i in range(20):
+            _marche(db, f"bdc_avant_{i}", minutes=120)
+        # Membre arrivé après: sa borne est postérieure à ces marchés.
+        _membre(db, alertes_depuis=(datetime.now() - timedelta(minutes=1))
+                .strftime("%Y-%m-%d %H:%M:%S"))
         notif.dispatch_pending()
+        assert envois == [], "aucune alerte marché par marché sur l'historique"
+
+    def test_les_marches_posterieurs_declenchent_bien_une_alerte(self, db, envois):
+        _membre(db, alertes_depuis=(datetime.now() - timedelta(minutes=30))
+                .strftime("%Y-%m-%d %H:%M:%S"))
+        _marche(db, "bdc_apres", minutes=5)
+        notif.dispatch_pending()
+        assert len(envois) == 1
+
+    def test_membre_sans_borne_garde_l_ancien_comportement(self, db, envois):
+        # Comptes ouverts avant l'arrivée de la borne: rien ne change pour eux.
+        _membre(db, alertes_depuis="")
+        _marche(db, "bdc_sans_borne", minutes=120)
+        notif.dispatch_pending()
+        assert len(envois) == 1
+
+
+class TestMessageDeBienvenue:
+    def test_un_seul_message_annonce_le_stock(self, db, envois):
+        mid = _membre(db)
+        for i in range(12):
+            _marche(db, f"bdc_stock_{i}")
+        assert notif.envoyer_bienvenue(mid) == 12
+        assert len(envois) == 1, "un seul email, quel que soit le nombre de marchés"
+        assert "12" in envois[0][1]
+
+    def test_filtres_trop_etroits_le_membre_est_prevenu(self, db, envois):
+        # Le silence ferait conclure que la plateforme ne marche pas.
+        mid = _membre(db, secteurs='["T999"]')
+        _marche(db, "bdc_autre", secteur="T101")
+        assert notif.envoyer_bienvenue(mid) == 0
+        assert len(envois) == 1
+        assert "essai" in envois[0][1].lower()
+
+    def test_adresse_non_confirmee_rien_ne_part(self, db, envois):
+        mid = _membre(db, email_verified=0)
+        _marche(db, "bdc_x")
+        assert notif.envoyer_bienvenue(mid) == 0
         assert envois == []
 
-        _membre(db, email="nouveau@example.com")
-        assert notif.rouvrir_rattrapage() == 1
-        notif.dispatch_pending()
-        assert len(envois) == 1
-
-    def test_la_reouverture_ne_renvoie_pas_aux_deja_servis(self, db, envois):
-        _membre(db)
-        _marche(db, "bdc_servi")
-        notif.dispatch_pending()
-        assert len(envois) == 1
-
-        notif.rouvrir_rattrapage()
-        notif.dispatch_pending()
-        assert len(envois) == 1, "notif_log empêche le doublon"
-
-    def test_la_reouverture_ignore_les_marches_hors_fenetre(self, db, envois):
-        _membre(db)
-        _marche(db, "bdc_vieux2", minutes=60 * 24 * 5)
-        db.execute("UPDATE tenders SET alertes_faites_at='2026-01-01' WHERE id='bdc_vieux2'")
-        db.commit()
-        assert notif.rouvrir_rattrapage(heures=48) == 0
+    def test_membre_inconnu_sans_effet(self, db, envois):
+        assert notif.envoyer_bienvenue(999999) == 0
+        assert envois == []

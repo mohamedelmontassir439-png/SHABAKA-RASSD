@@ -399,6 +399,7 @@ def dispatch_notifications(tenders: list, max_par_membre: int = 40):
             "SELECT * FROM members WHERE actif=1"
         ).fetchall()
         total_tg = total_email = total_wa = total_skip = 0
+        total_anciens = 0
         # Un marché est « traité » quand tous les membres concernés l'ont vu
         # passer devant leur filtre. S'il en reste un pour qui le plafond par
         # passage a coupé court, le marché doit rester repêchable: le marquer
@@ -413,7 +414,17 @@ def dispatch_notifications(tenders: list, max_par_membre: int = 40):
             # principe que le blocage appliqué aux pages du site.
             if not has_access(member):
                 continue
+            # Ce qui existait avant l'arrivée du membre ne part pas marché
+            # par marché: il le découvre par le message de bienvenue et son
+            # tableau de bord. Sinon le rattrapage des 48 h lui tombe dessus
+            # d'un coup — plus de 55 emails en trois heures, mesuré le
+            # 29/09/2026 sur un compte de test.
+            depuis = (member.get("alertes_depuis") or "").strip()
+
             for rang, t in enumerate(tenders):
+                if depuis and (t.get("scraped_at") or "") < depuis:
+                    total_anciens += 1
+                    continue
                 # Moteur de correspondance: secteur, région, type, budget
                 # minimum et mots-clés (un filtre vide = aucune restriction).
                 ok_match, _reason = matches(member, t)
@@ -501,7 +512,8 @@ def dispatch_notifications(tenders: list, max_par_membre: int = 40):
         db.commit()
         logger.info(
             f"[Notif] ✅ {total_tg} TG + {total_email} Email + {total_wa} WhatsApp en file "
-            f"pour {len(tenders)} marchés ({total_skip} filtrés)"
+            f"pour {len(tenders)} marchés ({total_skip} filtrés, "
+            f"{total_anciens} antérieurs à l'inscription)"
         )
         if total_tg + total_email + total_wa > 0:
             tg_admin(
@@ -733,34 +745,68 @@ def send_renewal_reminders(now=None) -> int:
 
 # ── Rattrapage des alertes manquées ───────────────────────
 
-def rouvrir_rattrapage(heures: int = 48) -> int:
-    """Rend à nouveau évaluables les marchés récents déjà traités.
+def envoyer_bienvenue(member_id: int) -> int:
+    """Un seul message à l'activation, à la place d'une rafale de rattrapage.
 
-    Le marquage pose une question: un marché écarté parce qu'aucun filtre ne
-    le retenait ne repasse plus jamais devant le moteur. Si un membre arrive,
-    ou affine ses secteurs, il ne verrait rien de ce qui a été collecté avant
-    son inscription — alors que ce sont précisément les marchés encore
-    ouverts qui l'intéressent. On efface donc le marquage sur la fenêtre de
-    rattrapage à chaque inscription et à chaque changement de filtres.
+    Remplace `rouvrir_rattrapage`, qui rouvrait la fenêtre de 48 h à chaque
+    inscription: le nouveau membre recevait alors tout l'historique récent de
+    ses secteurs, marché par marché. Mesuré le 29/09/2026 sur un compte de
+    test: 17 puis 15 puis 23 emails en trois heures, et la série continuait.
+    Le remède était pire que le mal qu'il corrigeait — un inscrit noyé dès le
+    premier jour se désabonne, et une plainte pour spam abîme la réputation
+    d'envoi de tout le domaine.
 
-    La déduplication par notif_log reste en place: les membres déjà servis ne
-    reçoivent rien en double.
+    Ce qui existe déjà lui est donc annoncé en un chiffre, avec un lien vers
+    son tableau de bord. Les alertes marché par marché ne commencent qu'à
+    partir de ce moment (members.alertes_depuis).
+
+    Renvoie le nombre de marchés annoncés, 0 si rien n'a été envoyé.
     """
     db = get_db()
     try:
-        cur = db.execute(
-            """UPDATE tenders SET alertes_faites_at=''
-               WHERE statut='actif'
-                 AND scraped_at >= datetime('now', ?)
-                 AND COALESCE(alertes_faites_at,'') <> ''""",
-            (f"-{int(heures)} hours",))
-        db.commit()
-        return cur.rowcount or 0
-    except Exception as e:
-        logger.error(f"[rattrapage] réouverture impossible: {e}")
-        return 0
+        m = db.execute("SELECT * FROM members WHERE id=?", (member_id,)).fetchone()
+        if not m:
+            return 0
+        membre = dict(m)
+        if not (membre.get("notif_email") and membre.get("email")
+                and membre.get("email_verified", 1)):
+            return 0
+        marches = [dict(r) for r in db.execute(
+            "SELECT * FROM tenders WHERE statut='actif' ORDER BY scraped_at DESC LIMIT 2000"
+        ).fetchall()]
     finally:
         db.close()
+
+    correspondants = [t for t in marches if matches(membre, t)[0]]
+    if not correspondants:
+        # Filtres trop étroits: le dire vaut mieux que le silence, sinon le
+        # membre conclut que la plateforme ne fonctionne pas.
+        texte = ("Votre essai est ouvert. Aucun marché ne correspond encore à vos "
+                 "secteurs — élargissez-les pour recevoir davantage d'opportunités.")
+        lien, bouton = f"{cfg.SITE_URL}/settings", "Ajuster mes secteurs"
+        sujet = "Votre essai est ouvert — MAROC ENTREPRENEURIAT"
+    else:
+        n = len(correspondants)
+        texte = (f"<strong>{n} marché(s)</strong> correspondent déjà à vos secteurs. "
+                 "Ils vous attendent sur votre tableau de bord. À partir de "
+                 "maintenant, vous recevrez une alerte dès qu'un nouveau marché "
+                 "correspond à vos critères.")
+        lien, bouton = f"{cfg.SITE_URL}/tenders", f"Voir les {n} marché(s)"
+        sujet = f"{n} marché(s) correspondent à vos secteurs — MAROC ENTREPRENEURIAT"
+
+    html = _enveloppe_email(f"Bienvenue, {membre.get('nom') or ''}".strip(),
+                            texte, lien, bouton)
+    ok = email_send(membre["email"], sujet, html)
+    db = get_db()
+    try:
+        _log_notif(db, member_id, "bienvenue", "email", ok,
+                   "" if ok else "échec message de bienvenue",
+                   "brevo" if cfg.BREVO_KEY else "gmail")
+        db.commit()
+    finally:
+        db.close()
+    logger.info(f"[bienvenue] {membre['email']}: {len(correspondants)} marché(s), envoi={ok}")
+    return len(correspondants) if ok else 0
 
 
 def dispatch_pending(heures: int = 48, limite: int = 400) -> int:

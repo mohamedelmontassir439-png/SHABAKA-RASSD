@@ -1799,14 +1799,19 @@ async def verifier_email(req: Request, token: str = "", envoye: int = 0, requis:
             return render(req, "verifier_email.html",
                           {"expire": True, "email": m["email"]}, status_code=400)
         db.execute("""UPDATE members SET email_verified=1, email_token='',
-                      email_token_expires='' WHERE id=?""", (m["id"],))
+                      email_token_expires='',
+                      alertes_depuis=? WHERE id=?""",
+                   (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), m["id"]))
         db.commit(); db.close()
         logger.info(f"[Verif] ✅ {m['email']} a confirmé son adresse")
-        # Le membre devient joignable à cet instant. Les marchés collectés
-        # avant lui ont déjà été évalués — et marqués — sans le connaître:
-        # on rouvre la fenêtre pour qu'ils repassent devant ses filtres.
-        from app.services.notifications import rouvrir_rattrapage
-        rouvrir_rattrapage()
+        # Le membre devient joignable à cet instant: c'est le point de départ
+        # de ses alertes. Ce qui existait avant lui est annoncé en un seul
+        # message, pas déversé marché par marché.
+        from app.services.notifications import envoyer_bienvenue
+        try:
+            envoyer_bienvenue(m["id"])
+        except Exception as e:
+            logger.error(f"[bienvenue] {e}", exc_info=True)
         # Le lien peut être ouvert depuis un autre appareil que celui de
         # l'inscription: sans session, on renvoie vers la connexion.
         return RedirectResponse("/dashboard?verifie=1" if membre else "/login?verifie=1", 302)
@@ -1945,10 +1950,10 @@ async def settings_post(req: Request,
              wa_verified,member["id"]))
         db.commit()
     finally: db.close()
-    # Les marchés déjà collectés n'ont vu que les anciens filtres: on rouvre
-    # la fenêtre de rattrapage pour qu'ils repassent devant les nouveaux.
-    from app.services.notifications import rouvrir_rattrapage
-    rouvrir_rattrapage()
+    # Pas de rattrapage rétroactif ici: élargir ses secteurs déclencherait
+    # sinon des dizaines d'emails d'un coup. Les marchés déjà ouverts sont
+    # consultables sur le tableau de bord; les alertes reprennent leur cours
+    # normal pour les marchés collectés à partir de maintenant.
     return RedirectResponse("/settings?ok=1",302)
 
 @app.post("/settings/whatsapp/send-code")

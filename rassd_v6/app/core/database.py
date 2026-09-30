@@ -479,6 +479,15 @@ def migrate_db():
         # plafonnée, ces marchés occupaient la fenêtre en permanence et une
         # alerte réellement manquée, plus ancienne, n'était jamais reprise.
         "ALTER TABLE tenders ADD COLUMN alertes_faites_at TEXT DEFAULT ''",
+        # Instant à partir duquel un membre reçoit des alertes marché par
+        # marché. Sans cette borne, un nouvel inscrit recevait tout le
+        # rattrapage des 48 dernières heures: mesuré le 29/09/2026 sur un
+        # compte de test, plus de 55 emails en trois heures. Ce qui existait
+        # avant son arrivée lui est présenté en un seul message de bienvenue.
+        # Format aligné sur tenders.scraped_at ('YYYY-MM-DD HH:MM:SS'):
+        # members.created_at est en isoformat (séparateur 'T'), et 'T' > ' '
+        # en comparaison de chaînes — les deux ne se comparent pas directement.
+        "ALTER TABLE members ADD COLUMN alertes_depuis TEXT DEFAULT ''",
     ]
     for col in cols:
         try:
@@ -490,6 +499,18 @@ def migrate_db():
                 logger.warning(f"[migrate] {col[:50]}...: {e}")
         except Exception as e:
             logger.error(f"[migrate] Erreur inattendue: {e}")
+
+    # Les comptes ouverts avant cette borne prennent leur date d'inscription.
+    # Idempotent: seuls les champs restés vides sont touchés, donc une valeur
+    # posée plus tard à la confirmation d'adresse n'est jamais écrasée.
+    try:
+        db.execute("""UPDATE members
+                      SET alertes_depuis = REPLACE(SUBSTR(created_at, 1, 19), 'T', ' ')
+                      WHERE COALESCE(alertes_depuis,'') = ''
+                        AND COALESCE(created_at,'') <> ''""")
+        db.commit()
+    except Exception as e:
+        logger.warning(f"[migrate] alertes_depuis: {e}")
 
     # Posé après les ALTER: l'index porte sur une colonne que la boucle
     # ci-dessus vient seulement d'ajouter aux bases existantes.
