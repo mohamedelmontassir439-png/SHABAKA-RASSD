@@ -166,14 +166,19 @@ def run(known_ids: set, log_fn=print) -> list:
         return []
 
     results = []
+    trouves = analyses = 0
     for row_m in ROW_RE.finditer(html):
+        trouves += 1
         t = _parse_row(row_m.group(1))
-        if not t or t["id"] in known_ids:
+        if not t:
+            continue
+        analyses += 1
+        if t["id"] in known_ids:
             continue
         results.append(t)
         log_fn(f"✓ {t['id']} │ {t['secteur'][:16]:16} │ {t['objet'][:45]}")
 
-    log_fn(f"═══ {len(results)} nouveaux marchés privés ═══")
+    _bilan(log_fn, "Marchés privés", len(results), trouves, analyses)
     return results
 
 
@@ -246,6 +251,27 @@ def _parse_result_block(block_html: str):
     }
 
 
+def _bilan(log_fn, libelle: str, nouveaux: int, trouves: int, analyses: int) -> None:
+    """Rend visible la différence entre « rien de neuf » et « plus rien ne sort ».
+
+    Les quatre collecteurs n'annonçaient que le nombre de nouveautés. Or une
+    page dont la structure change renvoie elle aussi zéro: une panne et une
+    journée calme s'écrivaient exactement pareil dans le journal, et le
+    silence pouvait durer des semaines sans que personne le remarque.
+
+    Trois chiffres suffisent à les séparer:
+      trouves=0             → le gabarit de la page a changé, rien à analyser
+      trouves>0, analyses=0 → les champs ont bougé, les blocs ne se lisent plus
+      analyses>0, nouveaux=0→ tout va bien, la source n'a rien publié
+    """
+    detail = f"{nouveaux} nouveaux · {analyses} lus · {trouves} trouvés"
+    log_fn(f"═══ {libelle}: {detail} ═══")
+    if trouves == 0:
+        log_fn(f"⚠ {libelle}: aucun bloc trouvé — structure de la page à vérifier")
+    elif analyses == 0:
+        log_fn(f"⚠ {libelle}: {trouves} blocs trouvés mais aucun exploitable")
+
+
 def run_results(known_ids: set, log_fn=print) -> list:
     """Récupère les résultats d'adjudication (gagnant, montant final) publiés
     récemment. Le site trie par défaut par date d'affichage décroissante, donc
@@ -276,14 +302,19 @@ def run_results(known_ids: set, log_fn=print) -> list:
         return []
 
     results = []
+    trouves = analyses = 0
     for block in RESULT_BLOCK_RE.findall(html):
+        trouves += 1
         r = _parse_result_block(block)
-        if not r or r["id"] in known_ids:
+        if not r:
+            continue
+        analyses += 1
+        if r["id"] in known_ids:
             continue
         results.append(r)
         log_fn(f"✓ {r['id']} │ {r['adjudicataire'][:24]:24} │ {r['objet'][:40]}")
 
-    log_fn(f"═══ {len(results)} nouveaux résultats ═══")
+    _bilan(log_fn, "Résultats des marchés", len(results), trouves, analyses)
     return results
 
 
@@ -397,14 +428,19 @@ def run_bc(known_ids: set, log_fn=print) -> list:
         return []
 
     results = []
+    trouves = analyses = 0
     for row_m in ROW_RE.finditer(html):
+        trouves += 1
         t = _parse_po_row(row_m.group(1), "Public")
-        if not t or t["id"] in known_ids:
+        if not t:
+            continue
+        analyses += 1
+        if t["id"] in known_ids:
             continue
         results.append(t)
         log_fn(f"✓ {t['id']} │ {t['secteur'][:16]:16} │ {t['objet'][:45]}")
 
-    log_fn(f"═══ {len(results)} nouveaux bons de commande ═══")
+    _bilan(log_fn, "Bons de commande", len(results), trouves, analyses)
     return results
 
 
@@ -479,12 +515,17 @@ def run_bc_results(known_ids: set, log_fn=print) -> list:
         return []
 
     results = []
+    trouves = analyses = 0
     for block in RESULT_BLOCK_RE.findall(html):
+        trouves += 1
         res = _parse_po_result_block(block)
-        if not res or res["id"] in known_ids:
+        if not res:
+            continue
+        analyses += 1
+        if res["id"] in known_ids:
             continue
         results.append(res)
         log_fn(f"✓ {res['id']} │ {res['adjudicataire'][:24]:24} │ {res['objet'][:40]}")
 
-    log_fn(f"═══ {len(results)} nouveaux résultats de bons de commande ═══")
+    _bilan(log_fn, "Résultats des bons de commande", len(results), trouves, analyses)
     return results

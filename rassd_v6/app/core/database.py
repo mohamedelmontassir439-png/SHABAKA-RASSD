@@ -488,6 +488,11 @@ def migrate_db():
         # members.created_at est en isoformat (séparateur 'T'), et 'T' > ' '
         # en comparaison de chaînes — les deux ne se comparent pas directement.
         "ALTER TABLE members ADD COLUMN alertes_depuis TEXT DEFAULT ''",
+        # Montant de l'adjudication en nombre. La colonne texte reste la
+        # source affichée; celle-ci n'existe que pour filtrer et trier, ce que
+        # « 5.916.000,00 » et « 6.720.600.00 » — deux formats présents dans la
+        # même table — interdisent en SQL.
+        "ALTER TABLE tender_results ADD COLUMN montant_num REAL DEFAULT 0",
     ]
     for col in cols:
         try:
@@ -499,6 +504,30 @@ def migrate_db():
                 logger.warning(f"[migrate] {col[:50]}...: {e}")
         except Exception as e:
             logger.error(f"[migrate] Erreur inattendue: {e}")
+
+    # Remplissage de montant_num pour les résultats déjà en base. Le parsing
+    # vit en Python: SQLite ne sait pas départager le séparateur décimal du
+    # séparateur de milliers sur ces deux formats.
+    try:
+        from app.services.soustraitance import parse_montant
+        a_convertir = db.execute(
+            "SELECT id, montant FROM tender_results "
+            "WHERE COALESCE(montant_num,0)=0 AND COALESCE(montant,'')<>''").fetchall()
+        for ligne in a_convertir:
+            db.execute("UPDATE tender_results SET montant_num=? WHERE id=?",
+                       (parse_montant(ligne["montant"]), ligne["id"]))
+        if a_convertir:
+            db.commit()
+            logger.info(f"[migrate] {len(a_convertir)} montant(s) de résultat convertis")
+    except Exception as e:
+        logger.warning(f"[migrate] montant_num: {e}")
+
+    try:
+        db.execute("CREATE INDEX IF NOT EXISTS idx_tr_filtres "
+                   "ON tender_results(type_procedure, secteur, montant_num)")
+        db.commit()
+    except Exception as e:
+        logger.warning(f"[migrate] index résultats: {e}")
 
     # Les comptes ouverts avant cette borne prennent leur date d'inscription.
     # Idempotent: seuls les champs restés vides sont touchés, donc une valeur

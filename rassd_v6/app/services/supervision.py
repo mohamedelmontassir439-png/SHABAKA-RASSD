@@ -25,6 +25,12 @@ HEURES_SANS_MARCHE = 6
 ECHECS_RUNS_ALERTE = 3      # sur 24 h
 ECHECS_NOTIF_ALERTE = 10    # sur 24 h
 JOURS_SANS_SAUVEGARDE = 2
+# Les résultats d'adjudication (gagnant + montant) viennent d'une source
+# tierce qui publie par lots: plusieurs jours creux sont normaux, deux
+# semaines de silence ne le sont pas. Le collecteur annonçait « 0 nouveaux »
+# aussi bien quand la source se taisait que quand la page avait changé de
+# structure — un arrêt pouvait passer inaperçu indéfiniment.
+JOURS_SANS_RESULTAT = 14
 # Dossier surveillé pour la fraîcheur des sauvegardes (les tests le déplacent).
 DOSSIER_SAUVEGARDES = "data/backups"
 
@@ -32,6 +38,18 @@ DOSSIER_SAUVEGARDES = "data/backups"
 def _un(db, sql, *params):
     ligne = db.execute(sql, params).fetchone()
     return ligne[0] if ligne else 0
+
+
+def _jours_depuis(horodatage: str) -> float:
+    """Âge en jours d'un horodatage, 999 si absent ou illisible."""
+    if not horodatage:
+        return 999.0
+    try:
+        ecart = datetime.now() - datetime.strptime(horodatage[:19].replace("T", " "),
+                                                   "%Y-%m-%d %H:%M:%S")
+        return round(ecart.total_seconds() / 86400, 1)
+    except ValueError:
+        return 999.0
 
 
 def collecter_indicateurs() -> dict:
@@ -48,6 +66,14 @@ def collecter_indicateurs() -> dict:
                 pass
         ind = {
             "dernier_marche": dernier,
+            "resultats_total": _un(db, "SELECT COUNT(*) FROM tender_results") or 0,
+            "resultats_bc_total": _un(db, "SELECT COUNT(*) FROM tender_results "
+                                          "WHERE type_procedure='bon_commande'") or 0,
+            "jours_sans_resultat": _jours_depuis(
+                _un(db, "SELECT MAX(scraped_at) FROM tender_results") or ""),
+            "jours_sans_resultat_bc": _jours_depuis(
+                _un(db, "SELECT MAX(scraped_at) FROM tender_results "
+                        "WHERE type_procedure='bon_commande'") or ""),
             "heures_sans_marche": round(heures, 1),
             # Les dates des journaux sont écrites au format ISO avec un « T »;
             # SQLite compare des chaînes, d'où la normalisation systématique.
@@ -114,6 +140,16 @@ def anomalies(ind: dict) -> list:
                        f"vérifier l'expéditeur email")
     if ind["heures_sauvegarde"] > JOURS_SANS_SAUVEGARDE * 24:
         alertes.append(f"Aucune sauvegarde depuis {ind['heures_sauvegarde']} h")
+    # Une base qui n'a jamais reçu de résultat n'a rien à signaler: c'est une
+    # installation neuve, pas une source tarie. On ne compare que ce qui a
+    # déjà coulé au moins une fois.
+    if ind["resultats_bc_total"] and ind["jours_sans_resultat_bc"] > JOURS_SANS_RESULTAT:
+        alertes.append(
+            f"Aucun résultat de bon de commande depuis {ind['jours_sans_resultat_bc']} j — "
+            "vérifier le collecteur (source tierce)")
+    if ind["resultats_total"] and ind["jours_sans_resultat"] > JOURS_SANS_RESULTAT:
+        alertes.append(
+            f"Aucun résultat d'adjudication depuis {ind['jours_sans_resultat']} j")
     if ind["marches_actifs"] == 0:
         alertes.append("Aucun marché actif en base — le site est vide pour les membres")
     return alertes

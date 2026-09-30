@@ -154,20 +154,24 @@ def _save_tenders(tenders: list, new_list: list) -> int:
 
 def _save_results(results: list) -> int:
     if not results: return 0
+    # Le montant est stocké deux fois: en texte pour l'affichage fidèle à la
+    # source, en nombre pour filtrer et trier.
+    from app.services.soustraitance import parse_montant
     db = get_db(); saved = 0
     for r in results:
         try:
             db.execute("""INSERT OR IGNORE INTO tender_results
                 (id,reference,objet,acheteur,adjudicataire,region,budget,montant,
                  secteur,date_adjudication,date_ouverture,date_affichage,
-                 dao_url,pv_url,scraped_at,type_procedure)
-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                 dao_url,pv_url,scraped_at,type_procedure,montant_num)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (r["id"], r.get("reference",""), r["objet"], r.get("acheteur",""),
                  r.get("adjudicataire",""), r.get("region",""), r.get("budget",""),
                  r.get("montant",""), r.get("secteur",""),
                  r.get("date_adjudication",""), r.get("date_ouverture",""),
                  r.get("date_affichage",""), r.get("dao_url",""), r.get("pv_url",""),
-                 r["scraped_at"], r.get("type_procedure","marche")))
+                 r["scraped_at"], r.get("type_procedure","marche"),
+                 parse_montant(r.get("montant",""))))
             if db.execute("SELECT changes()").fetchone()[0]:
                 saved += 1
         except Exception as e:
@@ -1073,7 +1077,16 @@ async def favorites_page(req: Request):
     return render(req,"favorites.html",{"tenders":rows})
 
 @app.get("/resultats", response_class=HTMLResponse)
-async def resultats_page(req: Request, q:str="", page:int=1):
+async def resultats_page(req: Request, q: str = "", page: int = 1,
+                         type_p: str = "", secteur: str = "", region: str = "",
+                         min_montant: str = "", tri: str = "recent"):
+    """Les adjudications, filtrables.
+
+    La page ne proposait qu'une recherche en texte libre sur 1659 lignes. Or
+    ce qu'un membre vient y chercher est précis: qui a gagné, à quel prix,
+    dans mon secteur et ma région. Sans filtres, l'information existait mais
+    restait inatteignable.
+    """
     m0 = get_member(req)
     if not m0:
         return RedirectResponse("/login?next=/resultats", 302)
@@ -1083,16 +1096,45 @@ async def resultats_page(req: Request, q:str="", page:int=1):
     where, params = ["1=1"], []
     if q:
         where.append("(objet LIKE ? OR acheteur LIKE ? OR adjudicataire LIKE ?)")
-        params += [f"%{q}%"]*3
+        params += [f"%{q}%"] * 3
+    if type_p in ("marche", "bon_commande"):
+        where.append("type_procedure=?"); params.append(type_p)
+    if secteur:
+        where.append("secteur=?"); params.append(secteur)
+    if region:
+        where.append("region LIKE ?"); params.append(f"%{region}%")
+    seuil = 0.0
+    if min_montant:
+        from app.services.soustraitance import parse_montant
+        seuil = parse_montant(min_montant)
+        if seuil > 0:
+            where.append("montant_num >= ?"); params.append(seuil)
+    # Le tri par montant place les résultats non chiffrés en dernier plutôt
+    # qu'en tête: un 0 signifie « montant illisible », pas « marché gratuit ».
+    ordre = {"recent":  "scraped_at DESC",
+             "montant": "montant_num DESC",
+             "ancien":  "scraped_at ASC"}.get(tri, "scraped_at DESC")
     wh    = " AND ".join(where)
     total = db.execute(f"SELECT COUNT(*) FROM tender_results WHERE {wh}", params).fetchone()[0]
     rows  = [dict(x) for x in db.execute(
-        f"SELECT * FROM tender_results WHERE {wh} ORDER BY scraped_at DESC LIMIT ? OFFSET ?",
-        params+[per,(page-1)*per]).fetchall()]
+        f"SELECT * FROM tender_results WHERE {wh} ORDER BY {ordre} LIMIT ? OFFSET ?",
+        params + [per, (page - 1) * per]).fetchall()]
+    # Les listes déroulantes ne montrent que ce qui existe vraiment en base:
+    # proposer les 83 secteurs du référentiel quand 30 sont représentés fait
+    # tomber le membre sur des pages vides.
+    secteurs_dispo = [r[0] for r in db.execute(
+        "SELECT DISTINCT secteur FROM tender_results "
+        "WHERE COALESCE(secteur,'')<>'' ORDER BY secteur").fetchall()]
+    regions_dispo = [r[0] for r in db.execute(
+        "SELECT DISTINCT region FROM tender_results "
+        "WHERE COALESCE(region,'')<>'' ORDER BY region").fetchall()]
     db.close()
-    pages = max(1,(total+per-1)//per)
+    pages = max(1, (total + per - 1) // per)
     return render(req, "resultats.html", {
-        "resultats":rows,"total":total,"page":page,"pages":pages,"q":q})
+        "resultats": rows, "total": total, "page": page, "pages": pages, "q": q,
+        "type_p": type_p, "secteur": secteur, "region": region,
+        "min_montant": min_montant, "tri": tri,
+        "secteurs_dispo": secteurs_dispo, "regions_dispo": regions_dispo})
 
 @app.get("/resultats/{rid}/{doc}")
 async def resultat_doc_redirect(req: Request, rid: str, doc: str):
