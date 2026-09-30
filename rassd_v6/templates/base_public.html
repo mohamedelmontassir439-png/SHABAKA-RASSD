@@ -165,7 +165,7 @@ html[dir="rtl"] .sel { background-position: left 14px center; padding-right: 14p
 
 /* ── Nav ─────────────────────────────────────────────── */
 .nav { position: sticky; top: 0; z-index: 200; background: rgba(248,241,225,.86); backdrop-filter: saturate(180%) blur(14px); -webkit-backdrop-filter: saturate(180%) blur(14px); border-bottom: 1px solid var(--line); height: 68px; display: flex; align-items: center; padding: 0 32px; }
-.nav-logo-wrap { display: flex; align-items: center; gap: 11px; margin-inline-end: 40px; }
+.nav-logo-wrap { display: flex; align-items: center; gap: 11px; margin-inline-end: 40px; flex-shrink: 0; }
 /* La marque est desormais une forme, pas deux lettres: le degrade applique
    au texte n'a plus d'objet, seul l'alignement compte. */
 .nav-logo { display: inline-flex; align-items: center; line-height: 0; }

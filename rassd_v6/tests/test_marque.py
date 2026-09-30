@@ -95,3 +95,30 @@ class TestCouleurs:
     def test_le_nom_s_adapte_au_fond(self):
         assert M.ENCRE in M.logo(44, couleur_texte=M.ENCRE)
         assert M.CREME in M.logo(44, couleur_texte=M.CREME)
+
+
+class TestResistanceALaCompression:
+    """La marque ne doit pas être la variable d'ajustement d'une barre serrée.
+
+    Relevé en production le 30/09/2026: l'étoile avait disparu de l'en-tête
+    d'un membre connecté — neuf liens de navigation — tout en restant
+    visible dans le pied de page. La règle « svg { max-width: 100% } » la
+    laissait se réduire à rien pendant que le nom, en nowrap, tenait sa
+    place.
+    """
+
+    @pytest.mark.parametrize("taille", [28, 38, 42, 52])
+    def test_la_marque_refuse_de_retrecir(self, taille):
+        svg = M.etoile(taille)
+        assert "flex:none" in svg
+        assert f"min-width:{taille}px" in svg
+
+    def test_le_logo_complet_protege_aussi_sa_marque(self):
+        assert "flex:none" in M.logo(42)
+
+
+class TestLisibiliteSurFondSombre:
+    def test_le_nom_passe_en_creme_quand_on_le_demande(self):
+        # Laissé en encre sur la barre latérale brune, il devenait illisible.
+        sombre = M.logo(38, couleur_texte=M.CREME)
+        assert M.CREME in sombre and f"color:{M.ENCRE}" not in sombre

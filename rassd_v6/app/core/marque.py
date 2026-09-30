@@ -58,8 +58,14 @@ def etoile(taille: int = 40, couleur: str = OR, fond: str = "none") -> str:
     # pixels: l'etoile pleine y est plus nette et reste reconnaissable.
     ajour = "" if taille < 20 else " M 50 30 L 70 50 L 50 70 L 30 50 Z"
     return (
+        # flex:none et la largeur minimale protegent la marque: dans une barre
+        # de navigation chargee, la regle « svg { max-width: 100% } » la
+        # laissait se reduire a rien pendant que le nom, en nowrap, tenait sa
+        # place. Constate le 30/09/2026: l'etoile avait disparu de l'en-tete
+        # tout en restant visible dans le pied de page, ou rien ne comprime.
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{taille}" '
         f'height="{taille}" viewBox="0 0 100 100" role="img" '
+        f'style="flex:none;min-width:{taille}px" '
         f'aria-label="Maroc Entrepreneuriat">{fond_rect}'
         f'<path fill-rule="evenodd" fill="{couleur}" '
         f'd="{_sommets(48)}{ajour}"/>'
