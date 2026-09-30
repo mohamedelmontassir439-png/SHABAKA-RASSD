@@ -862,6 +862,15 @@ def get_stats() -> dict:
             "notifs":  db.execute("SELECT COUNT(*) FROM notif_log WHERE sent_at>=date('now','-7 days')").fetchone()[0],
             "expired": db.execute("SELECT COUNT(*) FROM tenders WHERE statut='expire'").fetchone()[0],
             "scrapes": db.execute("SELECT COUNT(*) FROM scrape_log").fetchone()[0],
+            # Chiffres de la page d'accueil. Ils y remplacent trois témoignages
+            # de clients inventés — noms, villes et citations — alors que la
+            # plateforme n'avait encore aucun abonné. Un prospect peut vérifier
+            # un compteur; il ne peut pas vérifier un témoignage anonyme, et
+            # découvrir qu'il est faux coûte la vente et la réputation.
+            "resultats": db.execute("SELECT COUNT(*) FROM tender_results").fetchone()[0],
+            "secteurs_actifs": db.execute(
+                "SELECT COUNT(DISTINCT secteur) FROM tenders "
+                "WHERE statut='actif' AND COALESCE(secteur,'')<>''").fetchone()[0],
         }
     finally: db.close()
 

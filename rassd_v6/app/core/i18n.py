@@ -133,6 +133,9 @@ T = {
     "st_spot_example1_meta": {"fr": "BTP · Rabat-Salé-Kénitra", "ar": "البناء · الرباط سلا القنيطرة"},
     "st_spot_example2":   {"fr": "Propose services de plomberie industrielle", "ar": "عرض خدمات السباكة الصناعية"},
     "st_spot_example2_meta": {"fr": "Équipements · Casablanca-Settat", "ar": "التجهيزات · الدار البيضاء سطات"},
+    # La place de marche ne compte encore aucune annonce: les deux cartes
+    # voisines sont des illustrations, et doivent le dire.
+    "st_spot_exemple_label": {"fr": "Exemple", "ar": "مثال"},
     "st_spot_rating_text": {"fr": "Évaluez et soyez évalué après chaque collaboration", "ar": "قيّم وكُن مُقيَّماً بعد كل تعاون"},
     "set_referral_h":     {"fr": "Parrainage", "ar": "الإحالة"},
     "set_referral_sub":   {"fr": "Partagez votre lien avec un collègue entrepreneur. {n} inscription(s) via votre lien jusqu'à présent.", "ar": "شارك رابطك مع زميل مقاول. {n} تسجيل عبر رابطك حتى الآن."},
@@ -275,19 +278,25 @@ T = {
     "latest_view_all":    {"fr": "Voir tous les marchés →", "ar": "عرض جميع الصفقات ←"},
     "latest_view_signup": {"fr": "Voir les offres d'abonnement →", "ar": "عرض عروض الاشتراك ←"},
     "latest_empty":       {"fr": "À définir", "ar": "غير محدد"},
-    "proof_label":        {"fr": "Témoignages", "ar": "شهادات"},
-    "proof_title":        {"fr": "Ils nous font <em>confiance</em>", "ar": "يثقون <em>بنا</em>"},
-    "proof_sub":          {"fr": "Des entreprises de plusieurs secteurs utilisent Maroc Entrepreneuriat au quotidien pour ne plus rater une opportunité.",
-                            "ar": "شركات من عدة قطاعات تستخدم Maroc Entrepreneuriat يومياً حتى لا تفوتها أي فرصة."},
-    "proof1_text":        {"fr": "\"Avant, deux heures par jour à chercher. Maintenant l'alerte arrive sur le téléphone. Trois offres soumises ce mois-ci que j'aurais ratées.\"",
-                            "ar": "\"من قبل، ساعتان يومياً في البحث. الآن يصلني التنبيه على الهاتف. ثلاثة عروض قدمتها هذا الشهر كنت سأفوّتها.\""},
-    "proof1_sector":      {"fr": "Travaux BTP · Casablanca", "ar": "أشغال البناء · الدار البيضاء"},
-    "proof2_text":        {"fr": "\"Ce qui m'a convaincu c'est la rapidité. Je reçois l'alerte avant même que le marché soit visible ailleurs. Vrai avantage.\"",
-                            "ar": "\"ما أقنعني هو السرعة. أتلقى التنبيه حتى قبل أن تظهر الصفقة في أي مكان آخر. ميزة حقيقية.\""},
-    "proof2_sector":      {"fr": "IT & Télécoms · Rabat", "ar": "المعلوميات والاتصالات · الرباط"},
-    "proof3_text":        {"fr": "\"Le filtrage par secteur change tout. Je ne reçois que ce qui me concerne. Plus de temps pour les dossiers — et ça se voit.\"",
-                            "ar": "\"الفرز حسب القطاع يغيّر كل شيء. لا يصلني إلا ما يخصني. وقت أكثر للملفات — والنتيجة واضحة.\""},
-    "proof3_sector":      {"fr": "Études & Conseil · Fès", "ar": "الدراسات والاستشارة · فاس"},
+    # Ces quatre chiffres remplacent trois temoignages de clients inventes.
+    # Ils sont lus en base a chaque affichage: un prospect peut les recouper
+    # avec le portail officiel, ce qu'aucun temoignage anonyme ne permet.
+    "proof_label":        {"fr": "En chiffres", "ar": "بالأرقام"},
+    "proof_n1":           {"fr": "marchés ouverts en ce moment",
+                           "ar": "صفقة مفتوحة الآن"},
+    "proof_n2":           {"fr": "adjudications publiées, avec attributaire et montant",
+                           "ar": "نتيجة إرساء، بالفائز والمبلغ"},
+    "proof_n3":           {"fr": "secteurs couverts aujourd'hui",
+                           "ar": "قطاعًا مغطّى اليوم"},
+    "proof_n4":           {"fr": "marchés collectés depuis ce matin",
+                           "ar": "صفقة جُمعت منذ الصباح"},
+    "proof_title":        {"fr": "Ce que la plateforme <em>surveille</em>, en direct",
+                           "ar": "ما <em>ترصده</em> المنصة، مباشرة"},
+    # Affirmait qu'« des entreprises de plusieurs secteurs utilisent la
+    # plateforme au quotidien », alors qu'elle n'avait aucun abonne. Remplace
+    # par ce que la plateforme fait reellement, verifiable a la source.
+    "proof_sub":          {"fr": "Chiffres lus en base à l'instant, recoupables avec le portail officiel des marchés publics.",
+                            "ar": "أرقام تُقرأ من قاعدة البيانات في اللحظة نفسها، قابلة للمقارنة مع البوابة الرسمية للصفقات العمومية."},
     "finalcta_eyebrow":   {"fr": "✦ Maroc Entrepreneuriat", "ar": "✦ Maroc Entrepreneuriat"},
     "finalcta_title":     {"fr": "Ne laissez plus <em>aucune</em> opportunité vous échapper", "ar": "لا تدع <em>أي</em> فرصة تفوتك بعد الآن"},
     "finalcta_text":      {"fr": "Créez votre compte, définissez vos secteurs d'activité, et laissez la veille travailler pour vous — 24h/24, sur les marchés publics comme privés, partout au Maroc.",

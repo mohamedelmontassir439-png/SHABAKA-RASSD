@@ -2,6 +2,21 @@
 {% block title %}MAROC ENTREPRENEURIAT — La référence des marchés publics et privés au Maroc{% endblock %}
 {% block head %}
 <style>
+  /* Ces deux cartes illustrent la fonctionnalite; la place de marche est
+     encore vide. Le dire evite qu'on les prenne pour de vraies annonces. */
+  .st-spot-card-exemple { margin-top: 6px; font-size: 11px; font-weight: 700;
+      letter-spacing: .06em; text-transform: uppercase; color: var(--text3, #98a1b3); }
+
+  /* Chiffres de preuve: ils remplacent des temoignages qui n'existaient pas. */
+  .proof-chiffres { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .proof-chiffres .proof-card { padding: 26px 18px; text-align: center; }
+  .proof-nombre { font-size: 38px; font-weight: 800; line-height: 1.1;
+                  color: var(--accent, #f2662d); font-variant-numeric: tabular-nums; }
+  .proof-legende { margin-top: 8px; font-size: 13.5px; color: var(--text3, #6b7488);
+                   line-height: 1.5; }
+  @media (max-width: 900px) { .proof-chiffres { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 460px) { .proof-nombre { font-size: 30px; } }
+
 /* ── HERO ─────────────────────────────────────── */
 .hero { position: relative; overflow: hidden; padding: 92px 24px 100px; background: linear-gradient(160deg, var(--ink3) 0%, var(--ink) 100%); }
 .hero::before { content: ""; position: absolute; inset: 0; background-image: var(--zellige); background-size: 84px 84px; opacity: .5; mask-image: linear-gradient(160deg, rgba(0,0,0,.9) 0%, transparent 65%); -webkit-mask-image: linear-gradient(160deg, rgba(0,0,0,.9) 0%, transparent 65%); pointer-events: none; }
@@ -396,11 +411,13 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
       <div class="st-spot-card">
         <span class="badge badge-blue">{{ tr('st_type_demande') }}</span>
         <div class="st-spot-card-title">{{ tr('st_spot_example1') }}</div>
+        <div class="st-spot-card-exemple">{{ tr('st_spot_exemple_label') }}</div>
         <div class="st-spot-card-meta">{{ tr('st_spot_example1_meta') }}</div>
       </div>
       <div class="st-spot-card">
         <span class="badge badge-grn">{{ tr('st_type_offre') }}</span>
         <div class="st-spot-card-title">{{ tr('st_spot_example2') }}</div>
+        <div class="st-spot-card-exemple">{{ tr('st_spot_exemple_label') }}</div>
         <div class="st-spot-card-meta">{{ tr('st_spot_example2_meta') }}</div>
       </div>
       <div class="st-spot-rating">
@@ -449,30 +466,22 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
     <div class="section-title reveal" style="max-width: 720px; margin: 0 auto;">{{ tr('proof_title')|safe }}</div>
     <p class="section-sub reveal" style="font-size: 15.5px; margin-left:auto; margin-right:auto;">{{ tr('proof_sub') }}</p>
 
-    <div class="proof-grid">
+    <div class="proof-grid proof-chiffres">
       <div class="proof-card reveal reveal-1">
-        <div class="proof-stars">★★★★★</div>
-        <div class="proof-text">{{ tr('proof1_text') }}</div>
-        <div class="proof-who">
-          <div class="proof-avatar">KB</div>
-          <div><div class="proof-author">K. Benali</div><div class="proof-sector">{{ tr('proof1_sector') }}</div></div>
-        </div>
+        <div class="proof-nombre">{{ "{:,}".format(stats.tenders).replace(",", " ") }}</div>
+        <div class="proof-legende">{{ tr('proof_n1') }}</div>
       </div>
       <div class="proof-card reveal reveal-2">
-        <div class="proof-stars">★★★★★</div>
-        <div class="proof-text">{{ tr('proof2_text') }}</div>
-        <div class="proof-who">
-          <div class="proof-avatar">MT</div>
-          <div><div class="proof-author">M. Tahiri</div><div class="proof-sector">{{ tr('proof2_sector') }}</div></div>
-        </div>
+        <div class="proof-nombre">{{ "{:,}".format(stats.resultats).replace(",", " ") }}</div>
+        <div class="proof-legende">{{ tr('proof_n2') }}</div>
       </div>
       <div class="proof-card reveal reveal-3">
-        <div class="proof-stars">★★★★★</div>
-        <div class="proof-text">{{ tr('proof3_text') }}</div>
-        <div class="proof-who">
-          <div class="proof-avatar">SA</div>
-          <div><div class="proof-author">S. Alaoui</div><div class="proof-sector">{{ tr('proof3_sector') }}</div></div>
-        </div>
+        <div class="proof-nombre">{{ stats.secteurs_actifs }}</div>
+        <div class="proof-legende">{{ tr('proof_n3') }}</div>
+      </div>
+      <div class="proof-card reveal reveal-1">
+        <div class="proof-nombre">{{ stats.today }}</div>
+        <div class="proof-legende">{{ tr('proof_n4') }}</div>
       </div>
     </div>
   </div>
