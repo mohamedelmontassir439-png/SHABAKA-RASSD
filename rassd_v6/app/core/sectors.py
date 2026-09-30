@@ -130,7 +130,9 @@ KEYWORDS: dict = {
     "T204": ["maritime","fluvial","port","barrage","digue","jetée"],
     "T301": ["route","voie ferrée","chaussée","autoroute","piste","bitume","asphalte","revêtement routier"],
     "T302": ["signalisation","glissière","panneau","marquage route","équipement route"],
-    "T401": ["électricité","éclairage public","courant fort","groupe électrogène","transformateur","hta","bta","poste électrique"],
+    "T401": ["électricité","éclairage public","courant fort","groupe électrogène",
+             "transformateur","hta","bta","poste électrique","lampe","luminaire",
+             "ampoule","projecteur d'éclairage","candélabre"],
     "T402": ["télésurveillance","alarme","sonorisation","vidéosurveillance","cctv","intrusion","access control"],
     "T403": ["télécommunication","réseau informatique","fibre optique","téléphonie","antenne","câblage","vdi"],
     "T404": ["isolation frigorifique","chambre froide","réfrigération","congélation","froid industriel"],
@@ -161,13 +163,16 @@ KEYWORDS: dict = {
     "P823": ["petit outillage","outillage","outil","matériel courant","consommable",
              "matériel d'atelier","quincaillerie"],
     "P824": ["cuisine","buanderie","restaurant collectif","cafétéria"],
-    "P825": ["fourniture bureau","papeterie","cartouche","toner","ramette","stylo"],
+    "P825": ["fourniture bureau","papeterie","cartouche","toner","tonner","ramette",
+             "rame de papier","papier","feuille","stylo","enveloppe","classeur",
+             "registre","chemise cartonnée","agrafeuse","parapheur"],
     "P830": ["pièce rechange","spare parts","maintenance industrielle","produit industriel"],
     "P831": ["carburant","gasoil","essence","mazout","lubrifiant","huile moteur"],
     "P832": ["produit chimique","réactif","solvant","acide","peinture industrielle"],
     "P833": ["médicament","pharmacie","consommable médical","réactif laboratoire","vaccin"],
     "P834": ["alimentaire","denrée","produit agricole","céréale","viande","poisson","légume"],
-    "P836": ["imprimerie","impression","papeterie","reprographie","emballage","sérigraphie"],
+    "P836": ["imprimerie","impression","papeterie","reprographie","emballage","sérigraphie",
+             "imprimé","photocopie","plastification","reliure"],
     "P837": ["textile","confection","vêtement","uniforme","blouse","tenue","tissu"],
     "P838": ["minerai","métal","acier","plastique","bois","matière première"],
     "P839": ["matériaux construction","ciment","brique","préfabriqué","parpaing","béton prêt"],
@@ -191,11 +196,14 @@ KEYWORDS: dict = {
     "S908": ["gardiennage","sécurité humaine","agent sécurité","vigile","intérim","rondier"],
     "S909": ["concours architecture","concours idées","appel à idées"],
     "S910": ["publicité","communication","affichage","spot","média","relations publiques","événement communication"],
-    "S911": ["restauration","traiteur","hébergement hôtel","repas","buffet","réception","cantine"],
+    "S911": ["restauration","traiteur","hébergement hôtel","repas","buffet","réception",
+             "cantine","petit déjeuner","déjeuner","dîner","pause café","café",
+             "collation","gâteau","eau minérale","cocktail"],
     "S912": ["assurance","couverture assurance","police assurance","multirisque"],
     "S913": ["formation","stage","séminaire","atelier","coaching","enseignement","certification"],
     "S914": ["location","concession","bail","mise à disposition"],
-    "S915": ["location véhicule","location matériel roulant","transport","chauffeur"],
+    "S915": ["location véhicule","location matériel roulant","transport","chauffeur",
+             "billet d'avion","billetterie","voyage","déplacement aérien","aller retour"],
     "S916": ["étude agricole","conseil agricole","agronomie"],
     "S917": ["événementiel","cérémonie","conférence","congrès","forum","salon","exposition"],
     "S918": ["déchet","collecte déchet","traitement déchet","recyclage","déchetterie"],
@@ -216,6 +224,11 @@ KEYWORDS: dict = {
 # prefixe reste utile et sur: « informatiq » n'ouvre que « informatique ».
 _PREFIXE_LONGUEUR_MIN = 6
 
+# Separateur tolere entre les mots d'une expression-cle: espaces, apostrophes
+# et traits d'union, plus au plus un petit mot de liaison.
+_LIAISON = (r"[\s'" + chr(0x2019) + r"-]+(?:(?:de|du|des|d|le|la|les|l|au|aux|en|pour|sur)"
+            r"[\s'" + chr(0x2019) + r"]+)?")
+
 
 @lru_cache(maxsize=8192)
 def _sans_accents(texte: str) -> str:
@@ -233,12 +246,21 @@ def _sans_accents(texte: str) -> str:
 @lru_cache(maxsize=4096)
 def _motifs(kw: str):
     """Deux expressions par mot-cle: le mot entier, puis le mot en prefixe."""
-    echappe = re.escape(_sans_accents(kw))
+    nu = _sans_accents(kw)
+    # Entre deux mots d'une expression, le francais glisse des articles et des
+    # elisions que le mot-cle ne porte pas: « systeme information » doit
+    # reconnaitre « systeme d'information » et « systeme de l'information ».
+    # Sans cette souplesse, « Conception, developpement, integration et mise en
+    # exploitation d'un systeme d' information territorial » — releve le
+    # 30/09/2026 — tombait en « Prestations diverses ».
+    # Le pluriel touche chaque mot de l'expression, pas seulement le dernier:
+    # « espace vert » doit reconnaitre « espaces verts ».
+    echappe = _LIAISON.join(re.escape(mot) + r"(?:s|x)?" for mot in nu.split())
     # Le pluriel francais fait partie du mot entier: « arbre » doit
     # reconnaitre « arbres », « outil » reconnaitre « outils ». Sans cela,
     # borner la regle de prefixe aux mots longs ferait perdre tous les
     # pluriels des mots-cles courts.
-    entier = re.compile(r"\b" + echappe + r"(?:s|x)?" + r"\b")
+    entier = re.compile(r"\b" + echappe + r"\b")
     return (entier, re.compile(r"\b" + echappe))
 
 
@@ -270,10 +292,16 @@ def classify(text: str) -> str:
         score = 0
         for kw in keywords:
             entier, prefixe = _motifs(kw)
+            # Une expression pese autant que de mots la composent: elle decrit
+            # le marche plus precisement qu'un mot isole. « developpement
+            # informatique » (Etudes TIC) doit donc l'emporter sur le simple
+            # « informatique » (Equipements informatiques), qui figure aussi
+            # dans le texte.
+            poids = len(kw.split())
             if entier.search(t):
-                score += 3
+                score += 3 * poids
             elif len(kw) >= _PREFIXE_LONGUEUR_MIN and prefixe.search(t):
-                score += 1
+                score += poids
         # Le code ecrit tel quel dans le texte: preuve directe, pas indice.
         if re.search(r"\b" + code.lower() + r"\b", t):
             score += 10

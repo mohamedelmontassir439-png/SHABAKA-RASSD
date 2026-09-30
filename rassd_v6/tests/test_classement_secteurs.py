@@ -70,3 +70,56 @@ class TestCasReelsDeProduction:
     ])
     def test_classement_attendu(self, objet, attendu):
         assert classify(objet) == attendu, objet
+
+
+class TestExpressionsComposees:
+    """Le français glisse des articles et pluralise chaque mot."""
+
+    def test_liaison_toleree_entre_les_mots(self):
+        # Relevé le 30/09/2026: « système d' information territorial » tombait
+        # en « Prestations diverses », le mot-clé étant « système information ».
+        assert classify("Conception et déploiement d'un système d'information "
+                        "territorial") == "S901"
+
+    def test_pluriel_sur_chaque_mot(self):
+        # « espace vert » doit reconnaître « espaces verts ».
+        assert classify("Aménagement des espaces verts de la commune") == "T111"
+
+    def test_expression_l_emporte_sur_le_mot_isole(self):
+        # « développement informatique » (Études TIC) est plus précis que le
+        # simple « informatique » (Équipements informatiques), présent aussi.
+        assert classify("Développement informatique sur mesure") == "S901"
+        assert classify("Achat de matériel informatique") == "P818"
+
+
+class TestVocabulaireCourant:
+    """Mots relevés dans les marchés tombés en « Prestations diverses ».
+
+    Sur un échantillon de 800 marchés actifs, 281 finissaient sans secteur
+    précis faute de mot-clé. Les plus fréquents sont ici.
+    """
+
+    @pytest.mark.parametrize("objet, attendu", [
+        ("Achat de rames de papier A4", "P825"),
+        ("Achat de toner et de cartouches", "P825"),
+        ("Pause café et petit déjeuner pour les participants", "S911"),
+        ("Achat d'eau minérale et de gâteaux", "S911"),
+        ("Fourniture de lampes d'éclairage", "T401"),
+        ("Achat de billets d'avion aller retour", "S915"),
+        ("Achat des imprimés administratifs", "P836"),
+    ])
+    def test_classement_du_vocabulaire_courant(self, objet, attendu):
+        assert classify(objet) == attendu, objet
+
+
+class TestAmbiguitesAssumees:
+    def test_un_consommable_nomme_avec_sa_machine_reste_ambigu(self):
+        """« Toner pour imprimante » touche deux secteurs à poids égal.
+
+        Le consommable relève des fournitures de bureau, la machine des
+        équipements informatiques, et les deux mots pèsent pareil. Aucun
+        départage n'est plus juste que l'autre ici: on constate le résultat
+        au lieu de tordre le classeur pour un cas que le vocabulaire ne
+        tranche pas.
+        """
+        assert classify("Fourniture de toner pour imprimante") in ("P825", "P818")
