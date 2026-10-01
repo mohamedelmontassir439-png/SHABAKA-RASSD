@@ -335,6 +335,24 @@ async def do_scrape():
             _record_run("bc-results", "FAILED", errors=1, started=_t, message=str(e))
             logger.error(f"[bc results scraper] {e}", exc_info=True)
 
+        # ── Gagnants de marchés → annuaire et file d'appel ────
+        # Une entreprise qui vient de remporter un marché est le meilleur
+        # prospect que la plateforme sache produire. Fait à chaque cycle
+        # plutôt que sur commande: sinon la liste d'appel vieillit dès la
+        # collecte suivante.
+        _t = datetime.now()
+        try:
+            from app.services.gagnants import inscrire, semer_prospection
+            st = await loop.run_in_executor(None, lambda: inscrire(State.log))
+            await loop.run_in_executor(None, lambda: semer_prospection(State.log))
+            State.log(f"✅ Gagnants: {st['gagnants']} attributaire(s), "
+                      f"{st['creees']} fiche(s) créée(s)")
+            _record_run("gagnants", "SUCCESS", st["lignes"], st["creees"], started=_t)
+        except Exception as e:
+            State.log(f"❌ Gagnants: {e}")
+            _record_run("gagnants", "FAILED", errors=1, started=_t, message=str(e))
+            logger.error(f"[gagnants] {e}", exc_info=True)
+
         # ── Log run ───────────────────────────────────────
         db = get_db()
         db.execute("INSERT INTO scrape_log(found,saved,errors,run_at) VALUES(?,?,?,?)",
@@ -3022,10 +3040,20 @@ def _marches_pour_secteur(db, secteur: str, limite: int = 3) -> list:
 
 @app.get("/admin/prospection", response_class=HTMLResponse)
 async def admin_prospection(req: Request, statut: str = "", s: str = "",
-                            ville: str = "", q: str = "", page: int = 1):
+                            ville: str = "", q: str = "", gagnants: str = "",
+                            page: int = 1):
     if not _is_admin(req): return RedirectResponse("/admin/login", 302)
     db = get_db(); per = 40; page = max(1, page)
-    where = ["c.phone!='' OR c.email!=''"]
+    # Les gagnants de marchés sont les meilleurs prospects que la plateforme
+    # sache produire — ils ont de l'argent et du travail devant eux — mais
+    # Global Marché ne publie aucun contact: 236 des 237 n'ont pas de
+    # téléphone (mesure du 01/10/2026). Les masquer faute de numéro, c'est
+    # cacher la liste la plus précieuse. Ce filtre les montre tous, avec de
+    # quoi chercher le numéro et le saisir.
+    if gagnants:
+        where = ["COALESCE(c.wins,0) > 0"]
+    else:
+        where = ["c.phone!='' OR c.email!=''"]
     params = []
     if q:
         where.append("(c.legal_name LIKE ? OR c.phone LIKE ? OR c.city LIKE ?)")
@@ -3051,7 +3079,7 @@ async def admin_prospection(req: Request, statut: str = "", s: str = "",
         WHERE {wh}
         ORDER BY (p.prochain_contact!='' AND p.prochain_contact<=date('now')) DESC,
                  (COALESCE(p.statut,'a_appeler')='a_appeler') DESC,
-                 (c.phone!='') DESC, c.legal_name
+                 COALESCE(c.wins,0) DESC, (c.phone!='') DESC, c.legal_name
         LIMIT ? OFFSET ?""", params + [per, (page - 1) * per]).fetchall()]
 
     compteurs = {k: 0 for k in STATUTS_PROSPECTION}
@@ -3067,12 +3095,16 @@ async def admin_prospection(req: Request, statut: str = "", s: str = "",
         "SELECT DISTINCT city FROM companies WHERE city!='' ORDER BY city LIMIT 60").fetchall()]
     secteurs = [r[0] for r in db.execute(
         "SELECT DISTINCT sector FROM companies WHERE sector!='' ORDER BY sector").fetchall()]
+    nb_gagnants = db.execute(
+        "SELECT COUNT(*) FROM companies WHERE COALESCE(wins,0) > 0").fetchone()[0]
     db.close()
     return templates.TemplateResponse("admin_prospection.html", {
         "request": req, "cfg": cfg, "rows": rows, "total": total, "page": page,
         "pages": max(1, (total + per - 1) // per), "statuts": STATUTS_PROSPECTION,
         "compteurs": compteurs, "rappels": rappels, "villes": villes,
-        "secteurs": secteurs, "f": {"statut": statut, "s": s, "ville": ville, "q": q},
+        "secteurs": secteurs, "nb_gagnants": nb_gagnants,
+        "f": {"statut": statut, "s": s, "ville": ville, "q": q,
+              "gagnants": gagnants},
         "get_label": get_label, "now": datetime.now()})
 
 
@@ -3120,13 +3152,29 @@ async def admin_prospection_fiche(req: Request, cid: int):
 @app.post("/admin/prospection/{cid}")
 async def admin_prospection_maj(req: Request, cid: int, statut: str = Form("a_appeler"),
                                 notes: str = Form(""), prochain: str = Form(""),
-                                appel: str = Form(""), csrf_token: str = Form("")):
+                                appel: str = Form(""), phone: str = Form(""),
+                                email: str = Form(""), csrf_token: str = Form("")):
     if not _is_admin(req): return JSONResponse({"ok": False}, 401)
     csrf_guard(req, csrf_token)
     if statut not in STATUTS_PROSPECTION:
         statut = "a_appeler"
     maintenant = datetime.now().isoformat()
     db = get_db()
+    # Les gagnants de marchés arrivent sans contact: Global Marché n'en publie
+    # pas. Le numéro trouvé à la main doit pouvoir être enregistré, sinon il
+    # est perdu dès l'onglet fermé et l'entreprise reste invisible dans la
+    # file d'appel, qui ne montre par défaut que ce qui est joignable.
+    from app.services.companies import normalize_email, normalize_phone
+    tel, courriel = normalize_phone(phone), normalize_email(email)
+    if tel or courriel:
+        champs, valeurs = [], []
+        if tel:
+            champs.append("phone=?"); valeurs.append(tel)
+        if courriel:
+            champs.append("email=?"); valeurs.append(courriel)
+        champs.append("updated_at=?"); valeurs.append(maintenant)
+        db.execute(f"UPDATE companies SET {', '.join(champs)} WHERE id=?",
+                   valeurs + [cid])
     existe = db.execute("SELECT appels FROM prospection WHERE company_id=?", (cid,)).fetchone()
     appels = (existe["appels"] if existe else 0) + (1 if appel else 0)
     dernier = maintenant[:10] if appel else (
