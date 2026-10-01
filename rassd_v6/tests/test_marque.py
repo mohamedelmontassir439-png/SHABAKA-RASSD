@@ -122,3 +122,49 @@ class TestLisibiliteSurFondSombre:
         # Laissé en encre sur la barre latérale brune, il devenait illisible.
         sombre = M.logo(38, couleur_texte=M.CREME)
         assert M.CREME in sombre and f"color:{M.ENCRE}" not in sombre
+
+
+class TestBarreDeNavigation:
+    """Les liens ne doivent jamais être coupés en plein mot.
+
+    Relevé le 01/10/2026 en français: « Sous-traitance » s'affichait
+    « Sous-traitanc », sa fin passant sous le sélecteur de langue. Chaque
+    lien est un enfant flex, donc compressible par défaut, et son texte
+    était rogné sans point de suspension. L'arabe, plus compact, passait.
+    """
+
+    def _gabarit(self):
+        return open("templates/base_public.html", encoding="utf-8").read()
+
+    def test_les_liens_refusent_d_etre_comprimes(self):
+        page = self._gabarit()
+        bloc = page[page.index(".nav-link {"):page.index(".nav-link:hover")]
+        assert "flex-shrink: 0" in bloc
+
+    def test_le_conteneur_peut_defiler(self):
+        # S'ils ne se compriment plus, c'est le conteneur qui doit céder.
+        page = self._gabarit()
+        bloc = page[page.index(".nav-links {"):page.index("html[dir=\"rtl\"] .nav-links")]
+        assert "min-width: 0" in bloc and "overflow-x: auto" in bloc
+
+    def test_un_lien_ne_touche_jamais_le_selecteur_de_langue(self):
+        page = self._gabarit()
+        bloc = page[page.index(".nav-links {"):page.index("html[dir=\"rtl\"] .nav-links")]
+        assert "padding-inline-end" in bloc
+        assert "mask-image" in bloc, "le dégradé signale qu'il reste des liens"
+
+    def test_le_nom_du_logo_cede_la_place_sous_1400px(self):
+        # Neuf liens français n'y tiennent pas: l'étoile seule suffit.
+        page = self._gabarit()
+        assert "@media(max-width: 1400px)" in page
+        assert ".nav-logo .me-logo-nom { display: none" in page
+
+    def test_le_nom_porte_la_classe_attendue(self):
+        assert 'class="me-logo-nom"' in M.logo(42)
+
+    def test_la_partie_droite_ne_se_comprime_pas(self):
+        # Identité et déconnexion: les deux seuls éléments dont un membre a
+        # besoin à coup sûr.
+        page = self._gabarit()
+        bloc = page[page.index(".nav-right {"):page.index(".nav-right {") + 200]
+        assert "flex-shrink: 0" in bloc

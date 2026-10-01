@@ -103,7 +103,9 @@ def logo(hauteur: int = 44, couleur: str = OR, couleur_texte: str = ENCRE,
         f'<span style="display:inline-flex;align-items:center;'
         f'gap:{max(9, round(hauteur * 0.25))}px;vertical-align:middle">'
         f'{etoile(hauteur, couleur)}'
-        f'<span style="display:block">'
+        # Classe nommee: la barre de navigation masque le nom sous 1400 px
+        # pour rendre sa largeur aux liens, et ne garde que l'etoile.
+        f'<span class="me-logo-nom" style="display:block">'
         f'{_mot(hauteur * 0.295, hauteur * 0.0755, couleur_texte, "MAROC")}'
         f'{_mot(hauteur * 0.295, hauteur * 0.0155, couleur_texte, "ENTREPRENEURIAT")}'
         f'{ligne}</span></span>'
