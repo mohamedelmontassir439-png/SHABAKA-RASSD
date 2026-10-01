@@ -131,7 +131,7 @@
             <span class="badge badge-terra">{{ tr('tenders_bc') }}</span>
             <span class="badge badge-gold">{{ get_label(t.secteur)[:24] }}</span>
             {% if t.montant %}<span class="badge badge-grn">{{ t.montant[:30] }}</span>
-            {% elif t.quantite %}<span class="badge badge-gray">{{ tr('bc_quantite') }} {{ t.quantite[:22] }}</span>{% endif %}
+            {% elif t.quantite %}<span class="badge badge-gray">{{ (tr('bc_duree') if quantite_est_duree(t.quantite) else tr('bc_quantite')) }} {{ quantite_texte(t.quantite)[:24] }}</span>{% endif %}
             {% if dl_l and dl_n <= 7 and dl_n >= 0 %}
             <span class="badge {% if dl_n <= 2 %}badge-red{% elif dl_n <= 5 %}badge-gold{% else %}badge-blue{% endif %}">{{ dl_l }}</span>
             {% endif %}

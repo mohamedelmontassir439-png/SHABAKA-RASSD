@@ -837,6 +837,12 @@ def initiales(nom: str, email: str = "") -> str:
 
 
 templates.env.globals["initiales"] = initiales
+# La source separe « Unite de mesure » et « Quantite », la collecte les
+# recolle: « 50 jour ». L'accord et le libelle se font a l'affichage, pour
+# que les fiches deja en base en profitent sans etre recollectees.
+from app.core import quantites
+templates.env.globals["quantite_texte"] = quantites.texte
+templates.env.globals["quantite_est_duree"] = quantites.est_duree
 try:
     os.makedirs("static", exist_ok=True)
     app.mount("/static", StaticFiles(directory="static"), name="static")

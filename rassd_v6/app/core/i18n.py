@@ -752,6 +752,10 @@ T = {
     "set_rythme_quotidien_desc": {"fr": "Tous vos marchés regroupés, chaque matin.", "ar": "كل صفقاتك مجمَّعة، كل صباح."},
     "bc_quantite":          {"fr": "Quantité :", "ar": "الكمية:"},
     "detail_quantite":      {"fr": "Quantité commandée", "ar": "الكمية المطلوبة"},
+    # Quand l'unite est un temps — jour, mois, an — il s'agit d'une duree de
+    # prestation, pas d'une quantite: « Location d'une pelle, 50 jours ».
+    "detail_duree":         {"fr": "Durée de la prestation", "ar": "مدة الخدمة"},
+    "bc_duree":             {"fr": "Durée :", "ar": "المدة:"},
     "detail_nature":        {"fr": "Nature de la prestation", "ar": "نوع الخدمة"},
 
     # ── Emails d'accompagnement pendant l'essai gratuit ──────────────

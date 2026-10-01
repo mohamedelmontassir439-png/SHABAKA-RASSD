@@ -108,8 +108,10 @@
         {# Un bon de commande ne publie pas d'estimation: la quantité commandée
            renseigne mieux le membre qu'une case vide. #}
         <div class="info-cell">
-          <div class="info-label">{{ tr('detail_quantite') }}</div>
-          <div class="info-value" style="color: var(--grn);">{{ t.quantite }}</div>
+          {# « Location d'une pelle, 50 jours » est une duree, pas une
+             quantite commandee: le libelle suit l'unite. #}
+          <div class="info-label">{{ tr('detail_duree') if quantite_est_duree(t.quantite) else tr('detail_quantite') }}</div>
+          <div class="info-value" style="color: var(--grn);">{{ quantite_texte(t.quantite) }}</div>
         </div>
         {% endif %}
         {% if t.nature %}
