@@ -3805,7 +3805,7 @@ async def manifest():
     return JSONResponse({
         "name": "Maroc Entrepreneuriat",
         "short_name": "ME",
-        "description": "Veille des marchés publics et privés au Maroc",
+        "description": "Veille des marchés publics, semi-publics et privés au Maroc",
         "start_url": "/dashboard",
         "display": "standalone",
         "background_color": "#f8f1e1",

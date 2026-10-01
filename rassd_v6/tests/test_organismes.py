@@ -129,3 +129,63 @@ class TestFiltre:
         html = client.get("/tenders").text
         for valeur in ("public", "semi_public", "prive"):
             assert f'value="{valeur}"' in html
+
+
+class TestLeSemiPublicEstAnnonce:
+    """Dire ce qu'on couvre, partout où on le dit.
+
+    Le semi-public pèse dix pour cent des marchés collectés. Le nommer
+    seulement dans un filtre, en continuant d'annoncer « publics et privés »
+    sur la page d'accueil, les tarifs, les pages de référencement et les
+    documents remis aux clients, revenait à cacher un dixième de l'offre à
+    un prospect — et à sous-vendre la plateforme.
+    """
+
+    FICHIERS = [
+        "templates/landing.html", "templates/base_public.html",
+        "templates/base.html", "templates/document.html",
+        "templates/legal_mentions.html", "templates/legal_cgu.html",
+        "templates/seo_index.html", "app/core/i18n.py", "app/core/marque.py",
+    ]
+
+    # Une formule complète contient la fautive: « semi-publics et privés »
+    # contient « publics et privés », et « وشبه العمومية والخاصة » contient
+    # « العمومية والخاصة ». On ne retient donc l'occurrence que si le
+    # marqueur du semi-public ne la précède pas immédiatement.
+    FAUTIVES = (
+        ("publics et privés", ("semi-", "semi ")),
+        ("publics & privés",  ("semi-", "semi ")),
+        ("Public + Privé",    ("semi-", "semi ")),
+        ("العمومية والخاصة",   ("وشبه ", "شبه ")),
+    )
+
+    @pytest.mark.parametrize("fichier", FICHIERS)
+    def test_aucune_formule_n_oublie_le_semi_public(self, fichier):
+        texte = open(fichier, encoding="utf-8").read()
+        for fautive, marqueurs in self.FAUTIVES:
+            depart = 0
+            while True:
+                i = texte.find(fautive, depart)
+                if i < 0:
+                    break
+                avant = texte[max(0, i - 8):i]
+                assert avant.endswith(marqueurs),                     f"{fichier}: « ...{texte[max(0, i-40):i+len(fautive)]} »"
+                depart = i + 1
+
+    @pytest.mark.parametrize("fichier", FICHIERS)
+    def test_rien_n_est_dit_deux_fois(self, fichier):
+        # Une passe de remplacement mal ordonnée avait produit
+        # « semi-publics, semi-publics et privés ».
+        texte = open(fichier, encoding="utf-8").read()
+        for doublon in ("semi-publics, semi-publics", "semi-public, semi-public",
+                        "شبه العمومية وشبه العمومية"):
+            assert doublon not in texte, f"{fichier}: {doublon}"
+
+    def test_l_en_tete_des_documents_le_porte(self):
+        from app.core import marque
+        assert "semi-public" in marque.entete_document(52)
+
+    def test_les_deux_langues_sont_servies(self):
+        from app.core import i18n
+        assert "semi-public" in i18n.T["org_semi_public"]["fr"].lower()
+        assert "شبه" in i18n.T["org_semi_public"]["ar"]

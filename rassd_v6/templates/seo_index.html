@@ -1,10 +1,10 @@
 {% extends "base_public.html" %}
 {% block title %}Appels d'offres et marchés publics au Maroc, par secteur — Maroc Entrepreneuriat{% endblock %}
 {% block head %}
-<meta name="description" content="Tous les appels d'offres, bons de commande et marchés privés en cours au Maroc, classés par secteur d'activité. Consultez les volumes du jour, secteur par secteur.">
+<meta name="description" content="Tous les appels d'offres, bons de commande, marchés semi-publics et privés en cours au Maroc, classés par secteur d'activité. Consultez les volumes du jour, secteur par secteur.">
 <link rel="canonical" href="{{ cfg.SITE_URL }}/marches-publics">
 <meta property="og:title" content="Marchés publics au Maroc, secteur par secteur">
-<meta property="og:description" content="Appels d'offres, bons de commande et marchés privés en cours au Maroc, classés par secteur.">
+<meta property="og:description" content="Appels d'offres, bons de commande, marchés semi-publics et privés en cours au Maroc, classés par secteur.">
 <meta property="og:url" content="{{ cfg.SITE_URL }}/marches-publics">
 <meta property="og:type" content="website">
 {% endblock %}
@@ -30,7 +30,7 @@
 
 <div class="sx-wrap">
   <h1 class="sx-h1">Marchés publics au Maroc, <em>secteur par secteur</em></h1>
-  <p class="sx-lede">Appels d'offres, bons de commande et marchés privés actuellement ouverts, classés selon le référentiel officiel des 83 secteurs. Les volumes ci-dessous sont mis à jour en continu.</p>
+  <p class="sx-lede">Appels d'offres, bons de commande, marchés semi-publics et privés actuellement ouverts, classés selon le référentiel officiel des 83 secteurs. Les volumes ci-dessous sont mis à jour en continu.</p>
   <p class="sx-count"><b>{{ pages | sum(attribute='n') }}</b> marchés ouverts en ce moment · mise à jour permanente</p>
 
   {% set actifs = pages | selectattr('n') | list %}

@@ -97,7 +97,7 @@ def logo(hauteur: int = 44, couleur: str = OR, couleur_texte: str = ENCRE,
              f'font-size:{hauteur * 0.16:.1f}px;'
              f'letter-spacing:{hauteur * 0.018:.2f}px;color:#8a7a6a;'
              f'text-transform:uppercase;margin-top:4px;white-space:nowrap">'
-             f'Veille des marchés publics et privés</div>'
+             f'Veille des marchés publics, semi-publics et privés</div>'
              if baseline else "")
     return (
         f'<span style="display:inline-flex;align-items:center;'
