@@ -29,12 +29,17 @@ def _membre(db, email="pro@example.com", secteurs='["T101"]', regions='[]',
 
 def _resultat(db, rid="r1", secteur="T101", montant="1 500 000,00 MAD",
               gagnant="SOCIETE GAMMA", region="Casablanca", jours=2):
+    # Comme la collecte: le nom reduit accompagne le nom brut, sans quoi
+    # l'annuaire ne reconnait jamais l'attributaire.
+    from app.services.companies import normalize_company_name
     db.execute("""INSERT INTO tender_results(id,reference,objet,acheteur,adjudicataire,
-                  region,budget,montant,secteur,date_adjudication,scraped_at)
-                  VALUES(?,?,?,?,?,?,?,?,?,?,?)""",
+                  region,budget,montant,secteur,date_adjudication,scraped_at,
+                  adjudicataire_norm)
+                  VALUES(?,?,?,?,?,?,?,?,?,?,?,?)""",
                (rid, "AO/1", "TRAVAUX DE VOIRIE ET ASSAINISSEMENT", "COMMUNE",
                 gagnant, region, "", montant, secteur, "01/09/2026",
-                (datetime.now() - timedelta(days=jours)).strftime("%Y-%m-%d %H:%M:%S")))
+                (datetime.now() - timedelta(days=jours)).strftime("%Y-%m-%d %H:%M:%S"),
+                normalize_company_name(gagnant)))
     db.commit()
 
 
@@ -82,14 +87,28 @@ class TestOpportunites:
         assert st.opportunites_pour(dict(m)) == []
 
     def test_contact_de_l_attributaire_joint(self, db):
+        """Le rapprochement se fait sur le nom réduit des deux côtés.
+
+        Il comparait auparavant le nom brut de l'attributaire au nom déjà
+        nettoyé de l'annuaire: « SOCIETE GAMMA » ne rencontrait jamais
+        « gamma ». Mesuré le 01/10/2026: 84 rapprochements sur 246
+        attributaires, 196 une fois les deux côtés normalisés.
+        """
+        from app.services.companies import normalize_company_name
         m = _membre(db)
         db.execute("""INSERT INTO companies(legal_name,normalized_name,sector,city,phone,source,created_at)
                       VALUES(?,?,?,?,?,?,?)""",
-                   ("SOCIETE GAMMA", "societe gamma", "T101", "Casablanca",
-                    "0612345678", "google-maps", "2026-09-01"))
+                   ("SOCIETE GAMMA", normalize_company_name("SOCIETE GAMMA"),
+                    "T101", "Casablanca", "0612345678", "google-maps", "2026-09-01"))
         db.commit()
         _resultat(db, gagnant="SOCIETE GAMMA")
         assert st.opportunites_pour(dict(m))[0]["contact_phone"] == "0612345678"
+
+    def test_la_forme_juridique_n_empeche_pas_le_rapprochement(self):
+        # « ZEF SCIENTIFIC SARL AU » et « zef scientific » sont la même
+        # entreprise: c'est ce que la normalisation doit rendre évident.
+        from app.services.companies import normalize_company_name
+        assert normalize_company_name("ZEF SCIENTIFIC SARL AU") ==                normalize_company_name("Zef Scientific")
 
     def test_message_pret_a_envoyer(self, db):
         m = dict(_membre(db))

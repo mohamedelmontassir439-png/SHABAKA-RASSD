@@ -36,27 +36,61 @@ def _liste(valeur) -> list:
         return []
 
 
-def parse_montant(brut: str) -> float:
-    """« 48 516 000,00 MAD », « 1.189.476.00 » → nombre.
+# Au-dela, ce n'est plus un marche mais une erreur de lecture: le plus gros
+# marche public marocain reste tres en-deca de dix milliards de dirhams.
+PLAFOND_MONTANT = 10_000_000_000.0
 
-    Le portail et l'agrégateur écrivent les montants dans des formats
-    différents; un montant illisible vaut 0 plutôt qu'une exception.
-    """
-    if not brut:
-        return 0.0
-    texte = re.sub(r"[^\d,.]", "", str(brut))
+# Un montant tel que la source l'ecrit: « 1.188.827,00 », « 70 693 353.60 ».
+_UN_MONTANT = re.compile(r"\d[\d\s.,  ]*\d|\d")
+
+# « LOT 1 », « lot n° 2 », « Lot N 3 »: le numero qui suit n'est pas un prix.
+_NUMERO_LOT = re.compile(r"\blots?\s*(?:n\s*[°o]?\s*)?\d+", re.IGNORECASE)
+
+
+def _un_nombre(texte: str) -> float:
+    """Convertit un seul montant ecrit a la marocaine."""
+    texte = re.sub(r"[^\d,.]", "", texte)
     if not texte:
         return 0.0
-    # Le dernier séparateur suivi de 1 ou 2 chiffres est décimal; les autres
-    # séparent les milliers.
+    # Le dernier separateur suivi de 1 ou 2 chiffres est decimal; les autres
+    # separent les milliers.
     m = re.search(r"[.,](\d{1,2})$", texte)
     decimales = m.group(1) if m else ""
-    entier = texte[: m.start()] if m else texte
-    entier = re.sub(r"[^\d]", "", entier)
+    entier = re.sub(r"[^\d]", "", texte[: m.start()] if m else texte)
     try:
         return float(f"{entier or 0}.{decimales or 0}")
     except ValueError:
         return 0.0
+
+
+def parse_montant(brut: str) -> float:
+    """« 48 516 000,00 MAD » -> 48516000.0, et la somme si le marche est loti.
+
+    La source ecrit parfois plusieurs montants dans la meme case:
+    « LOT 1: 1.888.272,00 / LOT 2: 3.500.000,00 ». La version precedente
+    retirait tous les separateurs et collait les chiffres bout a bout: ce
+    marche valait alors 1 188 827 200 220 980 739 884 187 648 dirhams, et
+    ressortait en tete de tout tri par montant. Les montants sont donc
+    repares un a un puis additionnes — c'est le total attribue.
+
+    Un montant illisible vaut zero plutot qu'une exception, et un total
+    au-dela du plafond vaut zero plutot qu'un chiffre absurde affiche a un
+    entrepreneur.
+    """
+    if not brut:
+        return 0.0
+    # « LOT 1 », « Lot N° 2 »: un numero de lot n'est pas un montant, et
+    # l'additionner faussait le total de quelques unites.
+    texte = _NUMERO_LOT.sub(" ", str(brut))
+    morceaux = _UN_MONTANT.findall(texte)
+    if not morceaux:
+        return 0.0
+    total = 0.0
+    for morceau in morceaux:
+        valeur = _un_nombre(morceau)
+        if valeur >= 1:
+            total += valeur
+    return total if 0 < total <= PLAFOND_MONTANT else (0.0 if total else 0.0)
 
 
 def _norm(txt: str) -> str:
@@ -69,24 +103,27 @@ def opportunites_pour(member: dict, limite: int = 30, jours: int = 60) -> list:
     On ne propose jamais au membre un marché qu'il a lui-même remporté, ni
     un marché trop petit pour être sous-traité.
     """
+    # Sans secteur declare, on ne renvoyait rien: le membre tombait sur une
+    # page vide alors que la base contient des centaines de chantiers
+    # attribues. On montre alors les plus gros, tous secteurs confondus, et
+    # l'interface l'invite a preciser son profil.
     secteurs = _liste(member.get("secteurs"))
-    if not secteurs:
-        return []
     zones = [_norm(z) for z in _liste(member.get("regions") or member.get("notif_regions"))]
 
     db = get_db()
     try:
-        ph = ",".join("?" * len(secteurs))
+        filtre_secteur = f"AND r.secteur IN ({','.join('?' * len(secteurs))})" if secteurs else ""
         lignes = [dict(r) for r in db.execute(
             f"""SELECT r.*, c.phone AS contact_phone, c.email AS contact_email,
                        c.city AS contact_ville, c.id AS company_id
                 FROM tender_results r
                 LEFT JOIN companies c
-                       ON c.normalized_name = LOWER(TRIM(r.adjudicataire))
+                       ON c.normalized_name = r.adjudicataire_norm
+                      AND r.adjudicataire_norm <> ''
                 WHERE r.adjudicataire != ''
-                  AND r.secteur IN ({ph})
+                  {filtre_secteur}
                   AND r.scraped_at >= datetime('now', ?)
-                ORDER BY r.scraped_at DESC LIMIT 400""",
+                ORDER BY r.montant_num DESC, r.scraped_at DESC LIMIT 400""",
             secteurs + [f"-{int(jours)} days"]).fetchall()]
     finally:
         db.close()

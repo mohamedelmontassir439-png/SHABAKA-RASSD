@@ -499,6 +499,13 @@ def migrate_db():
         # soixante-sept avis d'etablissements publics, dont cent dix classes
         # « Public » et cinquante-sept « Prive » selon la source.
         "ALTER TABLE tenders ADD COLUMN organisme TEXT DEFAULT ''",
+        # Nom de l'attributaire reduit a sa forme comparable. Le rapprochement
+        # avec l'annuaire se faisait sur « LOWER(TRIM(adjudicataire)) », donc
+        # un nom brut face a un nom deja nettoye cote annuaire: « ZEF
+        # SCIENTIFIC SARL AU » ne rencontrait jamais « zef scientific ».
+        # Mesure du 01/10/2026: 84 rapprochements sur 246 attributaires, 196
+        # une fois les deux cotes normalises.
+        "ALTER TABLE tender_results ADD COLUMN adjudicataire_norm TEXT DEFAULT ''",
     ]
     for col in cols:
         try:
@@ -510,6 +517,27 @@ def migrate_db():
                 logger.warning(f"[migrate] {col[:50]}...: {e}")
         except Exception as e:
             logger.error(f"[migrate] Erreur inattendue: {e}")
+
+    # Normalisation des attributaires deja en base, pour que l'annuaire les
+    # reconnaisse. Le calcul vit en Python: il retire les formes juridiques
+    # et les mots vides, ce que SQL ne sait pas decrire.
+    try:
+        from app.services.companies import normalize_company_name
+        a_normaliser = db.execute(
+            "SELECT id, adjudicataire FROM tender_results "
+            "WHERE COALESCE(adjudicataire_norm,'')='' AND COALESCE(adjudicataire,'')<>''"
+        ).fetchall()
+        for ligne in a_normaliser:
+            db.execute("UPDATE tender_results SET adjudicataire_norm=? WHERE id=?",
+                       (normalize_company_name(ligne["adjudicataire"]), ligne["id"]))
+        if a_normaliser:
+            db.commit()
+            logger.info(f"[migrate] {len(a_normaliser)} attributaire(s) normalises")
+        db.execute("CREATE INDEX IF NOT EXISTS idx_tr_adj_norm "
+                   "ON tender_results(adjudicataire_norm)")
+        db.commit()
+    except Exception as e:
+        logger.warning(f"[migrate] adjudicataire_norm: {e}")
 
     # Classement des acheteurs deja en base. Le calcul vit en Python: il
     # reconnait des sigles et des expressions que SQL ne sait pas decrire.
@@ -539,9 +567,15 @@ def migrate_db():
     # séparateur de milliers sur ces deux formats.
     try:
         from app.services.soustraitance import parse_montant
+        # Au-dela du plafond, la valeur stockee vient de l'ancienne lecture
+        # qui collait les chiffres des marches lotis bout a bout: elle doit
+        # etre recalculee, pas conservee.
+        from app.services.soustraitance import PLAFOND_MONTANT
         a_convertir = db.execute(
             "SELECT id, montant FROM tender_results "
-            "WHERE COALESCE(montant_num,0)=0 AND COALESCE(montant,'')<>''").fetchall()
+            "WHERE COALESCE(montant,'')<>'' "
+            "  AND (COALESCE(montant_num,0)=0 OR montant_num > ?)",
+            (PLAFOND_MONTANT,)).fetchall()
         for ligne in a_convertir:
             db.execute("UPDATE tender_results SET montant_num=? WHERE id=?",
                        (parse_montant(ligne["montant"]), ligne["id"]))

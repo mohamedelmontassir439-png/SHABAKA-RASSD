@@ -160,21 +160,28 @@ def _save_results(results: list) -> int:
     # Le montant est stocké deux fois: en texte pour l'affichage fidèle à la
     # source, en nombre pour filtrer et trier.
     from app.services.soustraitance import parse_montant
+    # Le nom de l'attributaire aussi: en clair pour l'affichage, reduit
+    # pour le rapprochement avec l'annuaire. Sans cette cle, un
+    # attributaire n'est jamais relie a son telephone et la piste de
+    # sous-traitance reste inexploitable.
+    from app.services.companies import normalize_company_name
     db = get_db(); saved = 0
     for r in results:
         try:
             db.execute("""INSERT OR IGNORE INTO tender_results
                 (id,reference,objet,acheteur,adjudicataire,region,budget,montant,
                  secteur,date_adjudication,date_ouverture,date_affichage,
-                 dao_url,pv_url,scraped_at,type_procedure,montant_num)
-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                 dao_url,pv_url,scraped_at,type_procedure,montant_num,
+                 adjudicataire_norm)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (r["id"], r.get("reference",""), r["objet"], r.get("acheteur",""),
                  r.get("adjudicataire",""), r.get("region",""), r.get("budget",""),
                  r.get("montant",""), r.get("secteur",""),
                  r.get("date_adjudication",""), r.get("date_ouverture",""),
                  r.get("date_affichage",""), r.get("dao_url",""), r.get("pv_url",""),
                  r["scraped_at"], r.get("type_procedure","marche"),
-                 parse_montant(r.get("montant",""))))
+                 parse_montant(r.get("montant","")),
+                 normalize_company_name(r.get("adjudicataire",""))))
             if db.execute("SELECT changes()").fetchone()[0]:
                 saved += 1
         except Exception as e:
@@ -1280,8 +1287,24 @@ async def subtraitance_list(req: Request, tp:str="", s:str="", r:str="", mine:st
         params+[per,(page-1)*per]).fetchall()]
     db.close()
     pages = max(1,(total+per-1)//per)
+    # La place de marche souffrait du demarrage a froid: personne ne publie
+    # tant que personne n'est la. Elle s'ouvre donc sur ce que la base sait
+    # deja — les chantiers qui viennent d'etre attribues dans les secteurs du
+    # membre, avec le telephone de l'attributaire quand l'annuaire le
+    # connait. Aucune annonce n'est requise pour qu'une piste existe.
+    from app.services.soustraitance import opportunites_pour, message_de_contact
+    pistes = []
+    if not mine:
+        try:
+            pistes = opportunites_pour(m0, limite=6)
+            for piste in pistes:
+                piste["message"] = message_de_contact(m0, piste)
+        except Exception as e:
+            logger.error(f"[sous-traitance] pistes indisponibles: {e}")
     return render(req, "subtraitance.html", {
-        "posts":rows,"total":total,"page":page,"pages":pages,"tf":tp,"sf":s,"rf":r,"mine":mine})
+        "posts":rows,"total":total,"page":page,"pages":pages,"tf":tp,"sf":s,"rf":r,
+        "mine":mine,"pistes":pistes,
+        "sans_secteur": not clean_secteurs(json.loads(m0.get("secteurs","[]") or "[]"))})
 
 @app.get("/sous-traitance/nouveau", response_class=HTMLResponse)
 async def subtraitance_new_get(req: Request):

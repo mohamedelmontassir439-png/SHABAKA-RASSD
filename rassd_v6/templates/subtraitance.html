@@ -25,6 +25,17 @@
 .st-row-title { font-weight: 600; font-size: 15.5px; color: var(--text1); line-height: 1.35; margin-bottom: 8px; }
 .st-row-meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--text3); }
 
+.st-pistes-tete { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+.st-pistes-titre { font-family: var(--serif); font-weight: 700; font-size: 24px; color: var(--text1); margin-top: 6px; }
+.st-pistes-sous { font-size: 14px; color: var(--text3); margin-top: 6px; max-width: 620px; }
+.st-note { background: var(--surface2); border: 1px solid var(--line); border-radius: var(--r2); padding: 12px 16px; font-size: 13.5px; color: var(--text2); margin-bottom: 16px; }
+.st-pistes { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 12px; }
+.st-piste { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 16px 18px; display: flex; flex-direction: column; gap: 9px; }
+.st-piste-objet { font-weight: 600; font-size: 14.5px; color: var(--text1); line-height: 1.4; }
+.st-piste-gagnant { font-size: 13px; color: var(--text3); }
+.st-piste-gagnant b { color: var(--text1); }
+.st-piste-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
+.st-piste-sans { font-size: 12.5px; color: var(--text4); }
 .empty-state { text-align: center; padding: 80px 24px; }
 .empty-icon { font-size: 48px; opacity: .3; line-height: 1; }
 .empty-title { font-family: var(--serif); font-weight: 700; font-size: 22px; color: var(--text1); margin-top: 18px; }
@@ -75,6 +86,49 @@
   </div>
 </div>
 
+{% if pistes %}
+{# Chantiers deja attribues: la piste existe sans que personne ait publie.
+   C'est ce qui remplit la page tant que la place de marche demarre. #}
+<div class="st-layout" style="padding-bottom:0">
+  <div class="st-pistes-tete">
+    <div>
+      <div class="section-label">{{ tr('st_pistes_label') }}</div>
+      <h2 class="st-pistes-titre">{{ tr('st_pistes_titre', n=pistes|length)|safe }}</h2>
+      <p class="st-pistes-sous">{{ tr('st_pistes_sous') }}</p>
+    </div>
+    <a href="/sous-traitance/opportunites" class="btn btn-outline btn-sm">{{ tr('st_pistes_toutes') }}</a>
+  </div>
+
+  {% if sans_secteur %}
+  <div class="st-note">{{ tr('st_pistes_sans_secteur')|safe }}</div>
+  {% endif %}
+
+  <div class="st-pistes">
+    {% for p in pistes %}
+    <div class="st-piste">
+      <div class="st-piste-objet">{{ p.objet[:110] }}{% if p.objet|length > 110 %}…{% endif %}</div>
+      <div class="st-row-tags">
+        <span class="badge badge-gold">{{ get_label(p.secteur)[:22] }}</span>
+        {% if p.region %}<span class="badge badge-gray">{{ p.region[:18] }}</span>{% endif %}
+        {% if p.montant %}<span class="badge badge-grn">{{ p.montant[:24] }}</span>{% endif %}
+      </div>
+      <div class="st-piste-gagnant">
+        <span>{{ tr('st_piste_attributaire') }}</span> <b>{{ (p.adjudicataire or '—')[:44] }}</b>
+      </div>
+      <div class="st-piste-actions">
+        {% if p.contact_phone %}
+        <a class="btn btn-primary btn-sm" href="https://wa.me/{{ p.contact_phone | replace('+','') | replace(' ','') }}?text={{ p.message | urlencode }}" target="_blank" rel="noopener">{{ tr('st_piste_wa') }}</a>
+        <a class="btn btn-outline btn-sm" href="tel:{{ p.contact_phone }}">{{ p.contact_phone }}</a>
+        {% else %}
+        <span class="st-piste-sans">{{ tr('st_piste_sans_contact') }}</span>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 <div class="st-layout">
   <div style="margin-bottom: 18px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
     <div class="st-tabs">
@@ -118,6 +172,7 @@
   <div class="empty-state">
     <div class="empty-icon">∅</div>
     <div class="empty-title">{{ tr('st_empty') }}</div>
+    <div class="empty-text">{{ tr('st_empty_pistes') }}</div>
     <div style="margin-top: 24px;"><a href="/sous-traitance/nouveau" class="btn btn-accent btn-lg">{{ tr('st_new_cta') }}</a></div>
   </div>
   {% endif %}

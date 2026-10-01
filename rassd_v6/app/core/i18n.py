@@ -759,6 +759,21 @@ T = {
     # et entreprises publics — ADM, ONEE, CNSS, agences, regies — ont leurs
     # propres regles d'achat: un entrepreneur qui travaille avec eux ne
     # cherche pas la meme chose qu'un fournisseur de commune rurale.
+    # Place de marche: elle s'ouvre sur les chantiers deja attribues, pour
+    # qu'une piste existe sans que personne ait eu besoin de publier.
+    "st_pistes_label":  {"fr": "Chantiers attribués", "ar": "أوراش مُرساة"},
+    "st_pistes_titre":  {"fr": "<em>{n}</em> entreprises viennent de remporter un marché",
+                         "ar": "<em>{n}</em> شركة فازت للتو بصفقة"},
+    "st_pistes_sous":   {"fr": "Elles vont chercher des sous-traitants. Contactez-les avant les autres — le message est déjà rédigé.",
+                         "ar": "ستبحث عن مناولين. اتصل بها قبل غيرك — الرسالة جاهزة."},
+    "st_pistes_toutes": {"fr": "Tout voir", "ar": "عرض الكل"},
+    "st_pistes_sans_secteur": {"fr": "Vous voyez les plus gros chantiers, tous secteurs confondus. <a href=\"/settings\">Précisez vos secteurs</a> pour ne voir que ce qui vous concerne.",
+                               "ar": "تُعرض لك أكبر الأوراش من كل القطاعات. <a href=\"/settings\">حدّد قطاعاتك</a> لترى ما يخصّك وحده."},
+    "st_piste_attributaire": {"fr": "Attributaire :", "ar": "المُرسى عليه:"},
+    "st_piste_wa":      {"fr": "Contacter sur WhatsApp", "ar": "تواصل عبر واتساب"},
+    "st_piste_sans_contact": {"fr": "Coordonnées non disponibles", "ar": "لا تتوفر بيانات الاتصال"},
+    "st_empty_pistes":  {"fr": "Les chantiers attribués ci-dessus n'attendent aucune annonce: contactez directement les entreprises qui viennent de gagner.",
+                         "ar": "الأوراش المُرساة أعلاه لا تنتظر أي إعلان: اتصل مباشرة بالشركات التي فازت للتو."},
     "org_public":           {"fr": "État & collectivités", "ar": "الدولة والجماعات"},
     "org_semi_public":      {"fr": "Semi-public (EEP)",    "ar": "شبه عمومي"},
     "org_prive":            {"fr": "Privé",                "ar": "خاص"},
