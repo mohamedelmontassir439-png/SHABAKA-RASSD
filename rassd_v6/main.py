@@ -947,9 +947,31 @@ async def home(req: Request):
     db.close()
     return render(req, "landing.html", {"stats":stats,"recent":recent,"sectors":sectors})
 
+# La date limite est stockee telle que la source l'ecrit: « 30/09/2026 » le
+# plus souvent, « 2026-09-30 » parfois. Pour la comparer en SQL il faut la
+# ramener a la forme ISO, seule ordonnable comme une chaine.
+DATE_LIMITE_ISO = ("CASE WHEN date_limite LIKE '__/__/____' "
+                   "THEN substr(date_limite,7,4)||'-'||substr(date_limite,4,2)"
+                   "||'-'||substr(date_limite,1,2) ELSE date_limite END")
+
+# Fenetres proposees au membre, en jours. Sept jours est la plus utile: c'est
+# le delai sous lequel un dossier se monte encore, au-dela on consulte, on ne
+# candidate plus.
+ECHEANCES = {"3": 3, "7": 7, "15": 15, "30": 30}
+
+
+def filtre_echeance(valeur: str, where: list, params: list) -> None:
+    """Restreint aux marches dont l'echeance tombe dans la fenetre demandee."""
+    jours = ECHEANCES.get(valeur)
+    if not jours:
+        return
+    where.append(f"COALESCE(date_limite,'') <> '' AND {DATE_LIMITE_ISO} "
+                 f"BETWEEN date('now') AND date('now', '+{jours} days')")
+
+
 @app.get("/tenders", response_class=HTMLResponse)
 async def tenders_page(req: Request, q:str="", s:str="", r:str="", t:str="",
-                        page:int=1, sort:str="recent"):
+                        e:str="", page:int=1, sort:str="recent"):
     m0 = get_member(req)
     if not m0:
         return RedirectResponse("/login?next=/tenders", 302)
@@ -967,8 +989,9 @@ async def tenders_page(req: Request, q:str="", s:str="", r:str="", t:str="",
     if s: where.append("secteur=?");    params.append(s)
     if r: where.append("region=?");     params.append(r)
     if t: where.append("type_offre=?"); params.append(t)
+    filtre_echeance(e, where, params)
     wh    = " AND ".join(where)
-    order = "scraped_at DESC" if sort=="recent" else "date_limite ASC"
+    order = "scraped_at DESC" if sort == "recent" else f"{DATE_LIMITE_ISO} ASC"
     total = db.execute(f"SELECT COUNT(*) FROM tenders WHERE {wh}", params).fetchone()[0]
     rows  = [dict(x) for x in db.execute(
         f"SELECT * FROM tenders WHERE {wh} ORDER BY {order} LIMIT ? OFFSET ?",
@@ -976,16 +999,22 @@ async def tenders_page(req: Request, q:str="", s:str="", r:str="", t:str="",
     favs = {x[0] for x in db.execute(
         "SELECT tender_id FROM favorites WHERE member_id=?", (m0["id"],)).fetchall()}
     my_secteurs = clean_secteurs(json.loads(m0.get("secteurs","[]") or "[]"))
+    # Les listes ne proposent que ce qui existe: offrir les 83 secteurs du
+    # referentiel quand trente sont representes mene a des pages vides.
+    secteurs_dispo = [x[0] for x in db.execute(
+        "SELECT DISTINCT secteur FROM tenders WHERE statut='actif' "
+        "AND type_procedure!='bon_commande' AND COALESCE(secteur,'')<>'' "
+        "ORDER BY secteur").fetchall()]
     db.close()
     pages = max(1,(total+per-1)//per)
     return render(req, "tenders.html", {
         "tenders":rows,"total":total,"page":page,"pages":pages,
-        "q":q,"sf":s,"rf":r,"tf":t,"sort":sort,"favs":favs,"regions":regions,
-        "my_secteurs":my_secteurs})
+        "q":q,"sf":s,"rf":r,"tf":t,"ef":e,"sort":sort,"favs":favs,"regions":regions,
+        "secteurs_dispo":secteurs_dispo,"my_secteurs":my_secteurs})
 
 @app.get("/bons-de-commande", response_class=HTMLResponse)
 async def bons_commande_page(req: Request, q:str="", s:str="", r:str="",
-                              page:int=1, sort:str="recent"):
+                              e:str="", page:int=1, sort:str="recent"):
     # Page dédiée et totalement séparée des marchés classiques — les bons de
     # commande sont une procédure d'achat public simplifiée (voir bc_intro),
     # sans équivalent privé, donc pas de filtre Public/Privé ici.
@@ -1003,8 +1032,9 @@ async def bons_commande_page(req: Request, q:str="", s:str="", r:str="",
         params += [f"%{q}%"]*3
     if s: where.append("secteur=?"); params.append(s)
     if r: where.append("region=?");  params.append(r)
+    filtre_echeance(e, where, params)
     wh    = " AND ".join(where)
-    order = "scraped_at DESC" if sort=="recent" else "date_limite ASC"
+    order = "scraped_at DESC" if sort == "recent" else f"{DATE_LIMITE_ISO} ASC"
     total = db.execute(f"SELECT COUNT(*) FROM tenders WHERE {wh}", params).fetchone()[0]
     rows  = [dict(x) for x in db.execute(
         f"SELECT * FROM tenders WHERE {wh} ORDER BY {order} LIMIT ? OFFSET ?",
@@ -1012,12 +1042,16 @@ async def bons_commande_page(req: Request, q:str="", s:str="", r:str="",
     favs = {x[0] for x in db.execute(
         "SELECT tender_id FROM favorites WHERE member_id=?", (m0["id"],)).fetchall()}
     my_secteurs = clean_secteurs(json.loads(m0.get("secteurs","[]") or "[]"))
+    secteurs_dispo = [x[0] for x in db.execute(
+        "SELECT DISTINCT secteur FROM tenders WHERE statut='actif' "
+        "AND type_procedure='bon_commande' AND COALESCE(secteur,'')<>'' "
+        "ORDER BY secteur").fetchall()]
     db.close()
     pages = max(1,(total+per-1)//per)
     return render(req, "bons_commande.html", {
         "tenders":rows,"total":total,"page":page,"pages":pages,
-        "q":q,"sf":s,"rf":r,"sort":sort,"favs":favs,"regions":regions,
-        "my_secteurs":my_secteurs})
+        "q":q,"sf":s,"rf":r,"ef":e,"sort":sort,"favs":favs,"regions":regions,
+        "secteurs_dispo":secteurs_dispo,"my_secteurs":my_secteurs})
 
 @app.get("/tenders/{tid}", response_class=HTMLResponse)
 async def tender_detail(req: Request, tid: str):

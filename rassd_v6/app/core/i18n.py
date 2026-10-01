@@ -444,6 +444,13 @@ T = {
     # ── Résultats ────────────────────────────────────────────
     "res_label":          {"fr": "Résultats des marchés", "ar": "نتائج الصفقات"},
     "res_meta_winner":    {"fr": "Attributaire et montant final", "ar": "الفائز والمبلغ النهائي"},
+    # Fenetres d'echeance. Sept jours est la plus utile: au-dela, un
+    # entrepreneur consulte, il ne monte plus de dossier.
+    "filtre_echeance_toutes": {"fr": "Toutes les échéances", "ar": "كل الآجال"},
+    "filtre_echeance_3":      {"fr": "Clôture sous 3 jours",  "ar": "تُغلق خلال 3 أيام"},
+    "filtre_echeance_7":      {"fr": "Clôture sous 7 jours",  "ar": "تُغلق خلال 7 أيام"},
+    "filtre_echeance_15":     {"fr": "Clôture sous 15 jours", "ar": "تُغلق خلال 15 يومًا"},
+    "filtre_echeance_30":     {"fr": "Clôture sous 30 jours", "ar": "تُغلق خلال 30 يومًا"},
     "res_f_type_tous":    {"fr": "Tous les types",        "ar": "كل الأنواع"},
     "res_f_type_marche":  {"fr": "Marchés",                "ar": "الصفقات"},
     "res_f_secteur":      {"fr": "Tous les secteurs",      "ar": "كل القطاعات"},
