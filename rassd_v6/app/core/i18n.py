@@ -755,6 +755,13 @@ T = {
     # Quand l'unite est un temps — jour, mois, an — il s'agit d'une duree de
     # prestation, pas d'une quantite: « Location d'une pelle, 50 jours ».
     "detail_duree":         {"fr": "Durée de la prestation", "ar": "مدة الخدمة"},
+    # Nature de l'acheteur, et non provenance de l'avis. Les etablissements
+    # et entreprises publics — ADM, ONEE, CNSS, agences, regies — ont leurs
+    # propres regles d'achat: un entrepreneur qui travaille avec eux ne
+    # cherche pas la meme chose qu'un fournisseur de commune rurale.
+    "org_public":           {"fr": "État & collectivités", "ar": "الدولة والجماعات"},
+    "org_semi_public":      {"fr": "Semi-public (EEP)",    "ar": "شبه عمومي"},
+    "org_prive":            {"fr": "Privé",                "ar": "خاص"},
     "bc_duree":             {"fr": "Durée :", "ar": "المدة:"},
     "detail_nature":        {"fr": "Nature de la prestation", "ar": "نوع الخدمة"},
 

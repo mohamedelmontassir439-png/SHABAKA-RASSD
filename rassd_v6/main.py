@@ -21,6 +21,7 @@ from app.core.security import (hash_pw, verify_pw, make_token, make_session_toke
                                 get_csrf_token, verify_csrf, subscription_state)
 from app.core.sectors import get_label
 from app.core import marque
+from app.core import organismes
 from app.core.i18n import get_lang, make_t, SUPPORTED_LANGS, tr as tr_
 from app.services.notifications import dispatch_notifications, tg_admin, test_notifications
 
@@ -135,8 +136,8 @@ def _save_tenders(tenders: list, new_list: list) -> int:
                 (id,objet,acheteur,secteur,region,montant,
                  date_publication,date_limite,description,
                  url,statut,scraped_at,updated_at,type_offre,source,type_procedure,
-                 nature,quantite)
-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                 nature,quantite,organisme)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (t["id"], t["objet"], t["acheteur"],
                  t.get("secteur",""), t.get("region",""),
                  t.get("montant",""), t.get("date_publication",""),
@@ -144,7 +145,8 @@ def _save_tenders(tenders: list, new_list: list) -> int:
                  t["url"], t["statut"], t["scraped_at"], t["scraped_at"],
                  t.get("type_offre","Public"), t.get("source","marchespublics"),
                  t.get("type_procedure","marche"),
-                 t.get("nature",""), t.get("quantite","")))
+                 t.get("nature",""), t.get("quantite",""),
+                 organismes.categorie(t.get("acheteur",""), t.get("type_offre",""))))
             if db.execute("SELECT changes()").fetchone()[0]:
                 saved += 1
                 new_list.append(t)
@@ -994,7 +996,10 @@ async def tenders_page(req: Request, q:str="", s:str="", r:str="", t:str="",
         params += [f"%{q}%"]*3
     if s: where.append("secteur=?");    params.append(s)
     if r: where.append("region=?");     params.append(r)
-    if t: where.append("type_offre=?"); params.append(t)
+    # Le filtre porte sur la nature de l'acheteur, pas sur la provenance de
+    # l'avis: « Public » et « Prive » melangeaient les deux.
+    if t in ("public", "semi_public", "prive"):
+        where.append("organisme=?"); params.append(t)
     filtre_echeance(e, where, params)
     wh    = " AND ".join(where)
     order = "scraped_at DESC" if sort == "recent" else f"{DATE_LIMITE_ISO} ASC"

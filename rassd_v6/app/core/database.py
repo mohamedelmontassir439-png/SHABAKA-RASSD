@@ -493,6 +493,12 @@ def migrate_db():
         # « 5.916.000,00 » et « 6.720.600.00 » — deux formats présents dans la
         # même table — interdisent en SQL.
         "ALTER TABLE tender_results ADD COLUMN montant_num REAL DEFAULT 0",
+        # Nature de l'organisme acheteur: Etat, para-public ou prive. La
+        # colonne type_offre existante ne porte pas cette information: elle
+        # dit d'ou vient l'avis, pas qui achete. Mesure le 01/10/2026: cent
+        # soixante-sept avis d'etablissements publics, dont cent dix classes
+        # « Public » et cinquante-sept « Prive » selon la source.
+        "ALTER TABLE tenders ADD COLUMN organisme TEXT DEFAULT ''",
     ]
     for col in cols:
         try:
@@ -504,6 +510,29 @@ def migrate_db():
                 logger.warning(f"[migrate] {col[:50]}...: {e}")
         except Exception as e:
             logger.error(f"[migrate] Erreur inattendue: {e}")
+
+    # Classement des acheteurs deja en base. Le calcul vit en Python: il
+    # reconnait des sigles et des expressions que SQL ne sait pas decrire.
+    try:
+        from app.core.organismes import categorie
+        a_classer = db.execute(
+            "SELECT id, acheteur, type_offre FROM tenders "
+            "WHERE COALESCE(organisme,'')=''").fetchall()
+        for ligne in a_classer:
+            db.execute("UPDATE tenders SET organisme=? WHERE id=?",
+                       (categorie(ligne["acheteur"], ligne["type_offre"]), ligne["id"]))
+        if a_classer:
+            db.commit()
+            logger.info(f"[migrate] {len(a_classer)} acheteur(s) classes par nature")
+    except Exception as e:
+        logger.warning(f"[migrate] organisme: {e}")
+
+    try:
+        db.execute("CREATE INDEX IF NOT EXISTS idx_t_organisme "
+                   "ON tenders(statut, organisme)")
+        db.commit()
+    except Exception as e:
+        logger.warning(f"[migrate] index organisme: {e}")
 
     # Remplissage de montant_num pour les résultats déjà en base. Le parsing
     # vit en Python: SQLite ne sait pas départager le séparateur décimal du
