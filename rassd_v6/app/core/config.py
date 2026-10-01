@@ -59,7 +59,10 @@ class Settings:
     # Heure d'envoi du résumé WhatsApp quotidien (heure du Maroc).
     WA_DIGEST_HOUR:         int = int(os.getenv("WA_DIGEST_HOUR", "9"))
     # Abonnement (mise à niveau manuelle via WhatsApp)
-    PAYMENT_PHONE: str = os.getenv("PAYMENT_PHONE", "")
+    # Numero d'affaires, sur WhatsApp Business. Un seul reglage alimente les
+    # liens wa.me, les liens tel: et l'affichage: le pied de page portait un
+    # numero ecrit en dur qui n'etait celui de personne.
+    PAYMENT_PHONE: str = os.getenv("PAYMENT_PHONE", "212621728813")
     PAYMENT_MSG:   str = os.getenv("PAYMENT_MSG", "Bonjour, je souhaite m'abonner à MAROC ENTREPRENEURIAT")
     # Annuaire d'entreprises — Google Places API (officielle).
     # On n'utilise pas le scraping direct de Google Maps: il viole les
@@ -85,6 +88,20 @@ class Settings:
     COMPANY_ICE:     str = os.getenv("COMPANY_ICE", "")
     COMPANY_ADDRESS: str = os.getenv("COMPANY_ADDRESS", "")
     CONTACT_EMAIL:   str = os.getenv("CONTACT_EMAIL", "contact@marocentrepreneuriat.com")
+
+    @property
+    def TELEPHONE_AFFICHE(self) -> str:
+        """Le numero tel qu'on le lit: +212 6 21 72 88 13."""
+        n = "".join(c for c in self.PAYMENT_PHONE if c.isdigit())
+        if n.startswith("212") and len(n) == 12:
+            return f"+212 {n[3]} {n[4:6]} {n[6:8]} {n[8:10]} {n[10:12]}"
+        return self.PAYMENT_PHONE
+
+    @property
+    def TELEPHONE_LIEN(self) -> str:
+        """Le meme, au format international sans espaces, pour un href tel:."""
+        n = "".join(c for c in self.PAYMENT_PHONE if c.isdigit())
+        return f"+{n}" if n else ""
     # Porte d'entrée privée de l'administration. Tant qu'elle est vide,
     # /admin reste accessible directement (utile en local et pour les tests).
     # Renseignée, elle rend /admin invisible: le serveur répond 404 à qui n'a

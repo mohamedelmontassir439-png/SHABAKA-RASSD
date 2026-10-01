@@ -37,7 +37,10 @@ T = {
                               "ar": "المرجع المستقل للصفقات العمومية والخاصة في المغرب. رصد لحظي وتنبيهات ذكية، مصمم للشركات الجادة."},
     "footer_contact_email": {"fr": "→ contact@marocentrepreneuriat.com", "ar": "← contact@marocentrepreneuriat.com"},
     "footer_contact_signup":{"fr": "→ Créer un compte", "ar": "← إنشاء حساب"},
-    "footer_contact_phone": {"fr": "→ +212 5 37 62 96 30", "ar": "← 30 96 62 37 5 212+"},
+    # Le numero et l'adresse viennent de la configuration: ecrits en dur ici,
+    # ils affichaient un numero qui n'etait celui de personne.
+    "footer_contact_wa":    {"fr": "WhatsApp", "ar": "واتساب"},
+    "copie_faite":          {"fr": "✓ Adresse copiee", "ar": "✓ تم نسخ العنوان"},
     "footer_col_tenders":   {"fr": "Marchés", "ar": "الصفقات"},
     "footer_tenders_all":   {"fr": "Tous les marchés", "ar": "جميع الصفقات"},
     "footer_by_sector":     {"fr": "Marchés par secteur", "ar": "الصفقات حسب المجال"},

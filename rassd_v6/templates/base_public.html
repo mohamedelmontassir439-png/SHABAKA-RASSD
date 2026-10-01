@@ -300,9 +300,18 @@ html[dir="rtl"] .section-label::before { order: 2; }
           </div>
           <div class="footer-desc">{{ tr('footer_desc') }}</div>
           <div class="footer-contact">
-            <a href="mailto:contact@marocentrepreneuriat.com">{{ tr('footer_contact_email') }}</a>
+            {# mailto: n'ouvre rien chez qui n'a pas de logiciel de messagerie
+               installe — cas courant sur Windows et sur mobile. Le clic copie
+               donc l'adresse, et mailto: reste en href pour ceux que ca sert. #}
+            <a href="mailto:{{ cfg.CONTACT_EMAIL }}" class="js-copier"
+               data-copier="{{ cfg.CONTACT_EMAIL }}"
+               data-copie="{{ tr('copie_faite') }}">→ {{ cfg.CONTACT_EMAIL }}</a>
+            {% if cfg.PAYMENT_PHONE %}
+            <a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}" target="_blank" rel="noopener">
+              → {{ tr('footer_contact_wa') }} {{ cfg.TELEPHONE_AFFICHE }}</a>
+            <a href="tel:{{ cfg.TELEPHONE_LIEN }}">→ {{ cfg.TELEPHONE_AFFICHE }}</a>
+            {% endif %}
             <a href="/tarifs">{{ tr('footer_contact_signup') }}</a>
-            <a href="tel:+212537629630">{{ tr('footer_contact_phone') }}</a>
           </div>
         </div>
         <div class="footer-col">
@@ -379,5 +388,19 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 {% block scripts %}{% endblock %}
+<script>
+// Copie l'adresse au clic, et laisse mailto: agir pour qui a un client mail.
+document.querySelectorAll('.js-copier').forEach(function (a) {
+  a.addEventListener('click', function (e) {
+    if (!navigator.clipboard) return;            // sans API, mailto: fait foi
+    e.preventDefault();
+    var valeur = a.dataset.copier, dit = a.textContent;
+    navigator.clipboard.writeText(valeur).then(function () {
+      a.textContent = a.dataset.copie;
+      setTimeout(function () { a.textContent = dit; }, 1800);
+    }).catch(function () { window.location.href = a.href; });
+  });
+});
+</script>
 </body>
 </html>

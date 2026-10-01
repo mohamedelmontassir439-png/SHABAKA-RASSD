@@ -819,6 +819,24 @@ templates.env.globals["source_label"] = source_label
 templates.env.globals["logo"] = marque.logo
 templates.env.globals["etoile"] = marque.etoile
 templates.env.globals["entete_document"] = marque.entete_document
+
+
+def initiales(nom: str, email: str = "") -> str:
+    """Une ou deux lettres pour la pastille de profil.
+
+    Le nom complet s'etalait dans la barre superieure jusqu'a cent soixante
+    pixels, deux fois — nom et societe —, et c'est la premiere chose que
+    voyait un membre sur chaque page. Deux lettres suffisent a se reconnaitre.
+    """
+    mots = [m for m in (nom or "").replace("-", " ").split() if m]
+    if len(mots) >= 2:
+        return (mots[0][0] + mots[-1][0]).upper()
+    if mots:
+        return mots[0][:2].upper()
+    return (email or "?")[:2].upper()
+
+
+templates.env.globals["initiales"] = initiales
 try:
     os.makedirs("static", exist_ok=True)
     app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -1153,7 +1171,15 @@ async def resultats_page(req: Request, q: str = "", page: int = 1,
 
 @app.get("/resultats/{rid}/{doc}")
 async def resultat_doc_redirect(req: Request, rid: str, doc: str):
-    """Redirige vers le document (D.A.O/PV) sans exposer sa source dans le HTML."""
+    """Sert la pièce (D.A.O ou P.V) depuis la plateforme.
+
+    La route redirigeait vers l'agrégateur: le navigateur quittait le
+    domaine et affichait la source dans sa barre d'adresse — un abonné
+    découvrait ainsi d'où viennent les données, et n'avait plus besoin de
+    l'abonnement. Le fichier transite maintenant par le serveur, qui ouvre
+    sa propre session chez la source, et il repart nommé d'après l'objet du
+    marché plutôt que « downoald-pv ».
+    """
     m0 = get_member(req)
     if not m0:
         return RedirectResponse("/login?next=/resultats", 302)
@@ -1162,12 +1188,28 @@ async def resultat_doc_redirect(req: Request, rid: str, doc: str):
     if doc not in ("dao", "pv"):
         return RedirectResponse("/resultats", 302)
     db = get_db()
-    r  = db.execute("SELECT dao_url, pv_url FROM tender_results WHERE id=?", (rid,)).fetchone()
+    r = db.execute("SELECT objet, dao_url, pv_url FROM tender_results WHERE id=?",
+                   (rid,)).fetchone()
     db.close()
-    url = (r["dao_url"] if doc == "dao" else r["pv_url"]) if r else ""
-    if not url:
+    if not r:
         return RedirectResponse("/resultats", 302)
-    return RedirectResponse(url, 302)
+    url = (r["dao_url"] if doc == "dao" else r["pv_url"]) or ""
+    if not url:
+        return RedirectResponse("/resultats?piece=absente", 302)
+
+    from app.services import pieces
+    loop = asyncio.get_event_loop()
+    contenu, type_c, ext = await loop.run_in_executor(None, pieces.recuperer, url)
+    if not contenu:
+        # Ni redirection de secours vers la source, ni fichier vide: on le dit.
+        return RedirectResponse("/resultats?piece=indisponible", 302)
+
+    nom = pieces.nom_fichier(r["objet"], doc, ext)
+    return Response(contenu, media_type=type_c, headers={
+        "Content-Disposition": f'attachment; filename="{nom}"',
+        "Cache-Control": "private, max-age=86400",
+    })
+
 
 # ══════════════════════════════════════════════════════════
 # SOUS-TRAITANCE — annonces entre membres (demande / offre)

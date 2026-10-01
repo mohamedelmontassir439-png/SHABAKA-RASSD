@@ -58,7 +58,9 @@
         <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('m{{ loop.index }}').classList.toggle('on')">
           {{ tr('opp_show_message') }}
         </button>
-        {% if p.pv_url %}<a class="btn btn-outline btn-sm" href="{{ p.pv_url }}" target="_blank" rel="noopener">{{ tr('res_pv') }}</a>{% endif %}
+        {# Passe par la plateforme: un lien direct affichait l'adresse de
+           l'agregateur dans la barre du navigateur. #}
+        {% if p.pv_url %}<a class="btn btn-outline btn-sm" href="/resultats/{{ p.id }}/pv">{{ tr('res_pv') }}</a>{% endif %}
         <a class="btn btn-primary btn-sm" href="/sous-traitance/nouveau">{{ tr('opp_publish') }}</a>
       </div>
 
