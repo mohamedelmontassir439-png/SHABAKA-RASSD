@@ -127,7 +127,12 @@
 .pain-text { font-size: 14.5px; color: var(--text3); line-height: 1.7; }
 
 /* ── VALUE ────────────────────────────────────── */
-.value { padding: 96px 0; background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+/* position + overflow comme .hero et .proof: la tache decorative de cette
+   section est posee a inset-inline-end:-120px et, faute de reference et de
+   decoupe, elle debordait de la page entiere. Mesure sur le site en ligne:
+   1530 px de contenu pour 1440 de fenetre, soit une barre de defilement
+   horizontale sur chaque page, dans les deux langues. */
+.value { padding: 96px 0; background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); position: relative; overflow: hidden; }
 .value-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 44px; }
 .value-item { padding: 32px; border: 1px solid var(--line); border-radius: var(--r3); background: var(--bg); }
 .value-num { font-size: 13px; font-weight: 700; color: var(--ink); letter-spacing: .07em; text-transform: uppercase; margin-bottom: 16px; }

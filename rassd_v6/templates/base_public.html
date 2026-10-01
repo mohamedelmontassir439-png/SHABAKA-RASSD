@@ -170,11 +170,21 @@ html[dir="rtl"] .sel { background-position: left 14px center; padding-right: 14p
    au texte n'a plus d'objet, seul l'alignement compte. */
 .nav-logo { display: inline-flex; align-items: center; line-height: 0; }
 .nav-logo svg, .footer-logo svg { display: block; }
-.nav-links { display: flex; gap: 2px; flex: 1; }
+/* min-width:0 est indispensable: sans lui un conteneur flex refuse de
+   descendre sous la largeur de son contenu, et les liens — tous en nowrap —
+   poussaient la partie droite hors de l'ecran. Constate le 01/10/2026 en
+   francais, ou « Bons de commande » et « Tableau de bord » sont bien plus
+   longs que leurs equivalents arabes: la pastille etait coupee et le lien
+   de deconnexion invisible. L'arabe, plus compact, passait. */
+.nav-links { display: flex; gap: 2px; flex: 1 1 auto; min-width: 0;
+  overflow-x: auto; scrollbar-width: none; -ms-overflow-style: none; }
+.nav-links::-webkit-scrollbar { display: none; }
 .nav-link { position: relative; padding: 10px 14px; font-size: 14px; font-weight: 600; color: var(--text3); transition: color .15s; white-space: nowrap; border-radius: var(--r); }
 .nav-link:hover { color: var(--text1); background: var(--surface2); }
 .nav-link.active { color: var(--ink); background: rgba(242,102,45,.1); }
-.nav-right { display: flex; align-items: center; gap: 10px; }
+/* L'identite et la deconnexion ne se compriment jamais: ce sont les deux
+   seuls elements de la barre dont un membre a besoin a coup sur. */
+.nav-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 /* Pastille de profil, identique a celle de l'espace membre. */
 .nav-avatar { width: 36px; height: 36px; border-radius: 50%;
   background: linear-gradient(150deg, var(--gold2), var(--terra));
@@ -236,6 +246,11 @@ html[dir="rtl"] .skip-link { left: auto; right: -999px; border-radius: 0 0 0 8px
 html[dir="rtl"] .skip-link:focus { right: 0; }
 html[dir="rtl"] .section-label::before { order: 2; }
 
+/* Entre 900 et 1500 px, on resserre plutot que de faire defiler. */
+@media(max-width: 1500px) {
+  .nav-logo-wrap { margin-inline-end: 18px; }
+  .nav-link { padding: 9px 9px; font-size: 13.5px; }
+}
 @media(max-width: 900px) {
   .topbar { display: none; }
   .nav { padding: 0 18px; height: 60px; }
