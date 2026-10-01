@@ -66,11 +66,31 @@ class TestPastilleDeProfil:
     def test_les_initiales(self, nom, email, attendu):
         assert main.initiales(nom, email) == attendu
 
-    def test_le_nom_complet_ne_s_etale_plus_dans_la_barre(self):
-        """Il occupait jusqu'à trois cent vingt pixels, sur chaque page."""
-        page = open("templates/base.html", encoding="utf-8").read()
-        assert "topbar-user-name" not in page
-        assert "topbar-user-company" not in page
+    @pytest.mark.parametrize("gabarit", ["templates/base.html",
+                                         "templates/base_public.html"])
+    def test_le_nom_complet_ne_s_etale_dans_aucune_barre(self, gabarit):
+        """Deux barres, deux endroits.
+
+        La première correction n'avait touché que l'espace membre: le nom
+        continuait de s'afficher en bout de barre sur les pages publiques,
+        coupé en plein mot — « moha el mont… ».
+        """
+        page = open(gabarit, encoding="utf-8").read()
+        for marque in ("topbar-user-name", "topbar-user-company", "nav-user-info"):
+            assert marque not in page, f"{marque} subsiste dans {gabarit}"
+        # Le nom ne doit apparaître que dans l'infobulle.
+        for ligne in page.splitlines():
+            if "member.nom or member.email" in ligne:
+                assert "title=" in ligne, ligne.strip()[:90]
+
+    @pytest.mark.parametrize("gabarit, classe", [
+        ("templates/base.html", "topbar-avatar"),
+        ("templates/base_public.html", "nav-avatar"),
+    ])
+    def test_les_deux_barres_portent_la_pastille(self, gabarit, classe):
+        page = open(gabarit, encoding="utf-8").read()
+        assert f'class="{classe}"' in page
+        assert "initiales(member.nom, member.email)" in page
 
     def test_le_nom_reste_accessible_au_survol(self):
         page = open("templates/base.html", encoding="utf-8").read()
