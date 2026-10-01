@@ -33,13 +33,12 @@
 .doc-foot { margin-top: 26px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--text4); line-height: 1.6; text-align: center; }
 .doc-todo { color: var(--goldd); font-weight: 700; }
 @media print {
-  .app-topbar, .app-sidebar, .nav-wrap, .site-footer, footer, .doc-actions, .toast { display: none !important; }
-  body { background: #fff !important; }
-  .doc-wrap { padding: 0; max-width: none; }
-  .doc-sheet { border: none; box-shadow: none; padding: 0; }
-  /* Les navigateurs retirent les aplats a l'impression: sans cette
-     instruction, l'en-tete sortirait blanc sur blanc. */
-  .doc-brand svg { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  /* Ce qui concerne toute page imprimee — barre, pied de page, couleurs —
+     est regle dans la mise en page commune. Il ne reste ici que la feuille. */
+  .doc-wrap { padding: 0 !important; max-width: none !important; }
+  .doc-sheet { border: none !important; box-shadow: none !important; padding: 0 !important; }
+  /* Un recu tient sur une page: aucune coupure au milieu d'un bloc. */
+  .doc-sheet, .doc-head, .doc-parties, table, .doc-sign { page-break-inside: avoid; }
 }
 @media (max-width: 700px) { .doc-parties, .doc-sign { grid-template-columns: 1fr; } .doc-sheet { padding: 26px 20px; } }
 </style>
@@ -99,7 +98,7 @@
     <table class="doc-table">
       <tr><th>Désignation</th><th style="width:30%">Période</th><th style="width:22%; text-align:end;">Montant</th></tr>
       <tr>
-        <td>Abonnement {{ payload.get('plan_name','') }} — plateforme de veille des marchés publics &amp; privés</td>
+        <td>Abonnement {{ payload.get('plan_name','') }} — plateforme de veille des marchés publics, semi-publics &amp; privés</td>
         <td>{{ payload.get('period_start','') }} → {{ payload.get('period_end','') }}</td>
         <td style="text-align:end;">{{ payload.get('price',0)|round(2) }} {{ payload.get('currency','MAD') }}</td>
       </tr>
@@ -171,7 +170,7 @@
     {% endif %}
 
     <div class="doc-foot">
-      Maroc Entrepreneuriat · Plateforme de veille des marchés publics &amp; privés au Maroc<br>
+      Maroc Entrepreneuriat · Plateforme de veille des marchés publics, semi-publics &amp; privés au Maroc<br>
       Document généré automatiquement le {{ doc.created_at[:10] }} — {{ doc.number }}
     </div>
   </div>

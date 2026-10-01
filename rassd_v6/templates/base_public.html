@@ -286,6 +286,27 @@ html[dir="rtl"] .section-label::before { order: 2; }
   .footer-bottom { flex-direction: column; gap: 10px; text-align: center; }
   .blob { display: none; }
 }
+
+/* ── Impression ────────────────────────────────────────────────────────
+   Un recu imprime par un abonne quittait la plateforme avec la barre de
+   navigation, le selecteur de langue, la pastille de profil et le pied de
+   page autour du document. Releve le 01/10/2026 sur REC-2026-0002.
+
+   La regle d'impression vivait dans document.html et visait « .nav-wrap »,
+   une classe qui n'existe pas: la barre s'appelle « nav ». Elle est posee
+   ici, dans la mise en page commune, pour valoir sur toute page imprimee. */
+@media print {
+  nav, .nav, .footer, footer, .topbar, .lang-switch, .nav-avatar,
+  .doc-actions, .dec-actions, .toast, .skip-link { display: none !important; }
+  html, body { background: #fff !important; margin: 0 !important; padding: 0 !important; }
+  main, #main { padding: 0 !important; margin: 0 !important; }
+  .container { max-width: none !important; padding: 0 !important; }
+  /* Les aplats de couleur sont supprimes par defaut a l'impression: sans
+     cela, l'en-tete et les bandeaux sortiraient blancs sur blanc. */
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  a[href]:after { content: none !important; }
+}
+@page { size: A4; margin: 14mm 12mm; }
 </style>
 {% block head %}{% endblock %}
 </head>
