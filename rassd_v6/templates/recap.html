@@ -1,0 +1,77 @@
+{% extends "base_public.html" %}
+{% block title %}{{ marches|length }} marché(s) pour vous — Maroc Entrepreneuriat{% endblock %}
+{% block head %}
+{# Un récapitulatif personnel n'a rien à faire dans un index de moteur. #}
+<meta name="robots" content="noindex, nofollow">
+{% endblock %}
+{% block body %}
+<style>
+.rc-wrap { max-width: 780px; margin: 0 auto; padding: 36px 20px 70px; }
+.rc-tete { border-bottom: 1px solid var(--line); padding-bottom: 22px; margin-bottom: 26px; }
+.rc-salut { font-size: 15px; color: var(--text3); }
+.rc-titre { font-family: var(--serif); font-weight: 700; font-size: 30px; color: var(--text1); margin-top: 8px; line-height: 1.2; }
+.rc-titre em { font-style: normal; color: var(--ink); }
+.rc-jour { font-size: 13.5px; color: var(--text3); margin-top: 8px; }
+.rc-liste { display: flex; flex-direction: column; gap: 12px; }
+.rc-item { border: 1px solid var(--line); border-radius: var(--r3); background: var(--surface); padding: 18px 20px; display: block; transition: border-color .15s; }
+.rc-item:hover { border-color: var(--ink); }
+/* Un objet de marche n'a pas d'espaces la ou on voudrait couper: une
+   reference de vingt caracteres, un mot de quarante lettres. Sans
+   autorisation explicite de couper, un tel mot pousse la carte, qui pousse
+   la page — et ce lien s'ouvre depuis WhatsApp, donc sur un telephone.
+   Precaution, non correctif: aucun debordement n'a ete constate au 01/10/2026
+   (la mesure qui le laissait croire venait du navigateur de test, qui
+   refuse de descendre sous ~500 px de large). */
+.rc-objet { font-weight: 600; font-size: 15.5px; color: var(--text1); line-height: 1.4;
+  overflow-wrap: anywhere; word-break: break-word; }
+.rc-bas span, .rc-tags .badge { overflow-wrap: anywhere; }
+.rc-wrap, .rc-item { max-width: 100%; }
+.rc-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.rc-bas { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13px; color: var(--text3); }
+.rc-bas b { color: var(--text1); font-weight: 600; }
+.rc-vide { text-align: center; padding: 60px 20px; color: var(--text3); }
+.rc-pied { margin-top: 34px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 13px; color: var(--text3); line-height: 1.8; }
+</style>
+
+<div class="rc-wrap">
+  <div class="rc-tete">
+    <div class="rc-salut">{{ tr('rc_salut') }}{% if membre.nom %} {{ membre.nom.split()[0] }}{% endif %},</div>
+    {% if marches %}
+    <h1 class="rc-titre">{{ tr('rc_titre', n=marches|length)|safe }}</h1>
+    {% else %}
+    <h1 class="rc-titre">{{ tr('rc_titre_vide')|safe }}</h1>
+    {% endif %}
+    <div class="rc-jour">{{ tr('rc_jour') }} {{ jour }}{% if mes_secteurs %} · {{ mes_secteurs|length }} {{ tr('rc_secteurs') }}{% endif %}</div>
+  </div>
+
+  {% if marches %}
+  <div class="rc-liste">
+    {% for t in marches %}
+    {% set dl_n, dl_l = days_left(t.date_limite) %}
+    <a href="{{ cfg.SITE_URL }}/tenders/{{ t.id }}" class="rc-item">
+      <div class="rc-objet">{{ t.objet[:150] }}{% if t.objet|length > 150 %}…{% endif %}</div>
+      <div class="rc-tags">
+        <span class="badge badge-gold">{{ get_label(t.secteur)[:26] }}</span>
+        {% if t.organisme=='semi_public' %}<span class="badge badge-gold">{{ tr('org_semi_public') }}</span>
+        {% elif t.organisme=='prive' %}<span class="badge badge-blue">{{ tr('org_prive') }}</span>{% endif %}
+        {% if t.region %}<span class="badge badge-gray">{{ t.region[:20] }}</span>{% endif %}
+        {% if dl_l and dl_n is not none and dl_n <= 7 %}
+        <span class="badge {% if dl_n <= 2 %}badge-red{% else %}badge-gold{% endif %}">{{ dl_l }}</span>
+        {% endif %}
+      </div>
+      <div class="rc-bas">
+        <span>{{ (t.acheteur or '—')[:54] }}</span>
+        <span>{% if t.date_limite %}{{ tr('rc_limite') }} <b>{{ t.date_limite }}</b>{% endif %}</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="rc-vide">{{ tr('rc_vide') }}</div>
+  {% endif %}
+
+  <div class="rc-pied">
+    {{ tr('rc_pied')|safe }}
+  </div>
+</div>
+{% endblock %}

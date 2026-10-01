@@ -761,6 +761,18 @@ T = {
     # cherche pas la meme chose qu'un fournisseur de commune rurale.
     # Place de marche: elle s'ouvre sur les chantiers deja attribues, pour
     # qu'une piste existe sans que personne ait eu besoin de publier.
+    # Recapitulatif du jour, ouvert depuis WhatsApp par le membre.
+    "rc_salut":      {"fr": "Bonjour", "ar": "مرحبًا"},
+    "rc_titre":      {"fr": "<em>{n}</em> marché(s) correspondent à vos secteurs",
+                      "ar": "<em>{n}</em> صفقة تطابق قطاعاتك"},
+    "rc_titre_vide": {"fr": "Aucun marché aujourd'hui", "ar": "لا صفقات اليوم"},
+    "rc_jour":       {"fr": "Journée du", "ar": "يوم"},
+    "rc_secteurs":   {"fr": "secteurs suivis", "ar": "قطاعًا متابَعًا"},
+    "rc_limite":     {"fr": "Clôture", "ar": "الإغلاق"},
+    "rc_vide":       {"fr": "Rien ne correspond à vos secteurs aujourd'hui. Nous vous écrivons dès qu'un marché paraît.",
+                      "ar": "لا شيء يطابق قطاعاتك اليوم. سنكتب إليك فور ظهور صفقة."},
+    "rc_pied":       {"fr": "Ce récapitulatif vous est envoyé par <b>Maroc Entrepreneuriat</b>. Cliquez sur un marché pour ouvrir sa fiche complète.",
+                      "ar": "هذا الملخّص مُرسَل إليك من <b>Maroc Entrepreneuriat</b>. اضغط على أي صفقة لفتح بطاقتها الكاملة."},
     "st_pistes_label":  {"fr": "Chantiers attribués", "ar": "أوراش مُرساة"},
     "st_pistes_titre":  {"fr": "<em>{n}</em> entreprises viennent de remporter un marché",
                          "ar": "<em>{n}</em> شركة فازت للتو بصفقة"},

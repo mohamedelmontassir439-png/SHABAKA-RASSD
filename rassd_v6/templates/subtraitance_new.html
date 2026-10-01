@@ -20,7 +20,10 @@
 .type-opt { border: 1.5px solid var(--line2); border-radius: var(--r2); padding: 16px; cursor: pointer; transition: all .15s; text-align: center; }
 .type-opt:hover { border-color: var(--ink); }
 .type-opt:has(input:checked) { border-color: var(--ink); background: var(--indigoa); }
-.type-opt input { display: none; }
+/* Masquer le bouton radio sans le retirer du parcours clavier: display:none
+   le rendrait inatteignable a la tabulation et aux lecteurs d'ecran. */
+.type-opt input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.type-opt:focus-within { border-color: var(--ink); box-shadow: 0 0 0 3px var(--indigoa); }
 .type-opt-t { font-weight: 700; font-size: 14px; color: var(--text1); }
 @media (max-width: 480px) { .type-choice { grid-template-columns: 1fr; } }
 </style>
@@ -35,10 +38,14 @@
 
   <form method="post" class="stn-block">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    <label class="type-choice">
-      <div class="type-opt"><input type="radio" name="type" value="demande" checked><div class="type-opt-t">🔍 {{ tr('st_type_demande') }}</div></div>
-      <div class="type-opt"><input type="radio" name="type" value="offre"><div class="type-opt-t">🛠️ {{ tr('st_type_offre') }}</div></div>
-    </label>
+    {# Un <label> ne pilote qu'un seul controle: celui qui vient en premier.
+       Les deux options partageaient le meme, si bien qu'un clic sur
+       « Propose ses services » cochait « Recherche un sous-traitant ».
+       Chaque option porte donc desormais son propre label. #}
+    <div class="type-choice">
+      <label class="type-opt"><input type="radio" name="type" value="demande" checked><div class="type-opt-t">🔍 {{ tr('st_type_demande') }}</div></label>
+      <label class="type-opt"><input type="radio" name="type" value="offre"><div class="type-opt-t">🛠️ {{ tr('st_type_offre') }}</div></label>
+    </div>
 
     <div class="field" style="margin-bottom:18px;">
       <label for="titre">{{ tr('st_field_titre') }}</label>

@@ -1267,6 +1267,51 @@ async def resultat_doc_redirect(req: Request, rid: str, doc: str):
 # SOUS-TRAITANCE — annonces entre membres (demande / offre)
 # avec messagerie interne, réservé aux membres actifs (has_access)
 # ══════════════════════════════════════════════════════════
+@app.get("/admin/recap", response_class=HTMLResponse)
+async def admin_recap(req: Request, jour: str = ""):
+    """Un bouton WhatsApp par membre, avec son recapitulatif du jour.
+
+    L'envoi automatique demande un compte Meta approuve et un modele de
+    message valide. En attendant, l'envoi reste manuel — et pour les
+    premiers abonnes, un message ecrit par le fondateur vaut mieux qu'une
+    notification de plus. Ce qui manquait n'etait pas le canal mais la
+    matiere: retrouver, pour chaque membre, ses marches du jour.
+    """
+    if not _is_admin(req):
+        return RedirectResponse("/admin/login", 302)
+    from app.services.recap import membres_a_prevenir
+    jour = jour or date.today().strftime("%Y-%m-%d")
+    return render(req, "admin_recap.html",
+                  {"lignes": membres_a_prevenir(jour), "jour": jour})
+
+
+@app.get("/recap/{jeton_recu}", response_class=HTMLResponse)
+async def recap_membre(req: Request, jeton_recu: str):
+    """Le recapitulatif qu'un membre ouvre depuis WhatsApp.
+
+    Accessible sans connexion: le destinataire lit souvent sur un telephone
+    ou il n'est pas connecte, et lui demander ses identifiants avant de lui
+    montrer ce qu'on vient de lui promettre le ferait fermer la page. Le
+    lien est signe, ne vaut que pour un membre et un jour, et expire.
+    """
+    from app.services.recap import lire_jeton, marches_du_jour
+    member_id, jour = lire_jeton(jeton_recu)
+    if not member_id:
+        return render(req, "404.html", {}, status_code=404)
+    db = get_db()
+    membre = db.execute("SELECT * FROM members WHERE id=? AND actif=1",
+                        (member_id,)).fetchone()
+    db.close()
+    if not membre:
+        return render(req, "404.html", {}, status_code=404)
+    membre = dict(membre)
+    return render(req, "recap.html", {
+        "membre": membre, "jour": jour,
+        "marches": marches_du_jour(membre, jour),
+        "mes_secteurs": clean_secteurs(json.loads(membre.get("secteurs", "[]") or "[]")),
+    })
+
+
 @app.get("/sous-traitance", response_class=HTMLResponse)
 async def subtraitance_list(req: Request, tp:str="", s:str="", r:str="", mine:str="", page:int=1):
     m0 = get_member(req)
