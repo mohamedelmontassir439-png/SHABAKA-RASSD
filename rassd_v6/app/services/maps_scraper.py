@@ -191,8 +191,15 @@ def collecter(secteurs: list, villes: list, log_fn=print, avec_email: bool = Tru
     try:
         from playwright.sync_api import sync_playwright
     except ImportError:
-        log_fn("❌ Playwright n'est pas installé sur ce serveur "
-               "(pip install playwright && playwright install chromium)")
+        # Le conseil « pip install playwright » n'a pas de sens ici: le
+        # serveur est reconstruit à chaque déploiement et n'embarquera pas
+        # 400 Mo de navigateur pour une collecte occasionnelle. Mieux vaut
+        # dire où est la voie qui marche.
+        log_fn("❌ Ce moteur pilote un navigateur: il ne tournera jamais sur "
+               "ce serveur. Deux voies: l'API Places (clé "
+               "GOOGLE_PLACES_API_KEY dans les variables Railway), qui "
+               "fonctionne ici; ou la collecte sur votre ordinateur, puis "
+               "l'import du fichier JSON plus bas.")
         return {"erreurs": 1, "trouvees": 0, "creees": 0, "fusionnees": 0,
                 "rejetees": 0, "emails": 0, "requetes": 0}
 

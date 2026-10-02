@@ -136,14 +136,18 @@ tr:hover td{background:var(--surface2)}
 
         <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px;">
           <label class="moteur-opt">
-            <input type="radio" name="moteur" value="maps" checked>
+            {# Coché seulement à défaut de mieux: ce moteur pilote un
+               navigateur, que le serveur n'embarque pas. Le laisser par
+               défaut menait tout droit à une erreur. #}
+            <input type="radio" name="moteur" value="maps" {% if not places_ready %}checked{% endif %}>
             <span>
-              <b>Google Maps</b> — gratuit
-              <em>Navigateur piloté sur les pages publiques. Aucune clé requise. Rythme lent volontairement ; s'arrête si Google affiche une vérification anti-robot. Contraire aux conditions d'utilisation de Google : risque de blocage d'IP assumé.</em>
+              <b>Google Maps</b> — gratuit, <b>sur votre ordinateur seulement</b>
+              <em>Navigateur piloté sur les pages publiques. Aucune clé requise. Rythme lent volontairement ; s'arrête si Google affiche une vérification anti-robot. Contraire aux conditions d'utilisation de Google : risque de blocage d'IP assumé. <b>Ce serveur n'embarque pas de navigateur</b> : lancé ici, ce moteur échoue immédiatement.</em>
             </span>
           </label>
           <label class="moteur-opt">
-            <input type="radio" name="moteur" value="places" {% if not places_ready %}disabled{% endif %}>
+            <input type="radio" name="moteur" value="places"
+                   {% if places_ready %}checked{% else %}disabled{% endif %}>
             <span>
               <b>API Places</b> — payante {% if not places_ready %}<span style="color:var(--red);">(clé absente)</span>{% endif %}
               <em>Voie officielle et stable, autorisée par Google. Chaque secteur × ville consomme 1 à 3 requêtes facturées. Nécessite <code>GOOGLE_PLACES_API_KEY</code>.</em>
