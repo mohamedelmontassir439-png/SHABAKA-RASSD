@@ -37,8 +37,11 @@ class TestPagesPubliques:
         assert client.get(path).status_code == 200
 
     def test_offre_mensuelle_affichee(self, client):
+        from app.core.config import cfg
         page = client.get("/tarifs").text
-        assert "250" in page and "Mensuel" in page
+        # Le prix vient de la configuration: un tarif écrit en dur ici
+        # casserait au prochain changement sans rien démontrer.
+        assert str(cfg.PLANS["monthly"]["price"]) in page and "Mensuel" in page
 
     def test_pages_legales_ont_du_contenu_reel(self, client):
         assert "Éditeur du site" in client.get("/mentions-legales").text

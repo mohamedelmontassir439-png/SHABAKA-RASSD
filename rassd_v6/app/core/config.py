@@ -122,10 +122,12 @@ class Settings:
     TRIAL_DAYS: int = int(os.getenv("TRIAL_DAYS", "7"))
     # Plans (paiement encaissé hors plateforme puis enregistré par l'admin)
     PLANS: dict = field(default_factory=lambda: {
-        "free":    {"name":"Inactif", "price":0,   "period":"",      "months":0, "tenders_day":15,"email":True, "telegram":False,"whatsapp":False,"api":False},
-        "monthly": {"name":"Mensuel", "price":250, "period":"mois",  "months":1, "tenders_day":0, "email":True, "telegram":True, "whatsapp":True, "api":True},
-        "pro":     {"name":"Annuel",  "price":2499,"period":"an",    "months":12,"tenders_day":0, "email":True, "telegram":True, "whatsapp":True, "api":True},
-        "business":{"name":"Biennal", "price":4299,"period":"2 ans", "months":24,"tenders_day":0, "email":True, "telegram":True, "whatsapp":True, "api":True},
+        # Le drapeau `telegram` a disparu avec le canal: plus rien ne le
+        # lisait, et le laisser laissait croire qu'un plan l'ouvrait encore.
+        "free":    {"name":"Inactif", "price":0,   "period":"",      "months":0, "tenders_day":15,"email":True, "whatsapp":False,"api":False},
+        "monthly": {"name":"Mensuel", "price":249, "period":"mois",  "months":1, "tenders_day":0, "email":True, "whatsapp":True, "api":True},
+        "pro":     {"name":"Annuel",  "price":2499,"period":"an",    "months":12,"tenders_day":0, "email":True, "whatsapp":True, "api":True},
+        "business":{"name":"Biennal", "price":4299,"period":"2 ans", "months":24,"tenders_day":0, "email":True, "whatsapp":True, "api":True},
     })
     SECTEURS: dict = field(default_factory=lambda: SECTORS)
     SECTOR_GROUPS: dict = field(default_factory=lambda: GROUPS)
