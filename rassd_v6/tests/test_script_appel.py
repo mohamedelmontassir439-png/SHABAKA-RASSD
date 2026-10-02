@@ -30,11 +30,15 @@ def _entreprise(db, secteur="T101", ville="Casablanca"):
 
 
 def _marche(db, secteur="T101", objet="TRAVAUX DE CONSTRUCTION D'UNE ECOLE"):
+    # L'identifiant se dérive du compte: plusieurs marchés par test sont
+    # nécessaires pour vérifier l'accord du pluriel.
+    tid = "t_sc%d" % db.execute("SELECT COUNT(*) FROM tenders").fetchone()[0]
     db.execute("""INSERT INTO tenders(id,objet,acheteur,secteur,region,montant,statut,
                   scraped_at,date_limite,type_offre,type_procedure)
-                  VALUES('t_sc1',?,'COMMUNE DE CASABLANCA',?,'Casablanca','1 200 000,00 MAD',
+                  VALUES(?,?,'COMMUNE DE CASABLANCA',?,'Casablanca','1 200 000,00 MAD',
                   'actif','2026-09-22 08:00:00',?,'Public','marche')""",
-               (objet, secteur, (date.today() + timedelta(days=12)).strftime("%d/%m/%Y")))
+               (tid, objet, secteur,
+                (date.today() + timedelta(days=12)).strftime("%d/%m/%Y")))
     db.commit()
 
 
@@ -50,10 +54,19 @@ class TestContenu:
         assert "ECOLE" in admin.get(f"/admin/prospection/{cid}").text
 
     def test_il_annonce_le_nombre_de_marches_ouverts(self, admin, db):
+        """Au singulier quand il n'y en a qu'un: le script se dit à voix haute."""
         cid = _entreprise(db)
         _marche(db)
         texte = html.unescape(admin.get(f"/admin/prospection/{cid}").text)
-        assert "1 marché(s) public(s) ouvert(s)" in texte
+        assert "1 marché public ouvert en" in texte
+        assert "marché(s)" not in texte
+
+    def test_il_accorde_le_pluriel(self, admin, db):
+        cid = _entreprise(db)
+        _marche(db, objet="PREMIER MARCHE")
+        _marche(db)
+        texte = html.unescape(admin.get(f"/admin/prospection/{cid}").text)
+        assert "2 marchés publics ouverts en" in texte
 
     def test_il_nomme_la_ville_de_lentreprise(self, admin, db):
         cid = _entreprise(db, ville="Agadir")

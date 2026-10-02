@@ -172,11 +172,26 @@ tbody tr:hover td{background:var(--surface2)}
 </head>
 <body>
 {% set chemin = request.url.path %}
+{% set destinations = ['/admin', '/admin/sources', '/admin/backups', '/admin/members',
+                       '/admin/payments', '/admin/recap', '/admin/prospection/plan',
+                       '/admin/prospection', '/admin/companies', '/admin/prospects',
+                       '/admin/sous-traitance'] %}
+{#
+  La destination courante est la plus longue qui corresponde, pas la première.
+  Une fiche d'appel (/admin/prospection/12) doit allumer « File d'appel », mais
+  /admin/prospection/plan a sa propre entrée: se contenter d'un préfixe
+  allumerait les deux à la fois.
+#}
+{% set ns = namespace(actif='') %}
+{% for d in destinations %}
+  {% if chemin == d or chemin.startswith(d ~ '/') %}
+    {% if d | length > ns.actif | length %}{% set ns.actif = d %}{% endif %}
+  {% endif %}
+{% endfor %}
+{% set actif = ns.actif %}
 {% macro lien(url, icone, texte) %}
-  {# « Courante » si le chemin correspond exactement, ou s'il en descend:
-     une fiche d'appel doit allumer « File d'appel ». #}
   <a class="rail-lien" href="{{ url }}"
-     {% if chemin == url or (url != '/admin' and chemin.startswith(url ~ '/')) %}aria-current="page"{% endif %}>
+     {% if url == actif %}aria-current="page"{% endif %}>
     <span class="ic" aria-hidden="true">{{ icone }}</span><span>{{ texte }}</span>
   </a>
 {% endmacro %}
@@ -203,6 +218,7 @@ tbody tr:hover td{background:var(--surface2)}
 
   <div class="rail-groupe">
     <div class="rail-titre">Prospection</div>
+    {{ lien('/admin/prospection/plan', '◱', "Plan d'appel") }}
     {{ lien('/admin/prospection', '☏', "File d'appel") }}
     {{ lien('/admin/companies', '⌂', 'Entreprises') }}
     {{ lien('/admin/prospects', '◎', 'Prospects') }}

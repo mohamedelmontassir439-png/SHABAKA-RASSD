@@ -38,6 +38,60 @@ textarea{min-height:92px;resize:vertical}
 <div class="wrap">
   {% if request.query_params.get('ok') %}<div class="ok">✓ Fiche enregistrée</div>{% endif %}
 
+  {# Les deux messages déjà écrits, marchés de son secteur compris. Ils ne
+     décrivent pas la plateforme: ils montrent ce que l'entreprise peut encore
+     déposer, ce qui se vérifie et donc ce qui fait ouvrir le lien. #}
+  {% if msg_wa or msg_html %}
+  <div class="carte">
+    <div class="carte-h"><span class="carte-t">✉ Messages prêts à partir</span>
+      <span class="meta">
+        {% if lien_invitation %}Lien personnel inclus.
+        {% else %}Créez d'abord le lien d'invitation ci-dessous — sinon le message
+        renvoie vers l'accueil.{% endif %}</span></div>
+    <div class="carte-b" style="display:grid;gap:18px">
+
+      {% if msg_wa %}
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;
+                    gap:10px;margin-bottom:7px;flex-wrap:wrap">
+          <b style="font-size:13px;color:var(--t1)">WhatsApp / SMS</b>
+          <span style="display:flex;gap:7px">
+            {% if c.phone %}
+            <a class="btn btn-p" target="_blank" rel="noopener"
+               href="https://wa.me/{{ c.phone|replace('+','')|replace(' ','')|replace('-','') }}?text={{ msg_wa|urlencode }}">Envoyer sur WhatsApp</a>
+            {% endif %}
+            <button type="button" class="btn" onclick="copier('wa')">Copier</button>
+          </span>
+        </div>
+        <textarea id="wa" rows="11" style="width:100%;font-size:12.5px;line-height:1.6;
+          font-family:var(--sans);resize:vertical">{{ msg_wa }}</textarea>
+      </div>
+      {% endif %}
+
+      {% if msg_html %}
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;
+                    gap:10px;margin-bottom:7px;flex-wrap:wrap">
+          <b style="font-size:13px;color:var(--t1)">Email</b>
+          <span style="display:flex;gap:7px">
+            {% if c.email %}
+            <form method="post" action="/admin/prospection/{{ c.id }}/email" style="display:inline">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <button type="submit" class="btn btn-p">Envoyer à {{ c.email[:28] }}</button>
+            </form>
+            {% else %}<span class="meta">Pas d'email connu</span>{% endif %}
+          </span>
+        </div>
+        <div class="meta" style="margin-bottom:7px">Objet : <b>{{ msg_objet }}</b></div>
+        <div style="border:1px solid var(--trait);border-radius:10px;max-height:290px;
+                    overflow:auto;background:var(--fond)">{{ msg_html|safe }}</div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+  {% endif %}
+
   {# Le script sous les yeux pendant l'appel: les cinq premieres etapes
      ouvertes, les objections repliees jusqu'a ce qu'elles arrivent. #}
   <div class="carte" style="border-color:var(--terre-p)">
@@ -218,4 +272,13 @@ textarea{min-height:92px;resize:vertical}
            <a class="btn" href="/admin/prospection">Retour à la liste</a></div>
     </form>
   </div>
+{% endblock %}
+{% block scripts %}
+<script>
+function copier(id){
+  const z = document.getElementById(id);
+  z.select(); document.execCommand('copy');
+  z.blur();
+}
+</script>
 {% endblock %}

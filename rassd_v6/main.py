@@ -3019,6 +3019,18 @@ def _reparer_fiches_portail(limite: int = 400) -> dict:
 # ══════════════════════════════════════════════════════════
 # PROSPECTION — appeler les entreprises collectées
 # ══════════════════════════════════════════════════════════
+# Heures d'appel au Maroc. Le matériau n'est pas une statistique interne
+# mais l'organisation d'une journée de chantier: l'entrepreneur est passé au
+# bureau après la tournée du matin, et repart avant la fin d'après-midi.
+CRENEAUX_APPEL = [
+    ("9h00 – 11h30", "bon", "Le meilleur créneau: sorti des chantiers, encore au bureau."),
+    ("11h30 – 12h30", "moyen", "Ça passe, sauf le vendredi (prière)."),
+    ("12h30 – 14h30", "mauvais", "Déjeuner. On ne dérange pas."),
+    ("14h30 – 16h30", "bon", "Deuxième bon créneau."),
+    ("16h30 – 17h30", "moyen", "Fin de journée: utile pour les rappels, pas pour un premier appel."),
+    ("Après 17h30", "mauvais", "Trop tard."),
+]
+
 STATUTS_PROSPECTION = {
     "a_appeler":  "À appeler",
     "rappeler":   "À rappeler",
@@ -3130,16 +3142,17 @@ def _script_appel(entreprise: dict, ouverts: int, marches: list) -> list:
     question avant l'argumentaire: un entrepreneur qui a dit lui-même qu'il
     rate des marchés n'a plus besoin qu'on le lui explique.
     """
-    ville = entreprise.get("city") or ""
-    metier = get_label(entreprise.get("sector", "")) or "votre domaine"
+    # La même tournure que les messages écrits: « 1 marché public ouvert »,
+    # pas « 1 marché(s) public(s) ouvert(s) ». On lit l'un à voix haute et on
+    # envoie l'autre dans la minute; deux formulations trahiraient le script.
+    from app.services.campagne import _accroche
     exemple = (marches[0]["objet"][:95] + "…") if marches else ""
     acheteur = marches[0].get("acheteur", "")[:50] if marches else ""
     return [
         ("Ouverture — 10 secondes",
          f"Bonjour, {cfg.FROM_NAME}. Je ne vous vends rien tout de suite : "
-         f"je vous appelle parce qu'il y a en ce moment {ouverts} marché(s) "
-         f"public(s) ouvert(s) en {metier}"
-         + (f", et vous êtes à {ville}." if ville else ".")),
+         f"je vous appelle parce qu'il y a en ce moment "
+         f"{_accroche(entreprise, ouverts)}"),
         ("Preuve — laissez-la parler seule",
          (f"Par exemple : « {exemple} »"
           + (f", chez {acheteur}." if acheteur else ".")
@@ -3172,6 +3185,22 @@ def _script_appel(entreprise: dict, ouverts: int, marches: list) -> list:
          "Très bien, je vous retire de la liste, vous ne serez plus appelé. "
          "— puis passez le statut à « Ne plus contacter »."),
     ]
+
+
+@app.get("/admin/prospection/plan", response_class=HTMLResponse)
+async def admin_plan_appel(req: Request):
+    """Par où commencer aujourd'hui, et à quelle heure.
+
+    Trois cent vingt-trois entreprises joignables ne se parcourent pas dans
+    l'ordre alphabétique. Cette page classe les secteurs par la force de
+    l'argument qu'on peut y tenir — nombre de marchés ouverts multiplié par
+    nombre d'entreprises à joindre — et exclut ceux où il n'y a rien à citer.
+    """
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    from app.services.campagne import priorites, villes_a_joindre
+    return templates.TemplateResponse("admin_plan.html", {
+        "request": req, "cfg": cfg, "priorites": priorites(),
+        "villes": villes_a_joindre(), "creneaux": CRENEAUX_APPEL})
 
 
 @app.post("/admin/prospection/apparier")
@@ -3218,6 +3247,12 @@ async def admin_prospection_fiche(req: Request, cid: int):
     db.close()
     invitation = dict(inv) if inv else None
     lien = f"{cfg.SITE_URL}/invitation/{invitation['token']}" if invitation else ""
+    # Les messages prêts à partir portent les marchés du secteur, pas une
+    # description de la plateforme: c'est ce qui se vérifie et donc ce qui
+    # fait ouvrir le lien.
+    from app.services.campagne import message_email, message_whatsapp
+    msg_wa = message_whatsapp(entreprise, lien)
+    msg_objet, msg_html = message_email(entreprise, lien)
     # Message prêt à envoyer: il ouvre sur des marchés réels, pas sur une
     # offre commerciale — c'est ce qui fait ouvrir le lien.
     message = ""
@@ -3235,6 +3270,7 @@ async def admin_prospection_fiche(req: Request, cid: int):
     return templates.TemplateResponse("admin_prospection_fiche.html", {
         "request": req, "cfg": cfg, "c": entreprise, "marches": marches,
         "script": _script_appel(entreprise, ouverts, marches),
+        "msg_wa": msg_wa, "msg_objet": msg_objet, "msg_html": msg_html,
         "ouverts": ouverts, "statuts": STATUTS_PROSPECTION, "get_label": get_label,
         "invitation": invitation, "lien_invitation": lien, "message_invitation": message,
         "csrf_token": get_csrf_token(req) or secrets.token_urlsafe(24)})
@@ -3284,6 +3320,56 @@ async def admin_prospection_maj(req: Request, cid: int, statut: str = Form("a_ap
     db.commit(); db.close()
     logger.info(f"[prospection] entreprise {cid} → {statut}")
     return RedirectResponse(f"/admin/prospection/{cid}?ok=1", 302)
+
+
+@app.post("/admin/prospection/{cid}/email")
+async def admin_prospection_email(req: Request, cid: int, csrf_token: str = Form("")):
+    """Envoie à une entreprise les marchés ouverts de son secteur.
+
+    Un envoi à la fois, depuis sa fiche, et jamais en lot: c'est ce qui
+    distingue une prise de contact d'un publipostage, et c'est aussi ce que
+    supporte le quota d'envoi. L'appel téléphonique reste premier — l'email
+    confirme, il ne remplace pas.
+
+    Sans marché ouvert dans le secteur, on n'envoie rien: un message qui ne
+    montre rien ne vaut pas l'adresse qu'il brûle.
+    """
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    csrf_guard(req, csrf_token)
+    from app.services.campagne import message_email
+    from app.services.notifications import email_send
+
+    db = get_db()
+    ligne = db.execute("SELECT * FROM companies WHERE id=?", (cid,)).fetchone()
+    if not ligne:
+        db.close()
+        return RedirectResponse("/admin/prospection", 302)
+    entreprise = dict(ligne)
+    inv = db.execute("SELECT token FROM invitations WHERE company_id=? "
+                     "ORDER BY created_at DESC", (cid,)).fetchone()
+    db.close()
+    if not entreprise.get("email"):
+        return RedirectResponse(f"/admin/prospection/{cid}?envoi=sans_adresse", 302)
+
+    lien = f"{cfg.SITE_URL}/invitation/{inv['token']}" if inv else ""
+    objet, corps = message_email(entreprise, lien)
+    if not corps:
+        return RedirectResponse(f"/admin/prospection/{cid}?envoi=sans_marche", 302)
+    envoye = email_send(entreprise["email"], objet, corps)
+    if envoye:
+        maintenant = datetime.now().isoformat()
+        db = get_db()
+        db.execute("""INSERT INTO prospection(company_id,statut,canal,notes,dernier_contact,
+                         prochain_contact,appels,created_at,updated_at)
+                      VALUES(?,'a_appeler','email','',?,'',0,?,?)
+                      ON CONFLICT(company_id) DO UPDATE SET
+                         canal='email', dernier_contact=excluded.dernier_contact,
+                         updated_at=excluded.updated_at""",
+                   (cid, maintenant[:10], maintenant, maintenant))
+        db.commit(); db.close()
+        logger.info(f"[campagne] email envoyé à {entreprise['email']}")
+    return RedirectResponse(
+        f"/admin/prospection/{cid}?envoi={'ok' if envoye else 'echec'}", 302)
 
 
 @app.post("/admin/prospection/{cid}/invitation")

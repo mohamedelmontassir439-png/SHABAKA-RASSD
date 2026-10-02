@@ -1,0 +1,133 @@
+{% extends "admin_base.html" %}
+{% block titre %}Plan d'appel{% endblock %}
+{% block soustitre %}<div class="entete-sur">Prospection</div>{% endblock %}
+{% block actions %}
+<a class="btn btn-p" href="/admin/prospection">☏ Ouvrir la file d'appel</a>
+{% endblock %}
+{% block style %}
+.intro{font-size:14px;color:var(--t2);line-height:1.7;max-width:780px;margin-bottom:24px}
+.force{height:7px;border-radius:999px;background:var(--surface2);overflow:hidden;min-width:90px}
+.force i{display:block;height:100%;background:var(--terre)}
+.cren{display:grid;grid-template-columns:150px 1fr;gap:4px 16px;align-items:baseline}
+.cren b{font-family:var(--mono);font-size:13px;font-weight:500}
+.pastille{display:inline-block;width:9px;height:9px;border-radius:50%;margin-inline-end:7px}
+.bon{background:var(--vert)} .moyen{background:#e0a32e} .mauvais{background:var(--rouge)}
+.etape{display:grid;grid-template-columns:26px 1fr;gap:12px;margin-bottom:14px}
+.etape-n{width:24px;height:24px;border-radius:50%;background:var(--terre);color:#fff;
+  font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.etape-t{font-size:14px;line-height:1.6;color:var(--t1)}
+{% endblock %}
+{% block contenu %}
+
+<p class="intro">
+  Trois cent vingt-trois entreprises joignables ne se parcourent pas dans l'ordre
+  alphabétique. Ce qui fait la force d'un appel, ce n'est pas le nombre d'entreprises
+  d'un secteur mais <b>le nombre de marchés ouverts qu'on peut y citer</b> : dire
+  « il y a 107 marchés ouverts dans votre domaine » n'a rien à voir avec « il y en a 4 ».
+  Les secteurs sans aucun marché ouvert sont absents de ce tableau — on n'y brûle pas
+  des noms avec un argument faible, on y revient un jour où il y a de quoi parler.
+</p>
+
+<div class="carte">
+  <div class="carte-h"><span class="carte-t">Par où commencer</span>
+    <span class="meta">Marchés ouverts × entreprises à joindre</span></div>
+  <div class="tableau-cadre">
+    <table>
+      <thead><tr>
+        <th>Secteur</th><th>Marchés ouverts</th><th>Joignables</th>
+        <th>Jamais appelées</th><th>Force de l'argument</th><th></th>
+      </tr></thead>
+      <tbody>
+        {% for p in priorites %}
+        <tr>
+          <td><b style="color:var(--t1)">{{ p.label }}</b>
+              <div class="meta">{{ p.secteur }}</div></td>
+          <td class="num"><b style="font-size:15px;color:var(--t1)">{{ p.marches }}</b></td>
+          <td class="num">{{ p.entreprises }}</td>
+          <td class="num">{% if p.a_appeler %}<b style="color:var(--terre-f)">{{ p.a_appeler }}</b>
+              {% else %}<span class="meta">toutes traitées</span>{% endif %}</td>
+          <td>
+            <div class="force" title="{{ p.force }}">
+              <i style="width:{{ (100 * p.force / priorites[0].force)|round|int }}%"></i></div>
+          </td>
+          <td><a class="btn" href="/admin/prospection?s={{ p.secteur }}&statut=a_appeler">Appeler →</a></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="vide">
+          Aucun marché ouvert dans les secteurs où vous avez des numéros.
+          Lancez une collecte avant d'appeler.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+
+  <div class="carte">
+    <div class="carte-h"><span class="carte-t">Quand appeler</span></div>
+    <div class="carte-b">
+      <div class="cren">
+        {% for heure, qualite, note in creneaux %}
+        <b><span class="pastille {{ qualite }}"></span>{{ heure }}</b>
+        <span class="meta" style="font-size:12.5px">{{ note }}</span>
+        {% endfor %}
+      </div>
+      <p class="meta" style="margin-top:16px;line-height:1.65">
+        À éviter aussi : le <b>lundi matin</b>, et le <b>vendredi de 11h30 à 15h</b>.
+        Sans réponse, rappelez <b>à une autre heure de la journée</b> plutôt qu'à la
+        même heure le lendemain. Trois tentatives, puis « Injoignable ».
+      </p>
+    </div>
+  </div>
+
+  <div class="carte">
+    <div class="carte-h"><span class="carte-t">Une ville par séance</span>
+      <span class="meta">« et vous êtes à… »</span></div>
+    <div class="tableau-cadre">
+      <table>
+        <thead><tr><th>Ville</th><th>Joignables</th><th>Jamais appelées</th><th></th></tr></thead>
+        <tbody>
+          {% for v in villes %}
+          <tr>
+            <td><b style="color:var(--t1)">{{ v.ville }}</b></td>
+            <td class="num">{{ v.total }}</td>
+            <td class="num">{% if v.a_appeler %}<b style="color:var(--terre-f)">{{ v.a_appeler }}</b>
+                {% else %}<span class="meta">—</span>{% endif %}</td>
+            <td><a class="btn" href="/admin/prospection?ville={{ v.ville }}&statut=a_appeler">Appeler →</a></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div class="carte">
+  <div class="carte-h"><span class="carte-t">L'ordre des gestes</span>
+    <span class="meta">20 à 25 appels par jour, en deux blocs</span></div>
+  <div class="carte-b">
+    <div class="etape"><div class="etape-n">1</div><div class="etape-t">
+      <b>Créez le lien d'invitation avant de composer.</b> Il doit déjà être dans votre
+      main quand vous parlez — pas après.</div></div>
+    <div class="etape"><div class="etape-n">2</div><div class="etape-t">
+      <b>Appelez. N'envoyez pas d'abord.</b> Un premier message sans voix se range
+      avec le reste.</div></div>
+    <div class="etape"><div class="etape-n">3</div><div class="etape-t">
+      <b>Envoyez le lien pendant l'appel</b>, pas une fois raccroché. La fiche porte le
+      message WhatsApp et l'email, déjà écrits, avec les marchés de son secteur.</div></div>
+    <div class="etape"><div class="etape-n">4</div><div class="etape-t">
+      <b>Enregistrez le statut tout de suite.</b> Une conversation non notée est une
+      conversation perdue.</div></div>
+    <div class="etape"><div class="etape-n">5</div><div class="etape-t">
+      <b>Rappelez le jeudi</b> ceux dont l'essai de {{ cfg.TRIAL_DAYS }} jours se termine.
+      C'est là que l'abonnement se décide, pas au premier appel.</div></div>
+    <p class="meta" style="margin-top:4px;line-height:1.65;max-width:760px">
+      Le déroulé de la conversation et les quatre objections qui reviennent sont sur
+      chaque fiche d'appel, avec les chiffres de l'entreprise appelée.
+    </p>
+  </div>
+</div>
+
+{% endblock %}
