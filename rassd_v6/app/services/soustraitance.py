@@ -200,7 +200,7 @@ def notifier_nouvelle_annonce(post: dict) -> int:
     sous-traitance restait, elle, invisible jusqu'à ce qu'un membre pense à
     consulter la page.
     """
-    from app.services.notifications import email_send, tg_send
+    from app.services.notifications import email_send
 
     lien = f"{cfg.SITE_URL}/sous-traitance/{post.get('id')}"
     titre = (post.get("titre") or "")[:120]
@@ -224,10 +224,6 @@ def notifier_nouvelle_annonce(post: dict) -> int:
         touche = False
         if m.get("notif_email") and m.get("email"):
             touche = email_send(m["email"], f"Sous-traitance : {titre[:60]}", corps) or touche
-        if m.get("notif_tg") and m.get("telegram"):
-            texte = (f"🤝 <b>Sous-traitance</b>\n\n<b>{titre}</b>\n{metier}"
-                     f"{' · ' + lieu if lieu else ''}\n\n🔗 {lien}")
-            touche = tg_send(m["telegram"], texte) or touche
         if touche:
             envoyes += 1
     if envoyes:

@@ -119,8 +119,16 @@ def matches(member: dict, tender: dict) -> tuple:
         # Un marché sans type explicite est considéré public (défaut du schéma).
         t_type = (tender.get("type_procedure") or "marche")
         t_offre = (tender.get("type_offre") or "Public")
+        # `organisme` porte la nature réelle de l'acheteur — état, semi-public
+        # ou privé — là où `type_offre` ne dit que la provenance de l'avis.
+        # Sans lui, un membre ne pouvait pas demander les seuls marchés
+        # semi-publics, alors que la plateforme les classe ainsi partout
+        # ailleurs: la case n'existait même pas dans ses réglages.
+        t_org = (tender.get("organisme") or "")
         wanted = {_norm(x) for x in f["types"]}
         got = {_norm(t_type), _norm(t_offre)}
+        if t_org:
+            got.add(_norm(t_org))
         if not (wanted & got):
             return False, "type"
 

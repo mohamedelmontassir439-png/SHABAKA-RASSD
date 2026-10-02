@@ -58,7 +58,7 @@
 
   <div class="sx-cta">
     <h2>Recevez les marchés de votre secteur</h2>
-    <p>Alerte par email et Telegram dès qu'une consultation correspond à votre activité. Essai gratuit de {{ cfg.TRIAL_DAYS }} jours, sans carte bancaire.</p>
+    <p>Alerte par email{% if cfg.WA_ENABLED %} et WhatsApp{% endif %} dès qu'une consultation correspond à votre activité. Essai gratuit de {{ cfg.TRIAL_DAYS }} jours, sans carte bancaire.</p>
     <a href="/register" class="btn btn-primary btn-lg">Créer mon compte gratuitement →</a>
   </div>
 </div>

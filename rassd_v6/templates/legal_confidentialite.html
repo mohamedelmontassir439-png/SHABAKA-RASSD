@@ -63,7 +63,7 @@
     <ul>
       <li>Identité et contact : nom, email, téléphone, nom de l'entreprise</li>
       <li>Préférences d'alerte : secteurs et régions suivis</li>
-      <li>Identifiants de canaux, uniquement si vous les renseignez : identifiant Telegram</li>
+      {% if cfg.WA_ENABLED %}<li>Identifiants de canaux, uniquement si vous les renseignez : numéro WhatsApp</li>{% endif %}
       <li>Données d'usage : favoris, historique de connexion, journal des notifications envoyées</li>
     </ul>
 
@@ -71,7 +71,7 @@
     <p>Ces données servent exclusivement à : vous envoyer les alertes correspondant à votre profil, gérer votre compte et votre abonnement, et améliorer le service (statistiques d'usage agrégées et anonymes). Elles ne sont jamais utilisées à des fins de prospection par des tiers.</p>
 
     <h2>3. Destinataires</h2>
-    <p>Vos données ne sont jamais vendues ni cédées à des tiers. Elles sont partagées uniquement avec les prestataires techniques strictement nécessaires à l'acheminement des alertes que vous avez activées : un prestataire d'envoi d'email (Brevo ou Gmail) et Telegram (si vous activez ce canal). Aucun de ces prestataires n'a accès à autre chose qu'à ce qui est nécessaire à l'envoi du message.</p>
+    <p>Vos données ne sont jamais vendues ni cédées à des tiers. Elles sont partagées uniquement avec les prestataires techniques strictement nécessaires à l'acheminement des alertes que vous avez activées : un prestataire d'envoi d'email (Brevo ou Gmail) {% if cfg.WA_ENABLED %}et Twilio, pour WhatsApp (si vous activez ce canal){% endif %}. Aucun de ces prestataires n'a accès à autre chose qu'à ce qui est nécessaire à l'envoi du message.</p>
 
     <h2>4. Durée de conservation</h2>
     <p>Vos données sont conservées tant que votre compte est actif. Vous pouvez demander leur suppression à tout moment (voir section 6).</p>

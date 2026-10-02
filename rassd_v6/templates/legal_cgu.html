@@ -37,7 +37,7 @@
       <tr>
         <td>{{ p.name }}</td>
         <td>{% if p.price %}{{ p.price }} درهم / {{ p.period }}{% else %}مجاني{% endif %}</td>
-        <td>{{ 'البريد الإلكتروني' if p.email }}{{ '، تيليغرام' if p.telegram }}</td>
+        <td>{{ 'البريد الإلكتروني' if p.email }}{% if cfg.WA_ENABLED %}{{ '، واتساب' if p.whatsapp }}{% endif %}</td>
       </tr>
       {% endfor %}
     </table>
@@ -68,7 +68,7 @@
 
   <div class="legal-body">
     <h2>1. Objet</h2>
-    <p>Maroc Entrepreneuriat est un service de veille sur les marchés publics, semi-publics et privés au Maroc (appels d'offres, bons de commande) : agrégation de sources, alertes personnalisées (Email, Telegram), suivi des résultats d'adjudication, et une place d'échange entre entreprises pour la sous-traitance de marchés.</p>
+    <p>Maroc Entrepreneuriat est un service de veille sur les marchés publics, semi-publics et privés au Maroc (appels d'offres, bons de commande) : agrégation de sources, alertes personnalisées (Email{% if cfg.WA_ENABLED %}, WhatsApp{% endif %}), suivi des résultats d'adjudication, et une place d'échange entre entreprises pour la sous-traitance de marchés.</p>
 
     <h2>2. Inscription et compte</h2>
     <p>L'accès aux fonctionnalités réservées nécessite la création d'un compte avec une adresse email valide. L'utilisateur s'engage à fournir des informations exactes et à assurer la confidentialité de ses identifiants. Chaque compte est personnel.</p>
@@ -80,7 +80,7 @@
       <tr>
         <td>{{ p.name }}</td>
         <td>{% if p.price %}{{ p.price }} MAD / {{ p.period }}{% else %}Gratuit{% endif %}</td>
-        <td>{{ 'Email' if p.email }}{{ ', Telegram' if p.telegram }}</td>
+        <td>{{ 'Email' if p.email }}{% if cfg.WA_ENABLED %}{{ ', WhatsApp' if p.whatsapp }}{% endif %}</td>
       </tr>
       {% endfor %}
     </table>

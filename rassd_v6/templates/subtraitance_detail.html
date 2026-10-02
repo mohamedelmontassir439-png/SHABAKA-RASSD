@@ -84,7 +84,7 @@
           <summary style="cursor:pointer; font-size:12.5px; color:var(--text3); font-weight:600;">{{ tr('st_report_cta') }}</summary>
           <form method="post" action="/sous-traitance/{{ post.id }}/signaler" style="display:flex; gap:8px; margin-top:10px;">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-            <input type="text" name="reason" class="inp" placeholder="{{ tr('st_report_reason') }}" style="flex:1;" maxlength="500">
+            <input aria-label="{{ tr('aria_motif') }}" type="text" name="reason" class="inp" placeholder="{{ tr('st_report_reason') }}" style="flex:1;" maxlength="500">
             <button type="submit" class="btn btn-outline btn-sm">{{ tr('st_report_send') }}</button>
           </form>
         </details>
@@ -193,7 +193,7 @@
           <form method="post" action="/sous-traitance/{{ post.id }}/message" class="msg-form">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <input type="hidden" name="to" value="{{ other_id }}">
-            <textarea name="body" class="textarea" rows="2" placeholder="{{ tr('st_msg_placeholder') }}" required></textarea>
+            <textarea aria-label="{{ tr('aria_message') }}" name="body" class="textarea" rows="2" placeholder="{{ tr('st_msg_placeholder') }}" required></textarea>
             <button type="submit" class="btn btn-primary">{{ tr('st_msg_send') }}</button>
           </form>
         {% elif not threads %}
@@ -217,7 +217,7 @@
         {% if post.statut == 'actif' %}
         <form method="post" action="/sous-traitance/{{ post.id }}/message" class="msg-form">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-          <textarea name="body" class="textarea" rows="2" placeholder="{{ tr('st_msg_placeholder') }}" required></textarea>
+          <textarea aria-label="{{ tr('aria_message') }}" name="body" class="textarea" rows="2" placeholder="{{ tr('st_msg_placeholder') }}" required></textarea>
           <button type="submit" class="btn btn-primary">{{ tr('st_msg_send') }}</button>
         </form>
         {% endif %}
@@ -230,12 +230,12 @@
         <form method="post" action="/sous-traitance/{{ post.id }}/noter" style="display:flex; flex-direction:column; gap:10px;">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <input type="hidden" name="rated_id" value="{{ counterpart_id }}">
-          <select name="rating" class="sel">
+          <select aria-label="{{ tr('aria_note') }}" name="rating" class="sel">
             {% for i in [5,4,3,2,1] %}
             <option value="{{ i }}" {% if my_rating_given == i %}selected{% endif %}>{{ '★' * i }}{{ '☆' * (5-i) }}</option>
             {% endfor %}
           </select>
-          <textarea name="comment" class="textarea" rows="2" placeholder="{{ tr('st_rate_placeholder') }}"></textarea>
+          <textarea aria-label="{{ tr('aria_commentaire') }}" name="comment" class="textarea" rows="2" placeholder="{{ tr('st_rate_placeholder') }}"></textarea>
           <button type="submit" class="btn btn-outline btn-sm">{{ tr('st_rate_cta') }}</button>
         </form>
       </div>

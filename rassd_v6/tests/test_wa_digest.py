@@ -153,7 +153,18 @@ class TestResumeQuotidien:
         assert notif.send_daily_wa_digests(now=self.MATIN) == 1
         assert len(envois) == 1
         assert "3 nouvelle(s) opportunité(s)" in envois[0]
-        assert "/opportunites-du-jour" in envois[0]
+        # Le lien est personnel et signé: /opportunites-du-jour exigeait une
+        # connexion, et ouvert depuis WhatsApp sur un téléphone il tombait
+        # sur un formulaire de login au lieu des marchés annoncés.
+        assert "/recap/" in envois[0]
+        assert "/opportunites-du-jour" not in envois[0]
+        # Le jeton est celui de ce membre pour ce jour-là. On le recalcule
+        # plutôt que de le relire: `lire_jeton` refuse au-delà de sept jours,
+        # et la date simulée du test est volontairement ancienne.
+        from app.services.recap import jeton as jeton_recap
+        envoye = envois[0].rsplit("/recap/", 1)[1].strip()
+        assert envoye == jeton_recap(mid, self.MATIN.strftime("%Y-%m-%d"))
+        assert envoye.startswith(f"{mid}-")
         assert db.execute("SELECT COUNT(*) FROM wa_digest_queue WHERE member_id=? AND sent_at!=''",
                           (mid,)).fetchone()[0] == 3
 
@@ -225,22 +236,26 @@ class TestResumeQuotidien:
         assert envois == []
 
 
-class TestPageDuJour:
-    def test_exige_une_connexion(self, client):
-        r = client.get("/opportunites-du-jour")
-        assert r.status_code == 302 and "/login" in r.headers["location"]
+class TestPlusDeDoublon:
+    """La page /opportunites-du-jour a été retirée.
 
-    def test_affiche_les_marches_en_file(self, client, db, confirmer_email):
-        client.get("/register")
-        client.post("/register", data={
-            "email": "page@example.com", "pw": "MotDePasse1!", "pw2": "MotDePasse1!",
-            "nom": "Page", "csrf_token": client.cookies.get("_csrf")})
-        confirmer_email("page@example.com")
-        mid = db.execute("SELECT id FROM members WHERE email=?", ("page@example.com",)).fetchone()["id"]
-        _marche(db, "t_page", objet="MARCHE VISIBLE DANS LE RESUME")
-        db.execute("INSERT INTO wa_digest_queue(member_id,tender_id,created_at) VALUES(?,?,?)",
-                   (mid, "t_page", datetime.now().isoformat()))
+    Elle faisait doublon avec le récapitulatif signé, en moins bien: elle
+    exigeait une connexion, alors que le lien s'ouvre depuis WhatsApp sur un
+    téléphone, et elle listait la file d'envoi sur sept jours au lieu des
+    marchés du jour. Ce que le récapitulatif montre est couvert par
+    test_recap.py.
+    """
+
+    def test_lancienne_page_nexiste_plus(self, client):
+        assert client.get("/opportunites-du-jour").status_code == 404
+
+    def test_le_recapitulatif_souvre_sans_connexion(self, client, db):
+        from app.services.recap import jeton
+        from datetime import date
+        db.execute("""INSERT INTO members(nom,email,plan,subscription_status,actif,
+                      secteurs,email_verified) VALUES('Ahmed','r@e.ma','pro','ACTIVE',1,
+                      '["T101"]',1)""")
         db.commit()
-        page = client.get("/opportunites-du-jour")
-        assert page.status_code == 200
-        assert "MARCHE VISIBLE DANS LE RESUME" in page.text
+        mid = db.execute("SELECT id FROM members WHERE email='r@e.ma'").fetchone()["id"]
+        r = client.get(f"/recap/{jeton(mid, date.today().strftime('%Y-%m-%d'))}")
+        assert r.status_code == 200

@@ -110,7 +110,7 @@
 
     {% if is_contract %}
       <div class="doc-section-t">1. Objet</div>
-      <div class="doc-p">Le prestataire met à disposition du client un accès personnel et non transférable à la plateforme Maroc Entrepreneuriat : veille des marchés publics, semi-publics et privés, bons de commande, résultats d'adjudication, alertes personnalisées (email, Telegram, WhatsApp) et espace de sous-traitance entre entreprises.</div>
+      <div class="doc-p">Le prestataire met à disposition du client un accès personnel et non transférable à la plateforme Maroc Entrepreneuriat : veille des marchés publics, semi-publics et privés, bons de commande, résultats d'adjudication, alertes personnalisées (email{% if cfg.WA_ENABLED %}, WhatsApp{% endif %}) et espace de sous-traitance entre entreprises.</div>
 
       <div class="doc-section-t">2. Durée et renouvellement</div>
       <div class="doc-p">L'abonnement court du {{ payload.get('period_start','') }} au {{ payload.get('period_end','') }}. Il n'est pas reconduit automatiquement : aucun prélèvement récurrent n'est mis en place. Le renouvellement fait l'objet d'un nouvel accord entre les parties avant l'échéance.</div>

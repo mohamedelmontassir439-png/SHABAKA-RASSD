@@ -39,6 +39,7 @@ class TestPlusDeWhatsApp:
     def test_aucune_promesse_d_alerte(self, client, chemin):
         """Le paiement par WhatsApp reste possible; l'alerte WhatsApp, non."""
         texte = client.get(chemin).text.lower()
+        assert "telegram" not in texte, f"Telegram subsiste sur {chemin}"
         for promesse in ("alertes email, telegram & whatsapp",
                          "alertes email + telegram + whatsapp",
                          "email, telegram et whatsapp",
@@ -46,10 +47,21 @@ class TestPlusDeWhatsApp:
                          "bientôt disponible"):
             assert promesse not in texte, f"{promesse} subsiste sur {chemin}"
 
-    def test_cgu_ne_liste_plus_whatsapp_comme_canal(self, client):
+    def test_cgu_ne_cite_que_les_canaux_qui_fonctionnent(self, client):
+        """Telegram a été retiré de l'offre; WhatsApp n'a pas d'expéditeur.
+
+        Reste l'email, et les CGU ne doivent promettre que lui tant que
+        WA_ENABLED vaut 0 — un contrat qui cite un canal muet est un
+        engagement qu'on ne tient pas.
+        """
         texte = client.get("/cgu").text
-        assert "(Email, Telegram)" in texte or "Email, Telegram" in texte
-        assert "Telegram, WhatsApp" not in texte
+        assert "Telegram" not in texte
+        assert "alertes personnalisées (Email)" in texte
+
+    def test_les_cgu_citent_whatsapp_une_fois_le_canal_ouvert(self, client, monkeypatch):
+        from app.core.config import cfg
+        monkeypatch.setattr(cfg, "WA_ENABLED", True)
+        assert "Email, WhatsApp" in client.get("/cgu").text
 
     def test_contact_par_whatsapp_conserve(self, client, monkeypatch):
         # C'est le canal réel par lequel un abonné souscrit: il reste affiché

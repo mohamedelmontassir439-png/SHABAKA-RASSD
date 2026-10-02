@@ -332,7 +332,7 @@
         <form method="post" action="/settings/delete" class="account-danger-form"
               onsubmit="return confirm('{{ tr('set_delete_confirm') }}');">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-          <input type="password" name="password" class="inp"
+          <input aria-label="{{ tr('aria_mdp') }}" type="password" name="password" class="inp"
                  placeholder="{{ tr('set_delete_pw_placeholder') }}" required>
           <button type="submit" class="btn btn-danger btn-sm">{{ tr('set_delete_cta') }}</button>
         </form>

@@ -61,15 +61,6 @@
       </div>
     </section>
 
-    <section class="set-block">
-      <div class="set-block-h"><em>Telegram</em></div>
-      <div class="set-block-sub">{{ tr('set_telegram_sub') }}</div>
-      <div class="field"><label for="telegram">{{ tr('set_telegram_id') }}</label><input id="telegram" name="telegram" value="{{ member.telegram }}" class="inp" placeholder="ex: 123456789"></div>
-      <div class="tg-hint">
-        <strong>{{ tr('set_telegram_hint') }}</strong> {{ tr('set_telegram_hint2') }} <code>/start</code>, {{ tr('set_telegram_hint3') }}
-      </div>
-    </section>
-
     {# Le canal WhatsApp n'est plus annoncé nulle part tant qu'il n'est pas
        réellement en service: ni champ, ni promesse. Le bloc réapparaît tel
        quel le jour où WA_ENABLED passe à 1. #}
@@ -105,7 +96,7 @@
         <div class="field">
           <label>{{ tr('set_filter_types') }}</label>
           <div class="sector-chips">
-            {% for val, lbl in [('Public', tr('tenders_public')), ('Privé', tr('tenders_private')), ('bon_commande', tr('tenders_bc'))] %}
+            {% for val, lbl in [('Public', tr('tenders_public')), ('semi_public', tr('org_semi_public')), ('Privé', tr('tenders_private')), ('bon_commande', tr('tenders_bc'))] %}
             <label class="sector-chip">
               <input type="checkbox" name="notif_types_sel" value="{{ val }}" {% if val in my_types %}checked{% endif %}>
               <span>{{ lbl }}</span>
@@ -136,7 +127,7 @@
       <div class="set-block-sub">{{ tr('set_channels_sub') }}</div>
       {% for fn, label, desc in [
         ('notif_email', tr('set_ch_email'), tr('set_ch_email_desc')),
-        ('notif_tg', tr('set_ch_tg'), tr('set_ch_tg_desc'))]
+        ]
         + ([('notif_wa', tr('set_ch_wa'), tr('set_ch_wa_desc'))] if cfg.WA_ENABLED else []) + [
         ('notif_digest', tr('set_ch_digest'), tr('set_ch_digest_desc'))
       ] %}
@@ -249,7 +240,7 @@
     <div class="field">
       <label>{{ tr('set_referral_link') }}</label>
       <div style="display:flex; gap:8px;">
-        <input id="refLink" class="inp mono" readonly value="{{ cfg.SITE_URL }}/register?ref={{ member.referral_code }}">
+        <input aria-label="{{ tr('aria_recherche') }}" id="refLink" class="inp mono" readonly value="{{ cfg.SITE_URL }}/register?ref={{ member.referral_code }}">
         <button type="button" class="btn btn-outline" onclick="navigator.clipboard.writeText(document.getElementById('refLink').value); this.textContent='{{ tr('set_referral_copied') }}'; setTimeout(()=>this.textContent='{{ tr('set_referral_copy') }}',2000);">{{ tr('set_referral_copy') }}</button>
       </div>
     </div>
@@ -274,7 +265,7 @@
       </div>
       <form method="post" action="/settings/delete" class="danger-form" onsubmit="return confirm('{{ tr('set_delete_confirm') }}');">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-        <input type="password" name="password" class="inp" placeholder="{{ tr('set_delete_pw_placeholder') }}" required>
+        <input aria-label="{{ tr('aria_mdp') }}" type="password" name="password" class="inp" placeholder="{{ tr('set_delete_pw_placeholder') }}" required>
         <button type="submit" class="btn btn-danger btn-sm">{{ tr('set_delete_cta') }}</button>
       </form>
     </div>

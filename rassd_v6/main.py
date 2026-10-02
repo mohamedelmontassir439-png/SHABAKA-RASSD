@@ -2138,7 +2138,7 @@ async def settings_get(req: Request):
 @app.post("/settings")
 async def settings_post(req: Request,
     nom:str=Form(""), phone:str=Form(""), company:str=Form(""),
-    telegram:str=Form(""), csrf_token:str=Form(""), secteurs_sel:list=Form(default=[])):
+    csrf_token:str=Form(""), secteurs_sel:list=Form(default=[])):
     member = get_member(req)
     csrf_guard(req, csrf_token)
     if not member: return RedirectResponse("/login",302)
@@ -2146,7 +2146,6 @@ async def settings_post(req: Request,
         return RedirectResponse("/settings",302)
     form     = await req.form()
     n_email  = 1 if form.get("notif_email")  else 0
-    n_tg     = 1 if form.get("notif_tg")     else 0
     n_digest = 1 if form.get("notif_digest") else 0
     n_wa     = 1 if form.get("notif_wa")     else 0
     # Rythme des alertes email: un message par marché, ou un seul par jour.
@@ -2171,11 +2170,14 @@ async def settings_post(req: Request,
     db = get_db()
     try:
         db.execute(
-            """UPDATE members SET nom=?,phone=?,company=?,telegram=?,whatsapp=?,
-               notif_email=?,notif_tg=?,notif_wa=?,notif_digest=?,notif_rythme=?,
+            # La colonne `telegram` subsiste en base — on ne détruit pas les
+            # données d'anciens membres — mais plus rien ne l'alimente ni ne
+            # la lit: le canal a été retiré de l'offre.
+            """UPDATE members SET nom=?,phone=?,company=?,whatsapp=?,
+               notif_email=?,notif_wa=?,notif_digest=?,notif_rythme=?,
                secteurs=?,notif_regions=?,notif_types=?,notif_keywords=?,
                notif_min_budget=?,whatsapp_verified=? WHERE id=?""",
-            (nom,phone,company,telegram.strip(),whatsapp,n_email,n_tg,n_wa,n_digest,rythme,
+            (nom,phone,company,whatsapp,n_email,n_wa,n_digest,rythme,
              json.dumps(sects),json.dumps(regions),json.dumps(types),keywords,min_budget,
              wa_verified,member["id"]))
         db.commit()
@@ -2282,7 +2284,7 @@ async def settings_export(req: Request):
             "company": member.get("company"), "plan": member.get("plan"),
             "secteurs": json.loads(member.get("secteurs","[]") or "[]"),
             "regions": json.loads(member.get("regions","[]") or "[]"),
-            "telegram": member.get("telegram"), "whatsapp": member.get("whatsapp"),
+            "whatsapp": member.get("whatsapp"),
             "created_at": member.get("created_at"),
         },
         "favoris": favs,
@@ -2375,24 +2377,6 @@ def _create_document(db, doc_type: str, member: dict, payload: dict,
         (doc_type, number, member["id"], subscription_id, payment_id,
          json.dumps(payload, ensure_ascii=False), datetime.now().isoformat()))
     return number
-
-@app.get("/opportunites-du-jour", response_class=HTMLResponse)
-async def opportunites_du_jour(req: Request):
-    """Page ouverte depuis le résumé WhatsApp: les marchés mis en file pour
-    ce membre sur les 7 derniers jours, les plus récents d'abord."""
-    member = get_member(req)
-    if not member: return RedirectResponse("/login?next=/opportunites-du-jour", 302)
-    if not cfg.WA_ENABLED: return RedirectResponse("/dashboard", 302)
-    if not has_access(member): return RedirectResponse("/tarifs?locked=1", 302)
-    db = get_db()
-    items = [dict(r) for r in db.execute(
-        """SELECT t.*, q.created_at AS queued_at, q.sent_at
-           FROM wa_digest_queue q JOIN tenders t ON t.id = q.tender_id
-           WHERE q.member_id=? AND q.created_at>=?
-           ORDER BY q.created_at DESC LIMIT 300""",
-        (member["id"], (datetime.now() - timedelta(days=7)).isoformat())).fetchall()]
-    db.close()
-    return render(req, "opportunites_jour.html", {"items": items})
 
 @app.get("/mon-abonnement", response_class=HTMLResponse)
 async def my_subscription(req: Request):

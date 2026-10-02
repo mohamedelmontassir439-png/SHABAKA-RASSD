@@ -255,8 +255,12 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
     <span class="channels-label">{{ tr('channels_label') }}</span>
     <div class="channels-tiles">
       <div class="channel-tile"><span class="ci" style="background: var(--indigoa);">✉️</span><span class="cl">{{ tr('channel_email') }}</span></div>
-      <div class="channel-tile"><span class="ci" style="background: var(--purplea);">✈️</span><span class="cl">{{ tr('channel_telegram') }}</span></div>
-      
+      {# Un seul message par jour, pas une notification par marché. La tuile
+         n'apparaît que si le canal peut réellement partir: annoncer une
+         alerte qu'aucun expéditeur ne peut émettre est la pire des options. #}
+      {% if cfg.WA_ENABLED %}
+      <div class="channel-tile"><span class="ci" style="background: rgba(47,158,91,.14);">📲</span><span class="cl">{{ tr('channel_whatsapp') }}</span></div>
+      {% endif %}
     </div>
   </div>
 </div>

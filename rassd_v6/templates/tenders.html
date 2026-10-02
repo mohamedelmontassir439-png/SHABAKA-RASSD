@@ -83,36 +83,36 @@
      la liste perd sur toute la hauteur. #}
   <form method="get" class="filtres-ligne">
     <div class="search-input">
-      <input name="q" value="{{ q }}" class="inp" placeholder="{{ tr('tenders_search') }}">
+      <input aria-label="{{ tr('aria_recherche') }}" name="q" value="{{ q }}" class="inp" placeholder="{{ tr('tenders_search') }}">
     </div>
-    <select name="t" class="inp inp-sm">
+    <select aria-label="{{ tr('aria_f_type') }}" name="t" class="inp inp-sm">
       <option value="">{{ tr('tenders_all_types') }}</option>
       <option value="public"      {% if tf=='public'      %}selected{% endif %}>{{ tr('org_public') }}</option>
       <option value="semi_public" {% if tf=='semi_public' %}selected{% endif %}>{{ tr('org_semi_public') }}</option>
       <option value="prive"       {% if tf=='prive'       %}selected{% endif %}>{{ tr('org_prive') }}</option>
     </select>
-    <select name="s" class="inp inp-sm">
+    <select aria-label="{{ tr('aria_f_secteur') }}" name="s" class="inp inp-sm">
       <option value="">{{ tr('filter_sector') }}</option>
       {% for code in secteurs_dispo %}
       <option value="{{ code }}" {% if code==sf %}selected{% endif %}>{{ get_label(code)[:34] }}</option>
       {% endfor %}
     </select>
     {% if regions %}
-    <select name="r" class="inp inp-sm">
+    <select aria-label="{{ tr('aria_f_region') }}" name="r" class="inp inp-sm">
       <option value="">{{ tr('filter_region_all') }}</option>
       {% for reg in regions %}
       <option value="{{ reg }}" {% if reg==rf %}selected{% endif %}>{{ reg[:26] }}</option>
       {% endfor %}
     </select>
     {% endif %}
-    <select name="e" class="inp inp-sm">
+    <select aria-label="{{ tr('aria_f_echeance') }}" name="e" class="inp inp-sm">
       <option value="">{{ tr('filtre_echeance_toutes') }}</option>
       <option value="3"  {% if ef=='3'  %}selected{% endif %}>{{ tr('filtre_echeance_3') }}</option>
       <option value="7"  {% if ef=='7'  %}selected{% endif %}>{{ tr('filtre_echeance_7') }}</option>
       <option value="15" {% if ef=='15' %}selected{% endif %}>{{ tr('filtre_echeance_15') }}</option>
       <option value="30" {% if ef=='30' %}selected{% endif %}>{{ tr('filtre_echeance_30') }}</option>
     </select>
-    <select name="sort" class="inp inp-sm">
+    <select aria-label="{{ tr('aria_f_tri') }}" name="sort" class="inp inp-sm">
       <option value="recent"   {% if sort=='recent'   %}selected{% endif %}>{{ tr('tenders_sort_recent') }}</option>
       <option value="deadline" {% if sort=='deadline' %}selected{% endif %}>{{ tr('tenders_sort_deadline') }}</option>
     </select>

@@ -54,28 +54,28 @@
 <div class="container">
   <form method="get" class="filters-bar res-filtres">
     <div class="search-input">
-      <input name="q" value="{{ q }}" class="inp" placeholder="{{ tr('res_search_placeholder') }}">
+      <input aria-label="{{ tr('aria_recherche') }}" name="q" value="{{ q }}" class="inp" placeholder="{{ tr('res_search_placeholder') }}">
     </div>
-    <select name="type_p" class="inp inp-sm">
+    <select aria-label="{{ tr('aria_f_type') }}" name="type_p" class="inp inp-sm">
       <option value="">{{ tr('res_f_type_tous') }}</option>
       <option value="marche" {% if type_p=='marche' %}selected{% endif %}>{{ tr('res_f_type_marche') }}</option>
       <option value="bon_commande" {% if type_p=='bon_commande' %}selected{% endif %}>{{ tr('tenders_bc') }}</option>
     </select>
-    <select name="secteur" class="inp inp-sm">
+    <select aria-label="{{ tr('aria_f_secteur') }}" name="secteur" class="inp inp-sm">
       <option value="">{{ tr('res_f_secteur') }}</option>
       {% for sec in secteurs_dispo %}
       <option value="{{ sec }}" {% if secteur==sec %}selected{% endif %}>{{ get_label(sec)[:34] }}</option>
       {% endfor %}
     </select>
-    <select name="region" class="inp inp-sm">
+    <select aria-label="{{ tr('aria_f_region') }}" name="region" class="inp inp-sm">
       <option value="">{{ tr('res_f_region') }}</option>
       {% for reg in regions_dispo %}
       <option value="{{ reg }}" {% if region==reg %}selected{% endif %}>{{ reg[:26] }}</option>
       {% endfor %}
     </select>
-    <input name="min_montant" value="{{ min_montant }}" class="inp inp-sm"
+    <input aria-label="{{ tr('aria_f_montant') }}" name="min_montant" value="{{ min_montant }}" class="inp inp-sm"
            inputmode="numeric" placeholder="{{ tr('res_f_montant_min') }}">
-    <select name="tri" class="inp inp-sm">
+    <select aria-label="{{ tr('aria_f_tri') }}" name="tri" class="inp inp-sm">
       <option value="recent" {% if tri=='recent' %}selected{% endif %}>{{ tr('res_f_tri_recent') }}</option>
       <option value="montant" {% if tri=='montant' %}selected{% endif %}>{{ tr('res_f_tri_montant') }}</option>
       <option value="ancien" {% if tri=='ancien' %}selected{% endif %}>{{ tr('res_f_tri_ancien') }}</option>

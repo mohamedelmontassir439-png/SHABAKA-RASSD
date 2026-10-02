@@ -94,7 +94,7 @@ textarea.inp { min-height: 90px; resize: vertical; }
       <div class="pf-legend">{{ tr('prof_refs_h') }}</div>
       <div class="pf-hint">{{ tr('prof_refs_hint') }}</div>
       <div class="field">
-        <textarea id="references_txt" name="references_txt" class="inp" placeholder="Ex : Réfection réseau AEP — Commune de Témara — 2025 — 1,2 MDH">{{ profil.references_txt or '' }}</textarea>
+        <textarea aria-label="{{ tr('aria_references') }}" id="references_txt" name="references_txt" class="inp" placeholder="Ex : Réfection réseau AEP — Commune de Témara — 2025 — 1,2 MDH">{{ profil.references_txt or '' }}</textarea>
       </div>
       <div class="field" style="margin-top:14px">
         <label for="certifications">{{ tr('prof_certs') }}</label>

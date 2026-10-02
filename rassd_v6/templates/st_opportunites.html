@@ -65,7 +65,7 @@
       </div>
 
       <div class="opp-msg" id="m{{ loop.index }}">
-        <textarea id="t{{ loop.index }}" readonly>{{ p.message }}</textarea>
+        <textarea aria-label="{{ tr('aria_message') }}" id="t{{ loop.index }}" readonly>{{ p.message }}</textarea>
         <button type="button" class="btn btn-outline btn-sm" style="margin-top:8px"
                 onclick="const t=document.getElementById('t{{ loop.index }}'); t.select(); navigator.clipboard.writeText(t.value); this.textContent='{{ tr('opp_copied') }}';">
           {{ tr('opp_copy') }}

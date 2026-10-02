@@ -86,7 +86,7 @@
 
   <div class="ss-cta">
     <h2>Soyez alerté dès la publication</h2>
-    <p>Choisissez « {{ page.label }} » à l'inscription et recevez chaque nouvelle consultation par email et Telegram. Essai gratuit de {{ cfg.TRIAL_DAYS }} jours, sans carte bancaire.</p>
+    <p>Choisissez « {{ page.label }} » à l'inscription et recevez chaque nouvelle consultation par email{% if cfg.WA_ENABLED %} et WhatsApp{% endif %}. Essai gratuit de {{ cfg.TRIAL_DAYS }} jours, sans carte bancaire.</p>
     <a href="/register" class="btn btn-primary btn-lg">Créer mon compte →</a>
   </div>
 

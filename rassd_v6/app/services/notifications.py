@@ -455,15 +455,11 @@ def dispatch_notifications(tenders: list, max_par_membre: int = 40):
                         "INSERT OR IGNORE INTO notif_queue(member_id,tender_id,created_at) VALUES(?,?,?)",
                         (member["id"], t["id"], now))
 
-                # Telegram
-                if member.get("notif_tg") and member.get("telegram"):
-                    ok = tg_send(member["telegram"], build_tg_message(t))
-                    _log_notif(db, member["id"], t["id"], "telegram", ok,
-                               "" if ok else "échec envoi Telegram", "telegram")
-                    if ok:
-                        total_tg += 1
-                    else:
-                        logger.warning(f"[Notif] TG failed pour {member['email']}")
+                # Telegram n'est plus un canal proposé aux membres: deux
+                # canaux suffisent, et celui-ci demandait au client d'ouvrir
+                # un compte, de trouver un robot et de lui envoyer /start
+                # avant de recevoir quoi que ce soit. `tg_admin` reste, mais
+                # c'est la supervision de la plateforme, pas une livraison.
 
                 # Email — une adresse non confirmée n'a jamais prouvé son
                 # existence: lui écrire ne fait qu'accumuler des rebonds, ce
@@ -609,13 +605,15 @@ def send_daily_wa_digests(force: bool = False, now=None) -> int:
     pour ne pas enchaîner des appels facturés qui échouent tous.
     """
     import time as _time
+
+    from app.services.recap import jeton as jeton_recap
+
     if not cfg.WA_ENABLED:
         return 0
     now = now or _morocco_now()
     if not force and now.hour < cfg.WA_DIGEST_HOUR:
         return 0
     today = now.strftime("%Y-%m-%d")
-    link  = f"{cfg.SITE_URL}/opportunites-du-jour"
     envoyes = 0
     db = get_db()
     try:
@@ -641,12 +639,19 @@ def send_daily_wa_digests(force: bool = False, now=None) -> int:
             if not items:
                 continue
 
+            # Le lien pointait vers /opportunites-du-jour, qui exige une
+            # connexion: ouvert depuis WhatsApp sur un téléphone, il tombait
+            # sur un formulaire de login au lieu des marchés annoncés. Le
+            # récapitulatif signé est personnel, s'ouvre sans compte, et ne
+            # montre que les marchés du secteur de ce membre-là.
+            lien = f"{cfg.SITE_URL}/recap/{jeton_recap(m['id'], today)}"
+
             if twilio_configured() and cfg.TWILIO_CONTENT_SID:
                 ok = send_wa_template(m["whatsapp"], cfg.TWILIO_CONTENT_SID,
-                                      build_wa_digest_vars(m, items, link))
+                                      build_wa_digest_vars(m, items, lien))
                 provider = "twilio-template"
             else:
-                ok = send_wa(m["whatsapp"], build_wa_digest_text(m, items, link))
+                ok = send_wa(m["whatsapp"], build_wa_digest_text(m, items, lien))
                 provider = "twilio" if twilio_configured() else "baileys"
 
             _log_notif(db, m["id"], f"digest:{today}", "whatsapp", ok,
