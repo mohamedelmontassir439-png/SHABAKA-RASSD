@@ -996,6 +996,34 @@ def expire_tenders() -> tuple:
 def clean_secteurs(raw: list) -> list:
     return list({s for s in raw if s and s.strip()})
 
+
+def mes_secteurs(member: dict) -> list:
+    """Les secteurs déclarés par le membre, nettoyés."""
+    if not member:
+        return []
+    return clean_secteurs(json.loads(member.get("secteurs", "[]") or "[]"))
+
+
+def restreindre_aux_secteurs(member: dict, where: list, params: list,
+                             colonne: str = "secteur") -> list:
+    """N'expose au membre que les marchés de ses secteurs. Rend ses secteurs.
+
+    Un abonné paie pour une veille, pas pour un annuaire: lui montrer les
+    mille sept cents marchés actifs alors que trente le concernent, c'est lui
+    demander de faire lui-même le tri qu'on lui vend.
+
+    **Un profil sans secteur ne restreint rien.** Filtrer sur une liste vide
+    rendrait zéro résultat partout, et la plateforme paraîtrait cassée à
+    l'instant précis où un nouveau venu la découvre. Les pages l'invitent
+    alors à choisir ses secteurs.
+    """
+    secteurs = mes_secteurs(member)
+    if not secteurs:
+        return []
+    where.append(f"{colonne} IN ({','.join('?' * len(secteurs))})")
+    params.extend(secteurs)
+    return secteurs
+
 def _is_admin(req: Request) -> bool:
     expected = make_token("admin", cfg.ADMIN_PASS)
     return req.cookies.get("_admin", "") == expected
@@ -1054,6 +1082,11 @@ async def tenders_page(req: Request, q:str="", s:str="", r:str="", t:str="",
     regions = [row[0] for row in db.execute(
         "SELECT DISTINCT region FROM tenders WHERE region!='' AND statut='actif' AND type_procedure!='bon_commande' ORDER BY region LIMIT 60").fetchall()]
     where, params = ["statut='actif'", "type_procedure!='bon_commande'"], []
+    # Le membre ne voit que ses secteurs. Un filtre demandé en dehors d'eux
+    # est ignoré: l'adresse ne doit pas ouvrir ce que la page n'offre pas.
+    siens = restreindre_aux_secteurs(m0, where, params)
+    if siens and s not in siens:
+        s = ""
     if q:
         where.append("(objet LIKE ? OR acheteur LIKE ? OR description LIKE ?)")
         params += [f"%{q}%"]*3
@@ -1079,6 +1112,10 @@ async def tenders_page(req: Request, q:str="", s:str="", r:str="", t:str="",
         "SELECT DISTINCT secteur FROM tenders WHERE statut='actif' "
         "AND type_procedure!='bon_commande' AND COALESCE(secteur,'')<>'' "
         "ORDER BY secteur").fetchall()]
+    # Offrir un secteur qu'on ne peut pas afficher, c'est promettre une page
+    # vide: le menu se limite à ce que le membre a choisi.
+    if siens:
+        secteurs_dispo = [x for x in secteurs_dispo if x in siens]
     db.close()
     pages = max(1,(total+per-1)//per)
     return render(req, "tenders.html", {
@@ -1101,6 +1138,9 @@ async def bons_commande_page(req: Request, q:str="", s:str="", r:str="",
     regions = [row[0] for row in db.execute(
         "SELECT DISTINCT region FROM tenders WHERE region!='' AND statut='actif' AND type_procedure='bon_commande' ORDER BY region LIMIT 60").fetchall()]
     where, params = ["statut='actif'", "type_procedure='bon_commande'"], []
+    siens = restreindre_aux_secteurs(m0, where, params)
+    if siens and s not in siens:
+        s = ""
     if q:
         where.append("(objet LIKE ? OR acheteur LIKE ? OR description LIKE ?)")
         params += [f"%{q}%"]*3
@@ -1120,6 +1160,8 @@ async def bons_commande_page(req: Request, q:str="", s:str="", r:str="",
         "SELECT DISTINCT secteur FROM tenders WHERE statut='actif' "
         "AND type_procedure='bon_commande' AND COALESCE(secteur,'')<>'' "
         "ORDER BY secteur").fetchall()]
+    if siens:
+        secteurs_dispo = [x for x in secteurs_dispo if x in siens]
     db.close()
     pages = max(1,(total+per-1)//per)
     return render(req, "bons_commande.html", {
@@ -1139,14 +1181,30 @@ async def tender_detail(req: Request, tid: str):
     if not t:
         db.close()
         return HTMLResponse("Marché introuvable", 404)
+    # Hors de ses secteurs, la fiche n'est pas accessible non plus: sans
+    # cela, la restriction des listes ne tiendrait qu'à l'affichage, et une
+    # adresse devinée ou un vieux lien ouvrirait tout. Seule exception, un
+    # marché que le membre a lui-même mis en favori: le lui cacher reviendrait
+    # à lui retirer ce qu'il a rangé.
+    siens = mes_secteurs(m0)
+    if siens and (t["secteur"] or "") not in siens:
+        garde = db.execute("SELECT 1 FROM favorites WHERE member_id=? AND tender_id=?",
+                           (m0["id"], tid)).fetchone()
+        if not garde:
+            db.close()
+            return render(req, "404.html", {"hors_secteur": True}, status_code=404)
     try:
         db.execute("UPDATE tenders SET views=views+1 WHERE id=?", (tid,))
     except Exception as e:
         logger.warning(f"[views] {e}")
     secteur = t["secteur"] or ""
+    # Les marchés voisins partagent le secteur de la fiche, donc la règle est
+    # déjà respectée — sauf pour une fiche ouverte via un favori hors secteur,
+    # où l'on ne propose rien plutôt que d'ouvrir une porte dérobée.
+    montrer_voisins = bool(secteur) and (not siens or secteur in siens)
     related = [dict(r) for r in db.execute(
         "SELECT * FROM tenders WHERE secteur=? AND id!=? AND statut='actif' AND type_procedure=? ORDER BY scraped_at DESC LIMIT 4",
-        (secteur, tid, t["type_procedure"] or "marche")).fetchall()] if secteur else []
+        (secteur, tid, t["type_procedure"] or "marche")).fetchall()] if montrer_voisins else []
     member = get_member(req); is_fav = False
     if member:
         try:
@@ -1235,6 +1293,9 @@ async def resultats_page(req: Request, q: str = "", page: int = 1,
         return RedirectResponse("/tarifs?locked=1", 302)
     db = get_db(); per = 25; page = max(1, page)
     where, params = ["1=1"], []
+    siens = restreindre_aux_secteurs(m0, where, params)
+    if siens and secteur not in siens:
+        secteur = ""
     if q:
         where.append("(objet LIKE ? OR acheteur LIKE ? OR adjudicataire LIKE ?)")
         params += [f"%{q}%"] * 3
@@ -1266,6 +1327,8 @@ async def resultats_page(req: Request, q: str = "", page: int = 1,
     secteurs_dispo = [r[0] for r in db.execute(
         "SELECT DISTINCT secteur FROM tender_results "
         "WHERE COALESCE(secteur,'')<>'' ORDER BY secteur").fetchall()]
+    if siens:
+        secteurs_dispo = [x for x in secteurs_dispo if x in siens]
     regions_dispo = [r[0] for r in db.execute(
         "SELECT DISTINCT region FROM tender_results "
         "WHERE COALESCE(region,'')<>'' ORDER BY region").fetchall()]
@@ -1275,7 +1338,8 @@ async def resultats_page(req: Request, q: str = "", page: int = 1,
         "resultats": rows, "total": total, "page": page, "pages": pages, "q": q,
         "type_p": type_p, "secteur": secteur, "region": region,
         "min_montant": min_montant, "tri": tri,
-        "secteurs_dispo": secteurs_dispo, "regions_dispo": regions_dispo})
+        "secteurs_dispo": secteurs_dispo, "regions_dispo": regions_dispo,
+        "my_secteurs": siens})
 
 @app.get("/resultats/{rid}/{doc}")
 async def resultat_doc_redirect(req: Request, rid: str, doc: str):
@@ -1950,24 +2014,31 @@ async def dashboard(req: Request):
     else:
         recs = [dict(r) for r in db.execute(
             "SELECT * FROM tenders WHERE statut='actif' ORDER BY scraped_at DESC LIMIT 5").fetchall()]
+    # Les compteurs ne portent que sur ses secteurs. Annoncer « 1 777 marchés
+    # actifs » à qui n'en voit que cent quatre, c'est afficher un chiffre
+    # qu'aucune de ses pages ne confirme.
+    portee = ("AND secteur IN (%s)" % ",".join("?" * len(ms))) if ms else ""
     stats = {
         "favs":   db.execute("SELECT COUNT(*) FROM favorites WHERE member_id=?",(member["id"],)).fetchone()[0],
         "notifs": db.execute("SELECT COUNT(*) FROM notif_log WHERE member_id=?",(member["id"],)).fetchone()[0],
-        "active": db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif'").fetchone()[0],
-        "today":  db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif' AND scraped_at>=date('now')").fetchone()[0],
+        "active": db.execute(f"SELECT COUNT(*) FROM tenders WHERE statut='actif' {portee}", ms).fetchone()[0],
+        "today":  db.execute(f"SELECT COUNT(*) FROM tenders WHERE statut='actif' "
+                             f"AND scraped_at>=date('now') {portee}", ms).fetchone()[0],
         "recs":   len(recs),
     }
     # Répartition par grande famille (Travaux / Équipements / Services) — les
     # 83 codes du référentiel commencent par T/P/S selon leur catégorie.
     grp_rows = db.execute(
-        "SELECT substr(secteur,1,1) g, COUNT(*) n FROM tenders WHERE statut='actif' AND secteur!='' GROUP BY g").fetchall()
+        f"SELECT substr(secteur,1,1) g, COUNT(*) n FROM tenders "
+        f"WHERE statut='actif' AND secteur!='' {portee} GROUP BY g", ms).fetchall()
     grp_labels = {"T": "Travaux", "P": "Équipements", "S": "Services"}
     sector_dist = [{"code": r["g"], "label": grp_labels.get(r["g"], r["g"]), "n": r["n"]} for r in grp_rows if r["g"] in grp_labels]
     sector_dist.sort(key=lambda x: -x["n"])
     # Tendance hebdomadaire (8 dernières semaines) pour le graphique d'évolution.
     trend_rows = db.execute(
-        """SELECT strftime('%Y-%W', scraped_at) wk, COUNT(*) n FROM tenders
-           WHERE statut='actif' GROUP BY wk ORDER BY wk DESC LIMIT 8""").fetchall()
+        f"""SELECT strftime('%Y-%W', scraped_at) wk, COUNT(*) n FROM tenders
+            WHERE statut='actif' {portee} GROUP BY wk ORDER BY wk DESC LIMIT 8""",
+        ms).fetchall()
     trend = list(reversed([{"week": r["wk"], "n": r["n"]} for r in trend_rows]))
     db.close()
     return render(req,"dashboard.html",{
@@ -3894,6 +3965,13 @@ async def api_tenders(req:Request, secteur:str="", region:str="", q:str="", type
     if page > 0: offset = (page-1)*limit
     db = get_db()
     where, params = ["statut='actif'"], []
+    # Sans cette ligne, la restriction des pages ne serait qu'un habillage:
+    # l'API rendrait à qui la demande les marchés de tous les secteurs.
+    siens = restreindre_aux_secteurs(m0, where, params)
+    if siens and secteur and secteur not in siens:
+        db.close()
+        return JSONResponse({"ok": False,
+                             "msg": "Secteur hors de votre profil"}, 403)
     if secteur:    where.append("secteur=?");    params.append(secteur)
     if region:     where.append("region=?");     params.append(region)
     if type_offre: where.append("type_offre=?"); params.append(type_offre)
@@ -3917,8 +3995,15 @@ async def api_tender(req:Request, tid:str):
         return JSONResponse({"ok":False,"msg":"Abonnement requis"},403)
     db = get_db()
     t  = db.execute("SELECT * FROM tenders WHERE id=?",(tid,)).fetchone()
+    siens = mes_secteurs(m0)
+    garde = db.execute("SELECT 1 FROM favorites WHERE member_id=? AND tender_id=?",
+                       (m0["id"], tid)).fetchone() if t else None
     db.close()
     if not t: return JSONResponse({"ok":False,"msg":"Introuvable"},404)
+    # Même règle que la fiche: hors secteur, le marché n'existe pas pour ce
+    # membre — sauf s'il l'a lui-même mis en favori.
+    if siens and (t["secteur"] or "") not in siens and not garde:
+        return JSONResponse({"ok":False,"msg":"Introuvable"},404)
     return {"ok":True,"tender":dict(t)}
 
 @app.get("/api/v1/stats")

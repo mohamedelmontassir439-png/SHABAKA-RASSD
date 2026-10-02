@@ -13,6 +13,17 @@
 
 <div class="err-wrap">
   <div class="err-content">
+    {# Un marché hors secteur n'est pas une page perdue: le dire évite de
+       faire chercher une adresse qui n'a rien de cassé. #}
+    {% if hors_secteur %}
+    <div class="err-num">◇</div>
+    <h1 class="err-title">{{ tr('hors_secteur_titre') }}</h1>
+    <p class="err-sub">{{ tr('hors_secteur_texte') }}</p>
+    <div class="err-cta">
+      <a href="/settings" class="btn btn-primary btn-lg">{{ tr('nav_alerts') }}</a>
+      <a href="/tenders" class="btn btn-outline btn-lg">{{ tr('404_tenders') }}</a>
+    </div>
+    {% else %}
     <div class="err-num">404</div>
     <h1 class="err-title">{{ tr('404_title')|safe }}</h1>
     <p class="err-sub">{{ tr('404_text') }}</p>
@@ -20,6 +31,7 @@
       <a href="/" class="btn btn-primary btn-lg">{{ tr('404_home') }}</a>
       <a href="/tenders" class="btn btn-outline btn-lg">{{ tr('404_tenders') }}</a>
     </div>
+    {% endif %}
   </div>
 </div>
 {% endblock %}
