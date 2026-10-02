@@ -1,29 +1,15 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-<meta charset="UTF-8">
-<title>{{ c.legal_name[:40] }} — Prospection</title>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-:root {
-  --bg:#f8f1e1; --surface:#fff; --surface2:#f1e6cf; --line:#e8dcc5; --line2:#d9c7a8;
-  --navy3:#1e1611; --amber:#f2662d; --ambera:rgba(242,102,45,.14);
-  --t1:#2b211b; --t2:#4a3b32; --t3:#8a7a6a; --grn:#2f9e5b; --red:#d6493f;
-  --serif:'Fredoka',Georgia,serif; --sans:'Inter',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--t2);font-family:var(--sans);font-size:14px}
-a{color:inherit;text-decoration:none}
-.topbar{background:var(--navy3);height:60px;display:flex;align-items:center;padding:0 28px;gap:20px;position:sticky;top:0;z-index:100}
-.brand{font-family:var(--serif);font-weight:700;font-size:19px;color:#fff}
+{% extends "admin_base.html" %}
+{% block titre %}{{ c.legal_name[:40] }}{% endblock %}
+{% block soustitre %}<div class="entete-sur">Fiche d'appel</div>{% endblock %}
+{% block actions %}<a class="btn" href="/admin/prospection">← Retour à la file</a>{% endblock %}
+{% block style %}
 .topbar a{color:#e8dcc5;font-size:13.5px;font-weight:600}
-.wrap{max-width:1000px;margin:0 auto;padding:26px 24px 60px;display:grid;gap:18px}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 22px}
+/* Largeur de lecture plus etroite: une fiche d'appel se lit, ne se balaie pas. */
+.wrap{max-width:1000px;display:grid;gap:18px}
+
 h1{font-family:var(--serif);font-size:25px;color:var(--t1)}
 h2{font-family:var(--serif);font-size:17px;color:var(--t1);margin-bottom:12px}
-.meta{color:var(--t3);font-size:13px}
+
 .tel{font-family:var(--mono);font-size:22px;color:var(--t1);font-weight:600}
 .tel a{color:var(--amber)}
 .ligne{display:flex;flex-wrap:wrap;gap:18px;align-items:baseline}
@@ -43,26 +29,18 @@ select,input,textarea{font:inherit;width:100%;padding:9px 12px;border:1px solid 
 textarea{min-height:92px;resize:vertical}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:700px){.grid2{grid-template-columns:1fr}}
-.btn{display:inline-block;padding:10px 18px;border-radius:9px;border:1px solid var(--line2);background:var(--surface);font-weight:600;cursor:pointer;font-size:14px}
-.btn-p{background:var(--amber);color:#fff;border-color:var(--amber)}
+
 .check{display:flex;align-items:center;gap:9px;font-weight:600;color:var(--t1)}
 .check input{width:auto}
 .alerte{background:#fae8e6;color:var(--red);padding:12px 14px;border-radius:10px;font-weight:600}
-</style>
-</head>
-<body>
-<div class="topbar">
-  <span class="brand">Maroc<em>Entrepreneuriat</em></span>
-  <a href="/admin/prospection">← Liste de prospection</a>
-</div>
-
+{% endblock %}
+{% block contenu %}
 <div class="wrap">
   {% if request.query_params.get('ok') %}<div class="ok">✓ Fiche enregistrée</div>{% endif %}
 
   <div class="card">
     <div class="ligne" style="justify-content:space-between">
       <div>
-        <h1>{{ c.legal_name }}</h1>
         <p class="meta">{{ c.subsector or get_label(c.sector) }} · {{ c.city or '—' }}{% if c.address %} · {{ c.address[:60] }}{% endif %}</p>
       </div>
       <div style="text-align:right">
@@ -207,6 +185,4 @@ textarea{min-height:92px;resize:vertical}
            <a class="btn" href="/admin/prospection">Retour à la liste</a></div>
     </form>
   </div>
-</div>
-</body>
-</html>
+{% endblock %}

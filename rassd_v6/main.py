@@ -2964,11 +2964,18 @@ async def admin_stream(req: Request):
             await asyncio.sleep(0.5)
     return StreamingResponse(gen(), media_type="text/event-stream")
 
-@app.get("/admin/expire")
-async def admin_expire(req: Request):
-    if not _is_admin(req): return JSONResponse({"ok":False},401)
+@app.post("/admin/expire")
+async def admin_expire(req: Request, csrf_token: str = Form("")):
+    """Passe en « expiré » les marchés dont la date limite est passée.
+
+    Moins grave que la purge, mais cela écrit quand même: en POST comme le
+    reste, pour qu'aucune écriture ne dépende d'une simple visite d'URL.
+    """
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    csrf_guard(req, csrf_token)
     exp, active = expire_tenders()
-    return JSONResponse({"ok":True,"expired":exp,"active":active})
+    State.log(f"⏳ {exp} marché(s) expiré(s), {active} actif(s)")
+    return RedirectResponse(f"/admin?expires={exp}", 302)
 
 def _reparer_fiches_portail(limite: int = 400) -> dict:
     """Recharge les fiches du portail public collectées avant la correction.
@@ -3633,18 +3640,36 @@ async def toggle_member(req: Request, mid:int, csrf_token:str=Form("")):
     db.close()
     return RedirectResponse("/admin",302)
 
-@app.get("/admin/clear")
-async def admin_clear(req: Request, confirm:str=""):
-    if not _is_admin(req): return JSONResponse({"ok":False},401)
-    if confirm != "yes":
-        return HTMLResponse('<a href="/admin/clear?confirm=yes" style="color:red">Confirmer suppression</a>')
+# Mot à recopier pour vider la base: on ne détruit pas des milliers de
+# marchés sur un clic, fût-il confirmé par une boîte de dialogue.
+MOT_DE_PURGE = "VIDER"
+
+
+@app.post("/admin/clear")
+async def admin_clear(req: Request, confirmation: str = Form(""),
+                      csrf_token: str = Form("")):
+    """Supprime tous les marchés. Jamais en GET.
+
+    C'était un lien dans la barre de navigation, entre « Membres » et
+    « Paiements »: `GET /admin/clear?confirm=yes`, gardé par un simple
+    `onclick="return confirm(...)"`. Ce garde-fou ne protège que le clic,
+    pas l'adresse: un préchargement du navigateur, une entrée d'historique
+    rejouée, une complétion dans la barre d'adresse, et des milliers de
+    marchés disparaissaient sans qu'une ligne de formulaire ait été remplie.
+    Un GET ne doit jamais détruire, et un jeton CSRF ne peut rien pour lui.
+    """
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    csrf_guard(req, csrf_token)
+    if confirmation.strip() != MOT_DE_PURGE:
+        return RedirectResponse("/admin?purge=mot", 302)
     db = get_db()
     n  = db.execute("SELECT COUNT(*) FROM tenders").fetchone()[0]
     db.execute("DELETE FROM tenders")
     db.execute("DELETE FROM notif_log")
     db.commit(); db.close()
     State.log(f"🗑 DB vidée ({n} marchés)")
-    return JSONResponse({"ok":True,"deleted":n})
+    logger.warning(f"[admin] base vidée: {n} marchés supprimés")
+    return RedirectResponse(f"/admin?purge={n}", 302)
 
 @app.get("/admin/test_notif")
 async def admin_test_notif(req: Request, email:str="", tg:str="", wa:str=""):

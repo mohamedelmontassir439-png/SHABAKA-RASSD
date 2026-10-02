@@ -1,0 +1,233 @@
+{#
+  Coquille unique de l'administration.
+
+  Avant: douze pages autonomes, dont onze redéfinissaient la même palette et
+  les mêmes composants — 2 204 lignes dont la majeure partie était la copie
+  de la précédente. Une couleur à changer, c'était onze fichiers à ouvrir, et
+  les écarts commençaient déjà (#fff contre #ffffff selon la page).
+
+  Plus grave, la navigation: huit pages sur douze ne menaient qu'au tableau
+  de bord. Aller des paiements aux membres demandait un détour par l'accueil.
+  Le rail de gauche range les douze destinations en quatre familles, visibles
+  depuis n'importe quelle page.
+
+  La destination courante se déduit du chemin: aucune route à modifier.
+#}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>{% block titre %}Administration{% endblock %} — Maroc Entrepreneuriat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Teintes de la plateforme. Les noms disent la fonction, pas la couleur:
+     l'ancien jeu appelait « navy » un orange, ce qui égarait toute retouche.
+     Les anciens noms restent en alias plus bas, le temps que les pages les
+     abandonnent. */
+  --fond:#f8f1e1; --surface:#ffffff; --surface2:#f1e6cf;
+  --trait:#e8dcc5; --trait2:#d9c7a8;
+  --encre:#1e1611;
+  --terre:#f2662d; --terre-f:#c94e1f; --terre-p:rgba(242,102,45,.14);
+  --t1:#2b211b; --t2:#4a3b32; --t3:#8a7a6a; --t4:#b7a896;
+  --vert:#2f9e5b; --rouge:#d6493f; --bleu:#3d7a7a;
+  --serif:'Fredoka',Georgia,serif;
+  --sans:'Inter',system-ui,-apple-system,sans-serif;
+  --mono:'JetBrains Mono',ui-monospace,monospace;
+  --r:10px; --r2:14px;
+  --ombre:0 1px 2px rgba(16,24,40,.04);
+  --rail:236px;
+  /* Alias hérités: les pages non encore reprises s'en servent encore. */
+  --bg:var(--fond); --line:var(--trait); --line2:var(--trait2);
+  --navy:var(--terre); --navy3:var(--encre);
+  --amber:var(--terre); --amberd:var(--terre-f); --ambera:var(--terre-p);
+  --grn:var(--vert); --red:var(--rouge); --blue:var(--bleu);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--fond);color:var(--t2);font-family:var(--sans);font-size:14px;
+     min-height:100vh;-webkit-font-smoothing:antialiased}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--terre);outline-offset:2px;border-radius:4px}
+
+/* ── Rail de navigation ───────────────────────────────────── */
+.rail{position:fixed;inset-block:0;inset-inline-start:0;width:var(--rail);background:var(--encre);
+      display:flex;flex-direction:column;z-index:60;overflow-y:auto}
+.rail-tete{padding:20px 20px 18px;border-bottom:1px solid rgba(255,255,255,.08);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='84'%3E%3Cg fill='none' stroke='%23f2662d' stroke-opacity='.16' stroke-width='1'%3E%3Cpath d='M42 2 80 42 42 82 4 42Z'/%3E%3Cpath d='M42 18 66 42 42 66 18 42Z'/%3E%3Cpath d='M42 2V82M4 42H80'/%3E%3C/g%3E%3C/svg%3E");
+  background-size:84px 84px}
+.rail-nom{font-family:var(--serif);font-weight:700;font-size:17px;color:#fff;line-height:1.2}
+.rail-nom em{font-style:italic;color:var(--terre);font-weight:600}
+.rail-meta{font-size:11px;color:rgba(255,255,255,.42);font-weight:500;margin-top:5px;
+           font-family:var(--mono)}
+.rail-groupe{padding:16px 12px 4px}
+.rail-titre{font-size:10.5px;font-weight:700;color:rgba(255,255,255,.34);
+  letter-spacing:.12em;text-transform:uppercase;padding:0 10px 8px}
+.rail-lien{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:var(--r);
+  font-size:13.5px;font-weight:600;color:rgba(255,255,255,.72);line-height:1.3;
+  transition:background .15s,color .15s}
+.rail-lien:hover{background:rgba(255,255,255,.07);color:#fff}
+.rail-lien[aria-current="page"]{background:var(--terre);color:#fff}
+.rail-lien .ic{flex:none;width:17px;text-align:center;font-size:14px}
+.rail-lien .n{margin-inline-start:auto;font-family:var(--mono);font-size:11px;
+  font-weight:500;opacity:.72}
+.rail-pied{margin-top:auto;padding:14px 20px 18px;border-top:1px solid rgba(255,255,255,.08);
+  font-size:11px;color:rgba(255,255,255,.36);line-height:1.6}
+.rail-pied a{color:rgba(255,255,255,.6);text-decoration:underline}
+
+/* ── Zone de contenu ──────────────────────────────────────── */
+.corps{margin-inline-start:var(--rail);min-height:100vh;display:flex;flex-direction:column}
+.entete{position:sticky;top:0;z-index:50;background:rgba(248,241,225,.92);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--trait);
+  padding:18px 32px;display:flex;align-items:flex-end;justify-content:space-between;
+  gap:18px;flex-wrap:wrap}
+.entete-sur{font-size:11.5px;font-weight:700;color:var(--terre-f);letter-spacing:.08em;
+  text-transform:uppercase;margin-bottom:5px}
+.entete-titre{font-family:var(--serif);font-weight:700;font-size:27px;color:var(--t1);
+  line-height:1.15;letter-spacing:-.01em}
+.entete-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.page{padding:26px 32px 64px;max-width:1340px;width:100%}
+
+/* ── Composants ───────────────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 14px;font-size:13px;
+  font-weight:600;cursor:pointer;border:1px solid var(--trait2);background:var(--surface);
+  color:var(--t1);border-radius:var(--r);transition:border-color .15s,filter .15s;
+  font-family:inherit;line-height:1.3}
+.btn:hover{border-color:var(--terre)}
+.btn-p{background:linear-gradient(180deg,#ff8552,var(--terre));color:#fff;
+  border-color:var(--terre);font-weight:700}
+.btn-p:hover{filter:brightness(1.06)}
+.btn-d{background:rgba(214,73,63,.1);border-color:rgba(214,73,63,.34);color:var(--rouge);
+  font-weight:700}
+.btn-d:hover{background:rgba(214,73,63,.18);border-color:var(--rouge)}
+/* Hérité: la barre sombre n'existe plus, mais des pages posent encore .btn-o. */
+.btn-o{background:var(--surface);border-color:var(--trait2);color:var(--t1)}
+.btn-o:hover{border-color:var(--terre);color:var(--terre-f)}
+
+.carte,.card{background:var(--surface);border:1px solid var(--trait);border-radius:var(--r2);
+  box-shadow:var(--ombre);overflow:hidden;margin-bottom:20px}
+.carte-h,.card-h{padding:15px 20px;border-bottom:1px solid var(--trait);display:flex;
+  align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.carte-t,.card-ht{font-size:12.5px;font-weight:700;color:var(--terre-f);letter-spacing:.05em;
+  text-transform:uppercase}
+.carte-b,.card-b{padding:20px}
+
+.chiffres{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;
+  margin-bottom:22px}
+.chiffre{background:var(--surface);border:1px solid var(--trait);border-radius:var(--r2);
+  padding:17px 18px;box-shadow:var(--ombre)}
+.chiffre-n{font-weight:800;font-size:25px;color:var(--terre);line-height:1;
+  font-variant-numeric:tabular-nums}
+.chiffre-l{font-size:12px;color:var(--t3);margin-top:7px;font-weight:600}
+
+.badge{display:inline-flex;align-items:center;padding:3px 9px;font-size:11px;font-weight:700;
+  border-radius:999px;line-height:1.5}
+.b-g{background:var(--terre-p);color:var(--terre-f)}
+.b-grn{background:rgba(47,158,91,.12);color:var(--vert)}
+.b-r{background:rgba(214,73,63,.1);color:var(--rouge)}
+.b-gray{background:var(--surface2);color:var(--t3)}
+
+.inp,.sel,input[type=text],input[type=email],input[type=date],input[type=number],
+input[type=search],input[type=password],select,textarea{
+  background:var(--surface);border:1px solid var(--trait2);padding:8px 11px;color:var(--t1);
+  font-family:inherit;font-size:13px;outline:none;border-radius:var(--r)}
+.inp:focus,.sel:focus,input:focus,select:focus,textarea:focus{border-color:var(--terre)}
+
+.tableau-cadre{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;font-weight:700;color:var(--t3);letter-spacing:.05em;text-transform:uppercase;
+  padding:12px 18px;text-align:start;border-bottom:1px solid var(--trait);white-space:nowrap}
+td{padding:13px 18px;border-bottom:1px solid var(--trait);font-size:13px;color:var(--t2);
+  vertical-align:top}
+tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--surface2)}
+.num{font-variant-numeric:tabular-nums;font-family:var(--mono)}
+.muted,.meta{color:var(--t3);font-size:12px}
+.vide{text-align:center;padding:52px 20px;color:var(--t3)}
+
+/* Zone sensible: ce qui détruit ne se mélange pas à ce qui consulte. */
+.sensible{border:1px solid rgba(214,73,63,.32);background:rgba(214,73,63,.04);
+  border-radius:var(--r2);padding:18px 20px}
+.sensible-t{font-size:12.5px;font-weight:700;color:var(--rouge);letter-spacing:.05em;
+  text-transform:uppercase;margin-bottom:6px}
+
+@media(max-width:1000px){
+  .rail{position:static;width:auto;inset:auto;flex-direction:row;flex-wrap:wrap;
+    align-items:center;gap:4px;padding:10px 14px}
+  .rail-tete{border:0;padding:0;background:none;margin-inline-end:14px}
+  .rail-meta{display:none}
+  .rail-groupe{padding:0;display:flex;gap:4px}
+  .rail-titre{display:none}
+  .rail-lien{padding:7px 10px;font-size:12.5px}
+  .rail-lien .n{display:none}
+  .rail-pied{display:none}
+  .corps{margin-inline-start:0}
+  .entete,.page{padding-inline:18px}
+}
+{% block style %}{% endblock %}
+</style>
+</head>
+<body>
+{% set chemin = request.url.path %}
+{% macro lien(url, icone, texte) %}
+  {# « Courante » si le chemin correspond exactement, ou s'il en descend:
+     une fiche d'appel doit allumer « File d'appel ». #}
+  <a class="rail-lien" href="{{ url }}"
+     {% if chemin == url or (url != '/admin' and chemin.startswith(url ~ '/')) %}aria-current="page"{% endif %}>
+    <span class="ic" aria-hidden="true">{{ icone }}</span><span>{{ texte }}</span>
+  </a>
+{% endmacro %}
+
+<nav class="rail" aria-label="Administration">
+  <div class="rail-tete">
+    <div class="rail-nom">Maroc<em>Entrepreneuriat</em></div>
+    <div class="rail-meta">admin{% if cfg %} · v{{ cfg.APP_VERSION }}{% endif %}</div>
+  </div>
+
+  <div class="rail-groupe">
+    <div class="rail-titre">Pilotage</div>
+    {{ lien('/admin', '◆', 'Tableau de bord') }}
+    {{ lien('/admin/sources', '⛁', 'Sources') }}
+    {{ lien('/admin/backups', '⎘', 'Sauvegardes') }}
+  </div>
+
+  <div class="rail-groupe">
+    <div class="rail-titre">Abonnés</div>
+    {{ lien('/admin/members', '☺', 'Membres') }}
+    {{ lien('/admin/payments', '₪', 'Paiements') }}
+    {{ lien('/admin/recap', '✉', 'Récap du jour') }}
+  </div>
+
+  <div class="rail-groupe">
+    <div class="rail-titre">Prospection</div>
+    {{ lien('/admin/prospection', '☏', "File d'appel") }}
+    {{ lien('/admin/companies', '⌂', 'Entreprises') }}
+    {{ lien('/admin/prospects', '◎', 'Prospects') }}
+  </div>
+
+  <div class="rail-groupe">
+    <div class="rail-titre">Place de marché</div>
+    {{ lien('/admin/sous-traitance', '⇄', 'Sous-traitance') }}
+  </div>
+
+  <div class="rail-pied">
+    <a href="/" target="_blank" rel="noopener">Voir le site public ↗</a>
+  </div>
+</nav>
+
+<div class="corps">
+  <header class="entete">
+    <div>
+      {% block soustitre %}{% endblock %}
+      <h1 class="entete-titre">{% block entete %}{{ self.titre() }}{% endblock %}</h1>
+    </div>
+    <div class="entete-actions">{% block actions %}{% endblock %}</div>
+  </header>
+  <main class="page">{% block contenu %}{% endblock %}</main>
+</div>
+{% block scripts %}{% endblock %}
+</body>
+</html>
