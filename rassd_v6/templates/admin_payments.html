@@ -4,20 +4,20 @@
 {% block style %}
 .btn-l { background: var(--surface); border-color: var(--line2); color: var(--t1); }
 
-.stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 22px; }
-.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
-.stat-n { font-weight: 800; font-size: 26px; color: var(--navy); line-height: 1; }
-.stat-l { font-size: 12px; color: var(--t3); margin-top: 8px; font-weight: 600; }
+.stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 24px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius:var(--r2); padding: 18px; }
+.stat-n { font-weight: 800; font-size:var(--f7); color: var(--navy); line-height: 1; }
+.stat-l { font-size:var(--f1); color: var(--t3); margin-top: 8px; font-weight: 600; }
 
 .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
 .fld { display: flex; flex-direction: column; gap: 6px; }
-.fld label { font-size: 12px; font-weight: 700; color: var(--t3); }
+.fld label { font-size:var(--f1); font-weight: 700; color: var(--t3); }
 
-.alert-ok { background: rgba(29,154,108,.1); border: 1px solid rgba(29,154,108,.3); color: var(--grn); padding: 12px 16px; border-radius: 8px; margin-bottom: 18px; font-size: 13.5px; font-weight: 600; }
-.alert-err { background: rgba(214,69,69,.1); border: 1px solid rgba(214,69,69,.3); color: var(--red); padding: 12px 16px; border-radius: 8px; margin-bottom: 18px; font-size: 13.5px; font-weight: 600; }
+.alert-ok { background: rgba(29,154,108,.1); border: 1px solid rgba(29,154,108,.3); color: var(--grn); padding: 12px 16px; border-radius:var(--r1); margin-bottom: 16px; font-size:var(--f3); font-weight: 600; }
+.alert-err { background: rgba(214,69,69,.1); border: 1px solid rgba(214,69,69,.3); color: var(--red); padding: 12px 16px; border-radius:var(--r1); margin-bottom: 16px; font-size:var(--f3); font-weight: 600; }
 
 .amount { font-weight: 800; color: var(--grn); }
-.mono { font-family: var(--mono); font-size: 12px; }
+.mono { font-family: var(--mono); font-size:var(--f1); }
 
 @media (max-width: 900px) { .form-grid, .stats-row { grid-template-columns: 1fr; } }
 {% endblock %}
@@ -86,7 +86,7 @@
         </div>
         <div style="margin-top:16px;">
           <button type="submit" class="btn btn-p">✓ Enregistrer &amp; activer l'abonnement</button>
-          <span style="font-size:12.5px; color:var(--t3); margin-left:10px;">Le reçu et le contrat sont générés automatiquement.</span>
+          <span style="font-size:var(--f2); color:var(--t3); margin-left:8px;">Le reçu et le contrat sont générés automatiquement.</span>
         </div>
       </form>
     </div>
@@ -100,7 +100,7 @@
       {% for p in payments %}
       <tr>
         <td style="color:var(--t3); white-space:nowrap;">{{ p.paid_at }}</td>
-        <td>{{ (p.member_nom or '—')[:28] }}<br><span style="color:var(--t4); font-size:11.5px;">{{ (p.member_email or '')[:32] }}</span></td>
+        <td>{{ (p.member_nom or '—')[:28] }}<br><span style="color:var(--t4); font-size:var(--f1);">{{ (p.member_email or '')[:32] }}</span></td>
         <td class="amount">{{ p.amount|round(0)|int }} {{ p.currency }}</td>
         <td>{{ p.method }}{% if p.reference %}<br><span class="mono" style="color:var(--t4);">{{ p.reference }}</span>{% endif %}</td>
         <td style="white-space:nowrap;">{{ p.period_start }} → {{ p.period_end }}</td>

@@ -3,25 +3,25 @@
 {% block body %}
 <style>
 .opp-wrap { max-width: 1000px; margin: 0 auto; padding: 40px 20px 80px; }
-.opp-head { margin-bottom: 26px; }
+.opp-head { margin-bottom: 24px; }
 .opp-h1 { font-family: var(--serif); font-weight: 700; font-size: clamp(25px, 4vw, 33px); color: var(--text1); line-height: 1.25; }
 .opp-h1 em { font-style: italic; color: var(--ink); }
-.opp-sub { color: var(--text3); font-size: 15px; line-height: 1.65; margin-top: 10px; max-width: 65ch; }
-.opp-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 20px 22px; margin-bottom: 14px; box-shadow: var(--sh); }
+.opp-sub { color: var(--text3); font-size:var(--f4); line-height: 1.65; margin-top: 8px; max-width: 65ch; }
+.opp-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 20px 22px; margin-bottom: 16px; box-shadow: var(--sh); }
 .opp-top { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; align-items: flex-start; }
-.opp-obj { font-weight: 700; color: var(--text1); font-size: 16px; line-height: 1.45; }
-.opp-mt { font-family: var(--serif); font-weight: 700; font-size: 19px; color: var(--grn); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.opp-obj { font-weight: 700; color: var(--text1); font-size:var(--f4); line-height: 1.45; }
+.opp-mt { font-family: var(--serif); font-weight: 700; font-size:var(--f6); color: var(--grn); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .opp-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 .badge-win { background: var(--indigoa); color: var(--ink); font-weight: 700; }
-.opp-contact { margin-top: 14px; padding: 13px 15px; background: var(--golda); border-radius: var(--r2); font-size: 14px; }
+.opp-contact { margin-top: 16px; padding: 13px 15px; background: var(--golda); border-radius: var(--r2); font-size:var(--f3); }
 .opp-contact a { color: var(--ink); font-weight: 700; }
-.opp-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px; align-items: center; }
+.opp-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; align-items: center; }
 .opp-msg { display: none; margin-top: 12px; }
 .opp-msg.on { display: block; }
 .opp-msg textarea { width: 100%; min-height: 150px; font: inherit; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r2); background: var(--bg); color: var(--text1); resize: vertical; }
 .opp-empty { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 44px 26px; text-align: center; }
-.opp-empty-t { font-family: var(--serif); font-size: 19px; color: var(--text1); margin-bottom: 8px; }
-.opp-note { color: var(--text3); font-size: 13px; margin-top: 18px; line-height: 1.6; }
+.opp-empty-t { font-family: var(--serif); font-size:var(--f6); color: var(--text1); margin-bottom: 8px; }
+.opp-note { color: var(--text3); font-size:var(--f2); margin-top: 16px; line-height: 1.6; }
 </style>
 
 <div class="opp-wrap">
@@ -77,7 +77,7 @@
   {% else %}
     <div class="opp-empty">
       <div class="opp-empty-t">{{ tr('opp_empty_t') }}</div>
-      <p class="opp-sub" style="margin:0 auto 18px;">{{ tr('opp_empty_d') }}</p>
+      <p class="opp-sub" style="margin:0 auto 16px;">{{ tr('opp_empty_d') }}</p>
       <a class="btn btn-primary" href="/settings">{{ tr('opp_empty_cta') }}</a>
     </div>
   {% endif %}

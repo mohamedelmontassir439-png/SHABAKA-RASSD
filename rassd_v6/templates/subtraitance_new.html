@@ -16,7 +16,7 @@
 .stn-wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 80px; }
 .stn-hero { margin-bottom: 28px; }
 .stn-block { padding: 28px; border: 1px solid var(--line); border-radius: var(--r3); background: var(--surface); box-shadow: var(--sh), var(--shg); }
-.type-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 22px; }
+.type-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
 .type-opt { border: 1.5px solid var(--line2); border-radius: var(--r2); padding: 16px; cursor: pointer; transition: all .15s; text-align: center; }
 .type-opt:hover { border-color: var(--ink); }
 .type-opt:has(input:checked) { border-color: var(--ink); background: var(--indigoa); }
@@ -24,13 +24,13 @@
    le rendrait inatteignable a la tabulation et aux lecteurs d'ecran. */
 .type-opt input { position: absolute; opacity: 0; width: 1px; height: 1px; }
 .type-opt:focus-within { border-color: var(--ink); box-shadow: 0 0 0 3px var(--indigoa); }
-.type-opt-t { font-weight: 700; font-size: 14px; color: var(--text1); }
+.type-opt-t { font-weight: 700; font-size:var(--f3); color: var(--text1); }
 @media (max-width: 480px) { .type-choice { grid-template-columns: 1fr; } }
 </style>
 
 <div class="stn-wrap">
   <div class="stn-hero">
-    <a href="/sous-traitance" class="detail-back" style="color:var(--text3); font-size:13px; font-weight:600;">{{ tr('st_back') }}</a>
+    <a href="/sous-traitance" class="detail-back" style="color:var(--text3); font-size:var(--f2); font-weight:600;">{{ tr('st_back') }}</a>
     <h1 class="display-l" style="margin-top:12px;">{{ tr('st_new_title')|safe }}</h1>
   </div>
 
@@ -47,12 +47,12 @@
       <label class="type-opt"><input type="radio" name="type" value="offre"><div class="type-opt-t">🛠️ {{ tr('st_type_offre') }}</div></label>
     </div>
 
-    <div class="field" style="margin-bottom:18px;">
+    <div class="field" style="margin-bottom:16px;">
       <label for="titre">{{ tr('st_field_titre') }}</label>
       <input id="titre" name="titre" class="inp" required maxlength="200">
     </div>
 
-    <div class="grid-2" style="gap: 18px; margin-bottom:18px;">
+    <div class="grid-2" style="gap: 18px; margin-bottom:16px;">
       <div class="field">
         <label for="secteur">{{ tr('st_field_secteur') }}</label>
         <select id="secteur" name="secteur" data-prefill="{{ request.query_params.get('secteur','') }}" class="sel">
@@ -72,7 +72,7 @@
       </div>
     </div>
 
-    <div class="grid-2" style="gap: 18px; margin-bottom:18px;">
+    <div class="grid-2" style="gap: 18px; margin-bottom:16px;">
       <div class="field">
         <label for="budget">{{ tr('st_field_budget') }}</label>
         <input id="budget" name="budget" class="inp" maxlength="100">
@@ -83,7 +83,7 @@
       </div>
     </div>
 
-    <div class="field" style="margin-bottom:22px;">
+    <div class="field" style="margin-bottom:24px;">
       <label for="description">{{ tr('st_field_desc') }}</label>
       <textarea id="description" name="description" class="textarea" required maxlength="4000" rows="7"></textarea>
     </div>

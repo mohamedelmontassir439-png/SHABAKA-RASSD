@@ -2,20 +2,20 @@
 {% block titre %}Prospects{% endblock %}
 {% block soustitre %}<div class="entete-sur">Prospection commerciale</div>{% endblock %}
 {% block style %}
-.intro { font-size: 13.5px; color: var(--t3); line-height: 1.6; max-width: 760px; margin-bottom: 24px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.intro { font-size:var(--f3); color: var(--t3); line-height: 1.6; max-width: 760px; margin-bottom: 24px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius:var(--r2); }
 
-.stat-inline { font-size: 13px; color: var(--t3); font-weight: 600; }
+.stat-inline { font-size:var(--f2); color: var(--t3); font-weight: 600; }
 .stat-inline b { color: var(--navy); font-weight: 800; }
 
 .filters { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; padding: 18px 20px; border-bottom: 1px solid var(--line); }
 
 .tag-row { display: flex; flex-wrap: wrap; gap: 5px; max-width: 320px; }
 
-.company-name { color: var(--t1); font-weight: 700; font-size: 13.5px; }
-.wins-n { color: var(--navy); font-weight: 800; font-size: 15px; }
+.company-name { color: var(--t1); font-weight: 700; font-size:var(--f3); }
+.wins-n { color: var(--navy); font-weight: 800; font-size:var(--f4); }
 
 .pagination { display: flex; gap: 8px; justify-content: center; padding: 20px; flex-wrap: wrap; align-items: center; }
-.pag-btn { padding: 8px 13px; border: 1px solid var(--line2); font-size: 12.5px; font-weight: 600; color: var(--t3); transition: all .15s; text-decoration: none; border-radius: 6px; background: var(--surface); }
+.pag-btn { padding: 8px 13px; border: 1px solid var(--line2); font-size:var(--f2); font-weight: 600; color: var(--t3); transition: all .15s; text-decoration: none; border-radius:var(--r1); background: var(--surface); }
 .pag-btn:hover { border-color: var(--navy); color: var(--navy); }
 .pag-btn.current { background: var(--navy); color: #fff; border-color: var(--navy); }
 {% endblock %}
@@ -89,7 +89,7 @@
       {% for pp in range(1, pages+1) %}
         {% if pp == page %}<span class="pag-btn current">{{ pp }}</span>
         {% elif pp == 1 or pp == pages or (pp >= page-2 and pp <= page+2) %}<a href="?q={{ q }}&s={{ sf }}&r={{ rf }}&sort={{ sort }}&page={{ pp }}" class="pag-btn">{{ pp }}</a>
-        {% elif pp == page-3 or pp == page+3 %}<span style="color:var(--t4);padding:8px 4px;font-size:12.5px;">…</span>{% endif %}
+        {% elif pp == page-3 or pp == page+3 %}<span style="color:var(--t4);padding:8px 4px;font-size:var(--f2);">…</span>{% endif %}
       {% endfor %}
       {% if page < pages %}<a href="?q={{ q }}&s={{ sf }}&r={{ rf }}&sort={{ sort }}&page={{ page+1 }}" class="pag-btn">Suiv. →</a>{% endif %}
     </div>

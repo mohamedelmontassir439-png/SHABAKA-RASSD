@@ -5,25 +5,25 @@
 .std-wrap { max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; }
 .std-grid { display: grid; grid-template-columns: 1fr 380px; gap: 32px; align-items: start; }
 .std-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); box-shadow: var(--sh), var(--shg); padding: 28px; }
-.std-tags { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 18px; }
-.std-title { font-family: var(--serif); font-weight: 700; font-size: 26px; color: var(--text1); line-height: 1.25; margin-bottom: 20px; }
+.std-tags { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
+.std-title { font-family: var(--serif); font-weight: 700; font-size:var(--f7); color: var(--text1); line-height: 1.25; margin-bottom: 20px; }
 .std-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r2); overflow: hidden; margin-bottom: 28px; }
 .std-info-cell { background: var(--surface); padding: 16px 20px; }
-.std-info-label { font-size: 11px; font-weight: 700; color: var(--goldd); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 6px; }
-.std-info-val { font-weight: 700; font-size: 15px; color: var(--text1); }
-.std-desc { font-size: 15px; color: var(--text2); line-height: 1.75; white-space: pre-wrap; margin-bottom: 24px; }
-.std-meta { font-size: 12.5px; color: var(--text3); padding-top: 18px; border-top: 1px solid var(--line); }
+.std-info-label { font-size:var(--f1); font-weight: 700; color: var(--goldd); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 6px; }
+.std-info-val { font-weight: 700; font-size:var(--f4); color: var(--text1); }
+.std-desc { font-size:var(--f4); color: var(--text2); line-height: 1.75; white-space: pre-wrap; margin-bottom: 24px; }
+.std-meta { font-size:var(--f2); color: var(--text3); padding-top: 18px; border-top: 1px solid var(--line); }
 
 .msg-panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); box-shadow: var(--sh), var(--shg); padding: 20px; display: flex; flex-direction: column; gap: 14px; min-height: 320px; }
-.msg-panel-title { font-weight: 700; font-size: 14.5px; color: var(--text1); }
+.msg-panel-title { font-weight: 700; font-size:var(--f4); color: var(--text1); }
 .msg-thread-list { display: flex; flex-direction: column; gap: 4px; }
-.msg-thread-item { padding: 10px 12px; border-radius: var(--r2); font-size: 13.5px; font-weight: 600; color: var(--text2); transition: background .15s; }
+.msg-thread-item { padding: 10px 12px; border-radius: var(--r2); font-size:var(--f3); font-weight: 600; color: var(--text2); transition: background .15s; }
 .msg-thread-item:hover, .msg-thread-item.on { background: var(--surface2); color: var(--text1); }
 .msg-list { flex: 1; display: flex; flex-direction: column; gap: 10px; overflow-y: auto; max-height: 320px; padding-right: 4px; }
-.msg-bubble { max-width: 85%; padding: 10px 14px; border-radius: var(--r2); font-size: 13.5px; line-height: 1.5; }
+.msg-bubble { max-width: 85%; padding: 10px 14px; border-radius: var(--r2); font-size:var(--f3); line-height: 1.5; }
 .msg-bubble.mine { align-self: flex-end; background: var(--ink); color: #fff; }
 .msg-bubble.theirs { align-self: flex-start; background: var(--surface2); color: var(--text1); }
-.msg-time { font-size: 10.5px; opacity: .6; margin-top: 4px; }
+.msg-time { font-size:var(--f1); opacity: .6; margin-top: 4px; }
 .msg-form { display: flex; gap: 8px; }
 .msg-form textarea { flex: 1; resize: none; }
 
@@ -31,7 +31,7 @@
 </style>
 
 <div class="std-wrap">
-  <a href="/sous-traitance" class="detail-back" style="color:var(--text3); font-size:13px; font-weight:600; display:inline-block; margin-bottom:24px;">{{ tr('st_back') }}</a>
+  <a href="/sous-traitance" class="detail-back" style="color:var(--text3); font-size:var(--f2); font-weight:600; display:inline-block; margin-bottom:24px;">{{ tr('st_back') }}</a>
 
   {% if request.query_params.get('ok') %}<div class="alert alert-ok" style="margin-bottom:20px;">{{ tr('st_ok_created') }}</div>{% endif %}
   {% if request.query_params.get('reported') %}<div class="alert alert-ok" style="margin-bottom:20px;">{{ tr('st_report_sent') }}</div>{% endif %}
@@ -51,7 +51,7 @@
             <div class="std-info-label">{{ tr('st_posted_by') }}</div>
             <div class="std-info-val">{{ (author.company or author.nom or author.email or '—')[:40] }}
               {% if not is_owner and counterpart_rating and counterpart_id == post.member_id %}
-              <span style="color:var(--gold); font-size:13px; font-weight:600;">★ {{ counterpart_rating.avg }} ({{ counterpart_rating.n }} {{ tr('st_rating_reviews') }})</span>
+              <span style="color:var(--gold); font-size:var(--f2); font-weight:600;">★ {{ counterpart_rating.avg }} ({{ counterpart_rating.n }} {{ tr('st_rating_reviews') }})</span>
               {% endif %}
             </div>
           </div>
@@ -81,8 +81,8 @@
         {% endif %}
         {% if not is_owner %}
         <details style="margin-top:12px;">
-          <summary style="cursor:pointer; font-size:12.5px; color:var(--text3); font-weight:600;">{{ tr('st_report_cta') }}</summary>
-          <form method="post" action="/sous-traitance/{{ post.id }}/signaler" style="display:flex; gap:8px; margin-top:10px;">
+          <summary style="cursor:pointer; font-size:var(--f2); color:var(--text3); font-weight:600;">{{ tr('st_report_cta') }}</summary>
+          <form method="post" action="/sous-traitance/{{ post.id }}/signaler" style="display:flex; gap:8px; margin-top:8px;">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <input aria-label="{{ tr('aria_motif') }}" type="text" name="reason" class="inp" placeholder="{{ tr('st_report_reason') }}" style="flex:1;" maxlength="500">
             <button type="submit" class="btn btn-outline btn-sm">{{ tr('st_report_send') }}</button>
@@ -92,11 +92,11 @@
       </div>
     </div>
 
-    <div class="msg-panel" style="margin-bottom:18px">
+    <div class="msg-panel" style="margin-bottom:16px">
       <div class="msg-panel-title">📋 {{ tr('off_title') }}</div>
 
       {% if marche %}
-      <div style="background:var(--golda); border-radius:var(--r2); padding:12px 14px; margin-bottom:16px; font-size:13.5px;">
+      <div style="background:var(--golda); border-radius:var(--r2); padding:12px 14px; margin-bottom:16px; font-size:var(--f3);">
         {{ tr('off_from_tender') }} <a href="/tenders/{{ marche.id }}" style="font-weight:700; color:var(--ink);">{{ marche.objet[:80] }}</a>
         {% if marche.date_limite %} · {{ tr('detail_deadline') }} {{ marche.date_limite }}{% endif %}
       </div>
@@ -105,9 +105,9 @@
       {% if is_owner %}
         {% if offres %}
         <div style="overflow-x:auto">
-          <table style="width:100%; border-collapse:collapse; min-width:560px; font-size:13.5px;">
+          <table style="width:100%; border-collapse:collapse; min-width:560px; font-size:var(--f3);">
             <thead>
-              <tr style="color:var(--text3); font-size:12px;">
+              <tr style="color:var(--text3); font-size:var(--f1);">
                 <th style="padding:8px 10px; text-align:start;">{{ tr('off_candidate') }}</th>
                 <th style="padding:8px 10px; text-align:start;">{{ tr('off_price') }}</th>
                 <th style="padding:8px 10px; text-align:start;">{{ tr('off_delay') }}</th>
@@ -121,8 +121,8 @@
                 <td style="padding:10px;">
                   <b>{{ (o.company or o.nom or '—')[:38] }}</b>
                   {% if o.statut == 'retenue' %}<span class="badge badge-grn">{{ tr('off_selected') }}</span>{% endif %}
-                  {% if o.message %}<div style="color:var(--text3); font-size:12.5px; margin-top:3px;">{{ o.message[:110] }}</div>{% endif %}
-                  {% if o.piece_jointe %}<div style="margin-top:4px;"><a href="/sous-traitance/{{ post.id }}/piece/{{ o.piece_jointe }}" style="color:var(--ink); font-weight:600; font-size:12.5px;">📎 {{ tr('off_attachment') }}</a></div>{% endif %}
+                  {% if o.message %}<div style="color:var(--text3); font-size:var(--f2); margin-top:3px;">{{ o.message[:110] }}</div>{% endif %}
+                  {% if o.piece_jointe %}<div style="margin-top:4px;"><a href="/sous-traitance/{{ post.id }}/piece/{{ o.piece_jointe }}" style="color:var(--ink); font-weight:600; font-size:var(--f2);">📎 {{ tr('off_attachment') }}</a></div>{% endif %}
                 </td>
                 <td style="padding:10px; font-weight:700; white-space:nowrap;">{{ o.prix or '—' }}</td>
                 <td style="padding:10px; white-space:nowrap;">{{ o.delai or '—' }}</td>
@@ -142,17 +142,17 @@
           </table>
         </div>
         {% if offres | selectattr('statut', 'equalto', 'retenue') | list %}
-        <a class="btn btn-outline btn-sm" style="margin-top:14px" href="/sous-traitance/{{ post.id }}/declaration">{{ tr('off_declaration') }}</a>
+        <a class="btn btn-outline btn-sm" style="margin-top:16px" href="/sous-traitance/{{ post.id }}/declaration">{{ tr('off_declaration') }}</a>
         {% endif %}
         {% else %}
-        <div style="color:var(--text3); font-size:14px;">{{ tr('off_none') }}</div>
+        <div style="color:var(--text3); font-size:var(--f3);">{{ tr('off_none') }}</div>
         {% endif %}
 
       {% elif post.statut == 'actif' %}
-        {% if request.query_params.get('offre') %}<div class="alert alert-ok" style="margin-bottom:14px;">{{ tr('off_sent') }}</div>{% endif %}
-        {% if request.query_params.get('err') == 'format' %}<div class="alert alert-err" style="margin-bottom:14px;">{{ tr('off_err_format') }}</div>{% endif %}
-        {% if request.query_params.get('err') == 'taille' %}<div class="alert alert-err" style="margin-bottom:14px;">{{ tr('off_err_size') }}</div>{% endif %}
-        <div style="font-size:13.5px; color:var(--text3); margin-bottom:14px;">{{ tr('off_hint') }}</div>
+        {% if request.query_params.get('offre') %}<div class="alert alert-ok" style="margin-bottom:16px;">{{ tr('off_sent') }}</div>{% endif %}
+        {% if request.query_params.get('err') == 'format' %}<div class="alert alert-err" style="margin-bottom:16px;">{{ tr('off_err_format') }}</div>{% endif %}
+        {% if request.query_params.get('err') == 'taille' %}<div class="alert alert-err" style="margin-bottom:16px;">{{ tr('off_err_size') }}</div>{% endif %}
+        <div style="font-size:var(--f3); color:var(--text3); margin-bottom:16px;">{{ tr('off_hint') }}</div>
         <form method="post" action="/sous-traitance/{{ post.id }}/offre" enctype="multipart/form-data" style="display:grid; gap:12px;">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
@@ -197,9 +197,9 @@
             <button type="submit" class="btn btn-primary">{{ tr('st_msg_send') }}</button>
           </form>
         {% elif not threads %}
-          <div style="color:var(--text3); font-size:13.5px;">{{ tr('st_msg_no_thread') }}</div>
+          <div style="color:var(--text3); font-size:var(--f3);">{{ tr('st_msg_no_thread') }}</div>
         {% else %}
-          <div style="color:var(--text3); font-size:13.5px;">{{ tr('st_msg_select') }}</div>
+          <div style="color:var(--text3); font-size:var(--f3);">{{ tr('st_msg_select') }}</div>
         {% endif %}
       {% else %}
         {% if thread_messages %}
@@ -212,7 +212,7 @@
           {% endfor %}
         </div>
         {% else %}
-        <div style="color:var(--text3); font-size:13.5px;">{{ tr('st_msg_start') }}</div>
+        <div style="color:var(--text3); font-size:var(--f3);">{{ tr('st_msg_start') }}</div>
         {% endif %}
         {% if post.statut == 'actif' %}
         <form method="post" action="/sous-traitance/{{ post.id }}/message" class="msg-form">
@@ -225,8 +225,8 @@
 
       {% if counterpart_id and thread_messages %}
       <div style="border-top:1px solid var(--line); padding-top:14px; margin-top:4px;">
-        <div class="msg-panel-title" style="margin-bottom:10px;">⭐ {{ tr('st_rate_title') }}</div>
-        {% if my_rating_given %}<div style="font-size:12.5px; color:var(--text3); margin-bottom:8px;">{{ tr('st_rate_done') }}</div>{% endif %}
+        <div class="msg-panel-title" style="margin-bottom:8px;">⭐ {{ tr('st_rate_title') }}</div>
+        {% if my_rating_given %}<div style="font-size:var(--f2); color:var(--text3); margin-bottom:8px;">{{ tr('st_rate_done') }}</div>{% endif %}
         <form method="post" action="/sous-traitance/{{ post.id }}/noter" style="display:flex; flex-direction:column; gap:10px;">
           <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
           <input type="hidden" name="rated_id" value="{{ counterpart_id }}">

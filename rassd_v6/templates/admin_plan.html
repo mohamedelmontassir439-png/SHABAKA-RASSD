@@ -5,17 +5,17 @@
 <a class="btn btn-p" href="/admin/prospection">☏ Ouvrir la file d'appel</a>
 {% endblock %}
 {% block style %}
-.intro{font-size:14px;color:var(--t2);line-height:1.7;max-width:780px;margin-bottom:24px}
-.force{height:7px;border-radius:999px;background:var(--surface2);overflow:hidden;min-width:90px}
+.intro{font-size:var(--f3);color:var(--t2);line-height:1.7;max-width:780px;margin-bottom:24px}
+.force{height:7px;border-radius:var(--rp);background:var(--surface2);overflow:hidden;min-width:90px}
 .force i{display:block;height:100%;background:var(--terre)}
 .cren{display:grid;grid-template-columns:150px 1fr;gap:4px 16px;align-items:baseline}
-.cren b{font-family:var(--mono);font-size:13px;font-weight:500}
+.cren b{font-family:var(--mono);font-size:var(--f2);font-weight:500}
 .pastille{display:inline-block;width:9px;height:9px;border-radius:50%;margin-inline-end:7px}
 .bon{background:var(--vert)} .moyen{background:#e0a32e} .mauvais{background:var(--rouge)}
-.etape{display:grid;grid-template-columns:26px 1fr;gap:12px;margin-bottom:14px}
+.etape{display:grid;grid-template-columns:26px 1fr;gap:12px;margin-bottom:16px}
 .etape-n{width:24px;height:24px;border-radius:50%;background:var(--terre);color:#fff;
-  font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
-.etape-t{font-size:14px;line-height:1.6;color:var(--t1)}
+  font-size:var(--f1);font-weight:700;display:flex;align-items:center;justify-content:center}
+.etape-t{font-size:var(--f3);line-height:1.6;color:var(--t1)}
 {% endblock %}
 {% block contenu %}
 
@@ -42,7 +42,7 @@
         <tr>
           <td><b style="color:var(--t1)">{{ p.label }}</b>
               <div class="meta">{{ p.secteur }}</div></td>
-          <td class="num"><b style="font-size:15px;color:var(--t1)">{{ p.marches }}</b></td>
+          <td class="num"><b style="font-size:var(--f4);color:var(--t1)">{{ p.marches }}</b></td>
           <td class="num">{{ p.entreprises }}</td>
           <td class="num">{% if p.a_appeler %}<b style="color:var(--terre-f)">{{ p.a_appeler }}</b>
               {% else %}<span class="meta">toutes traitées</span>{% endif %}</td>
@@ -70,7 +70,7 @@
       <div class="cren">
         {% for heure, qualite, note in creneaux %}
         <b><span class="pastille {{ qualite }}"></span>{{ heure }}</b>
-        <span class="meta" style="font-size:12.5px">{{ note }}</span>
+        <span class="meta" style="font-size:var(--f2)">{{ note }}</span>
         {% endfor %}
       </div>
       <p class="meta" style="margin-top:16px;line-height:1.65">

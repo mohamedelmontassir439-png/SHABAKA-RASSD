@@ -8,13 +8,13 @@
 </form>
 {% endblock %}
 {% block style %}
-.rc-tete{font-size:13.5px;color:var(--t3);line-height:1.7;max-width:760px;margin-bottom:20px}
-.rc-msg{display:none;font-size:12.5px;color:var(--t2);background:var(--fond);
-  border:1px solid var(--trait);border-radius:10px;padding:10px 12px;margin-top:9px;
+.rc-tete{font-size:var(--f3);color:var(--t3);line-height:1.7;max-width:760px;margin-bottom:20px}
+.rc-msg{display:none;font-size:var(--f2);color:var(--t2);background:var(--fond);
+  border:1px solid var(--trait);border-radius:var(--r2);padding:10px 12px;margin-top:9px;
   white-space:pre-wrap;line-height:1.55}
 .rc-fait td{opacity:.52}
 .rc-actions{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}
-.jauge{height:7px;border-radius:999px;background:var(--surface2);overflow:hidden;
+.jauge{height:7px;border-radius:var(--rp);background:var(--surface2);overflow:hidden;
   width:200px;margin-top:9px}
 .jauge i{display:block;height:100%;background:var(--vert)}
 {% endblock %}
@@ -46,7 +46,7 @@
     <div class="chiffre-l">membres actifs</div>
   </div>
   <div class="chiffre">
-    <div class="chiffre-n" style="font-size:16px;font-family:var(--mono);font-weight:600">
+    <div class="chiffre-n" style="font-size:var(--f4);font-family:var(--mono);font-weight:600">
       {{ prepare_at[11:16] if prepare_at else '—' }}</div>
     <div class="chiffre-l">lot préparé à</div>
   </div>
@@ -70,7 +70,7 @@
             <div id="m{{ l.membre.id }}" class="rc-msg">{{ l.message }}</div>
           </td>
           <td class="num">
-            {% if l.nombre %}<b style="font-size:17px;color:var(--t1)">{{ l.nombre }}</b>
+            {% if l.nombre %}<b style="font-size:var(--f5);color:var(--t1)">{{ l.nombre }}</b>
             {% else %}<span class="meta">aucun</span>{% endif %}
           </td>
           <td>

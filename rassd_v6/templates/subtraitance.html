@@ -6,13 +6,13 @@
 .st-hero-grid { display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: end; }
 
 .st-how { margin: 20px 32px 0; padding: 24px 26px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); box-shadow: var(--sh), var(--shg); }
-.st-how-title { font-weight: 700; font-size: 14.5px; color: var(--text1); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+.st-how-title { font-weight: 700; font-size:var(--f4); color: var(--text1); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
 .st-how-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
-.st-how-step-t { font-size: 13.5px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
-.st-how-step-d { font-size: 13px; color: var(--text3); line-height: 1.6; }
+.st-how-step-t { font-size:var(--f3); font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+.st-how-step-d { font-size:var(--f2); color: var(--text3); line-height: 1.6; }
 
 .st-tabs { display: flex; gap: 0; border: 1px solid var(--line2); border-radius: var(--r2); overflow: hidden; }
-.st-tab { padding: 9px 16px; font-size: 13px; font-weight: 600; color: var(--text3); background: var(--surface); border: none; cursor: pointer; transition: all .15s; text-decoration: none; }
+.st-tab { padding: 9px 16px; font-size:var(--f2); font-weight: 600; color: var(--text3); background: var(--surface); border: none; cursor: pointer; transition: all .15s; text-decoration: none; }
 .st-tab + .st-tab { border-inline-start: 1px solid var(--line2); }
 .st-tab:hover { color: var(--text1); background: var(--surface2); }
 .st-tab.on { background: var(--ink); color: #fff; }
@@ -21,28 +21,28 @@
 .st-list { display: flex; flex-direction: column; gap: 10px; }
 .st-row { display: block; padding: 20px 22px; border: 1px solid var(--line); border-radius: var(--r3); background: var(--surface); transition: all .15s; text-decoration: none; color: inherit; }
 .st-row:hover { border-color: var(--ink); box-shadow: var(--sh2); }
-.st-row-tags { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
-.st-row-title { font-weight: 600; font-size: 15.5px; color: var(--text1); line-height: 1.35; margin-bottom: 8px; }
-.st-row-meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--text3); }
+.st-row-tags { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+.st-row-title { font-weight: 600; font-size:var(--f4); color: var(--text1); line-height: 1.35; margin-bottom: 8px; }
+.st-row-meta { display: flex; gap: 16px; flex-wrap: wrap; font-size:var(--f2); color: var(--text3); }
 
-.st-pistes-tete { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
-.st-pistes-titre { font-family: var(--serif); font-weight: 700; font-size: 24px; color: var(--text1); margin-top: 6px; }
-.st-pistes-sous { font-size: 14px; color: var(--text3); margin-top: 6px; max-width: 620px; }
-.st-note { background: var(--surface2); border: 1px solid var(--line); border-radius: var(--r2); padding: 12px 16px; font-size: 13.5px; color: var(--text2); margin-bottom: 16px; }
+.st-pistes-tete { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.st-pistes-titre { font-family: var(--serif); font-weight: 700; font-size:var(--f7); color: var(--text1); margin-top: 6px; }
+.st-pistes-sous { font-size:var(--f3); color: var(--text3); margin-top: 6px; max-width: 620px; }
+.st-note { background: var(--surface2); border: 1px solid var(--line); border-radius: var(--r2); padding: 12px 16px; font-size:var(--f3); color: var(--text2); margin-bottom: 16px; }
 .st-pistes { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 12px; }
 .st-piste { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 16px 18px; display: flex; flex-direction: column; gap: 9px; }
-.st-piste-objet { font-weight: 600; font-size: 14.5px; color: var(--text1); line-height: 1.4; }
-.st-piste-gagnant { font-size: 13px; color: var(--text3); }
+.st-piste-objet { font-weight: 600; font-size:var(--f4); color: var(--text1); line-height: 1.4; }
+.st-piste-gagnant { font-size:var(--f2); color: var(--text3); }
 .st-piste-gagnant b { color: var(--text1); }
 .st-piste-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 2px; }
-.st-piste-sans { font-size: 12.5px; color: var(--text4); }
+.st-piste-sans { font-size:var(--f2); color: var(--text4); }
 .empty-state { text-align: center; padding: 80px 24px; }
-.empty-icon { font-size: 48px; opacity: .3; line-height: 1; }
-.empty-title { font-family: var(--serif); font-weight: 700; font-size: 22px; color: var(--text1); margin-top: 18px; }
-.empty-text { font-size: 14.5px; color: var(--text3); margin-top: 10px; }
+.empty-icon { font-size: var(--fg); opacity: .3; line-height: 1; }
+.empty-title { font-family: var(--serif); font-weight: 700; font-size:var(--f6); color: var(--text1); margin-top: 16px; }
+.empty-text { font-size:var(--f4); color: var(--text3); margin-top: 8px; }
 
 .pagination { display: flex; gap: 8px; justify-content: center; margin-top: 32px; flex-wrap: wrap; align-items: center; }
-.pag-btn { padding: 9px 14px; border: 1px solid var(--line2); font-size: 13px; font-weight: 600; color: var(--text3); transition: all .15s; text-decoration: none; border-radius: var(--r2); background: var(--surface); }
+.pag-btn { padding: 9px 14px; border: 1px solid var(--line2); font-size:var(--f2); font-weight: 600; color: var(--text3); transition: all .15s; text-decoration: none; border-radius: var(--r2); background: var(--surface); }
 .pag-btn:hover { border-color: var(--ink); color: var(--ink); }
 .pag-btn.current { background: var(--ink); color: #fff; border-color: var(--ink); }
 
@@ -58,7 +58,7 @@
     <div>
       <div class="section-label" style="margin-bottom: 8px;">{{ tr('nav_subtraitance') }}</div>
       <h1 class="display-m">{{ tr('st_title')|safe }}</h1>
-      <p style="color: var(--text3); font-size: 14.5px; margin-top: 8px; max-width: 620px;">{{ tr('st_sub') }}</p>
+      <p style="color: var(--text3); font-size:var(--f4); margin-top: 8px; max-width: 620px;">{{ tr('st_sub') }}</p>
     </div>
     <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
       <a href="/sous-traitance/opportunites" class="btn btn-outline">{{ tr('opp_title_plain') }}</a>
@@ -130,7 +130,7 @@
 {% endif %}
 
 <div class="st-layout">
-  <div style="margin-bottom: 18px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+  <div style="margin-bottom: 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
     <div class="st-tabs">
       <a href="?tp=" class="st-tab {% if not tf and not mine %}on{% endif %}">{{ tr('tenders_all_types') }}</a>
       <a href="?tp=demande" class="st-tab {% if tf=='demande' %}on{% endif %}">{{ tr('st_tab_demande') }}</a>

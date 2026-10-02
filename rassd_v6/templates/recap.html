@@ -7,11 +7,11 @@
 {% block body %}
 <style>
 .rc-wrap { max-width: 780px; margin: 0 auto; padding: 36px 20px 70px; }
-.rc-tete { border-bottom: 1px solid var(--line); padding-bottom: 22px; margin-bottom: 26px; }
-.rc-salut { font-size: 15px; color: var(--text3); }
-.rc-titre { font-family: var(--serif); font-weight: 700; font-size: 30px; color: var(--text1); margin-top: 8px; line-height: 1.2; }
+.rc-tete { border-bottom: 1px solid var(--line); padding-bottom: 22px; margin-bottom: 24px; }
+.rc-salut { font-size:var(--f4); color: var(--text3); }
+.rc-titre { font-family: var(--serif); font-weight: 700; font-size:var(--f7); color: var(--text1); margin-top: 8px; line-height: 1.2; }
 .rc-titre em { font-style: normal; color: var(--ink); }
-.rc-jour { font-size: 13.5px; color: var(--text3); margin-top: 8px; }
+.rc-jour { font-size:var(--f3); color: var(--text3); margin-top: 8px; }
 .rc-liste { display: flex; flex-direction: column; gap: 12px; }
 .rc-item { border: 1px solid var(--line); border-radius: var(--r3); background: var(--surface); padding: 18px 20px; display: block; transition: border-color .15s; }
 .rc-item:hover { border-color: var(--ink); }
@@ -22,15 +22,15 @@
    Precaution, non correctif: aucun debordement n'a ete constate au 01/10/2026
    (la mesure qui le laissait croire venait du navigateur de test, qui
    refuse de descendre sous ~500 px de large). */
-.rc-objet { font-weight: 600; font-size: 15.5px; color: var(--text1); line-height: 1.4;
+.rc-objet { font-weight: 600; font-size:var(--f4); color: var(--text1); line-height: 1.4;
   overflow-wrap: anywhere; word-break: break-word; }
 .rc-bas span, .rc-tags .badge { overflow-wrap: anywhere; }
 .rc-wrap, .rc-item { max-width: 100%; }
-.rc-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
-.rc-bas { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); font-size: 13px; color: var(--text3); }
+.rc-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.rc-bas { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); font-size:var(--f2); color: var(--text3); }
 .rc-bas b { color: var(--text1); font-weight: 600; }
 .rc-vide { text-align: center; padding: 60px 20px; color: var(--text3); }
-.rc-pied { margin-top: 34px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 13px; color: var(--text3); line-height: 1.8; }
+.rc-pied { margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--line); font-size:var(--f2); color: var(--text3); line-height: 1.8; }
 </style>
 
 <div class="rc-wrap">

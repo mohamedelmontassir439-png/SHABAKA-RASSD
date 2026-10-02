@@ -21,25 +21,25 @@
 {% block body %}
 <style>
 .ss-wrap { max-width: 900px; margin: 0 auto; padding: 44px 20px 80px; }
-.ss-fil { font-size: 13.5px; color: var(--text3); margin-bottom: 14px; }
+.ss-fil { font-size:var(--f3); color: var(--text3); margin-bottom: 16px; }
 .ss-fil a { color: var(--ink); font-weight: 600; }
 .ss-h1 { font-family: var(--serif); font-weight: 700; font-size: clamp(26px, 4.6vw, 36px); color: var(--text1); line-height: 1.25; }
-.ss-lede { color: var(--text3); font-size: 16px; line-height: 1.7; margin: 14px 0 26px; max-width: 64ch; }
-.ss-stats { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 30px; }
+.ss-lede { color: var(--text3); font-size:var(--f4); line-height: 1.7; margin: 16px 0 24px; max-width: 64ch; }
+.ss-stats { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 32px; }
 .ss-stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); padding: 12px 18px; }
-.ss-stat b { font-family: var(--serif); font-size: 22px; color: var(--ink); display: block; font-variant-numeric: tabular-nums; }
-.ss-stat span { font-size: 12.5px; color: var(--text3); }
-.ss-item { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); padding: 16px 18px; margin-bottom: 10px; }
-.ss-obj { font-weight: 600; color: var(--text1); font-size: 15px; line-height: 1.5; }
+.ss-stat b { font-family: var(--serif); font-size:var(--f6); color: var(--ink); display: block; font-variant-numeric: tabular-nums; }
+.ss-stat span { font-size:var(--f2); color: var(--text3); }
+.ss-item { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); padding: 16px 18px; margin-bottom: 8px; }
+.ss-obj { font-weight: 600; color: var(--text1); font-size:var(--f4); line-height: 1.5; }
 .ss-meta { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 9px; }
-.ss-locked { background: var(--golda); border-radius: var(--r2); padding: 18px 20px; font-size: 14.5px; color: var(--text2); margin: 18px 0 30px; }
+.ss-locked { background: var(--golda); border-radius: var(--r2); padding: 18px 20px; font-size:var(--f4); color: var(--text2); margin: 16px 0 32px; }
 .ss-locked b { color: var(--text1); }
-.ss-villes { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 30px; }
+.ss-villes { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 32px; }
 .ss-cta { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 28px; text-align: center; box-shadow: var(--sh); }
-.ss-cta h2 { font-family: var(--serif); font-size: 21px; color: var(--text1); margin-bottom: 10px; }
-.ss-cta p { color: var(--text3); font-size: 14.5px; margin-bottom: 18px; }
-.ss-proches { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 34px; }
-.ss-proches a { font-size: 13.5px; color: var(--text2); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 13px; text-decoration: none; }
+.ss-cta h2 { font-family: var(--serif); font-size:var(--f6); color: var(--text1); margin-bottom: 8px; }
+.ss-cta p { color: var(--text3); font-size:var(--f4); margin-bottom: 16px; }
+.ss-proches { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 32px; }
+.ss-proches a { font-size:var(--f3); color: var(--text2); background: var(--surface); border: 1px solid var(--line); border-radius:var(--rp); padding: 6px 13px; text-decoration: none; }
 .ss-proches a:hover { border-color: var(--ink); color: var(--ink); }
 </style>
 

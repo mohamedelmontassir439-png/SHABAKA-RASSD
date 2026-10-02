@@ -220,6 +220,8 @@ T = {
     "channels_label":     {"fr": "Alertes disponibles via", "ar": "التنبيهات متوفرة عبر"},
     "channel_email":      {"fr": "Email", "ar": "البريد الإلكتروني"},
     "channel_whatsapp":   {"fr": "WhatsApp", "ar": "واتساب"},
+    "channel_email_seul": {"fr": "Alertes par email, dès la publication du marché",
+                           "ar": "تنبيهات عبر البريد الإلكتروني، فور نشر الصفقة"},
     "feat_label":         {"fr": "Fonctionnalités", "ar": "الميزات"},
     "feat_title":         {"fr": "Tout ce qu'il faut pour ne plus <em>rater</em> un marché", "ar": "كل ما تحتاجه حتى لا تفوتك <em>صفقة</em>"},
     "feat1_title":        {"fr": "Veille en temps réel", "ar": "رصد لحظي"},

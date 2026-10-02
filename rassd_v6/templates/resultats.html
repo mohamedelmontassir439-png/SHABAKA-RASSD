@@ -3,8 +3,8 @@
 {% block body %}
 <style>
 .res-hero { padding: 44px 0 32px; border-bottom: 1px solid var(--line); background: var(--surface); }
-.res-meta { display: flex; gap: 20px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
-.res-meta-item { font-size: 13px; color: var(--text3); font-weight: 500; }
+.res-meta { display: flex; gap: 20px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+.res-meta-item { font-size:var(--f2); color: var(--text3); font-weight: 500; }
 .res-meta-item span { color: var(--navy); font-weight: 700; }
 
 .filters-bar { display: flex; gap: 10px; padding: 20px 0; flex-wrap: wrap; align-items: center; }
@@ -13,27 +13,27 @@
 .res-table { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
 .res-row { border: 1px solid var(--line); border-radius: var(--r3); background: var(--surface); padding: 20px; transition: all .15s; }
 .res-row:hover { border-color: var(--navy); box-shadow: var(--sh2); }
-.res-title { font-weight: 600; font-size: 16px; color: var(--text1); line-height: 1.35; margin-bottom: 10px; }
+.res-title { font-weight: 600; font-size:var(--f4); color: var(--text1); line-height: 1.35; margin-bottom: 8px; }
 .res-tags { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
 .res-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
 .res-filtres { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .res-filtres .search-input { flex: 1 1 220px; min-width: 200px; }
-.res-filtres .inp-sm { flex: 0 1 auto; max-width: 200px; padding: 8px 10px; font-size: 13px; }
+.res-filtres .inp-sm { flex: 0 1 auto; max-width: 200px; padding: 8px 10px; font-size:var(--f2); }
 @media (max-width: 640px) { .res-filtres .inp-sm { flex: 1 1 calc(50% - 4px); max-width: none; } }
-.res-cell-label { font-size: 11px; font-weight: 700; color: var(--amberd); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 4px; }
-.res-cell-val { font-size: 14px; color: var(--text1); font-weight: 600; }
-.res-links { display: flex; gap: 8px; margin-top: 14px; }
+.res-cell-label { font-size:var(--f1); font-weight: 700; color: var(--amberd); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 4px; }
+.res-cell-val { font-size:var(--f3); color: var(--text1); font-weight: 600; }
+.res-links { display: flex; gap: 8px; margin-top: 16px; }
 
 .pagination { display: flex; gap: 8px; justify-content: center; margin-top: 40px; flex-wrap: wrap; align-items: center; padding-bottom: 48px; }
-.pag-btn { padding: 9px 14px; border: 1px solid var(--line2); font-size: 13px; font-weight: 600; color: var(--text3); transition: all .15s; text-decoration: none; border-radius: var(--r2); background: var(--surface); }
+.pag-btn { padding: 9px 14px; border: 1px solid var(--line2); font-size:var(--f2); font-weight: 600; color: var(--text3); transition: all .15s; text-decoration: none; border-radius: var(--r2); background: var(--surface); }
 .pag-btn:hover { border-color: var(--navy); color: var(--navy); }
 .pag-btn.current { background: var(--navy); color: #fff; border-color: var(--navy); }
 
 .empty-state { text-align: center; padding: 96px 24px; }
-.empty-icon { font-size: 56px; opacity: .3; line-height: 1; }
-.empty-title { font-family: var(--serif); font-weight: 700; font-size: 27px; color: var(--text1); margin-top: 20px; }
+.empty-icon { font-size: var(--fg); opacity: .3; line-height: 1; }
+.empty-title { font-family: var(--serif); font-weight: 700; font-size:var(--f7); color: var(--text1); margin-top: 20px; }
 .empty-title em { font-style: italic; color: var(--ink); font-weight: 600; }
-.empty-text { font-size: 15px; color: var(--text3); margin-top: 12px; }
+.empty-text { font-size:var(--f4); color: var(--text3); margin-top: 12px; }
 
 @media (max-width: 900px) {
   .res-grid { grid-template-columns: 1fr 1fr; }
@@ -42,7 +42,7 @@
 
 <div class="res-hero">
   <div class="container">
-    <div class="section-label" style="margin-bottom: 10px;">{{ tr('res_hero_label') }}</div>
+    <div class="section-label" style="margin-bottom: 8px;">{{ tr('res_hero_label') }}</div>
     <h1 class="display-l">{{ tr('res_title', n=total)|safe }}</h1>
     <div class="res-meta">
       <div class="res-meta-item">{{ tr('res_meta_winner')|safe }}</div>
@@ -126,7 +126,7 @@
     {% for pp in range(1, pages+1) %}
       {% if pp == page %}<span class="pag-btn current">{{ pp }}</span>
       {% elif pp == 1 or pp == pages or (pp >= page-2 and pp <= page+2) %}<a href="?q={{ q }}&page={{ pp }}" class="pag-btn">{{ pp }}</a>
-      {% elif pp == page-3 or pp == page+3 %}<span style="color:var(--text4);padding:9px 4px;font-size:13px;">…</span>{% endif %}
+      {% elif pp == page-3 or pp == page+3 %}<span style="color:var(--text4);padding:9px 4px;font-size:var(--f2);">…</span>{% endif %}
     {% endfor %}
     {% if page < pages %}<a href="?q={{ q }}&page={{ page+1 }}" class="pag-btn">{{ tr('tenders_next') }}</a>{% endif %}
   </div>

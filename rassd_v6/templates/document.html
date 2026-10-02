@@ -3,34 +3,34 @@
 {% block body %}
 <style>
 .doc-wrap { max-width: 820px; margin: 0 auto; padding: 40px 24px 80px; }
-.doc-actions { display: flex; gap: 10px; justify-content: flex-end; margin-bottom: 18px; flex-wrap: wrap; }
+.doc-actions { display: flex; gap: 10px; justify-content: flex-end; margin-bottom: 16px; flex-wrap: wrap; }
 .doc-sheet { background: #fff; border: 1px solid var(--line); border-radius: var(--r3); padding: 44px 48px; box-shadow: var(--sh), var(--shg); }
-.doc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; border-bottom: 2px solid var(--ink3); padding-bottom: 20px; margin-bottom: 26px; flex-wrap: wrap; }
+.doc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; border-bottom: 2px solid var(--ink3); padding-bottom: 20px; margin-bottom: 24px; flex-wrap: wrap; }
 /* Ce document part chez le client: il porte l'en-tete complet. */
 .doc-brand { line-height: 0; margin-bottom: 8px; }
-.doc-issuer { font-size: 12px; color: var(--text3); line-height: 1.65; margin-top: 6px; }
+.doc-issuer { font-size:var(--f1); color: var(--text3); line-height: 1.65; margin-top: 6px; }
 .doc-meta { text-align: end; }
-.doc-type { font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink); }
-.doc-number { font-family: var(--mono); font-size: 19px; font-weight: 700; color: var(--text1); margin-top: 4px; }
-.doc-date { font-size: 12.5px; color: var(--text3); margin-top: 4px; }
+.doc-type { font-size:var(--f1); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ink); }
+.doc-number { font-family: var(--mono); font-size:var(--f6); font-weight: 700; color: var(--text1); margin-top: 4px; }
+.doc-date { font-size:var(--f2); color: var(--text3); margin-top: 4px; }
 .doc-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; margin-bottom: 28px; }
-.doc-party-label { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--goldd); margin-bottom: 7px; }
-.doc-party-body { font-size: 13.5px; color: var(--text2); line-height: 1.7; }
-.doc-party-body strong { color: var(--text1); font-size: 14.5px; }
+.doc-party-label { font-size:var(--f1); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--goldd); margin-bottom: 7px; }
+.doc-party-body { font-size:var(--f3); color: var(--text2); line-height: 1.7; }
+.doc-party-body strong { color: var(--text1); font-size:var(--f4); }
 .doc-table { width: 100%; border-collapse: collapse; margin: 6px 0 24px; }
-.doc-table th { background: var(--surface2); font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--text3); text-align: start; padding: 11px 14px; border: 1px solid var(--line); }
-.doc-table td { padding: 13px 14px; border: 1px solid var(--line); font-size: 13.5px; color: var(--text2); }
-.doc-total-row td { background: var(--golda); font-weight: 800; color: var(--text1); font-size: 16px; }
-.doc-section-t { font-family: var(--serif); font-weight: 700; font-size: 16px; color: var(--text1); margin: 26px 0 10px; }
+.doc-table th { background: var(--surface2); font-size:var(--f1); letter-spacing: .05em; text-transform: uppercase; color: var(--text3); text-align: start; padding: 11px 14px; border: 1px solid var(--line); }
+.doc-table td { padding: 13px 14px; border: 1px solid var(--line); font-size:var(--f3); color: var(--text2); }
+.doc-total-row td { background: var(--golda); font-weight: 800; color: var(--text1); font-size:var(--f4); }
+.doc-section-t { font-family: var(--serif); font-weight: 700; font-size:var(--f4); color: var(--text1); margin: 24px 0 8px; }
 .doc-section-t:first-of-type { margin-top: 0; }
-.doc-p { font-size: 13px; color: var(--text2); line-height: 1.75; margin-bottom: 10px; }
+.doc-p { font-size:var(--f2); color: var(--text2); line-height: 1.75; margin-bottom: 8px; }
 .doc-ol { margin: 0 0 12px 20px; }
-.doc-ol li { font-size: 13px; color: var(--text2); line-height: 1.75; margin-bottom: 7px; }
+.doc-ol li { font-size:var(--f2); color: var(--text2); line-height: 1.75; margin-bottom: 7px; }
 .doc-sign { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; margin-top: 32px; padding-top: 22px; border-top: 1px solid var(--line); }
 .doc-sign-box { border: 1px dashed var(--line2); border-radius: var(--r2); padding: 16px; min-height: 96px; }
-.doc-sign-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text3); margin-bottom: 6px; }
-.doc-accepted { background: var(--grna); border: 1px solid rgba(29,154,108,.3); border-radius: var(--r2); padding: 12px 16px; font-size: 13px; color: var(--grn); font-weight: 600; }
-.doc-foot { margin-top: 26px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--text4); line-height: 1.6; text-align: center; }
+.doc-sign-label { font-size:var(--f1); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--text3); margin-bottom: 6px; }
+.doc-accepted { background: var(--grna); border: 1px solid rgba(29,154,108,.3); border-radius: var(--r2); padding: 12px 16px; font-size:var(--f2); color: var(--grn); font-weight: 600; }
+.doc-foot { margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--line); font-size:var(--f1); color: var(--text4); line-height: 1.6; text-align: center; }
 .doc-todo { color: var(--goldd); font-weight: 700; }
 @media print {
   /* Ce qui concerne toute page imprimee — barre, pied de page, couleurs —
@@ -146,7 +146,7 @@
           <div class="doc-sign-label">Le client</div>
           {% if doc.accepted_at %}
           <div class="doc-accepted">✓ Accepté électroniquement le {{ doc.accepted_at[:16].replace('T',' à ') }}<br>
-            <span style="font-weight:500; font-size:12px;">par {{ customer.nom or owner.email }}{% if doc.accepted_ip %} — IP {{ doc.accepted_ip }}{% endif %}</span>
+            <span style="font-weight:500; font-size:var(--f1);">par {{ customer.nom or owner.email }}{% if doc.accepted_ip %} — IP {{ doc.accepted_ip }}{% endif %}</span>
           </div>
           {% elif member and member.id == doc.member_id %}
           <form method="post" action="/documents/{{ doc.number }}/accepter">

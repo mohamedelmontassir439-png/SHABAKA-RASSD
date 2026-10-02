@@ -3,36 +3,36 @@
 {% block soustitre %}<div class="entete-sur">Fiche d'appel</div>{% endblock %}
 {% block actions %}<a class="btn" href="/admin/prospection">← Retour à la file</a>{% endblock %}
 {% block style %}
-.topbar a{color:#e8dcc5;font-size:13.5px;font-weight:600}
+.topbar a{color:#e8dcc5;font-size:var(--f3);font-weight:600}
 /* Largeur de lecture plus etroite: une fiche d'appel se lit, ne se balaie pas. */
 .wrap{max-width:1000px;display:grid;gap:18px}
 
-h1{font-family:var(--serif);font-size:25px;color:var(--t1)}
-h2{font-family:var(--serif);font-size:17px;color:var(--t1);margin-bottom:12px}
+h1{font-family:var(--serif);font-size:var(--f7);color:var(--t1)}
+h2{font-family:var(--serif);font-size:var(--f5);color:var(--t1);margin-bottom:12px}
 
-.tel{font-family:var(--mono);font-size:22px;color:var(--t1);font-weight:600}
+.tel{font-family:var(--mono);font-size:var(--f6);color:var(--t1);font-weight:600}
 .tel a{color:var(--amber)}
 .ligne{display:flex;flex-wrap:wrap;gap:18px;align-items:baseline}
-.ok{background:#e6f5ec;color:var(--grn);padding:10px 14px;border-radius:10px;font-weight:600}
+.ok{background:#e6f5ec;color:var(--grn);padding:10px 14px;border-radius:var(--r2);font-weight:600}
 .marche{border-top:1px solid var(--line);padding:12px 0;display:grid;gap:4px}
 .marche:first-of-type{border-top:none}
 .marche .obj{font-weight:700;color:var(--t1)}
 .badges{display:flex;gap:6px;flex-wrap:wrap}
-.b{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11.5px;font-weight:700;background:var(--surface2);color:var(--t2)}
+.b{display:inline-block;padding:2px 9px;border-radius:var(--rp);font-size:var(--f1);font-weight:700;background:var(--surface2);color:var(--t2)}
 .b.mt{background:#e6f5ec;color:var(--grn)}
 .b.dl{background:var(--ambera);color:var(--amber)}
-.script{background:var(--surface2);border-radius:10px;padding:14px 16px;line-height:1.75;font-size:14.5px}
+.script{background:var(--surface2);border-radius:var(--r2);padding:14px 16px;line-height:1.75;font-size:var(--f4)}
 .script b{color:var(--t1)}
 form{display:grid;gap:14px}
-label{font-weight:600;color:var(--t1);font-size:13.5px;display:block;margin-bottom:5px}
-select,input,textarea{font:inherit;width:100%;padding:9px 12px;border:1px solid var(--line2);border-radius:9px;background:#fff;color:var(--t1)}
+label{font-weight:600;color:var(--t1);font-size:var(--f3);display:block;margin-bottom:5px}
+select,input,textarea{font:inherit;width:100%;padding:9px 12px;border:1px solid var(--line2);border-radius:var(--r2);background:#fff;color:var(--t1)}
 textarea{min-height:92px;resize:vertical}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 @media(max-width:700px){.grid2{grid-template-columns:1fr}}
 
 .check{display:flex;align-items:center;gap:9px;font-weight:600;color:var(--t1)}
 .check input{width:auto}
-.alerte{background:#fae8e6;color:var(--red);padding:12px 14px;border-radius:10px;font-weight:600}
+.alerte{background:#fae8e6;color:var(--red);padding:12px 14px;border-radius:var(--r2);font-weight:600}
 {% endblock %}
 {% block contenu %}
 <div class="wrap">
@@ -54,7 +54,7 @@ textarea{min-height:92px;resize:vertical}
       <div>
         <div style="display:flex;justify-content:space-between;align-items:center;
                     gap:10px;margin-bottom:7px;flex-wrap:wrap">
-          <b style="font-size:13px;color:var(--t1)">WhatsApp / SMS</b>
+          <b style="font-size:var(--f2);color:var(--t1)">WhatsApp / SMS</b>
           <span style="display:flex;gap:7px">
             {% if c.phone %}
             <a class="btn btn-p" target="_blank" rel="noopener"
@@ -63,7 +63,7 @@ textarea{min-height:92px;resize:vertical}
             <button type="button" class="btn" onclick="copier('wa')">Copier</button>
           </span>
         </div>
-        <textarea id="wa" rows="11" style="width:100%;font-size:12.5px;line-height:1.6;
+        <textarea id="wa" rows="11" style="width:100%;font-size:var(--f2);line-height:1.6;
           font-family:var(--sans);resize:vertical">{{ msg_wa }}</textarea>
       </div>
       {% endif %}
@@ -72,7 +72,7 @@ textarea{min-height:92px;resize:vertical}
       <div>
         <div style="display:flex;justify-content:space-between;align-items:center;
                     gap:10px;margin-bottom:7px;flex-wrap:wrap">
-          <b style="font-size:13px;color:var(--t1)">Email</b>
+          <b style="font-size:var(--f2);color:var(--t1)">Email</b>
           <span style="display:flex;gap:7px">
             {% if c.email %}
             <form method="post" action="/admin/prospection/{{ c.id }}/email" style="display:inline">
@@ -83,7 +83,7 @@ textarea{min-height:92px;resize:vertical}
           </span>
         </div>
         <div class="meta" style="margin-bottom:7px">Objet : <b>{{ msg_objet }}</b></div>
-        <div style="border:1px solid var(--trait);border-radius:10px;max-height:290px;
+        <div style="border:1px solid var(--trait);border-radius:var(--r2);max-height:290px;
                     overflow:auto;background:var(--fond)">{{ msg_html|safe }}</div>
       </div>
       {% endif %}
@@ -101,22 +101,22 @@ textarea{min-height:92px;resize:vertical}
       {% for titre, texte in script %}
       {% if loop.index <= 5 %}
       <div>
-        <div style="font-size:11.5px;font-weight:700;color:var(--terre-f);
+        <div style="font-size:var(--f1);font-weight:700;color:var(--terre-f);
                     letter-spacing:.05em;text-transform:uppercase;margin-bottom:5px">
           {{ loop.index }}. {{ titre }}</div>
-        <div style="font-size:14px;line-height:1.65;color:var(--t1)">{{ texte }}</div>
+        <div style="font-size:var(--f3);line-height:1.65;color:var(--t1)">{{ texte }}</div>
       </div>
       {% endif %}
       {% endfor %}
       <details style="margin-top:4px">
-        <summary style="cursor:pointer;font-size:12.5px;font-weight:700;color:var(--terre-f)">
+        <summary style="cursor:pointer;font-size:var(--f2);font-weight:700;color:var(--terre-f)">
           Objections — les quatre qui reviennent</summary>
         <div style="display:grid;gap:12px;margin-top:12px">
           {% for titre, texte in script %}
           {% if loop.index > 5 %}
           <div>
-            <div style="font-size:13px;font-weight:700;color:var(--t1)">{{ titre }}</div>
-            <div style="font-size:13.5px;line-height:1.6;margin-top:3px">{{ texte }}</div>
+            <div style="font-size:var(--f2);font-weight:700;color:var(--t1)">{{ titre }}</div>
+            <div style="font-size:var(--f3);line-height:1.6;margin-top:3px">{{ texte }}</div>
           </div>
           {% endif %}
           {% endfor %}
@@ -137,7 +137,7 @@ textarea{min-height:92px;resize:vertical}
       </div>
     </div>
     {% if c.statut == 'ne_pas_contacter' %}
-    <div class="alerte" style="margin-top:14px">Cette entreprise a demandé à ne plus être contactée. Ne l'appelez pas.</div>
+    <div class="alerte" style="margin-top:16px">Cette entreprise a demandé à ne plus être contactée. Ne l'appelez pas.</div>
     {% endif %}
     <p class="meta" style="margin-top:12px">
       {{ c.appels }} appel(s) · dernier contact : {{ c.dernier_contact or 'jamais' }}
@@ -175,7 +175,7 @@ textarea{min-height:92px;resize:vertical}
       <b>السؤال :</b> كيفاش كتلقى الصفقات دابا؟ وشحال ديال الوقت كياخد ليك فالسيمانة؟<br><br>
       <b>الاقتراح :</b> جرب 7 أيام بالمجان، بلا كارطة بنكية. نحلو الحساب دابا مع بعض؟
     </div>
-    <p class="meta" style="margin-top:10px">Ne promettez jamais de gagner un marché. Si la personne demande à ne plus être appelée, choisissez « Ne plus contacter » ci-dessous.</p>
+    <p class="meta" style="margin-top:8px">Ne promettez jamais de gagner un marché. Si la personne demande à ne plus être appelée, choisissez « Ne plus contacter » ci-dessous.</p>
   </div>
 
   <div class="card">
@@ -216,8 +216,8 @@ textarea{min-height:92px;resize:vertical}
          pas. Le numéro trouvé à la main se saisit ici, sinon il est perdu dès
          l'onglet fermé et l'entreprise reste hors de la file d'appel. #}
       <div style="background:var(--surface2);border:1px solid var(--line2);
-                  border-radius:10px;padding:14px;margin-bottom:16px">
-        <div style="font-size:12.5px;color:var(--t2);margin-bottom:10px;line-height:1.6">
+                  border-radius:var(--r2);padding:14px;margin-bottom:16px">
+        <div style="font-size:var(--f2);color:var(--t2);margin-bottom:8px;line-height:1.6">
           {% if c.wins %}<b>Gagnant de {{ c.wins }} marché(s) public(s).</b> {% endif %}
           Les avis d'attribution ne publient pas de contact. Cherchez le numéro,
           puis enregistrez-le ici — il servira à tous les prochains appels.
