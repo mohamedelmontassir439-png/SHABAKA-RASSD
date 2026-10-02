@@ -74,11 +74,10 @@ a{color:inherit;text-decoration:none}
 /* ── Rail de navigation ───────────────────────────────────── */
 .rail{position:fixed;inset-block:0;inset-inline-start:0;width:var(--rail);background:var(--encre);
       display:flex;flex-direction:column;z-index:60;overflow-y:auto}
-.rail-tete{padding:20px 20px 18px;border-bottom:1px solid rgba(255,255,255,.08);
+.rail-tete{display:flex;flex-direction:column;align-items:center;gap:7px;
+  padding:20px 20px 18px;border-bottom:1px solid rgba(255,255,255,.08);
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='84'%3E%3Cg fill='none' stroke='%23f2662d' stroke-opacity='.16' stroke-width='1'%3E%3Cpath d='M42 2 80 42 42 82 4 42Z'/%3E%3Cpath d='M42 18 66 42 42 66 18 42Z'/%3E%3Cpath d='M42 2V82M4 42H80'/%3E%3C/g%3E%3C/svg%3E");
   background-size:84px 84px}
-.rail-nom{font-family:var(--serif);font-weight:700;font-size:var(--f5);color:#fff;line-height:1.2}
-.rail-nom em{font-style:italic;color:var(--terre);font-weight:600}
 .rail-meta{font-size:var(--f1);color:rgba(255,255,255,.42);font-weight:500;margin-top:5px;
            font-family:var(--mono)}
 .rail-groupe{padding:16px 12px 4px}
@@ -175,7 +174,8 @@ tbody tr:hover td{background:var(--surface2)}
 @media(max-width:1000px){
   .rail{position:static;width:auto;inset:auto;flex-direction:row;flex-wrap:wrap;
     align-items:center;gap:4px;padding:10px 14px}
-  .rail-tete{border:0;padding:0;background:none;margin-inline-end:16px}
+  .rail-tete{border:0;padding:0;background:none;margin-inline-end:16px;
+    flex-direction:row;gap:9px}
   .rail-meta{display:none}
   .rail-groupe{padding:0;display:flex;gap:4px}
   .rail-titre{display:none}
@@ -215,10 +215,14 @@ tbody tr:hover td{background:var(--surface2)}
 {% endmacro %}
 
 <nav class="rail" aria-label="Administration">
-  <div class="rail-tete">
-    <div class="rail-nom">Maroc<em>Entrepreneuriat</em></div>
-    <div class="rail-meta">admin{% if cfg %} · v{{ cfg.APP_VERSION }}{% endif %}</div>
-  </div>
+  {# La marque seule. Le nom en toutes lettres — vingt caractères — ne tenait
+     pas dans les 236 px du rail: il débordait, coupé net à la bordure. Le
+     khatim se lit à cette taille et dit la même chose; l'adresse de la page
+     et le titre disent déjà où l'on est. #}
+  <a class="rail-tete" href="/admin" aria-label="Maroc Entrepreneuriat — administration">
+    {{ etoile(34, '#f2662d')|safe }}
+    <span class="rail-meta">admin{% if cfg %} · v{{ cfg.APP_VERSION }}{% endif %}</span>
+  </a>
 
   <div class="rail-groupe">
     <div class="rail-titre">Pilotage</div>
