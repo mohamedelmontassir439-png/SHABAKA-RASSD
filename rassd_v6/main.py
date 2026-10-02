@@ -3119,6 +3119,61 @@ async def admin_prospection(req: Request, statut: str = "", s: str = "",
         "get_label": get_label, "now": datetime.now()})
 
 
+def _script_appel(entreprise: dict, ouverts: int, marches: list) -> list:
+    """Le déroulé de l'appel, avec les chiffres de cette entreprise-là.
+
+    Un script générique se récite et s'entend. Celui-ci ne tient que parce
+    qu'il nomme un marché que l'interlocuteur peut vérifier en raccrochant:
+    c'est la seule chose qui distingue cet appel d'un démarchage.
+
+    L'ordre n'est pas décoratif. La preuve vient avant l'offre, et la
+    question avant l'argumentaire: un entrepreneur qui a dit lui-même qu'il
+    rate des marchés n'a plus besoin qu'on le lui explique.
+    """
+    ville = entreprise.get("city") or ""
+    metier = get_label(entreprise.get("sector", "")) or "votre domaine"
+    exemple = (marches[0]["objet"][:95] + "…") if marches else ""
+    acheteur = marches[0].get("acheteur", "")[:50] if marches else ""
+    return [
+        ("Ouverture — 10 secondes",
+         f"Bonjour, {cfg.FROM_NAME}. Je ne vous vends rien tout de suite : "
+         f"je vous appelle parce qu'il y a en ce moment {ouverts} marché(s) "
+         f"public(s) ouvert(s) en {metier}"
+         + (f", et vous êtes à {ville}." if ville else ".")),
+        ("Preuve — laissez-la parler seule",
+         (f"Par exemple : « {exemple} »"
+          + (f", chez {acheteur}." if acheteur else ".")
+          + " Vous pouvez le vérifier, c'est public."
+          ) if exemple else
+         "Aucun marché ouvert dans ce secteur aujourd'hui : mieux vaut "
+         "rappeler cette entreprise un jour où il y en a."),
+        ("La question — puis vous vous taisez",
+         "Aujourd'hui, comment vous apprenez qu'un marché comme celui-là "
+         "est sorti ? … Et il vous arrive d'en rater ?"),
+        ("L'offre — seulement après sa réponse",
+         f"C'est exactement ce qu'on fait : chaque matin, les marchés de "
+         f"votre secteur et de votre région, par WhatsApp et par email. "
+         f"{cfg.TRIAL_DAYS} jours gratuits, sans carte bancaire, et vous "
+         f"arrêtez quand vous voulez."),
+        ("Clôture — obtenez le WhatsApp, pas un « rappelez-moi »",
+         "Je vous envoie le lien sur WhatsApp là, maintenant, pendant qu'on "
+         "se parle — c'est quoi votre numéro ? … Je vous rappelle jeudi "
+         "pour savoir si ça vous a servi."),
+        ("« Envoyez-moi un email »",
+         "Bien sûr. Mais l'email se perd : je vous mets aussi le lien sur "
+         "WhatsApp, vous l'ouvrez en dix secondes. C'est quel numéro ?"),
+        ("« C'est combien ? »",
+         f"On en parle dans {cfg.TRIAL_DAYS} jours, quand vous aurez vu si "
+         f"ça vous sert. Si ça ne vous rapporte rien, ça ne vaut rien."),
+        ("« J'ai déjà quelqu'un qui me les cherche »",
+         "Tant mieux. Gardez-le, et prenez les 7 jours en parallèle : si on "
+         "sort un marché qu'il n'a pas vu, vous le saurez tout de suite."),
+        ("« Ça ne m'intéresse pas »",
+         "Très bien, je vous retire de la liste, vous ne serez plus appelé. "
+         "— puis passez le statut à « Ne plus contacter »."),
+    ]
+
+
 @app.post("/admin/prospection/apparier")
 async def admin_prospection_apparier(req: Request, csrf_token: str = Form("")):
     """Rattache aux gagnants leur fiche dans un annuaire professionnel.
@@ -3179,6 +3234,7 @@ async def admin_prospection_fiche(req: Request, cid: int):
             f"et nous retirons vos coordonnées.")
     return templates.TemplateResponse("admin_prospection_fiche.html", {
         "request": req, "cfg": cfg, "c": entreprise, "marches": marches,
+        "script": _script_appel(entreprise, ouverts, marches),
         "ouverts": ouverts, "statuts": STATUTS_PROSPECTION, "get_label": get_label,
         "invitation": invitation, "lien_invitation": lien, "message_invitation": message,
         "csrf_token": get_csrf_token(req) or secrets.token_urlsafe(24)})

@@ -38,6 +38,39 @@ textarea{min-height:92px;resize:vertical}
 <div class="wrap">
   {% if request.query_params.get('ok') %}<div class="ok">✓ Fiche enregistrée</div>{% endif %}
 
+  {# Le script sous les yeux pendant l'appel: les cinq premieres etapes
+     ouvertes, les objections repliees jusqu'a ce qu'elles arrivent. #}
+  <div class="carte" style="border-color:var(--terre-p)">
+    <div class="carte-h"><span class="carte-t">☎ Script d'appel</span>
+      <span class="meta">Les chiffres ci-dessous sont ceux de cette entreprise.</span></div>
+    <div class="carte-b" style="display:grid;gap:14px">
+      {% for titre, texte in script %}
+      {% if loop.index <= 5 %}
+      <div>
+        <div style="font-size:11.5px;font-weight:700;color:var(--terre-f);
+                    letter-spacing:.05em;text-transform:uppercase;margin-bottom:5px">
+          {{ loop.index }}. {{ titre }}</div>
+        <div style="font-size:14px;line-height:1.65;color:var(--t1)">{{ texte }}</div>
+      </div>
+      {% endif %}
+      {% endfor %}
+      <details style="margin-top:4px">
+        <summary style="cursor:pointer;font-size:12.5px;font-weight:700;color:var(--terre-f)">
+          Objections — les quatre qui reviennent</summary>
+        <div style="display:grid;gap:12px;margin-top:12px">
+          {% for titre, texte in script %}
+          {% if loop.index > 5 %}
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--t1)">{{ titre }}</div>
+            <div style="font-size:13.5px;line-height:1.6;margin-top:3px">{{ texte }}</div>
+          </div>
+          {% endif %}
+          {% endfor %}
+        </div>
+      </details>
+    </div>
+  </div>
+
   <div class="card">
     <div class="ligne" style="justify-content:space-between">
       <div>
