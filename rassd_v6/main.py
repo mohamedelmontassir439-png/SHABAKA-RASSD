@@ -3097,15 +3097,43 @@ async def admin_prospection(req: Request, statut: str = "", s: str = "",
         "SELECT DISTINCT sector FROM companies WHERE sector!='' ORDER BY sector").fetchall()]
     nb_gagnants = db.execute(
         "SELECT COUNT(*) FROM companies WHERE COALESCE(wins,0) > 0").fetchone()[0]
+    nb_fiches = db.execute(
+        "SELECT COUNT(*) FROM companies WHERE COALESCE(wins,0) > 0 "
+        "AND COALESCE(annuaire_url,'') != ''").fetchone()[0]
     db.close()
     return templates.TemplateResponse("admin_prospection.html", {
         "request": req, "cfg": cfg, "rows": rows, "total": total, "page": page,
         "pages": max(1, (total + per - 1) // per), "statuts": STATUTS_PROSPECTION,
         "compteurs": compteurs, "rappels": rappels, "villes": villes,
-        "secteurs": secteurs, "nb_gagnants": nb_gagnants,
+        "secteurs": secteurs, "nb_gagnants": nb_gagnants, "nb_fiches": nb_fiches,
+        "csrf_token": get_csrf_token(req) or secrets.token_urlsafe(24),
         "f": {"statut": statut, "s": s, "ville": ville, "q": q,
               "gagnants": gagnants},
         "get_label": get_label, "now": datetime.now()})
+
+
+@app.post("/admin/prospection/apparier")
+async def admin_prospection_apparier(req: Request, csrf_token: str = Form("")):
+    """Rattache aux gagnants leur fiche dans un annuaire professionnel.
+
+    Global Marché ne publie pas les contacts des attributaires. Un annuaire
+    marocain d'entreprises en a une partie: on y reconnaît l'entreprise par
+    son nom canonique exact et on pose le lien de sa fiche publique. La page
+    s'ouvre ensuite dans le navigateur du fondateur — la plateforme ne la lit
+    pas, le site refusant les clients automatiques, ce qui est son droit.
+    """
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    csrf_guard(req, csrf_token)
+    try:
+        from app.services.annuaire_externe import apparier
+        stats = apparier(logger.info)
+        logger.info(f"[annuaire externe] {stats['apparies']} fiche(s) rattachée(s)")
+    except Exception as e:
+        # Le site peut être indisponible ou avoir changé ses sitemaps: la page
+        # d'appel doit rester utilisable, le compte affiché dira simplement
+        # qu'aucune fiche n'a été rattachée.
+        logger.error(f"[annuaire externe] {e}", exc_info=True)
+    return RedirectResponse("/admin/prospection?gagnants=1", 302)
 
 
 @app.get("/admin/prospection/{cid}", response_class=HTMLResponse)

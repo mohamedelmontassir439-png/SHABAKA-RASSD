@@ -506,6 +506,10 @@ def migrate_db():
         # Mesure du 01/10/2026: 84 rapprochements sur 246 attributaires, 196
         # une fois les deux cotes normalises.
         "ALTER TABLE tender_results ADD COLUMN adjudicataire_norm TEXT DEFAULT ''",
+        # Fiche de l'entreprise dans un annuaire professionnel externe,
+        # quand elle existe: Global Marché ne publie pas les contacts des
+        # attributaires, un annuaire tiers peut les avoir.
+        "ALTER TABLE companies ADD COLUMN annuaire_url TEXT DEFAULT ''",
     ]
     for col in cols:
         try:

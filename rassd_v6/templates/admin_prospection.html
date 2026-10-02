@@ -99,6 +99,17 @@ tr:hover td{background:#fffdf7}
     <a class="btn" href="/admin/prospection">Réinitialiser</a>
   </form>
 
+  {% if f.gagnants %}
+  <form method="post" action="/admin/prospection/apparier" style="margin:-8px 0 16px">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <button class="btn" type="submit">📒 Chercher les fiches dans l'annuaire professionnel</button>
+    <span class="meta" style="margin-inline-start:10px">
+      <b>{{ nb_fiches }}</b> fiche(s) déjà rattachée(s) sur {{ nb_gagnants }}.
+      Les avis d'attribution ne publient pas de contact; le rapprochement se
+      fait sur le nom exact, et la fiche s'ouvre dans votre navigateur.</span>
+  </form>
+  {% endif %}
+
   {% if rows %}
   <table>
     <thead>
@@ -118,9 +129,14 @@ tr:hover td{background:#fffdf7}
           {% else %}
           {# Global Marché ne publie pas les contacts des attributaires: le
              numéro se cherche, puis se saisit depuis la fiche d'appel. #}
+          {% if c.annuaire_url %}
+          <a class="meta" target="_blank" rel="noopener" href="{{ c.annuaire_url }}"
+             style="color:var(--amberd);font-weight:700">📒 fiche annuaire</a>
+          {% else %}
           <a class="meta" target="_blank" rel="noopener"
              href="https://www.google.com/search?q={{ (c.legal_name ~ ' ' ~ (c.city or '') ~ ' Maroc téléphone')|urlencode }}"
              style="color:var(--amberd);font-weight:700">🔍 chercher le numéro</a>
+          {% endif %}
           {% endif %}
           {% if c.email %}<div class="meta">{{ c.email[:30] }}</div>{% endif %}
         </td>
