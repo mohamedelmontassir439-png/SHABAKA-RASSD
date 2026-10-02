@@ -113,6 +113,9 @@ class Settings:
     BREVO_WEBHOOK_TOKEN: str = os.getenv("BREVO_WEBHOOK_TOKEN", "")
     # Heure d'envoi du résumé quotidien des marchés aux membres.
     DAILY_DIGEST_HOUR: int = int(os.getenv("DAILY_DIGEST_HOUR", "7"))
+    # Heure à laquelle le lot du soir est figé (heure du Maroc). Après la
+    # dernière collecte de la journée, pour que rien n'arrive ensuite.
+    RECAP_PREP_HOUR: int = int(os.getenv("RECAP_PREP_HOUR", "21"))
     # Heure d'envoi du bilan quotidien de supervision (heure du serveur).
     DAILY_REPORT_HOUR: int = int(os.getenv("DAILY_REPORT_HOUR", "8"))
     # Essai gratuit (jours) accordé à chaque nouvelle inscription

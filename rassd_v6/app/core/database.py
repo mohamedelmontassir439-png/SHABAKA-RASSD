@@ -511,6 +511,22 @@ def migrate_db():
         # attributaires, un annuaire tiers peut les avoir.
         "ALTER TABLE companies ADD COLUMN annuaire_url TEXT DEFAULT ''",
     ]
+    # Le lot du soir: ce qui sera envoyé à la main le lendemain matin.
+    # Une ligne par membre et par jour — figée à la préparation, pour que
+    # la liste ne bouge plus entre le moment où on l'ouvre et celui où on
+    # envoie, et pour savoir qui a déjà reçu son message.
+    db.execute("""CREATE TABLE IF NOT EXISTS recap_envois(
+        member_id   INTEGER NOT NULL,
+        jour        TEXT    NOT NULL,
+        nombre      INTEGER DEFAULT 0,
+        prepare_at  TEXT    DEFAULT '',
+        envoye_at   TEXT    DEFAULT '',
+        canal       TEXT    DEFAULT '',
+        PRIMARY KEY (member_id, jour))""")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_recap_jour ON recap_envois(jour)")
+    db.commit()
+    cols = cols + [
+    ]
     for col in cols:
         try:
             db.execute(col)

@@ -125,3 +125,116 @@ def membres_a_prevenir(jour: str = "") -> list:
         })
     sortie.sort(key=lambda x: x["nombre"], reverse=True)
     return sortie
+
+
+def preparer(jour: str = "", log_fn=None) -> dict:
+    """Fige, chaque soir, ce qui sera envoyé à la main le lendemain.
+
+    Sans cette étape, la liste était recalculée à l'ouverture de la page: ce
+    qu'on voyait à neuf heures n'était pas ce qu'on avait vu la veille, et
+    rien ne disait qui avait déjà reçu son message. Deux conséquences à
+    l'usage — un membre servi deux fois, un autre oublié.
+
+    On enregistre donc, par membre et par jour, le compte de marchés et
+    l'heure de préparation. Le message et le lien, eux, se reconstruisent à
+    l'identique quand on en a besoin: le jeton est déterministe, il n'y a
+    rien à stocker de plus.
+
+    Relancer la préparation du même jour met à jour les comptes sans effacer
+    les envois déjà marqués — une collecte tardive peut ajouter des marchés.
+    """
+    jour = jour or date.today().strftime("%Y-%m-%d")
+    db = get_db()
+    stats = {"jour": jour, "membres": 0, "avec_marches": 0, "marches": 0}
+    try:
+        membres = [dict(m) for m in db.execute(
+            "SELECT * FROM members WHERE actif=1").fetchall()]
+        maintenant = datetime.now().isoformat()
+        for membre in membres:
+            trouves = marches_du_jour(membre, jour)
+            stats["membres"] += 1
+            stats["marches"] += len(trouves)
+            stats["avec_marches"] += 1 if trouves else 0
+            db.execute(
+                """INSERT INTO recap_envois(member_id,jour,nombre,prepare_at)
+                   VALUES(?,?,?,?)
+                   ON CONFLICT(member_id,jour) DO UPDATE SET
+                      nombre=excluded.nombre, prepare_at=excluded.prepare_at""",
+                (membre["id"], jour, len(trouves), maintenant))
+        db.commit()
+    finally:
+        db.close()
+    if log_fn:
+        log_fn(f"═══ Récap du {jour} prêt: {stats['avec_marches']} membre(s) "
+               f"à prévenir sur {stats['membres']}, {stats['marches']} marché(s) ═══")
+    return stats
+
+
+def marquer_envoye(member_id: int, jour: str = "", canal: str = "whatsapp") -> bool:
+    """Note qu'on a effectivement envoyé son message à ce membre."""
+    jour = jour or date.today().strftime("%Y-%m-%d")
+    db = get_db()
+    try:
+        db.execute(
+            """INSERT INTO recap_envois(member_id,jour,envoye_at,canal)
+               VALUES(?,?,?,?)
+               ON CONFLICT(member_id,jour) DO UPDATE SET
+                  envoye_at=excluded.envoye_at, canal=excluded.canal""",
+            (member_id, jour, datetime.now().isoformat(), canal[:20]))
+        db.commit()
+    finally:
+        db.close()
+    return True
+
+
+def annuler_envoi(member_id: int, jour: str = "") -> bool:
+    """Défait un envoi marqué par erreur."""
+    jour = jour or date.today().strftime("%Y-%m-%d")
+    db = get_db()
+    try:
+        db.execute("UPDATE recap_envois SET envoye_at='' WHERE member_id=? AND jour=?",
+                   (member_id, jour))
+        db.commit()
+    finally:
+        db.close()
+    return True
+
+
+def lot_du_jour(jour: str = "") -> dict:
+    """Le lot préparé, enrichi de ce qu'il faut pour envoyer.
+
+    Rend {"jour", "prepare_at", "lignes", "envoyes", "restants"}. Les lignes
+    gardent l'ordre utile: ceux qui ont des marchés d'abord, et parmi eux
+    ceux qu'on n'a pas encore prévenus.
+    """
+    jour = jour or date.today().strftime("%Y-%m-%d")
+    db = get_db()
+    try:
+        lignes = [dict(r) for r in db.execute(
+            """SELECT m.*, e.nombre, e.prepare_at, e.envoye_at, e.canal
+               FROM members m JOIN recap_envois e ON e.member_id = m.id
+               WHERE e.jour=? AND m.actif=1""", (jour,)).fetchall()]
+    finally:
+        db.close()
+
+    sortie = []
+    for membre in lignes:
+        nombre = membre.get("nombre") or 0
+        lien = f"{cfg.SITE_URL}/recap/{jeton(membre['id'], jour)}"
+        sortie.append({
+            "membre": membre,
+            "nombre": nombre,
+            "lien": lien,
+            "envoye_at": membre.get("envoye_at") or "",
+            "message": message_whatsapp(membre, nombre, lien),
+        })
+    # À envoyer d'abord: ceux qui ont de quoi lire et qui n'ont rien reçu.
+    sortie.sort(key=lambda x: (bool(x["envoye_at"]), -x["nombre"]))
+    envoyes = sum(1 for x in sortie if x["envoye_at"])
+    return {
+        "jour": jour,
+        "prepare_at": (lignes[0].get("prepare_at") if lignes else "") or "",
+        "lignes": sortie,
+        "envoyes": envoyes,
+        "restants": sum(1 for x in sortie if x["nombre"] and not x["envoye_at"]),
+    }

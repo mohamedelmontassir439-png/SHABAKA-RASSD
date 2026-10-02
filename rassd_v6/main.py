@@ -452,6 +452,43 @@ async def daily_digest_scheduler():
         await asyncio.sleep(1800)
 
 
+async def recap_prep_scheduler():
+    """Fige chaque soir le lot à envoyer à la main le lendemain matin.
+
+    L'envoi WhatsApp reste manuel — c'est un choix, pas une limite: pour les
+    premiers abonnés, un message écrit de la main du fondateur vaut mieux
+    qu'une notification de plus. Mais la matière, elle, se prépare toute
+    seule: à l'heure dite, chaque membre actif reçoit sa ligne, avec le
+    compte de ses marchés du jour.
+
+    Préparer le soir plutôt qu'au moment d'ouvrir la page évite deux ennuis
+    constatés: la liste changeait entre deux consultations, et rien ne disait
+    qui avait déjà été prévenu.
+    """
+    from app.services.recap import preparer
+
+    await asyncio.sleep(300)
+    dernier = ""
+    while True:
+        try:
+            maintenant = datetime.now()
+            jour = maintenant.strftime("%Y-%m-%d")
+            if maintenant.hour >= cfg.RECAP_PREP_HOUR and dernier != jour:
+                loop = asyncio.get_event_loop()
+                stats = await loop.run_in_executor(None, lambda: preparer(jour))
+                dernier = jour
+                logger.info(f"[récap] lot du {jour} prêt: "
+                            f"{stats['avec_marches']}/{stats['membres']} membre(s)")
+                if stats["avec_marches"]:
+                    tg_admin(f"📋 Récap du {jour} prêt — "
+                             f"{stats['avec_marches']} membre(s) à prévenir, "
+                             f"{stats['marches']} marché(s).\n"
+                             f"{cfg.SITE_URL}/admin/recap")
+        except Exception as e:
+            logger.error(f"[recap_prep_scheduler] {e}")
+        await asyncio.sleep(1800)
+
+
 async def renewal_scheduler():
     """Relance les abonnements qui arrivent à échéance (J-7, J-1, jour J)."""
     from app.services.notifications import send_renewal_reminders
@@ -747,6 +784,7 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(supervision_scheduler())
     asyncio.create_task(renewal_scheduler())
     asyncio.create_task(daily_digest_scheduler())
+    asyncio.create_task(recap_prep_scheduler())
     yield
 
 app = FastAPI(lifespan=lifespan, title=cfg.APP_NAME,
@@ -1297,10 +1335,39 @@ async def admin_recap(req: Request, jour: str = ""):
     """
     if not _is_admin(req):
         return RedirectResponse("/admin/login", 302)
-    from app.services.recap import membres_a_prevenir
+    from app.services.recap import lot_du_jour, preparer
     jour = jour or date.today().strftime("%Y-%m-%d")
-    return render(req, "admin_recap.html",
-                  {"lignes": membres_a_prevenir(jour), "jour": jour})
+    lot = lot_du_jour(jour)
+    # Lot absent: soit le préparateur du soir n'est pas encore passé, soit on
+    # consulte un jour passé. On le constitue à la demande plutôt que de
+    # montrer une page vide — mais c'est bien le passage de 21 h qui le fige.
+    if not lot["lignes"]:
+        preparer(jour)
+        lot = lot_du_jour(jour)
+    return render(req, "admin_recap.html", {
+        "lignes": lot["lignes"], "jour": jour, "prepare_at": lot["prepare_at"],
+        "envoyes": lot["envoyes"], "restants": lot["restants"],
+        "csrf_token": get_csrf_token(req) or secrets.token_urlsafe(24)})
+
+
+@app.post("/admin/recap/envoye")
+async def admin_recap_envoye(req: Request, member_id: int = Form(...),
+                             jour: str = Form(""), defaire: str = Form(""),
+                             csrf_token: str = Form("")):
+    """Note qu'un membre a bien reçu son message — ou défait la marque.
+
+    Sans cette trace, deux membres servis deux fois et un troisième oublié:
+    rien, sur la page, ne distinguait ceux à qui on venait d'écrire.
+    """
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    csrf_guard(req, csrf_token)
+    from app.services.recap import annuler_envoi, marquer_envoye
+    jour = jour or date.today().strftime("%Y-%m-%d")
+    if defaire:
+        annuler_envoi(member_id, jour)
+    else:
+        marquer_envoye(member_id, jour)
+    return RedirectResponse(f"/admin/recap?jour={jour}", 302)
 
 
 @app.get("/recap/{jeton_recu}", response_class=HTMLResponse)
