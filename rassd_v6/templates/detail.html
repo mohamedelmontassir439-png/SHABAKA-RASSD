@@ -85,7 +85,7 @@
       <div class="info-grid">
         <div class="info-cell">
           <div class="info-label">{{ tr('detail_buyer') }}</div>
-          <div class="info-value">{{ (t.acheteur or '—')[:60] }}</div>
+          <div class="info-value">{{ (acheteur(t.acheteur) or '—')[:60] }}</div>
         </div>
         <div class="info-cell">
           <div class="info-label">{{ tr('detail_sector') }}</div>
@@ -140,7 +140,7 @@
         {% for r2 in related %}
         <a href="/tenders/{{ r2.id }}" class="related-row">
           <div class="related-title">{{ r2.objet[:120] }}</div>
-          <div class="related-meta">⏰ {{ r2.date_limite or '—' }} · {{ (r2.acheteur or '')[:40] }}</div>
+          <div class="related-meta">⏰ {{ r2.date_limite or '—' }} · {{ (acheteur(r2.acheteur) or '')[:40] }}</div>
         </a>
         {% endfor %}
       </div>

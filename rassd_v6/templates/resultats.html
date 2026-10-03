@@ -111,7 +111,7 @@
       <div class="res-grid">
         <div>
           <div class="res-cell-label">{{ tr('detail_buyer') }}</div>
-          <div class="res-cell-val">{{ (r.acheteur or '—')[:40] }}</div>
+          <div class="res-cell-val">{{ (acheteur(r.acheteur) or '—')[:40] }}</div>
         </div>
         <div>
           <div class="res-cell-label">{{ tr('res_winner') }}</div>

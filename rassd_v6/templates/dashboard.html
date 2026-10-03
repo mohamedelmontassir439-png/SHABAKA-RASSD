@@ -203,7 +203,7 @@
             <div class="mini-icon"><svg viewBox="0 0 24 24"><path d="M12 2.5l3.09 6.26L21.5 9.6l-4.75 4.63 1.12 6.53L12 17.7l-5.87 3.06 1.12-6.53L2.5 9.6l6.41-.84L12 2.5z"/></svg></div>
             <div class="mini-info">
               <div class="mini-title">{{ t.objet[:60] }}</div>
-              <div class="mini-sub">{{ get_label(t.secteur)[:30] }} · {{ (t.acheteur or '—')[:24] }}</div>
+              <div class="mini-sub">{{ get_label(t.secteur)[:30] }} · {{ (acheteur(t.acheteur) or '—')[:24] }}</div>
             </div>
           </a>
           {% endfor %}

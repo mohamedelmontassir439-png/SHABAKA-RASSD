@@ -43,7 +43,7 @@
           {% if dl_l and dl_n <= 7 %}<span class="badge badge-red">{{ dl_l }}</span>{% endif %}
         </div>
       </div>
-      <div class="fav-buyer">{{ (t.acheteur or '—')[:36] }}</div>
+      <div class="fav-buyer">{{ (acheteur(t.acheteur) or '—')[:36] }}</div>
       <div class="fav-deadline">{% if t.date_limite %}⏰ {{ t.date_limite }}{% endif %}</div>
       <div class="fav-arrow">{{ '←' if dir=='rtl' else '→' }}</div>
     </a>

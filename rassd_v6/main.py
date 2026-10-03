@@ -877,6 +877,11 @@ def source_label(source: str, lang: str = "fr") -> str:
     return tr_("source_private_platform", lang) if source else ""
 
 templates = Jinja2Templates(directory="templates")
+from app.core.acheteurs import lisible as _acheteur_lisible
+# Le libellé brut porte une étiquette de famille collée par la source:
+# « casablanca BAIA SOCIETE CASABLANCA BAÏA ». Le client lisait deux fois
+# le même nom et doutait du sérieux de la veille.
+templates.env.globals["acheteur"] = _acheteur_lisible
 templates.env.globals["get_label"] = get_label
 templates.env.globals["source_label"] = source_label
 # Globales plutot que variables de contexte: toutes les pages ne passent pas

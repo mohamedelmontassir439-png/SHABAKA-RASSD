@@ -461,7 +461,7 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
         <div>
           <div class="latest-title">{{ t.objet[:110] }}{% if t.objet|length > 110 %}…{% endif %}</div>
         </div>
-        <div class="latest-meta">{{ (t.acheteur or 'Maroc')[:28] }}</div>
+        <div class="latest-meta">{{ (acheteur(t.acheteur) or 'Maroc')[:28] }}</div>
         <div class="latest-meta">{{ t.date_limite or tr('latest_empty') }}</div>
         <div class="latest-arrow">{{ '←' if dir=='rtl' else '→' }}</div>
       </a>

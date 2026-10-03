@@ -51,7 +51,7 @@
     <div class="dec-sec">
       <h3>{{ tr('dec_market') }}</h3>
       <div class="dec-line"><span>{{ tr('dec_object') }}</span><b>{{ (marche.objet if marche else post.titre)[:200] }}</b></div>
-      <div class="dec-line"><span>{{ tr('dec_buyer') }}</span><b>{% if marche and marche.acheteur %}{{ marche.acheteur[:120] }}{% else %}<span class="dec-fill"></span>{% endif %}</b></div>
+      <div class="dec-line"><span>{{ tr('dec_buyer') }}</span><b>{% if marche and marche.acheteur %}{{ acheteur(marche.acheteur)[:120] }}{% else %}<span class="dec-fill"></span>{% endif %}</b></div>
       <div class="dec-line"><span>{{ tr('dec_market_ref') }}</span><b><span class="dec-fill"></span></b></div>
     </div>
 

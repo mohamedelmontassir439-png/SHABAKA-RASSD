@@ -5,6 +5,7 @@ from email.mime.text import MIMEText
 from app.core.config   import cfg
 from app.core.database import get_db
 from app.core.security import days_left, has_access
+from app.core.acheteurs import lisible as acheteur_lisible
 from app.core.sectors   import get_label
 
 logger = logging.getLogger("atlas.notif")
@@ -102,7 +103,7 @@ def build_tg_message(t: dict) -> str:
         f"📋 <b>{t['objet'][:120]}</b>",
         "",
     ]
-    if t.get("acheteur"): lines.append(f"🏢 {t['acheteur'][:70]}")
+    if t.get("acheteur"): lines.append(f"🏢 {acheteur_lisible(t['acheteur'])[:70]}")
     if t.get("secteur"):  lines.append(f"🏷 {get_label(t['secteur'])}")
     if t.get("region"):   lines.append(f"📍 {t['region']}")
     if t.get("montant"):  lines.append(f"💰 {t['montant']}")
@@ -219,7 +220,7 @@ td{{padding:10px 0;border-bottom:1px solid #e3e7ef;vertical-align:top;font-size:
 {priv_badge}{badge_html}
 <div class="title">{t["objet"][:200]}</div>
 <table>
-<tr><td class="lbl">🏢 Acheteur</td><td class="val">{t.get("acheteur","—")[:100]}</td></tr>
+<tr><td class="lbl">🏢 Acheteur</td><td class="val">{acheteur_lisible(t.get("acheteur","")) or "—"}</td></tr>
 <tr><td class="lbl">🏷 Secteur</td><td class="val val-g">{get_label(t.get("secteur",""))}</td></tr>
 {region_row}
 {montant_row}
@@ -237,7 +238,7 @@ def build_digest_email(tenders: list, nom: str = "") -> str:
     rows = "".join(f'''
 <tr><td style="padding:14px 0;border-bottom:1px solid #e3e7ef;">
   <div style="font-size:14px;font-weight:700;color:#101828;margin-bottom:4px">{"🔒 Privé · " if t.get("type_offre")=="Privé" else ""}{t["objet"][:140]}</div>
-  <div style="font-size:12px;color:#6b7488">{t.get("acheteur","")[:80]} · {get_label(t.get("secteur",""))} · ⏰ {t.get("date_limite","—")}</div>
+  <div style="font-size:12px;color:#6b7488">{acheteur_lisible(t.get("acheteur",""))[:80]} · {get_label(t.get("secteur",""))} · ⏰ {t.get("date_limite","—")}</div>
   <a href="{site}/tenders/{t["id"]}" style="font-size:12px;color:#c94e1f;font-weight:700;text-decoration:none">Voir le marché ↗</a>
 </td></tr>''' for t in tenders)
     return f"""<!DOCTYPE html>

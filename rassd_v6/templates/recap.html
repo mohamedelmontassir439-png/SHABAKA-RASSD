@@ -60,7 +60,7 @@
         {% endif %}
       </div>
       <div class="rc-bas">
-        <span>{{ (t.acheteur or '—')[:54] }}</span>
+        <span>{{ (acheteur(t.acheteur) or '—')[:54] }}</span>
         <span>{% if t.date_limite %}{{ tr('rc_limite') }} <b>{{ t.date_limite }}</b>{% endif %}</span>
       </div>
     </a>

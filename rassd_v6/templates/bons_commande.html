@@ -148,7 +148,7 @@
             {% if t.region %}<span class="badge badge-gray">{{ t.region[:18] }}</span>{% endif %}
           </div>
         </div>
-        <div class="row-buyer">{{ (t.acheteur or '—')[:40] }}</div>
+        <div class="row-buyer">{{ (acheteur(t.acheteur) or '—')[:40] }}</div>
         <div class="row-deadline" style="color: {% if dl_n is defined and dl_n < 0 %}var(--text4){% elif dl_n is defined and dl_n <= 3 %}var(--red){% elif dl_n is defined and dl_n <= 7 %}var(--goldd){% else %}var(--text2){% endif %};">
           {% if t.date_limite %}⏰ {{ t.date_limite }}{% else %}—{% endif %}
         </div>
