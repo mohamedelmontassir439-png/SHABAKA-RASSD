@@ -93,40 +93,6 @@ def tg_admin(msg: str):
     if cfg.ADMIN_CHAT_ID:
         tg_send(cfg.ADMIN_CHAT_ID, f"🔔 <b>MAROC ENTREPRENEURIAT</b>\n{msg}")
 
-def build_tg_message(t: dict) -> str:
-    _n, dl_label = days_left(t.get("date_limite", ""))
-    type_offre = t.get("type_offre", "Public")
-    lines = [
-        f"🏛 <b>Nouveau Marché {type_offre}</b>",
-        "━" * 28,
-        "",
-        f"📋 <b>{t['objet'][:120]}</b>",
-        "",
-    ]
-    if t.get("acheteur"): lines.append(f"🏢 {acheteur_lisible(t['acheteur'])[:70]}")
-    if t.get("secteur"):  lines.append(f"🏷 {get_label(t['secteur'])}")
-    if t.get("region"):   lines.append(f"📍 {t['region']}")
-    if t.get("montant"):  lines.append(f"💰 {t['montant']}")
-    dl = t.get("date_limite", "")
-    if dl:
-        badge = f" — <b>{dl_label}</b>" if dl_label else ""
-        lines.append(f"⏰ <b>{dl}{badge}</b>")
-    lines.append("")
-    # Le lien passe par notre propre domaine (redirection serveur) — la source
-    # des marchés privés n'apparaît donc jamais dans le message.
-    if t.get("source") == "marchespublics":
-        lines.append(f"🔗 <a href='{t['url']}'>Voir sur marchespublics.gov.ma</a>")
-    else:
-        lines.append(f"🔗 <a href='{cfg.SITE_URL}/tenders/{t['id']}/source'>Voir le marché</a>")
-    lines += [
-        f"📱 <a href='{cfg.SITE_URL}/tenders/{t['id']}'>Voir sur MAROC ENTREPRENEURIAT</a>",
-        "",
-        "<i>MAROC ENTREPRENEURIAT · Veille Marchés Publics & Privés Maroc</i>",
-    ]
-    return "\n".join(lines)
-
-# ── Email ─────────────────────────────────────────────────
-
 def email_send(to: str, subject: str, html: str) -> bool:
     if not to or "@" not in to:
         logger.warning(f"[Email] Adresse invalide: {to}")
@@ -172,13 +138,27 @@ def email_send(to: str, subject: str, html: str) -> bool:
     logger.error(f"[Email] Aucun provider configuré pour {to}")
     return False
 
+def libelle_type(t: dict) -> str:
+    """« marché » ou « bon de commande », selon la procédure.
+
+    L'alerte annonçait « Un nouveau marché » pour tout, y compris pour un
+    bon de commande — une procédure d'achat simplifiée, aux montants et aux
+    délais tout autres. Un entrepreneur qui ouvre l'email en préparant un
+    dossier de marché perd son temps, et doute du reste.
+    """
+    return ("bon de commande"
+            if (t.get("type_procedure") or "marche") == "bon_commande"
+            else "marché")
+
+
 def build_email(t: dict, nom: str = "") -> str:
     dl              = t.get("date_limite", "—") or "—"
     _n, dl_label    = days_left(t.get("date_limite", ""))
     site            = cfg.SITE_URL
     type_offre      = t.get("type_offre", "Public")
     is_public       = t.get("source") == "marchespublics"
-    cta_label       = "Voir sur marchespublics.gov.ma" if is_public else "Voir le marché"
+    cta_label       = ("Voir sur marchespublics.gov.ma" if is_public
+                   else f"Voir le {libelle_type(t)}")
     # Le lien passe par notre propre domaine (redirection serveur) pour les
     # marchés privés — leur source n'apparaît donc jamais dans l'email.
     cta_url         = t["url"] if is_public else f"{site}/tenders/{t['id']}/source"
@@ -216,7 +196,7 @@ td{{padding:10px 0;border-bottom:1px solid #e3e7ef;vertical-align:top;font-size:
 <div class="hdr">{logo_entete}<div style="font-size:11px;color:rgba(255,255,255,.55);margin-top:2px;text-align:center;letter-spacing:.08em">MARCHÉS {type_offre.upper()}S · MAROC</div></div>
 <div class="body">
 <p style="color:#6b7488;font-size:13px;margin-bottom:16px">Bonjour {nom or "Madame/Monsieur"},</p>
-<p style="color:#6b7488;font-size:13px;margin-bottom:20px">Un nouveau marché correspondant à votre profil vient d'être publié :</p>
+<p style="color:#6b7488;font-size:13px;margin-bottom:20px">Un nouveau {libelle_type(t)} correspondant à votre profil vient d'être publié :</p>
 {priv_badge}{badge_html}
 <div class="title">{t["objet"][:200]}</div>
 <table>
@@ -239,7 +219,7 @@ def build_digest_email(tenders: list, nom: str = "") -> str:
 <tr><td style="padding:14px 0;border-bottom:1px solid #e3e7ef;">
   <div style="font-size:14px;font-weight:700;color:#101828;margin-bottom:4px">{"🔒 Privé · " if t.get("type_offre")=="Privé" else ""}{t["objet"][:140]}</div>
   <div style="font-size:12px;color:#6b7488">{acheteur_lisible(t.get("acheteur",""))[:80]} · {get_label(t.get("secteur",""))} · ⏰ {t.get("date_limite","—")}</div>
-  <a href="{site}/tenders/{t["id"]}" style="font-size:12px;color:#c94e1f;font-weight:700;text-decoration:none">Voir le marché ↗</a>
+  <a href="{site}/tenders/{t["id"]}" style="font-size:12px;color:#c94e1f;font-weight:700;text-decoration:none">Voir le {libelle_type(t)} ↗</a>
 </td></tr>''' for t in tenders)
     return f"""<!DOCTYPE html>
 <html lang="fr"><head><meta charset="UTF-8">
@@ -257,7 +237,7 @@ table{{width:100%;border-collapse:collapse}}
 <body><div class="wrap">
 <div class="hdr"><div class="logo">Maroc<em>Entrepreneuriat</em></div><div style="font-size:11px;color:rgba(255,255,255,.6);margin-top:3px">RÉCAPITULATIF HEBDOMADAIRE</div></div>
 <div class="body">
-<p style="color:#6b7488;font-size:13px;margin-bottom:20px">Bonjour {nom or "Madame/Monsieur"}, voici les {len(tenders)} marché(s) correspondant à votre profil publiés cette semaine :</p>
+<p style="color:#6b7488;font-size:13px;margin-bottom:20px">Bonjour {nom or "Madame/Monsieur"}, voici les {len(tenders)} opportunité(s) correspondant à votre profil publiées cette semaine :</p>
 <table>{rows}</table>
 </div>
 <div class="ftr"><p style="color:#98a1b3;font-size:11px">MAROC ENTREPRENEURIAT · <a href="{site}" style="color:#6b7488">marocentrepreneuriat.com</a> · <a href="{site}/settings" style="color:#6b7488">Gérer mes alertes</a></p></div>
@@ -294,7 +274,7 @@ def send_weekly_digests(force: bool = False) -> int:
                 continue
             tenders = [dict(r) for r in rows]
             html = build_digest_email(tenders, member.get("nom", ""))
-            ok = email_send(member["email"], f"📋 Votre récapitulatif hebdomadaire — {len(tenders)} marché(s)", html)
+            ok = email_send(member["email"], f"📋 Votre récapitulatif hebdomadaire — {len(tenders)} opportunité(s)", html)
             if ok:
                 db.execute("DELETE FROM notif_queue WHERE member_id=?", (member["id"],))
                 db.execute("UPDATE members SET last_digest_sent=? WHERE id=?",
@@ -474,7 +454,7 @@ def dispatch_notifications(tenders: list, max_par_membre: int = 40):
                     html = build_email(t, member.get("nom", ""))
                     ok   = email_send(
                         member["email"],
-                        f"📋 Nouveau marché: {t['objet'][:60]}",
+                        f"📋 Nouveau {libelle_type(t)}: {t['objet'][:60]}",
                         html
                     )
                     _log_notif(db, member["id"], t["id"], "email", ok,
