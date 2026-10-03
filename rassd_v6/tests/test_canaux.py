@@ -70,14 +70,20 @@ class TestTelegramRetire:
 
 
 class TestWhatsAppAnnonceSeulementSiVivant:
-    @pytest.mark.parametrize("chemin", ["/", "/cgu", "/confidentialite"])
-    def test_rien_nest_promis_sans_expediteur(self, client, chemin):
+    @pytest.mark.parametrize("chemin", ["/cgu", "/confidentialite"])
+    def test_le_canal_dalerte_nest_pas_promis_sans_expediteur(self, client, chemin):
+        """Les pages contractuelles ne citent que ce qui part tout seul."""
         assert cfg.WA_ENABLED is False, "ce test décrit l'état canal fermé"
-        texte = client.get(chemin).text
-        # Le numéro de paiement reste affiché: c'est un contact, pas une
-        # alerte. Ce qui est interdit, c'est d'annoncer le canal d'alerte.
-        assert "Email, WhatsApp" not in texte
-        assert "résumé WhatsApp" not in texte
+        assert "Email, WhatsApp" not in client.get(chemin).text
+
+    def test_le_resume_quotidien_peut_etre_annonce(self, client):
+        """Il part réellement — de la main du fondateur, depuis /admin/recap.
+        L'annoncer est exact. Ce qui serait faux, c'est de le dire
+        automatique tant qu'aucun expéditeur Twilio n'existe.
+        """
+        texte = client.get("/").text
+        assert "résumé WhatsApp" in texte
+        assert "automatique" not in texte.split("WhatsApp")[1][:120]
 
     def test_la_promesse_revient_avec_le_canal(self, client, monkeypatch):
         monkeypatch.setattr(cfg, "WA_ENABLED", True)
