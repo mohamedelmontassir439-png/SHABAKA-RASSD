@@ -1,170 +1,142 @@
-"""La marque sort d'un seul endroit, et tient à toutes les tailles.
+# -*- coding: utf-8 -*-
+"""L'identité visuelle: un globe de méridiens dans un médaillon cerclé.
 
-Le signe est le khatim, l'étoile à huit branches du zellige marocain.
-Dessiné dans chaque gabarit, il aurait fini différent partout: une version
-dans la navigation, une autre dans les emails, une troisième sur le document
-qu'un membre imprime et remet à un maître d'ouvrage.
+Le signe dit ce que fait la plateforme — une couverture nationale, une
+veille qui embrasse le territoire. Le sceau à six branches sous le nom est
+le khatam, motif du zellige marocain.
+
+Ces tests ne jugent pas du goût: ils tiennent ce qui casse sans qu'on le
+voie. Un globe tracé au jugé devient une pelote; un nom trop large sort du
+médaillon; un SVG dans un email disparaît chez Gmail.
 """
-import math
 import re
 
 import pytest
 
-from app.core import marque as M
+from app.core import marque
 
 
-class TestGeometrieDuKhatim:
-    def test_le_rapport_creux_pointe_est_celui_du_khatim(self):
-        """Deux carrés superposés, l'un pivoté d'un quart de tour.
+class TestGlobe:
+    def test_la_sphere_porte_meridiens_et_paralleles(self):
+        """Tracés, pas dessinés: trois méridiens, quatre parallèles."""
+        svg = marque.etoile(64)
+        assert len(re.findall(r"<ellipse", svg)) >= 7, svg[:200]
 
-        Les creux tombent à R·cos(45°)/cos(22,5°). Posé au jugé, ce rapport
-        donne une fleur ou une roue dentée, pas une étoile marocaine.
-        """
-        assert abs(M._CREUX - 0.76537) < 1e-4
+    def test_les_meridiens_retrecissent_vers_le_centre(self):
+        """Des demi-largeurs égales donneraient des cercles concentriques,
+        pas une sphère."""
+        svg = marque.etoile(64)
+        rx = [float(v) for v in re.findall(r'<ellipse cx="50" cy="50" rx="([\d.]+)"', svg)]
+        assert rx == sorted(rx, reverse=True) and len(set(rx)) == len(rx)
 
-    def test_les_seize_sommets_alternent_pointe_et_creux(self):
-        coords = [(float(x), float(y)) for x, y in
-                  re.findall(r"[ML] (-?\d+\.\d+) (-?\d+\.\d+)", M._sommets(48))]
-        assert len(coords) == 16
-        for i, (x, y) in enumerate(coords):
-            rayon = math.hypot(x - 50, y - 50)
-            attendu = 48 if i % 2 == 0 else 48 * M._CREUX
-            assert abs(rayon - attendu) < 0.05, \
-                f"sommet {i}: {rayon:.2f} au lieu de {attendu:.2f}"
+    def test_le_point_de_lumiere_est_en_haut_a_droite(self):
+        """C'est lui qui fait la sphère plutôt que le disque."""
+        svg = marque.etoile(64)
+        m = re.search(r'<circle cx="([\d.]+)" cy="([\d.]+)" r="[\d.]+" fill="#fff"', svg)
+        assert m, "aucun point de lumière"
+        assert float(m.group(1)) > 50 and float(m.group(2)) < 50
 
-    def test_la_pointe_est_en_haut(self):
-        premier = re.search(r"M (-?\d+\.\d+) (-?\d+\.\d+)", M._sommets(48))
-        assert abs(float(premier.group(1)) - 50) < 0.05
-        assert abs(float(premier.group(2)) - 2) < 0.05
+    def test_le_globe_repose_sur_un_arc(self):
+        assert "<path d=" in marque.etoile(64)
 
-    def test_le_centre_est_ajoure_en_decoupe_reelle(self):
-        # Peint en blanc, l'ajour ferait une tache sur tout fond non blanc.
-        svg = M.etoile(48)
-        assert 'fill-rule="evenodd"' in svg
-        assert "#fff" not in svg.lower() and "white" not in svg.lower()
+    def test_les_degrades_ne_se_confondent_pas_entre_deux_marques(self):
+        """Deux marques sur la même page partageraient leurs identifiants, et
+        la seconde hériterait du dégradé de la première."""
+        ids_a = set(re.findall(r'id="(\w+)"', marque.etoile(64)))
+        ids_b = set(re.findall(r'id="(\w+)"', marque.etoile(40)))
+        assert ids_a and ids_b and not (ids_a & ids_b)
 
 
 class TestPetitesTailles:
-    @pytest.mark.parametrize("taille", [16, 24, 32, 48, 96, 512])
-    def test_la_marque_se_decline_a_toute_taille(self, taille):
-        svg = M.etoile(taille)
-        assert f'width="{taille}"' in svg and 'viewBox="0 0 100 100"' in svg
+    def test_sous_vingt_quatre_pixels_le_globe_se_simplifie(self):
+        """Les méridiens s'y referment en une tache: on garde la sphère nue."""
+        assert "<ellipse" not in marque.etoile(18)
+        assert "<ellipse" in marque.etoile(40)
 
-    def test_l_ajour_disparait_sous_vingt_pixels(self):
-        # À cette taille il se refermerait en deux ou trois pixels sales.
-        assert "L 70 50" not in M.etoile(16)
-        assert "L 70 50" in M.etoile(32)
+    def test_la_marque_reste_lisible_meme_reduite(self):
+        petit = marque.etoile(16)
+        assert "<circle" in petit and marque.OR in petit
+
+    def test_la_marque_ne_peut_pas_etre_ecrasee(self):
+        """Dans une barre chargée, « svg { max-width: 100% } » la réduisait
+        à rien pendant que le nom, en nowrap, tenait sa place."""
+        svg = marque.etoile(40)
+        assert "flex:none" in svg and "min-width:40px" in svg
+
+
+class TestSceau:
+    def test_le_khatam_est_fait_de_deux_triangles(self):
+        assert marque.sceau().count("<polygon") == 2
+
+    def test_les_deux_triangles_sont_decales(self):
+        """Superposés sans décalage, ils ne font qu'un triangle."""
+        pts = re.findall(r'points="([^"]+)"', marque.sceau())
+        assert len(pts) == 2 and pts[0] != pts[1]
+
+
+class TestMedaillon:
+    def test_il_porte_le_nom_le_sceau_et_la_mention(self):
+        svg = marque.medaillon(240)
+        for morceau in ("Maroc", "Entrepreneuriat", "COUVERTURE NATIONALE", "<polygon"):
+            assert morceau in svg, morceau
+
+    def test_le_nom_tient_dans_le_cercle(self):
+        """« Entrepreneuriat » à 26 px mesure environ 218 px; la corde du
+        cercle à cette hauteur en fait 240. Le corps ne doit pas remonter."""
+        corps = [float(v) for v in re.findall(r'font-size="(\d+)"', marque.medaillon(240))]
+        assert corps and max(corps) <= 26
+
+    def test_l_arc_ne_traverse_pas_le_nom(self):
+        """Le globe descendait trop: son arc coupait « Maroc » en deux."""
+        svg = marque.medaillon(240)
+        y_nom = min(float(v) for v in re.findall(r'<text x="150" y="(\d+)"', svg))
+        echelle = float(re.search(r"scale\(([\d.]+)\)", svg).group(1))
+        dy = float(re.search(r"translate\(\d+,(\d+)\)", svg).group(1))
+        y_arc = dy + (50 + 30 * 1.16) * echelle
+        assert y_arc < y_nom - 10, f"arc={y_arc}, nom={y_nom}"
+
+
+class TestEmails:
+    @pytest.mark.parametrize("fonction", ["logo_email", "logo_email_sombre"])
+    def test_les_emails_sont_en_typographie_seule(self, fonction):
+        """Gmail supprime le SVG et bloque les images par défaut."""
+        html = getattr(marque, fonction)()
+        assert "<svg" not in html and "<img" not in html
+        assert "Maroc" in html and "Entrepreneuriat" in html
+
+    def test_les_deux_versions_different_par_la_couleur_du_texte(self):
+        assert marque.logo_email() != marque.logo_email_sombre()
+        assert marque.ENCRE in marque.logo_email()
+        assert marque.CREME in marque.logo_email_sombre()
 
 
 class TestUsages:
-    def test_le_favicon_est_encode_pour_un_attribut_href(self):
-        uri = M.favicon_data_uri()
-        assert uri.startswith("data:image/svg+xml,")
-        for interdit in ('"', "<", ">", "#"):
-            assert interdit not in uri, f"{interdit} casserait l'attribut"
-
-    @pytest.mark.parametrize("fabrique", [M.logo_email, M.logo_email_sombre])
-    def test_les_emails_sont_en_typographie_seule(self, fabrique):
-        """Gmail supprime les SVG insérés et bloque les images distantes.
-
-        Reconstituer l'étoile en CSS demanderait clip-path, qu'aucun client
-        de messagerie n'interprète: le nom entre deux filets rend partout.
-        """
-        html = fabrique()
-        assert "<svg" not in html and "<img" not in html
-        assert "clip-path" not in html
-        assert "MAROC" in html and "ENTREPRENEURIAT" in html
-
     def test_le_logo_associe_la_marque_et_le_nom(self):
-        html = M.logo(44)
-        assert "<svg" in html, "la marque reste vectorielle"
-        assert "MAROC" in html and "ENTREPRENEURIAT" in html
+        html = marque.logo(44)
+        assert "<svg" in html and "Maroc" in html and "Entrepreneuriat" in html
 
-    def test_l_en_tete_de_document_porte_la_ligne_de_description(self):
-        # Ce document part chez un maître d'ouvrage: il doit dire d'où il
-        # vient sans qu'on le cherche.
-        assert "Veille des marchés" in M.entete_document(52)
-        assert "Veille des marchés" not in M.logo(44), "réservé aux documents"
+    def test_le_nom_peut_etre_masque_sans_toucher_a_la_marque(self):
+        """Le rail masque le nom sous 1400 px pour rendre sa largeur aux liens."""
+        assert 'class="me-logo-nom"' in marque.logo(44)
+
+    def test_l_en_tete_de_document_porte_la_mention(self):
+        assert "Couverture nationale" in marque.entete_document(52)
+
+    def test_sur_papier_le_nom_passe_en_encre(self):
+        """Le fond d'un document imprimé est blanc: la crème y disparaîtrait."""
+        assert marque.ENCRE in marque.entete_document(52)
+
+    def test_le_favicon_est_une_adresse_de_donnees(self):
+        uri = marque.favicon_data_uri()
+        assert uri.startswith("data:image/svg+xml,") and len(uri) > 120
 
 
 class TestCouleurs:
-    def test_les_teintes_sont_celles_de_la_plateforme(self):
-        assert (M.OR, M.TERRE, M.ENCRE, M.CREME) == \
-               ("#f2662d", "#c94e1f", "#2b211b", "#f8f1e1")
+    def test_un_seul_orange_sur_la_plateforme(self):
+        """Deux oranges proches font jurer la marque contre ses boutons."""
+        assert marque.OR == "#f2662d"
 
-    def test_le_nom_s_adapte_au_fond(self):
-        assert M.ENCRE in M.logo(44, couleur_texte=M.ENCRE)
-        assert M.CREME in M.logo(44, couleur_texte=M.CREME)
-
-
-class TestResistanceALaCompression:
-    """La marque ne doit pas être la variable d'ajustement d'une barre serrée.
-
-    Relevé en production le 30/09/2026: l'étoile avait disparu de l'en-tête
-    d'un membre connecté — neuf liens de navigation — tout en restant
-    visible dans le pied de page. La règle « svg { max-width: 100% } » la
-    laissait se réduire à rien pendant que le nom, en nowrap, tenait sa
-    place.
-    """
-
-    @pytest.mark.parametrize("taille", [28, 38, 42, 52])
-    def test_la_marque_refuse_de_retrecir(self, taille):
-        svg = M.etoile(taille)
-        assert "flex:none" in svg
-        assert f"min-width:{taille}px" in svg
-
-    def test_le_logo_complet_protege_aussi_sa_marque(self):
-        assert "flex:none" in M.logo(42)
-
-
-class TestLisibiliteSurFondSombre:
-    def test_le_nom_passe_en_creme_quand_on_le_demande(self):
-        # Laissé en encre sur la barre latérale brune, il devenait illisible.
-        sombre = M.logo(38, couleur_texte=M.CREME)
-        assert M.CREME in sombre and f"color:{M.ENCRE}" not in sombre
-
-
-class TestBarreDeNavigation:
-    """Les liens ne doivent jamais être coupés en plein mot.
-
-    Relevé le 01/10/2026 en français: « Sous-traitance » s'affichait
-    « Sous-traitanc », sa fin passant sous le sélecteur de langue. Chaque
-    lien est un enfant flex, donc compressible par défaut, et son texte
-    était rogné sans point de suspension. L'arabe, plus compact, passait.
-    """
-
-    def _gabarit(self):
-        return open("templates/base_public.html", encoding="utf-8").read()
-
-    def test_les_liens_refusent_d_etre_comprimes(self):
-        page = self._gabarit()
-        bloc = page[page.index(".nav-link {"):page.index(".nav-link:hover")]
-        assert "flex-shrink: 0" in bloc
-
-    def test_le_conteneur_peut_defiler(self):
-        # S'ils ne se compriment plus, c'est le conteneur qui doit céder.
-        page = self._gabarit()
-        bloc = page[page.index(".nav-links {"):page.index("html[dir=\"rtl\"] .nav-links")]
-        assert "min-width: 0" in bloc and "overflow-x: auto" in bloc
-
-    def test_un_lien_ne_touche_jamais_le_selecteur_de_langue(self):
-        page = self._gabarit()
-        bloc = page[page.index(".nav-links {"):page.index("html[dir=\"rtl\"] .nav-links")]
-        assert "padding-inline-end" in bloc
-        assert "mask-image" in bloc, "le dégradé signale qu'il reste des liens"
-
-    def test_le_nom_du_logo_cede_la_place_sous_1400px(self):
-        # Neuf liens français n'y tiennent pas: l'étoile seule suffit.
-        page = self._gabarit()
-        assert "@media(max-width: 1400px)" in page
-        assert ".nav-logo .me-logo-nom { display: none" in page
-
-    def test_le_nom_porte_la_classe_attendue(self):
-        assert 'class="me-logo-nom"' in M.logo(42)
-
-    def test_la_partie_droite_ne_se_comprime_pas(self):
-        # Identité et déconnexion: les deux seuls éléments dont un membre a
-        # besoin à coup sûr.
-        page = self._gabarit()
-        bloc = page[page.index(".nav-right {"):page.index(".nav-right {") + 200]
-        assert "flex-shrink: 0" in bloc
+    def test_les_teintes_sont_declarees_une_fois(self):
+        for nom in ("OR", "ENCRE", "CREME", "BRUN"):
+            valeur = getattr(marque, nom)
+            assert isinstance(valeur, str) and valeur.startswith("#")

@@ -889,6 +889,8 @@ templates.env.globals["source_label"] = source_label
 templates.env.globals["logo"] = marque.logo
 templates.env.globals["etoile"] = marque.etoile
 templates.env.globals["entete_document"] = marque.entete_document
+templates.env.globals["medaillon"] = marque.medaillon
+templates.env.globals["sceau"] = marque.sceau
 
 
 def initiales(nom: str, email: str = "") -> str:

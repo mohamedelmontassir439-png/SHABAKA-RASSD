@@ -49,6 +49,20 @@
 .hero-cta .btn-outline { background: transparent; border-color: rgba(255,255,255,.3); color: #fff; }
 .hero-cta .btn-outline:hover { border-color: #fff; background: rgba(255,255,255,.08); }
 .hero-visual { position: relative; display: flex; align-items: center; justify-content: center; min-height: 420px; }
+.hero-photo { position: relative; margin: 0; width: min(100%, 520px); aspect-ratio: 730/438;
+  border-radius: var(--r3); overflow: hidden; border: 1px solid rgba(242,102,45,.34);
+  box-shadow: 0 30px 70px rgba(10,7,5,.45); }
+.hero-photo img { width: 100%; height: 100%; object-fit: cover; display: block;
+  filter: saturate(1.06) contrast(1.04); }
+/* Le fondu vers le brun du bandeau: sans lui, la photo est un rectangle
+   collé sur le fond au lieu d'en faire partie. */
+.hero-photo::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(105deg, rgba(23,18,15,.88) 0%, rgba(23,18,15,.30) 42%,
+              rgba(23,18,15,0) 70%),
+              linear-gradient(0deg, rgba(23,18,15,.72) 0%, transparent 46%); }
+.hero-photo figcaption { position: absolute; inset-inline-start: 18px; bottom: 16px;
+  z-index: 1; line-height: 0; }
+@media (max-width: 900px) { .hero-photo { width: 100%; } }
 .hero-globe { position: relative; width: min(100%, 440px); aspect-ratio: 1; display: flex; align-items: center; justify-content: center; }
 .hero-globe-halo { position: absolute; inset: -10%; border-radius: 50%; background: radial-gradient(circle, rgba(255,255,255,.35) 0%, rgba(255,154,86,.12) 45%, transparent 72%); filter: blur(8px); }
 .hero-globe-orb { position: absolute; inset: 6%; border-radius: 50%; background:
@@ -233,23 +247,14 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
       <div class="hero-trial-note">✓ {{ tr('trial_note_nocard') }} &nbsp;·&nbsp; ✓ {{ tr('trial_note_full', n=cfg.TRIAL_DAYS) }}</div>
     </div>
     <div class="hero-visual reveal in reveal-2">
-      <div class="hero-globe">
-        <div class="hero-globe-halo"></div>
-        <div class="hero-globe-orb"></div>
-        <svg class="hero-globe-rings" viewBox="0 0 400 400" aria-hidden="true">
-          <ellipse class="r1" cx="200" cy="200" rx="185" ry="60"/>
-          <ellipse class="r2" cx="200" cy="200" rx="185" ry="115"/>
-          <ellipse class="r3" cx="200" cy="200" rx="185" ry="165"/>
-          <ellipse class="r2" cx="200" cy="200" rx="60" ry="185"/>
-          <ellipse class="r3" cx="200" cy="200" rx="115" ry="185"/>
-          <circle class="r1" cx="200" cy="200" r="185"/>
-        </svg>
-        <div class="hero-globe-dot" style="top:8%; left:50%;"></div>
-        <div class="hero-globe-brand">
-          <div class="hero-globe-mark">{{ tr('hero_globe_mark') }}</div>
-          <div class="hero-globe-name">Maroc Entrepreneuriat</div>
-        </div>
-      </div>
+      {# La photo fait 730 px de large. Étirée sur toute la bande elle
+         deviendrait floue; cadrée ici, à sa taille, elle reste nette. Le
+         dégradé la fond dans le brun du bandeau, comme une vignette. #}
+      <figure class="hero-photo">
+        <img src="/static/img/menara.jpg" width="730" height="438" loading="eager"
+             alt="La Menara à Marrakech, l'Atlas en arrière-plan">
+        <figcaption>{{ medaillon(118)|safe }}</figcaption>
+      </figure>
     </div>
   </div>
 </section>
