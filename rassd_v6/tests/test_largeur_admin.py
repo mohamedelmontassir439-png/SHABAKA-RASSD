@@ -73,3 +73,38 @@ class TestContenant:
             base = f.read()
         corps = re.search(r"\.corps\s*\{([^}]*)\}", base)
         assert corps and "min-width" not in corps.group(1)
+
+class TestContenuSansEspace:
+    """Ce qui n'a pas d'espace doit pouvoir être coupé quelque part."""
+
+    def test_le_terminal_ne_peut_pas_elargir_la_page(self):
+        """Une ligne de journal — une URL, un objet de marché — n'a pas
+        d'espace commode où couper. Sans autorisation explicite, elle
+        élargissait la carte, puis la grille, puis la page. Le défaut ne se
+        voyait pas en local, où le terminal est vide: seule la production,
+        après une collecte, le révélait.
+        """
+        with open(os.path.join(GABARITS, "admin.html"), encoding="utf-8") as f:
+            contenu = f.read()
+        regle = re.search(r"\.terminal\s*\{([^}]*)\}", contenu)
+        assert regle, "règle .terminal introuvable"
+        corps = regle.group(1)
+        assert "overflow-wrap" in corps or "word-break" in corps, corps
+
+
+class TestTarifs:
+    def test_aucun_gabarit_necrit_un_tarif_en_dur(self):
+        """Écrit en dur, un tarif survit au changement de prix: l'administration
+        affichait encore « Mensuel (250/mois) » après le passage à 249."""
+        from app.core.config import cfg
+        prix = {str(p["price"]) for p in cfg.PLANS.values() if p["price"]}
+        fautifs = {}
+        for chemin in sorted(glob.glob(os.path.join(GABARITS, "*.html"))):
+            with open(chemin, encoding="utf-8") as f:
+                contenu = f.read()
+            for valeur in prix:
+                # On ne cherche que les tarifs accolés à une période: « 249/mois »,
+                # « 2499 MAD ». Un nombre isolé peut être tout autre chose.
+                if re.search(rf"{valeur}\s*(?:/|MAD|درهم)", contenu):
+                    fautifs.setdefault(os.path.basename(chemin), []).append(valeur)
+        assert not fautifs, f"tarifs écrits en dur: {fautifs}"
