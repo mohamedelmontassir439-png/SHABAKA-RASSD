@@ -252,47 +252,6 @@
 </div>
 
 
-<!-- Ce qui détruit ne se range pas à côté de ce qui consulte: ces deux
-     actions étaient des liens de la barre de navigation, voisins de
-     « Membres » et « Paiements ». -->
-<div class="sensible" style="margin-top:32px">
-  <div class="sensible-t">Zone sensible</div>
-  <p class="meta" style="line-height:1.65;margin-bottom:16px;max-width:720px">
-    Ces deux actions écrivent dans la base. Elles ne sont plus accessibles par
-    un simple lien: une adresse visitée par inadvertance, préchargée par le
-    navigateur ou rejouée depuis l'historique ne doit rien pouvoir détruire.
-  </p>
-  <div style="display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start">
-    <form method="post" action="/admin/expire">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-      <button type="submit" class="btn">⏳ Expirer les marchés passés</button>
-      <div class="meta" style="margin-top:6px;max-width:260px;line-height:1.5">
-        Marque comme expirés les marchés dont la date limite est dépassée.
-        Réversible à la prochaine collecte.</div>
-    </form>
-    <form method="post" action="/admin/clear"
-          onsubmit="return confirm('Supprimer TOUS les marchés ? Action irréversible.')">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-      <div class="meta" style="margin-bottom:7px;max-width:300px;line-height:1.5">
-        Supprime <b>tous</b> les marchés et le journal d'alertes.
-        Recopiez <b>VIDER</b> pour l'autoriser.</div>
-      <div style="display:flex;gap:8px">
-        <input name="confirmation" placeholder="VIDER" autocomplete="off"
-               style="width:110px;font-family:var(--mono)">
-        <button type="submit" class="btn btn-d">Vider la base</button>
-      </div>
-    </form>
-  </div>
-  {% if request.query_params.get('purge') == 'mot' %}
-  <p style="color:var(--rouge);font-weight:600;margin-top:12px">
-    Mot de confirmation incorrect — rien n'a été supprimé.</p>
-  {% elif request.query_params.get('purge') %}
-  <p style="color:var(--rouge);font-weight:600;margin-top:12px">
-    {{ request.query_params.get('purge') }} marché(s) supprimé(s).</p>
-  {% endif %}
-</div>
-
-
 <script>
 let sse = null;
 async function launch() {

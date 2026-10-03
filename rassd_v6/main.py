@@ -3097,7 +3097,7 @@ async def admin_expire(req: Request, csrf_token: str = Form("")):
     csrf_guard(req, csrf_token)
     exp, active = expire_tenders()
     State.log(f"⏳ {exp} marché(s) expiré(s), {active} actif(s)")
-    return RedirectResponse(f"/admin?expires={exp}", 302)
+    return RedirectResponse(f"/admin/maintenance?expires={exp}", 302)
 
 def _reparer_fiches_portail(limite: int = 400) -> dict:
     """Recharge les fiches du portail public collectées avant la correction.
@@ -3904,6 +3904,21 @@ async def toggle_member(req: Request, mid:int, csrf_token:str=Form("")):
     db.close()
     return RedirectResponse("/admin",302)
 
+@app.get("/admin/maintenance", response_class=HTMLResponse)
+async def admin_maintenance(req: Request):
+    """Les actions qui écrivent dans la base, rassemblées et à l'écart.
+
+    Elles vivaient au bas du tableau de bord, sous les indicateurs: on les
+    croisait en consultant, ce qui n'est pas le bon moment pour voir un
+    bouton « Vider la base ». Elles ont désormais leur page, atteignable
+    depuis le rail — mais le rail ne porte que le lien, jamais le bouton.
+    """
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    return templates.TemplateResponse("admin_maintenance.html", {
+        "request": req, "cfg": cfg,
+        "csrf_token": get_csrf_token(req) or secrets.token_urlsafe(24)})
+
+
 # Mot à recopier pour vider la base: on ne détruit pas des milliers de
 # marchés sur un clic, fût-il confirmé par une boîte de dialogue.
 MOT_DE_PURGE = "VIDER"
@@ -3925,7 +3940,7 @@ async def admin_clear(req: Request, confirmation: str = Form(""),
     if not _is_admin(req): return RedirectResponse("/admin/login", 302)
     csrf_guard(req, csrf_token)
     if confirmation.strip() != MOT_DE_PURGE:
-        return RedirectResponse("/admin?purge=mot", 302)
+        return RedirectResponse("/admin/maintenance?purge=mot", 302)
     db = get_db()
     n  = db.execute("SELECT COUNT(*) FROM tenders").fetchone()[0]
     db.execute("DELETE FROM tenders")
@@ -3933,7 +3948,7 @@ async def admin_clear(req: Request, confirmation: str = Form(""),
     db.commit(); db.close()
     State.log(f"🗑 DB vidée ({n} marchés)")
     logger.warning(f"[admin] base vidée: {n} marchés supprimés")
-    return RedirectResponse(f"/admin?purge={n}", 302)
+    return RedirectResponse(f"/admin/maintenance?purge={n}", 302)
 
 @app.get("/admin/test_notif")
 async def admin_test_notif(req: Request, email:str="", tg:str="", wa:str=""):

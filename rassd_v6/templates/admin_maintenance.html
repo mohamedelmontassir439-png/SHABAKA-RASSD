@@ -1,0 +1,81 @@
+{% extends "admin_base.html" %}
+{% block titre %}Maintenance{% endblock %}
+{% block soustitre %}<div class="entete-sur">Pilotage</div>{% endblock %}
+{% block style %}
+.mt-intro{font-size:var(--f3);color:var(--t3);line-height:1.7;max-width:760px;margin-bottom:24px}
+.mt-acte{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:20px;
+  align-items:start;padding:20px 0;border-top:1px solid var(--trait)}
+.mt-acte:first-of-type{border-top:0;padding-top:0}
+.mt-nom{font-size:var(--f4);font-weight:700;color:var(--t1);margin-bottom:5px}
+.mt-dit{font-size:var(--f3);color:var(--t3);line-height:1.6;max-width:520px}
+.mt-faire{display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.mt-avis{font-weight:600;margin-top:16px;font-size:var(--f3)}
+@media(max-width:760px){.mt-acte{grid-template-columns:minmax(0,1fr)}
+  .mt-faire{justify-content:flex-start}}
+{% endblock %}
+{% block contenu %}
+
+<p class="mt-intro">
+  Ces actions écrivent dans la base. Aucune n'est accessible par un simple lien :
+  une adresse visitée par inadvertance, préchargée par le navigateur ou rejouée
+  depuis l'historique ne doit rien pouvoir détruire. Chacune passe par un
+  formulaire, avec un jeton de session.
+</p>
+
+<div class="sensible">
+  <div class="sensible-t">Zone sensible</div>
+
+  <div class="mt-acte">
+    <div>
+      <div class="mt-nom">Expirer les marchés passés</div>
+      <div class="mt-dit">
+        Marque comme expirés les marchés dont la date limite est dépassée.
+        Ils quittent les listes sans être supprimés, et la prochaine collecte
+        peut les rétablir.
+      </div>
+    </div>
+    <form method="post" action="/admin/expire" class="mt-faire">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button type="submit" class="btn">⏳ Expirer</button>
+    </form>
+  </div>
+
+  <div class="mt-acte">
+    <div>
+      <div class="mt-nom">Vider la base des marchés</div>
+      <div class="mt-dit">
+        Supprime <b>tous</b> les marchés et le journal d'alertes. Rien n'est
+        récupérable ensuite, sinon depuis une sauvegarde.
+        Recopiez <b>VIDER</b> pour l'autoriser.
+      </div>
+    </div>
+    <form method="post" action="/admin/clear" class="mt-faire"
+          onsubmit="return confirm('Supprimer TOUS les marchés ? Action irréversible.')">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input name="confirmation" placeholder="VIDER" autocomplete="off"
+             aria-label="Mot de confirmation"
+             style="width:110px;font-family:var(--mono)">
+      <button type="submit" class="btn btn-d">Vider la base</button>
+    </form>
+  </div>
+
+  {% if request.query_params.get('purge') == 'mot' %}
+  <p class="mt-avis" style="color:var(--rouge)">
+    Mot de confirmation incorrect — rien n'a été supprimé.</p>
+  {% elif request.query_params.get('purge') %}
+  <p class="mt-avis" style="color:var(--rouge)">
+    {{ request.query_params.get('purge') }} marché(s) supprimé(s).</p>
+  {% elif request.query_params.get('expires') %}
+  <p class="mt-avis" style="color:var(--vert)">
+    {{ request.query_params.get('expires') }} marché(s) expiré(s).</p>
+  {% endif %}
+</div>
+
+<p class="mt-intro" style="margin-top:24px">
+  Avant toute action irréversible, passez par
+  <a href="/admin/backups" style="color:var(--terre-f);font-weight:700">Sauvegardes</a>
+  et téléchargez la dernière copie : une sauvegarde qui dort sur le même disque
+  que la base ne protège de rien.
+</p>
+
+{% endblock %}

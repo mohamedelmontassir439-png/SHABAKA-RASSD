@@ -199,7 +199,8 @@ tbody tr:hover td{background:var(--surface2)}
 <body>
 {% set chemin = request.url.path %}
 {% set destinations = ['/admin', '/admin/sources', '/admin/backups', '/admin/members',
-                       '/admin/payments', '/admin/recap', '/admin/prospection/plan',
+                       '/admin/payments', '/admin/recap', '/admin/maintenance',
+                       '/admin/prospection/plan',
                        '/admin/prospection', '/admin/companies', '/admin/prospects',
                        '/admin/sous-traitance'] %}
 {#
@@ -237,6 +238,7 @@ tbody tr:hover td{background:var(--surface2)}
     {{ lien('/admin', '◆', 'Tableau de bord') }}
     {{ lien('/admin/sources', '⛁', 'Sources') }}
     {{ lien('/admin/backups', '⎘', 'Sauvegardes') }}
+    {{ lien('/admin/maintenance', '⚠', 'Maintenance') }}
   </div>
 
   <div class="rail-groupe">
