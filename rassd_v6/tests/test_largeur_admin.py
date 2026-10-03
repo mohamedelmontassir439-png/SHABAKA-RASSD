@@ -74,6 +74,28 @@ class TestContenant:
         corps = re.search(r"\.corps\s*\{([^}]*)\}", base)
         assert corps and "min-width" not in corps.group(1)
 
+    def test_la_page_ne_peut_pas_defiler_horizontalement(self):
+        """Dernier rempart. Le rail étant fixe, un défilement horizontal de la
+        page fait passer le début des lignes sous le rail: le texte disparaît
+        par la gauche. Ce qui est trop large défile dans son propre cadre.
+        """
+        with open(os.path.join(GABARITS, "admin_base.html"), encoding="utf-8") as f:
+            base = f.read()
+        corps = re.search(r"\.corps\s*\{([^}]*)\}", base).group(1)
+        assert "overflow-x:clip" in corps.replace(" ", "")
+
+    def test_le_rempart_ne_casse_pas_len_tete_collant(self):
+        """`overflow:hidden` ferait de .corps un conteneur de défilement, ce qui
+        détacherait l'en-tête collant et ajouterait une seconde barre
+        verticale. `clip` coupe sans rien de tout cela.
+        """
+        with open(os.path.join(GABARITS, "admin_base.html"), encoding="utf-8") as f:
+            base = f.read()
+        corps = re.search(r"\.corps\s*\{([^}]*)\}", base).group(1).replace(" ", "")
+        assert "overflow-x:hidden" not in corps and "overflow:hidden" not in corps
+        entete = re.search(r"\.entete\s*\{([^}]*)\}", base).group(1)
+        assert "sticky" in entete
+
 class TestContenuSansEspace:
     """Ce qui n'a pas d'espace doit pouvoir être coupé quelque part."""
 

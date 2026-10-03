@@ -96,7 +96,15 @@ a{color:inherit;text-decoration:none}
 .rail-pied a{color:rgba(255,255,255,.6);text-decoration:underline}
 
 /* ── Zone de contenu ──────────────────────────────────────── */
-.corps{margin-inline-start:var(--rail);min-height:100vh;display:flex;flex-direction:column}
+/* Invariant de la coquille: l'administration ne défile jamais
+   horizontalement. Ce qui est trop large défile dans son propre cadre —
+   un tableau, un terminal — jamais la page, car le rail est fixe et
+   recouvre alors le début des lignes.
+   `clip` et non `hidden`: `hidden` ferait de .corps un conteneur de
+   défilement, ce qui casserait l'en-tête collant et ajouterait une
+   seconde barre verticale. `clip` coupe sans rien de tout cela. */
+.corps{margin-inline-start:var(--rail);min-height:100vh;display:flex;
+  flex-direction:column;max-width:100%;overflow-x:clip}
 .entete{position:sticky;top:0;z-index:50;background:rgba(248,241,225,.92);
   backdrop-filter:blur(8px);border-bottom:1px solid var(--trait);
   padding:18px 32px;display:flex;align-items:flex-end;justify-content:space-between;
