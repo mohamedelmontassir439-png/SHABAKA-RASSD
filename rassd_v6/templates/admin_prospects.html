@@ -56,7 +56,7 @@
     </form>
 
     {% if rows %}
-    <table>
+    <div class="tableau-cadre"><table>
       <tr><th>Entreprise</th><th>Marchés gagnés</th><th>Secteurs</th><th>Régions</th><th>Dernière activité</th></tr>
       {% for row in rows %}
       <tr>
@@ -81,7 +81,7 @@
         <td style="color: var(--t3);">{{ (row.last_seen or '')[:10] }}</td>
       </tr>
       {% endfor %}
-    </table>
+    </table></div>
 
     {% if pages > 1 %}
     <div class="pagination">

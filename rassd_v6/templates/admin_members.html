@@ -36,7 +36,7 @@ details.del summary::-webkit-details-marker{display:none}
     </form>
 
     {% if members %}
-    <table>
+    <div class="tableau-cadre"><table>
       <tr><th>Membre</th><th>Plan</th><th>Statut</th><th>Paiements</th><th>Inscrit</th><th>Actions</th></tr>
       {% for m in members %}
       <tr>
@@ -93,7 +93,7 @@ details.del summary::-webkit-details-marker{display:none}
         </td>
       </tr>
       {% endfor %}
-    </table>
+    </table></div>
     {% else %}
     <div class="empty">Aucun membre trouvé.</div>
     {% endif %}

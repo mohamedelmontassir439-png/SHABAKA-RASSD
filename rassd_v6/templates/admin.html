@@ -2,12 +2,12 @@
 {% block titre %}Administration{% endblock %}
 {% block soustitre %}<div class="entete-sur">Tableau de bord administrateur</div>{% endblock %}
 {% block style %}
-.stats-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 24px; }
+.stats-grid { display: grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap: 12px; margin-bottom: 24px; }
 .stat { background: var(--surface); border: 1px solid var(--line); border-radius:var(--r2); padding: 18px; box-shadow: 0 1px 2px rgba(16,24,40,.04); }
 .stat-n { font-weight: 800; font-size:var(--f7); color: var(--navy); line-height: 1; }
 .stat-l { font-size:var(--f1); color: var(--t3); margin-top: 8px; font-weight: 600; }
 
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.grid2 { display: grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap: 20px; }
 
 .terminal { background: #0c1120; color: #d7e0f5; padding: 18px 20px; font-family: var(--mono); font-size:var(--f2); height: 340px; overflow-y: auto; line-height: 1.8; }
 .log-ok { color: #6ee7b7; }
@@ -15,7 +15,7 @@
 .log-hdr { color: var(--amber); }
 .log-n { color: #8b96ac; }
 
-.analytics-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+.analytics-grid { display: grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr); gap: 20px; margin-bottom: 20px; }
 .an-donut { width: 110px; height: 110px; border-radius: 50%; position: relative; margin: 0 auto; }
 .an-donut::after { content: ""; position: absolute; inset: 22%; background: var(--surface); border-radius: 50%; }
 .an-legend { display: flex; flex-direction: column; gap: 6px; margin-top: 16px; font-size:var(--f1); }
@@ -34,7 +34,7 @@
 
 .run-status { font-size:var(--f1); font-weight: 700; }
 
-@media (max-width: 1100px) { .stats-grid { grid-template-columns: repeat(3, 1fr); } .grid2 { grid-template-columns: 1fr; } }
+@media (max-width: 1100px) { .stats-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } .grid2 { grid-template-columns:minmax(0,1fr); } }
 {% endblock %}
 {% block contenu %}
 
@@ -127,7 +127,7 @@
       {% if scrapes %}
       <div class="card">
         <div class="card-h"><span class="card-ht">Historique des mises à jour</span></div>
-        <table>
+        <div class="tableau-cadre"><table>
           <tr><th>Date</th><th>Trouvés</th><th>Sauvés</th><th>Erreurs</th></tr>
           {% for s in scrapes %}
           <tr>
@@ -137,7 +137,7 @@
             <td style="color: {{ 'var(--red)' if s.errors > 0 else 'var(--t4)' }}; font-weight: 700;">{{ s.errors }}</td>
           </tr>
           {% endfor %}
-        </table>
+        </table></div>
       </div>
       {% endif %}
     </div>
@@ -176,7 +176,7 @@
           <span class="badge {{ 'b-r' if errors_7j else 'b-grn' }}">{{ errors_7j }} (7j)</span>
         </div>
         {% if recent_errors %}
-        <table>
+        <div class="tableau-cadre"><table>
           <tr><th>Route</th><th>Message</th><th>Date</th></tr>
           {% for e in recent_errors %}
           <tr>
@@ -185,7 +185,7 @@
             <td style="color:var(--t3); white-space:nowrap;">{{ e.created_at[:16] }}</td>
           </tr>
           {% endfor %}
-        </table>
+        </table></div>
         {% else %}
         <div class="card-b" style="color:var(--t3); font-size:var(--f2);">Aucune erreur enregistrée — tout va bien.</div>
         {% endif %}
@@ -210,7 +210,7 @@
           <span class="card-ht">Derniers membres</span>
           <a href="/admin/members" style="font-size:var(--f1); color: var(--navy); font-weight: 700;">{{ stats.members }} total — tout gérer →</a>
         </div>
-        <table>
+        <div class="tableau-cadre"><table>
           <tr><th>Membre</th><th>Plan</th><th>Statut</th><th>Inscrit</th></tr>
           {% for m in members %}
           <tr>
@@ -238,7 +238,7 @@
             <td style="color: var(--t3);">{{ m.created_at[:10] }}</td>
           </tr>
           {% endfor %}
-        </table>
+        </table></div>
       </div>
     </div>
   </div>

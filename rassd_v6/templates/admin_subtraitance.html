@@ -10,7 +10,7 @@
 <div class="card">
     <div class="card-h"><span class="card-ht">Toutes les annonces ({{ posts|length }})</span></div>
     {% if posts %}
-    <table>
+    <div class="tableau-cadre"><table>
       <tr><th>Annonce</th><th>Auteur</th><th>Statut</th><th>Signalements</th><th>Publiée</th><th></th></tr>
       {% for p in posts %}
       <tr>
@@ -31,7 +31,7 @@
         </td>
       </tr>
       {% endfor %}
-    </table>
+    </table></div>
     {% else %}
     <div class="empty">Aucune annonce pour l'instant.</div>
     {% endif %}
@@ -40,7 +40,7 @@
   {% if reports %}
   <div class="card">
     <div class="card-h"><span class="card-ht">Derniers signalements</span></div>
-    <table>
+    <div class="tableau-cadre"><table>
       <tr><th>Annonce</th><th>Signalé par</th><th>Motif</th><th>Date</th></tr>
       {% for r in reports %}
       <tr>
@@ -50,7 +50,7 @@
         <td style="color:var(--t3);">{{ r.created_at[:16] }}</td>
       </tr>
       {% endfor %}
-    </table>
+    </table></div>
   </div>
   {% endif %}
 {% endblock %}

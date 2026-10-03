@@ -17,7 +17,7 @@
   <div class="card">
     <div class="card-h"><span class="card-ht">Sources déclarées ({{ sources|length }})</span></div>
     {% if sources %}
-    <table>
+    <div class="tableau-cadre"><table>
       <tr><th>Source</th><th>Type</th><th>Accès</th><th>robots.txt</th><th>Autorisation</th><th>Statut</th><th>Vérifié le</th></tr>
       {% for s in sources %}
       <tr>
@@ -39,7 +39,7 @@
         <td style="color:var(--t3);white-space:nowrap;">{{ s.last_checked }}</td>
       </tr>
       {% endfor %}
-    </table>
+    </table></div>
     {% else %}
     <div class="empty">Aucune source déclarée.</div>
     {% endif %}
@@ -48,7 +48,7 @@
   <div class="card">
     <div class="card-h"><span class="card-ht">Santé par source</span></div>
     {% if per_source %}
-    <table>
+    <div class="tableau-cadre"><table>
       <tr><th>Source</th><th>Exécutions</th><th>Succès</th><th>Échecs</th><th>Enregistrements sauvés</th><th>Dernière exécution</th></tr>
       {% for p in per_source %}
       <tr>
@@ -60,7 +60,7 @@
         <td style="color:var(--t3);white-space:nowrap;">{{ (p.last_run or '')[:16].replace('T',' ') }}</td>
       </tr>
       {% endfor %}
-    </table>
+    </table></div>
     {% else %}
     <div class="empty">Aucune exécution enregistrée pour l'instant — les statistiques apparaîtront après la prochaine veille.</div>
     {% endif %}
@@ -69,7 +69,7 @@
   {% if runs %}
   <div class="card">
     <div class="card-h"><span class="card-ht">Dernières exécutions</span></div>
-    <table>
+    <div class="tableau-cadre"><table>
       <tr><th>Démarrée</th><th>Source</th><th>Statut</th><th>Trouvés</th><th>Sauvés</th><th>Doublons</th><th>Durée</th><th>Message</th></tr>
       {% for r in runs %}
       <tr>
@@ -83,7 +83,7 @@
         <td style="color:var(--red);font-size:var(--f1);">{{ (r.message or '')[:60] }}</td>
       </tr>
       {% endfor %}
-    </table>
+    </table></div>
   </div>
   {% endif %}
 {% endblock %}

@@ -18,7 +18,7 @@
   <div class="card">
     <div class="card-h"><span class="card-ht">{{ files|length }} sauvegarde(s) disponible(s)</span></div>
     {% if files %}
-    <table>
+    <div class="tableau-cadre"><table>
       <tr><th>Fichier</th><th>Créée le</th><th>Taille</th><th></th></tr>
       {% for f in files %}
       <tr>
@@ -28,7 +28,7 @@
         <td><a href="/admin/backups/download/{{ f.name }}" class="btn btn-o" style="padding:6px 10px; color:var(--t1); border-color:var(--line2);">⬇ Télécharger</a></td>
       </tr>
       {% endfor %}
-    </table>
+    </table></div>
     {% else %}
     <div class="empty">Aucune sauvegarde pour l'instant — la première sera créée automatiquement, ou cliquez sur « Sauvegarder maintenant ».</div>
     {% endif %}

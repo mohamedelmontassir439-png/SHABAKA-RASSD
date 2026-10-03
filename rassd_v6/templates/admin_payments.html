@@ -4,12 +4,12 @@
 {% block style %}
 .btn-l { background: var(--surface); border-color: var(--line2); color: var(--t1); }
 
-.stats-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 24px; }
+.stats-row { display: grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap: 14px; margin-bottom: 24px; }
 .stat { background: var(--surface); border: 1px solid var(--line); border-radius:var(--r2); padding: 18px; }
 .stat-n { font-weight: 800; font-size:var(--f7); color: var(--navy); line-height: 1; }
 .stat-l { font-size:var(--f1); color: var(--t3); margin-top: 8px; font-weight: 600; }
 
-.form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.form-grid { display: grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap: 14px; }
 .fld { display: flex; flex-direction: column; gap: 6px; }
 .fld label { font-size:var(--f1); font-weight: 700; color: var(--t3); }
 
@@ -19,7 +19,7 @@
 .amount { font-weight: 800; color: var(--grn); }
 .mono { font-family: var(--mono); font-size:var(--f1); }
 
-@media (max-width: 900px) { .form-grid, .stats-row { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .form-grid, .stats-row { grid-template-columns:minmax(0,1fr); } }
 {% endblock %}
 {% block contenu %}
 
@@ -95,7 +95,7 @@
   <div class="card">
     <div class="card-h"><span class="card-ht">Historique des paiements ({{ payments|length }})</span></div>
     {% if payments %}
-    <table>
+    <div class="tableau-cadre"><table>
       <tr><th>Date</th><th>Membre</th><th>Montant</th><th>Moyen</th><th>Période couverte</th><th>Reçu</th></tr>
       {% for p in payments %}
       <tr>
@@ -107,7 +107,7 @@
         <td>{% if p.receipt %}<a href="/documents/{{ p.receipt }}" target="_blank" class="btn btn-l" style="padding:5px 10px;">{{ p.receipt }}</a>{% else %}—{% endif %}</td>
       </tr>
       {% endfor %}
-    </table>
+    </table></div>
     {% else %}
     <div class="empty">Aucun paiement enregistré pour l'instant.</div>
     {% endif %}
