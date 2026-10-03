@@ -2603,10 +2603,6 @@ async def admin_panel(req: Request):
     stats   = get_stats()
     sectors = [dict(r) for r in db.execute(
         "SELECT secteur,COUNT(*) cnt FROM tenders WHERE statut='actif' GROUP BY secteur ORDER BY cnt DESC").fetchall()]
-    members = [dict(r) for r in db.execute(
-        """SELECT id,nom,email,plan,created_at,last_login,actif,
-                  subscription_status,subscription_end,trial_ends
-           FROM members ORDER BY created_at DESC LIMIT 30""").fetchall()]
     scrapes = [dict(r) for r in db.execute(
         "SELECT * FROM scrape_log ORDER BY run_at DESC LIMIT 8").fetchall()]
 
@@ -2636,7 +2632,7 @@ async def admin_panel(req: Request):
     csrf_tok = get_csrf_token(req) or secrets.token_urlsafe(24)
     resp = templates.TemplateResponse("admin.html",{
         "request":req,"stats":stats,"sectors":sectors,
-        "members":members,"scrapes":scrapes,
+        "scrapes":scrapes,
         "logs":State.logs[-100:],"running":State.running,
         "last_run":State.last_run,"cfg":cfg,"multi_ok":False,
         "member_growth":member_growth,"plan_dist":plan_dist,
