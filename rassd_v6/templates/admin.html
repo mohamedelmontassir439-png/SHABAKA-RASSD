@@ -173,6 +173,29 @@
             <a href="{{ cfg.WA_SERVICE_URL }}/qr" target="_blank" class="btn btn-o" style="flex:1;justify-content:center;">📷 Connecter WhatsApp</a>
             <button onclick="checkWA()" class="btn btn-o">↻</button>
           </div>
+
+          {# Aperçu d'alerte: le marché réel le plus récemment collecté, dans
+             l'email que reçoit un membre. En POST, car un envoi ne doit pas
+             partir sur un préchargement, et chaque envoi compte sur le quota. #}
+          <form method="post" action="/admin/apercu-alerte"
+                style="display:flex;gap:8px;margin-top:12px;padding-top:12px;
+                       border-top:1px solid var(--trait);flex-wrap:wrap">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input name="email" type="email" placeholder="adresse de réception"
+                   aria-label="Adresse qui recevra l'aperçu"
+                   style="flex:1;min-width:180px">
+            <button type="submit" class="btn">✉ Aperçu d'alerte</button>
+          </form>
+          {% set etat = request.query_params.get('apercu') %}
+          {% if etat %}
+          <div class="meta" style="margin-top:8px;font-weight:600;
+               color:{{ 'var(--vert)' if etat == 'ok' else 'var(--rouge)' }}">
+            {% if etat == 'ok' %}Envoyé — le marché réel le plus récent, dans l'email d'alerte.
+            {% elif etat == 'sans_marche' %}Aucun marché actif en base: rien à montrer.
+            {% elif etat == 'sans_adresse' %}Indiquez une adresse.
+            {% else %}Échec de l'envoi — voir les erreurs récentes.{% endif %}
+          </div>
+          {% endif %}
         </div>
       </div>
 

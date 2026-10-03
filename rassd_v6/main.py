@@ -23,7 +23,7 @@ from app.core.sectors import get_label
 from app.core import marque
 from app.core import organismes
 from app.core.i18n import get_lang, make_t, SUPPORTED_LANGS, tr as tr_
-from app.services.notifications import dispatch_notifications, tg_admin, test_notifications
+from app.services.notifications import dispatch_notifications, envoyer_apercu, tg_admin
 
 # Les sources secondaires (ONDA, ONEE, ONCF, IAM, SNRT, Le Matin, banques)
 # ont été retirées: deux bloquent les robots, les autres ne renvoyaient plus
@@ -3946,15 +3946,28 @@ async def admin_clear(req: Request, confirmation: str = Form(""),
     logger.warning(f"[admin] base vidée: {n} marchés supprimés")
     return RedirectResponse(f"/admin/maintenance?purge={n}", 302)
 
-@app.get("/admin/test_notif")
-async def admin_test_notif(req: Request, email:str="", tg:str="", wa:str=""):
-    if not _is_admin(req): return JSONResponse({"ok":False},401)
-    member    = get_member(req)
-    test_email = email or (member["email"] if member else "")
-    test_tg    = tg or cfg.ADMIN_CHAT_ID or ""
-    test_wa    = wa or (member["whatsapp"] if member else "")
-    results    = test_notifications(test_email, test_tg, test_wa)
-    return JSONResponse({"ok":True,"results":results,"email_tested":test_email,"tg_tested":test_tg,"wa_tested":test_wa})
+@app.post("/admin/apercu-alerte")
+async def admin_apercu_alerte(req: Request, email: str = Form(""),
+                              tender_id: str = Form(""), csrf_token: str = Form("")):
+    """Envoie à une adresse l'alerte telle qu'un membre la reçoit.
+
+    En POST: un GET qui envoie un email part sur un simple préchargement du
+    navigateur ou une entrée d'historique rejouée — et chaque envoi compte
+    sur le quota.
+    """
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    csrf_guard(req, csrf_token)
+    membre = get_member(req)
+    destinataire = (email or "").strip() or (membre["email"] if membre else "")
+    ok, marche = envoyer_apercu(destinataire, tender_id.strip())
+    if not marche:
+        etat = "sans_marche" if destinataire else "sans_adresse"
+    else:
+        etat = "ok" if ok else "echec"
+        logger.info(f"[aperçu] {destinataire} ← {marche['id']}: "
+                    f"{'envoyé' if ok else 'échec'}")
+    return RedirectResponse(f"/admin?apercu={etat}", 302)
+
 
 @app.get("/admin/reset_state")
 async def admin_reset(req: Request):

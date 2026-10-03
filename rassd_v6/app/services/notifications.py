@@ -527,31 +527,39 @@ def dispatch_notifications(tenders: list, max_par_membre: int = 40):
         db.close()
 
 
-def test_notifications(email: str = "", telegram_id: str = "", whatsapp: str = "") -> dict:
-    """Test les notifications — appelé depuis /admin/test_notif"""
-    results = {"telegram": False, "email": False, "whatsapp": False}
-    fake_tender = {
-        "id":               "bdc_test",
-        "objet":            "TEST — Marché de test MAROC ENTREPRENEURIAT",
-        "acheteur":         "Administration Marocaine",
-        "secteur":          "S901",
-        "region":           "Rabat-Salé-Kénitra",
-        "montant":          "100 000 MAD",
-        "date_limite":      "30/12/2026",
-        "date_publication": datetime.now().strftime("%d/%m/%Y"),
-        "url":              "https://www.marchespublics.gov.ma",
-    }
-    if telegram_id:
-        results["telegram"] = tg_send(telegram_id, build_tg_message(fake_tender))
-    if email:
-        html = build_email(fake_tender, "Administrateur")
-        results["email"] = email_send(email, "🧪 Test MAROC ENTREPRENEURIAT — Notifications", html)
-    if whatsapp:
-        results["whatsapp"] = send_wa(whatsapp, format_tender_wa(fake_tender))
-    return results
+def envoyer_apercu(email: str, tender_id: str = "") -> tuple:
+    """Envoie à une adresse l'alerte telle qu'un membre la reçoit. Rend (ok, marche).
 
+    L'ancienne version fabriquait un faux marché — « TEST — Marché de test
+    MAROC ENTREPRENEURIAT », acheteur « Administration Marocaine », montant
+    rond. On ne pouvait donc pas juger de ce que reçoit vraiment un abonné:
+    ni la longueur d'un objet réel, ni un montant à la marocaine, ni une date
+    limite proche qui change la couleur du bandeau.
 
-# ── Résumé WhatsApp quotidien ─────────────────────────────
+    On prend donc un marché réel, le plus récemment collecté par défaut, et
+    on passe par le même constructeur d'email que les alertes. Ce qui arrive
+    dans la boîte est ce qui arrive aux membres, au destinataire près.
+    """
+    if not email or "@" not in email:
+        return False, None
+    db = get_db()
+    try:
+        if tender_id:
+            ligne = db.execute("SELECT * FROM tenders WHERE id=?", (tender_id,)).fetchone()
+        else:
+            ligne = db.execute(
+                "SELECT * FROM tenders WHERE statut='actif' AND COALESCE(objet,'')<>'' "
+                "ORDER BY scraped_at DESC LIMIT 1").fetchone()
+    finally:
+        db.close()
+    if not ligne:
+        return False, None
+    marche = dict(ligne)
+    # Le nom du destinataire est inconnu: l'email d'alerte s'adresse à un
+    # membre, ici c'est un aperçu. On garde la même mise en page.
+    html = build_email(marche, "")
+    objet = f"{(marche.get('objet') or '')[:70]}"
+    return email_send(email, objet, html), marche
 
 def _morocco_now():
     """Heure du Maroc — le serveur Railway tourne en UTC."""
