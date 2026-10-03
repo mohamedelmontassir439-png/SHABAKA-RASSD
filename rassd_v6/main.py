@@ -890,6 +890,7 @@ templates.env.globals["logo"] = marque.logo
 templates.env.globals["etoile"] = marque.etoile
 templates.env.globals["entete_document"] = marque.entete_document
 templates.env.globals["medaillon"] = marque.medaillon
+templates.env.globals["favicon"] = marque.favicon_data_uri
 templates.env.globals["sceau"] = marque.sceau
 
 

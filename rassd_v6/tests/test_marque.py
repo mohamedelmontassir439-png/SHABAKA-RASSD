@@ -140,3 +140,34 @@ class TestCouleurs:
         for nom in ("OR", "ENCRE", "CREME", "BRUN"):
             valeur = getattr(marque, nom)
             assert isinstance(valeur, str) and valeur.startswith("#")
+
+class TestIconeDuNavigateur:
+    """L'icône de l'onglet était une adresse de données collée à la main.
+
+    Elle est restée l'ancienne étoile à seize sommets pendant que tout le
+    reste changeait — le seul endroit de la plateforme que le module de
+    marque ne gouvernait pas.
+    """
+
+    def test_aucune_coquille_n_ecrit_l_icone_en_dur(self):
+        import glob
+        import os
+        dossier = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                               "templates")
+        fautifs = []
+        for chemin in glob.glob(os.path.join(dossier, "*.html")):
+            with open(chemin, encoding="utf-8") as f:
+                contenu = f.read()
+            if re.search(r'rel="icon"[^>]*href="data:', contenu):
+                fautifs.append(os.path.basename(chemin))
+        assert not fautifs, f"icône écrite en dur dans: {fautifs}"
+
+    def test_les_pages_servent_l_icone_de_la_marque(self, client):
+        page = client.get("/").text
+        assert 'rel="icon"' in page
+        # Le globe porte des ellipses; l'ancienne étoile, un seul chemin.
+        assert "ellipse" in page[page.index('rel="icon"'):page.index('rel="icon"') + 3000]
+
+    def test_l_icone_de_l_application_suit_aussi(self, client):
+        svg = client.get("/icon-192.svg").text
+        assert "<ellipse" in svg and marque.OR in svg
