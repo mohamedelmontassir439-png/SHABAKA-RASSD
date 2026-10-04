@@ -33,6 +33,14 @@ textarea{min-height:92px;resize:vertical}
 .check{display:flex;align-items:center;gap:9px;font-weight:600;color:var(--t1)}
 .check input{width:auto}
 .alerte{background:#fae8e6;color:var(--red);padding:12px 14px;border-radius:var(--r2);font-weight:600}
+
+/* Le rembourrage d'une carte vit sur .carte-b. Ces cartes-ci portent leur
+   contenu directement — un h2, un script, un formulaire traverses de
+   conditions — et se retrouvaient donc sans aucune marge interieure: le texte
+   touchait le cadre, et `overflow:hidden` rasait la premiere lettre de chaque
+   ligne. On le leur rend ici. La carte du haut, elle, a un vrai corps: la
+   regle ne la vise pas. */
+.card{padding:20px}
 {% endblock %}
 {% block contenu %}
 <div class="wrap">

@@ -139,6 +139,10 @@ a{color:inherit;text-decoration:none}
 .carte-t,.card-ht{font-size:var(--f2);font-weight:700;color:var(--terre-f);letter-spacing:.05em;
   text-transform:uppercase}
 .carte-b,.card-b{padding:20px}
+/* L'etat vide d'une carte. Il etait pose nu dans huit pages et defini nulle
+   part: son texte touchait le cadre, que `overflow:hidden` rognait. */
+.empty{padding:28px 20px;text-align:center;color:var(--t3);font-size:var(--f3);
+  line-height:1.6}
 
 .chiffres{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;
   margin-bottom:24px}
