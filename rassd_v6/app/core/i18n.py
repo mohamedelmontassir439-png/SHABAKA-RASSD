@@ -62,7 +62,7 @@ T = {
     "hero_title":         {"fr": "La veille qui trouve <em>les marchés avant vous.</em>",
                             "ar": "الرصد الذي يجد <em>الصفقات قبلك.</em>"},
     "hero_sub_wa":           {"fr": "Maroc Entrepreneuriat surveille en continu les marchés publics, semi-publics et privés au Maroc et vous alerte dès qu'une opportunité correspond à votre secteur — par email, et un résumé WhatsApp par jour.",
-                            "ar": "Maroc Entrepreneuriat يراقب باستمرار الصفقات العمومية وشبه العمومية والخاصة في المغرب وينبهك فور ظهور فرصة تناسب قطاعك — عبر البريد الإلكتروني."},
+                            "ar": "يراقب Maroc Entrepreneuriat باستمرار الصفقات العمومية وشبه العمومية والخاصة في المغرب، وينبّهك فور ظهور فرصة تناسب قطاعك — عبر البريد الإلكتروني، وملخّص عبر واتساب كلّ يوم."},
     "hero_cta_free":      {"fr": "Découvrir les offres →", "ar": "اكتشف العروض ←"},
     "hero_cta_tenders":   {"fr": "Voir les marchés", "ar": "عرض الصفقات"},
     "hero_locked_text":   {"fr": "Abonnez-vous pour voir les marchés en direct", "ar": "اشترك لمشاهدة الصفقات مباشرة"},
