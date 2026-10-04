@@ -1,0 +1,173 @@
+{% extends "admin_base.html" %}
+{% block titre %}Annuaires{% endblock %}
+{% block soustitre %}<div class="entete-sur">Retrouver les contacts manquants</div>{% endblock %}
+{% block style %}
+.wrap{display:grid;gap:20px}
+
+/* Le compte qui donne le sens de la page: combien d'entreprises on ne peut
+   pas appeler. Tout le reste n'existe que pour le faire baisser. */
+.jauge{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+.jauge-c{background:var(--surface);border:1px solid var(--trait);border-radius:var(--r3);
+  padding:18px 20px}
+.jauge-n{font-weight:800;font-size:var(--f7);color:var(--t1);line-height:1}
+.jauge-n.manque{color:var(--rouge)}
+.jauge-n.acquis{color:var(--grn)}
+.jauge-l{font-size:var(--f1);color:var(--t3);margin-top:7px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.05em}
+
+.src{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:18px;align-items:start;
+  padding:20px;border-bottom:1px solid var(--trait)}
+.src:last-child{border-bottom:none}
+.src-t{font-family:var(--serif);font-size:var(--f5);color:var(--t1)}
+.src-n{font-size:var(--f2);color:var(--t3);margin-top:4px;line-height:1.55}
+.src-chiffres{display:flex;gap:22px;flex-wrap:wrap;margin-top:14px}
+.src-ch{min-width:72px}
+.src-ch b{display:block;font-size:var(--f5);color:var(--t1);font-weight:800;line-height:1.1}
+.src-ch span{font-size:var(--f1);color:var(--t3);font-weight:600}
+.src-actions{display:flex;flex-direction:column;gap:9px;min-width:210px}
+
+.etape{display:flex;align-items:baseline;gap:9px}
+.etape i{font-style:normal;width:19px;height:19px;flex:none;border-radius:50%;
+  background:var(--terre);color:#fff;font-size:var(--f1);font-weight:800;
+  display:inline-flex;align-items:center;justify-content:center}
+
+.term{background:#17120f;color:#d8ccbb;border-radius:var(--r2);padding:15px 17px;
+  font-family:var(--mono);font-size:var(--f1);line-height:1.65;max-height:330px;
+  overflow:auto;white-space:pre-wrap;word-break:break-word}
+.term:empty::before{content:"Aucune exécution dans cette session.";color:#6d6054}
+
+.trouv{width:100%;border-collapse:collapse}
+.trouv th{text-align:start;font-size:var(--f1);color:var(--t3);font-weight:700;
+  text-transform:uppercase;letter-spacing:.05em;padding:10px 14px;
+  border-bottom:1px solid var(--trait)}
+.trouv td{padding:11px 14px;border-bottom:1px solid var(--trait);font-size:var(--f2);
+  color:var(--t2);vertical-align:top}
+.trouv tr:last-child td{border-bottom:none}
+.trouv a{color:var(--terre-f);font-weight:700;text-decoration:none}
+.nom{color:var(--t1);font-weight:700}
+.coord{font-family:var(--mono);color:var(--t1)}
+.ets{display:inline-block;padding:2px 9px;border-radius:var(--rp);font-size:var(--f1);
+  font-weight:700;background:var(--surface2);color:var(--t2)}
+{% endblock %}
+
+{% block contenu %}
+<div class="wrap">
+
+  <div class="jauge">
+    <div class="jauge-c"><div class="jauge-n">{{ e.total }}</div>
+      <div class="jauge-l">Entreprises connues</div></div>
+    <div class="jauge-c"><div class="jauge-n acquis">{{ e.joignables }}</div>
+      <div class="jauge-l">Joignables</div></div>
+    <div class="jauge-c"><div class="jauge-n manque">{{ e.injoignables }}</div>
+      <div class="jauge-l">Sans aucun contact</div></div>
+    <div class="jauge-c"><div class="jauge-n">{{ e.gagnants }}</div>
+      <div class="jauge-l">Gagnants de marchés</div></div>
+  </div>
+
+  <div class="carte">
+    <div class="carte-h"><span class="carte-t">Les annuaires</span>
+      <span class="meta">Deux étapes : reconnaître, puis lire.</span></div>
+
+    {% for s in e.sources %}
+    <div class="src">
+      <div>
+        <div class="src-t">{{ s.libelle }}</div>
+        <div class="src-n">{{ s.note }}</div>
+        <div class="src-chiffres">
+          <div class="src-ch"><b>{{ s.rattachees }}</b><span>reconnues</span></div>
+          <div class="src-ch"><b>{{ s.lues }}</b><span>fiches lues</span></div>
+          <div class="src-ch"><b>{{ s.telephones }}</b><span>téléphones</span></div>
+          <div class="src-ch"><b>{{ s.emails }}</b><span>emails</span></div>
+          <div class="src-ch"><b>{{ s.dirigeants }}</b><span>dirigeants</span></div>
+          <div class="src-ch"><b>{{ s.en_attente }}</b><span>à lire</span></div>
+        </div>
+      </div>
+      <div class="src-actions">
+        <form method="post" action="/admin/annuaires/lancer">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="source" value="{{ s.cle }}">
+          <input type="hidden" name="etape" value="apparier">
+          <button class="btn" type="submit" {% if etat_tache.running %}disabled{% endif %}>
+            <span class="etape"><i>1</i> Reconnaître nos entreprises</span></button>
+        </form>
+        <form method="post" action="/admin/annuaires/lancer">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="source" value="{{ s.cle }}">
+          <input type="hidden" name="etape" value="enrichir">
+          <button class="btn btn-p" type="submit"
+                  {% if etat_tache.running or not s.en_attente %}disabled{% endif %}>
+            <span class="etape"><i>2</i> Lire {{ s.en_attente }} fiche(s)</span></button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+
+    <div class="carte-b" style="border-top:1px solid var(--trait)">
+      <p class="meta" style="line-height:1.7;margin:0">
+        <b>Kerix</b> — {{ e.kerix }} fiche(s) rattachée(s), lien seul : son site
+        refuse les clients automatiques, et c'est son droit. La fiche s'ouvre
+        depuis la file d'appel, dans votre navigateur.
+      </p>
+    </div>
+  </div>
+
+  <div class="carte">
+    <div class="carte-h"><span class="carte-t">Exécution</span>
+      <span class="meta" id="statut">{{ "en cours…" if etat_tache.running else "au repos" }}</span></div>
+    <div class="carte-b"><div class="term" id="term">{{ etat_tache.logs|join('\n') }}</div></div>
+  </div>
+
+  <div class="carte">
+    <div class="carte-h"><span class="carte-t">Dernières trouvailles</span>
+      <span class="meta">Vérifiez-en quelques-unes avant d'appeler.</span></div>
+    {% if trouvailles %}
+    <div class="tableau-cadre">
+      <table class="trouv">
+        <thead><tr>
+          <th>Entreprise</th><th>Annuaire</th><th>Téléphone</th><th>Email</th>
+          <th>Dirigeant</th><th>Fiche</th>
+        </tr></thead>
+        <tbody>
+        {% for t in trouvailles %}
+          <tr>
+            <td><a class="nom" href="/admin/prospection/{{ t.id }}">{{ t.legal_name[:46] }}</a>
+              {% if t.city %}<div class="meta">{{ t.city }}</div>{% endif %}</td>
+            <td><span class="ets">{{ t.source }}</span></td>
+            <td class="coord">{{ tel(t.phone) if t.phone else '—' }}</td>
+            <td class="coord">{{ t.email or '—' }}</td>
+            <td>{{ t.manager or '—' }}</td>
+            <td><a href="{{ t.url }}" target="_blank" rel="noopener">ouvrir ↗</a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty">Aucune fiche lue pour l'instant — lancez l'étape 1 puis l'étape 2.</div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+/* La reconnaissance traverse 267 000 adresses chez l'un, deux millions chez
+   l'autre: la page ne peut pas attendre la réponse. Elle interroge l'état. */
+(function(){
+  var term = document.getElementById('term'), statut = document.getElementById('statut');
+  function battre(){
+    fetch('/admin/annuaires/etat').then(function(r){ return r.json(); }).then(function(d){
+      if (!d.ok) return;
+      term.textContent = d.logs.join('\n');
+      term.scrollTop = term.scrollHeight;
+      statut.textContent = d.running ? 'en cours…' : 'au repos';
+      if (!d.running && document.body.dataset.tournait === '1') location.reload();
+      document.body.dataset.tournait = d.running ? '1' : '0';
+      setTimeout(battre, d.running ? 2000 : 8000);
+    }).catch(function(){ setTimeout(battre, 8000); });
+  }
+  battre();
+})();
+</script>
+{% endblock %}

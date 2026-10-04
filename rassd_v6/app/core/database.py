@@ -511,6 +511,26 @@ def migrate_db():
         # attributaires, un annuaire tiers peut les avoir.
         "ALTER TABLE companies ADD COLUMN annuaire_url TEXT DEFAULT ''",
     ]
+    # Une fiche d'entreprise dans un annuaire professionnel, source par
+    # source. Une colonne par annuaire sur `companies` aurait figé leur
+    # nombre et perdu ce que chacun a répondu: on veut pouvoir dire d'où
+    # vient un numéro, et quand il a été lu.
+    db.execute("""CREATE TABLE IF NOT EXISTS annuaire_fiches(
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        company_id  INTEGER NOT NULL,
+        source      TEXT    NOT NULL,
+        url         TEXT    NOT NULL,
+        phone       TEXT    DEFAULT '',
+        email       TEXT    DEFAULT '',
+        address     TEXT    DEFAULT '',
+        activite    TEXT    DEFAULT '',
+        manager     TEXT    DEFAULT '',
+        trouve_le   TEXT    DEFAULT '',
+        lue_le      TEXT    DEFAULT '',
+        erreur      TEXT    DEFAULT '',
+        UNIQUE(company_id, source))""")
+    db.execute("CREATE INDEX IF NOT EXISTS idx_annuaire_source "
+               "ON annuaire_fiches(source, lue_le)")
     # Le lot du soir: ce qui sera envoyé à la main le lendemain matin.
     # Une ligne par membre et par jour — figée à la préparation, pour que
     # la liste ne bouge plus entre le moment où on l'ouvre et celui où on

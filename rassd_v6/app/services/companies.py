@@ -68,6 +68,21 @@ def normalize_company_name(raw: str) -> str:
     return " ".join(tokens)
 
 
+def telephone_lisible(raw: str) -> str:
+    """« 212524480067 » -> « 05 24 48 00 67 ».
+
+    La base garde la forme internationale, qui se compare; l'écran montre la
+    forme qu'on compose. Un numéro affiché en un bloc de douze chiffres se
+    recopie de travers, et on appelle quelqu'un d'autre.
+    """
+    p = "".join(c for c in str(raw or "") if c.isdigit())
+    if p.startswith("212"):
+        p = "0" + p[3:]
+    if len(p) != 10:
+        return str(raw or "")
+    return " ".join((p[:2], p[2:4], p[4:6], p[6:8], p[8:]))
+
+
 def normalize_phone(raw: str) -> str:
     """Numéro marocain en format international sans '+' (212XXXXXXXXX)."""
     if not raw:

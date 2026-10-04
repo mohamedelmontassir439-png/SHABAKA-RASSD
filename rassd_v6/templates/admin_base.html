@@ -8,7 +8,7 @@
 
   Plus grave, la navigation: huit pages sur douze ne menaient qu'au tableau
   de bord. Aller des paiements aux membres demandait un détour par l'accueil.
-  Le rail de gauche range les douze destinations en quatre familles, visibles
+  Le rail de gauche range les treize destinations en quatre familles, visibles
   depuis n'importe quelle page.
 
   La destination courante se déduit du chemin: aucune route à modifier.
@@ -205,8 +205,8 @@ tbody tr:hover td{background:var(--surface2)}
 {% set destinations = ['/admin', '/admin/sources', '/admin/backups', '/admin/members',
                        '/admin/payments', '/admin/recap', '/admin/maintenance',
                        '/admin/prospection/plan',
-                       '/admin/prospection', '/admin/companies', '/admin/prospects',
-                       '/admin/sous-traitance'] %}
+                       '/admin/prospection', '/admin/companies', '/admin/annuaires',
+                       '/admin/prospects', '/admin/sous-traitance'] %}
 {#
   La destination courante est la plus longue qui corresponde, pas la première.
   Une fiche d'appel (/admin/prospection/12) doit allumer « File d'appel », mais
@@ -257,6 +257,7 @@ tbody tr:hover td{background:var(--surface2)}
     {{ lien('/admin/prospection/plan', '◱', "Plan d'appel") }}
     {{ lien('/admin/prospection', '☏', "File d'appel") }}
     {{ lien('/admin/companies', '⌂', 'Entreprises') }}
+    {{ lien('/admin/annuaires', '📒', 'Annuaires') }}
     {{ lien('/admin/prospects', '◎', 'Prospects') }}
   </div>
 

@@ -882,6 +882,9 @@ from app.core.acheteurs import lisible as _acheteur_lisible
 # « casablanca BAIA SOCIETE CASABLANCA BAÏA ». Le client lisait deux fois
 # le même nom et doutait du sérieux de la veille.
 templates.env.globals["acheteur"] = _acheteur_lisible
+# Le numéro tel qu'on le compose, pas tel qu'on le stocke.
+from app.services.companies import telephone_lisible as _tel_lisible
+templates.env.globals["tel"] = _tel_lisible
 templates.env.globals["get_label"] = get_label
 templates.env.globals["source_label"] = source_label
 # Globales plutot que variables de contexte: toutes les pages ne passent pas
@@ -3912,6 +3915,92 @@ async def toggle_member(req: Request, mid:int, csrf_token:str=Form("")):
         db.commit()
     db.close()
     return RedirectResponse("/admin",302)
+
+# ─── Annuaires professionnels ────────────────────────────────────────────
+
+class AnnuairesState:
+    """État du rapprochement avec les annuaires, partagé avec la page.
+
+    Reconnaître nos entreprises demande de faire couler 267 000 adresses chez
+    Télécontact et deux millions chez Charika: aucune requête HTTP ne tient
+    cette durée. La tâche part en fond, la page suit son journal.
+    """
+    running  = False
+    logs     = []
+    source   = ""
+    etape    = ""
+    started  = ""
+    finished = ""
+
+    @classmethod
+    def log(cls, msg: str):
+        cls.logs.append(f"{datetime.now().strftime('%H:%M:%S')} │ {msg}")
+        if len(cls.logs) > 400:
+            del cls.logs[:-400]
+        logger.info(f"[annuaires] {msg}")
+
+
+async def _run_annuaires(source: str, etape: str):
+    from app.services import annuaires
+    debut = datetime.now()
+    AnnuairesState.running = True
+    AnnuairesState.source, AnnuairesState.etape = source, etape
+    AnnuairesState.started = debut.isoformat()
+    AnnuairesState.logs = []
+    AnnuairesState.log(f"→ {etape} · {annuaires.ANNUAIRES[source].libelle}")
+    try:
+        loop = asyncio.get_event_loop()
+        fonction = annuaires.apparier if etape == "apparier" else annuaires.enrichir
+        stats = await loop.run_in_executor(
+            None, lambda: fonction(source, AnnuairesState.log))
+        _record_run(f"annuaire-{source}-{etape}", "SUCCESS",
+                    found=stats.get("apparies", stats.get("ouvertes", 0)),
+                    saved=stats.get("apparies", stats.get("telephones", 0)), started=debut)
+    except Exception as e:
+        AnnuairesState.log(f"❌ {e}")
+        logger.error(f"[annuaires] {e}", exc_info=True)
+        _record_run(f"annuaire-{source}-{etape}", "FAILED", errors=1,
+                    started=debut, message=str(e))
+    finally:
+        AnnuairesState.running = False
+        AnnuairesState.finished = datetime.now().isoformat()
+
+
+@app.get("/admin/annuaires", response_class=HTMLResponse)
+async def admin_annuaires(req: Request):
+    """Ce que les annuaires publics rendent des entreprises qu'on ne peut pas joindre."""
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    from app.services.annuaires import etat, dernieres_trouvailles
+    return templates.TemplateResponse("admin_annuaires.html", {
+        "request": req, "cfg": cfg, "e": etat(),
+        "trouvailles": dernieres_trouvailles(40),
+        "etat_tache": {"running": AnnuairesState.running, "logs": AnnuairesState.logs[-80:]},
+        "csrf_token": get_csrf_token(req) or secrets.token_urlsafe(24)})
+
+
+@app.post("/admin/annuaires/lancer")
+async def admin_annuaires_lancer(req: Request, csrf_token: str = Form(""),
+                                 source: str = Form(""), etape: str = Form("")):
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    csrf_guard(req, csrf_token)
+    from app.services.annuaires import ANNUAIRES
+    if source not in ANNUAIRES or etape not in ("apparier", "enrichir"):
+        return RedirectResponse("/admin/annuaires?err=inconnu", 302)
+    if AnnuairesState.running:
+        return RedirectResponse("/admin/annuaires?err=deja", 302)
+    asyncio.create_task(_run_annuaires(source, etape))
+    return RedirectResponse("/admin/annuaires", 302)
+
+
+@app.get("/admin/annuaires/etat")
+async def admin_annuaires_etat(req: Request):
+    if not _is_admin(req): return JSONResponse({"ok": False}, 401)
+    return JSONResponse({"ok": True, "running": AnnuairesState.running,
+                         "source": AnnuairesState.source, "etape": AnnuairesState.etape,
+                         "logs": AnnuairesState.logs[-80:],
+                         "started": AnnuairesState.started,
+                         "finished": AnnuairesState.finished})
+
 
 @app.get("/admin/maintenance", response_class=HTMLResponse)
 async def admin_maintenance(req: Request):

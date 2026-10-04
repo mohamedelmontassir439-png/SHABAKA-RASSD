@@ -116,3 +116,17 @@ def confirmer_email(db):
             db.execute("UPDATE members SET email_verified=1, email_token=''")
         db.commit()
     return _confirmer
+
+@pytest.fixture()
+def admin(client):
+    """Une session d'administration ouverte, comme après la page de connexion.
+
+    Elle vivait dans un seul fichier de tests; trois en ont besoin désormais.
+    L'import de `cfg` est tardif à dessein: DB_PATH doit être posé avant que
+    la configuration ne soit lue.
+    """
+    from app.core.config import cfg
+    client.get("/admin/login")
+    client.post("/admin/login", data={"pwd": cfg.ADMIN_PASS,
+                                      "csrf_token": client.cookies.get("_csrf")})
+    return client

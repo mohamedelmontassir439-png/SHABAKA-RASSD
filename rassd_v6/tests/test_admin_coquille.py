@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """La coquille partagée de l'administration.
 
-Douze pages construites chacune de son côté: onze redéfinissaient la même
+Treize pages construites chacune de son côté: onze redéfinissaient la même
 palette, et huit sur douze ne menaient qu'au tableau de bord. Ces tests
 tiennent les deux promesses du regroupement — chaque page rend, et chaque
 page donne accès à toutes les autres.
@@ -25,6 +25,7 @@ PAGES = [
     "/admin/recap",
     "/admin/prospection",
     "/admin/companies",
+    "/admin/annuaires",
     "/admin/prospects",
     "/admin/sous-traitance",
 ]
