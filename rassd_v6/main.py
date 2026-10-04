@@ -2093,6 +2093,11 @@ async def register_post(req: Request,
     if not email or not pw: err = tr_("err_email_pw_required",lang)
     elif not validate_email(email): err = tr_("err_email_invalid",lang)
     elif pw != pw2: err = tr_("err_pw_mismatch",lang)
+    # Au moins un secteur, et ce n'est pas une formalité: un profil vide ne
+    # restreint rien, si bien que le nouvel inscrit recevait les deux mille
+    # quatre cents marchés actifs — l'inverse de ce qu'il vient chercher. Dix
+    # secondes ici lui évitent de juger la plateforme sur un flot illisible.
+    elif not clean_secteurs(secteurs_sel): err = tr_("err_secteur_requis", lang)
     else:
         ok, msg = validate_password(pw, lang)
         if not ok: err = msg

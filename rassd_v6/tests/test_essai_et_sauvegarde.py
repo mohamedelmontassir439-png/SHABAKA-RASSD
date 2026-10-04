@@ -147,7 +147,10 @@ class TestBonDeCommandeQuantite:
         client.get("/register")
         client.post("/register", data={
             "email": "bc@example.com", "pw": "MotDePasse1!", "pw2": "MotDePasse1!",
-            "nom": "BC", "csrf_token": client.cookies.get("_csrf")})
+            "nom": "BC", "csrf_token": client.cookies.get("_csrf"),
+            # Le secteur du bon de commande de ce test: sans lui, le
+            # cloisonnement le masque — et c'est son rôle.
+            "secteurs_sel": ["P818"]})
         db.execute("UPDATE members SET email_verified=1 WHERE email=?", ("bc@example.com",))
         db.commit()
 

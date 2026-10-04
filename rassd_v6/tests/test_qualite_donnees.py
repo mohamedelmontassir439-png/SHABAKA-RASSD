@@ -117,7 +117,10 @@ class TestPagesSeparees:
         client.get("/register")
         client.post("/register", data={
             "email": "q@example.com", "pw": "MotDePasse1!", "pw2": "MotDePasse1!",
-            "nom": "Q", "csrf_token": client.cookies.get("_csrf")})
+            "nom": "Q", "csrf_token": client.cookies.get("_csrf"),
+            # Les deux lignes de ce test sont en P814: sans ce secteur,
+            # le cloisonnement les masque — et c'est son rôle.
+            "secteurs_sel": ["P814"]})
         db.execute("UPDATE members SET email_verified=1 WHERE email=?", ("q@example.com",))
         db.commit()
 

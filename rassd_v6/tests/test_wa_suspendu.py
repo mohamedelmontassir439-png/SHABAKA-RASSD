@@ -101,7 +101,7 @@ class TestReglages:
         client.get("/register")
         client.post("/register", data={
             "email": "set@example.com", "pw": "MotDePasse1!", "pw2": "MotDePasse1!",
-            "nom": "Set", "csrf_token": client.cookies.get("_csrf")})
+            "nom": "Set", "csrf_token": client.cookies.get("_csrf"), "secteurs_sel": ["T101"]})
         from app.core.database import get_db
         d = get_db()
         d.execute("UPDATE members SET email_verified=1 WHERE email=?", ("set@example.com",))

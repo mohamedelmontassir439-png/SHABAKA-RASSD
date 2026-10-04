@@ -14,7 +14,7 @@ def _inscrire(client, email="nouveau@example.com"):
     client.get("/register")
     return client.post("/register", data={
         "email": email, "pw": "MotDePasse1!", "pw2": "MotDePasse1!",
-        "nom": "Nouveau", "csrf_token": client.cookies.get("_csrf")})
+        "nom": "Nouveau", "csrf_token": client.cookies.get("_csrf"), "secteurs_sel": ["T101"]})
 
 
 def _membre(db, email="nouveau@example.com"):

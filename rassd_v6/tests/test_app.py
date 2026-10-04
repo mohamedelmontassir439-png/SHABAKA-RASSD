@@ -8,7 +8,7 @@ def _register(client, email="membre@example.com", **extra):
     client.get("/register")
     token = client.cookies.get("_csrf")
     data = {"email": email, "pw": "MotDePasse1!", "pw2": "MotDePasse1!",
-            "nom": "Membre Test", "csrf_token": token}
+            "nom": "Membre Test", "csrf_token": token, "secteurs_sel": ["T101"]}
     data.update(extra)
     resp = client.post("/register", data=data)
     # L'adresse est confirmée ici: ces tests portent sur les marchés, le
@@ -74,7 +74,7 @@ class TestControleAcces:
     def test_csrf_bloque_un_post_sans_jeton(self, client):
         r = client.post("/register", data={
             "email": "sans-jeton@example.com", "pw": "MotDePasse1!",
-            "pw2": "MotDePasse1!", "nom": "X"})
+            "pw2": "MotDePasse1!", "nom": "X", "secteurs_sel": ["T101"]})
         assert r.status_code == 403, "un POST sans jeton CSRF doit être rejeté"
 
 

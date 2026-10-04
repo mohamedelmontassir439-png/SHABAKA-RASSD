@@ -76,7 +76,7 @@ class TestInscriptionAccordeUnEssai:
         token = page.cookies.get("_csrf")
         r = client.post("/register", data={
             "email": "essai@example.com", "pw": "MotDePasse1!", "pw2": "MotDePasse1!",
-            "nom": "Essai", "csrf_token": token}, follow_redirects=False)
+            "nom": "Essai", "csrf_token": token, "secteurs_sel": ["T101"]}, follow_redirects=False)
         assert r.status_code == 302
 
         row = db.execute(
@@ -97,7 +97,7 @@ class TestInscriptionAccordeUnEssai:
         token = page.cookies.get("_csrf")
         client.post("/register", data={
             "email": "acces@example.com", "pw": "MotDePasse1!", "pw2": "MotDePasse1!",
-            "nom": "Acces", "csrf_token": token}, follow_redirects=False)
+            "nom": "Acces", "csrf_token": token, "secteurs_sel": ["T101"]}, follow_redirects=False)
         confirmer_email("acces@example.com")
         r = client.get("/tenders", follow_redirects=False)
         assert r.status_code == 200, "pendant l'essai, les marchés doivent être accessibles"
