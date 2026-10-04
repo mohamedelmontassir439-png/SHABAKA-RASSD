@@ -297,9 +297,15 @@ def enrichir(limite: int = 0, log_fn=print) -> dict:
             stats["trouvees"] += 1
             stats["telephones"] += 1 if fiche.get("phone") else 0
             stats["emails"] += 1 if fiche.get("email") else 0
-            log_fn(f"\u2713 {cible['legal_name'][:44]} \u2014 "
-                   f"{fiche.get('phone') or 'sans t\u00e9l\u00e9phone'}"
-                   f"{' \u00b7 ' + fiche['email'] if fiche.get('email') else ''}")
+            # Les valeurs sont calcul\u00e9es avant, pas dans l'accolade: un
+            # antislash dans la partie expression d'une f-string est refus\u00e9
+            # avant Python 3.12, et le serveur tourne en 3.11. En local
+            # (3.14) le code compilait sans broncher \u2014 l'\u00e9tape \u00ab gagnants \u00bb
+            # \u00e9chouait donc \u00e0 chaque cycle de collecte, et en production
+            # seulement.
+            tel = fiche.get("phone") or "sans t\u00e9l\u00e9phone"
+            courriel = " \u00b7 " + fiche["email"] if fiche.get("email") else ""
+            log_fn(f"\u2713 {cible['legal_name'][:44]} \u2014 {tel}{courriel}")
             time.sleep(cfg.PLACES_DELAY_MS / 1000)
     finally:
         db.close()

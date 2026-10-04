@@ -95,6 +95,9 @@
 .channel-tile:hover { border-color: var(--line2); transform: translateY(-3px); box-shadow: var(--sh2); }
 .channel-tile .ci { width: 38px; height: 38px; border-radius:var(--r2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size:var(--f5); }
 .channel-tile .cl { font-size:var(--f2); font-weight: 600; color: var(--text2); }
+.channel-tile .cr { font-size:var(--f1); color: var(--text3); text-align: center;
+  line-height: 1.4; }
+.channel-tile { width: 150px; }
 .channels-seul { display: inline-flex; align-items: center; gap: 12px; padding: 14px 22px;
   border: 1px solid var(--line); border-radius: var(--rp); background: var(--bg);
   font-size:var(--f4); font-weight: 600; color: var(--text2); }
@@ -263,22 +266,22 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
 <div class="channels-bar">
   <div class="container">
     <span class="channels-label">{{ tr('channels_label') }}</span>
-    {# Une grille d'une seule tuile, c'est une case perdue au milieu du vide.
-       Tant qu'un seul canal fonctionne, on l'énonce; la grille revient quand
-       il y en a deux. Le canal WhatsApp ne s'annonce que s'il peut
-       réellement partir: promettre une alerte qu'aucun expéditeur ne peut
-       émettre est la pire des options. #}
-    {% if cfg.WA_ENABLED %}
+    {# Deux canaux, tous deux réels aujourd'hui: l'email part tout seul à la
+       publication, le résumé WhatsApp part chaque matin de la main du
+       fondateur. Le rythme de chacun est dit sous son nom — c'est lui qui
+       distingue une alerte d'un résumé, et il ne va pas de soi. #}
     <div class="channels-tiles">
-      <div class="channel-tile"><span class="ci" style="background: var(--indigoa);">✉️</span><span class="cl">{{ tr('channel_email') }}</span></div>
-      <div class="channel-tile"><span class="ci" style="background: rgba(47,158,91,.14);">📲</span><span class="cl">{{ tr('channel_whatsapp') }}</span></div>
+      <div class="channel-tile">
+        <span class="ci" style="background: var(--indigoa);">✉️</span>
+        <span class="cl">{{ tr('channel_email') }}</span>
+        <span class="cr">{{ tr('channel_email_rythme') }}</span>
+      </div>
+      <div class="channel-tile">
+        <span class="ci" style="background: rgba(47,158,91,.14);">📲</span>
+        <span class="cl">{{ tr('channel_whatsapp') }}</span>
+        <span class="cr">{{ tr('channel_whatsapp_rythme') }}</span>
+      </div>
     </div>
-    {% else %}
-    <div class="channels-seul">
-      <span class="ci" style="background: var(--indigoa);">✉️</span>
-      <span>{{ tr('channel_email_seul') }}</span>
-    </div>
-    {% endif %}
   </div>
 </div>
 

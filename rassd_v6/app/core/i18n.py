@@ -226,6 +226,10 @@ T = {
                            "ar": "خارج قطاعاتك"},
     "hors_secteur_texte": {"fr": "Ce marché ne relève d'aucun des secteurs que vous avez choisis. Ajoutez-le à votre profil si ce métier vous intéresse.",
                            "ar": "هذه الصفقة لا تنتمي إلى أيّ قطاع اخترته. أضف هذا المجال إلى ملفّك إن كان يهمّك."},
+    "channel_email_rythme":    {"fr": "dès la publication",
+                               "ar": "فور النشر"},
+    "channel_whatsapp_rythme": {"fr": "un résumé chaque matin",
+                               "ar": "ملخّص كلّ صباح"},
     "channel_email_seul": {"fr": "Alertes par email, dès la publication du marché",
                            "ar": "تنبيهات عبر البريد الإلكتروني، فور نشر الصفقة"},
     "feat_label":         {"fr": "Fonctionnalités", "ar": "الميزات"},
@@ -818,8 +822,8 @@ T = {
 
     # ── Textes sans WhatsApp (canal suspendu, cf. cfg.WA_ENABLED) ────
     # Les variantes "_wa" plus haut reprennent dès la réouverture du canal.
-    "hero_sub":             {"fr": "Maroc Entrepreneuriat surveille en continu les marchés publics, semi-publics et privés au Maroc et vous alerte dès qu'une opportunité correspond à votre secteur — par email.",
-                             "ar": "ترصد Maroc Entrepreneuriat الصفقات العمومية وشبه العمومية والخاصة في المغرب باستمرار، وتنبّهك فور ظهور فرصة تطابق قطاعك — عبر البريد الإلكتروني."},
+    "hero_sub":             {"fr": "Maroc Entrepreneuriat surveille en continu les marchés publics, semi-publics et privés au Maroc et vous alerte dès qu'une opportunité correspond à votre secteur — par email, et par un résumé WhatsApp chaque matin.",
+                             "ar": "ترصد Maroc Entrepreneuriat الصفقات العمومية وشبه العمومية والخاصة في المغرب باستمرار، وتنبّهك فور ظهور فرصة تطابق قطاعك — عبر البريد الإلكتروني، وملخّص عبر واتساب كلّ صباح."},
     "trial_step2_d":        {"fr": "Tous les marchés, les résultats d'adjudication, la sous-traitance et les alertes par email.",
                              "ar": "جميع الصفقات، ونتائج الترسية، والمناولة، وتنبيهات البريد الإلكتروني."},
     "feat3_text":           {"fr": "Vos alertes par email dès la publication, et chaque matin un résumé WhatsApp de tout ce qui est paru la veille dans votre secteur.",
