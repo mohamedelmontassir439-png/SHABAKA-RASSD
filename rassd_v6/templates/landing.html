@@ -30,7 +30,11 @@
 .hero { position: relative; overflow: hidden; isolation: isolate;
   container-type: inline-size; padding: clamp(56px, 6.8vw, 100px) 0;
   background:
-    /* Dans l'ordre où le navigateur les empile, du dessus vers le dessous.
+    /* La frise en tête de pile: elle doit rester nette. Posée plus bas, la
+       lueur et la vignette l'auraient délavée, et elle n'aurait plus fermé
+       la section — c'est pourtant tout son office. */
+    {{ fond_frise(132, 38, 0.46) }} left bottom / 132px 38px repeat-x,
+    /* Puis, dans l'ordre où le navigateur les empile, du dessus vers le bas.
        La lueur vient en premier: elle baigne les motifs au lieu de les
        laisser quadriller la marque. La vignette, elle, passe sous les
        rosaces — posée au-dessus, elle aurait éteint les angles qu'elles
@@ -260,7 +264,15 @@ html[dir="rtl"] .hero-meridiens { transform: scaleX(-1); }
 .latest-arrow { color: var(--text4); transition: transform .15s; }
 .latest-row:hover .latest-arrow { transform: translateX(4px); color: var(--ink); }
 
-.latest-empty-promo { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 16px; padding: 56px 28px; border: 1px solid var(--line); border-radius: var(--r3); background: var(--surface); margin-top: 44px; }
+/* L'aperçu s'efface vers le bas: la troisième ligne se perd, et c'est ce
+   fondu qui dit « il y en a d'autres » sans avoir à l'écrire. */
+.latest-apercu { mask-image: linear-gradient(to bottom, #000 0%, #000 46%, transparent 92%);
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 46%, transparent 92%);
+  pointer-events: none; user-select: none; }
+.latest-row-fige { cursor: default; }
+.latest-row-fige:hover { border-color: var(--line); box-shadow: none; transform: none; }
+.latest-flou { color: transparent; text-shadow: 0 0 7px rgba(60,48,40,.5); }
+.latest-promo { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 16px; padding: 0 28px; margin-top: 20px; }
 
 /* ── SOCIAL PROOF (static grid) ──────────────────── */
 .proof { padding: 96px 0; background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); position: relative; overflow: hidden; }
@@ -560,8 +572,8 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
 <!-- LATEST TENDERS -->
 <section class="latest">
   <div class="container">
-    <div class="section-label reveal">{{ tr('latest_label') }}</div>
-    <div class="section-title reveal" style="max-width: 720px;">{{ tr('latest_title')|safe }}</div>
+    <div class="section-label reveal">{{ tr('latest_label') if recent else tr('latest_label_secteurs') }}</div>
+    <div class="section-title reveal" style="max-width: 720px;">{{ (tr('latest_title') if recent else tr('latest_title_secteurs'))|safe }}</div>
     {% if recent %}
     <div class="latest-list">
       {% for t in recent[:6] %}
@@ -576,7 +588,23 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
       {% endfor %}
     </div>
     {% else %}
-    <div class="latest-empty-promo">
+    {# Le détail d'un marché est réservé aux membres activés — c'est la
+       règle, et elle tient. Ce qu'on montre ici n'est donc aucun marché:
+       ce sont les secteurs les plus fournis et leur nombre, un agrégat de
+       même nature que les « 1754 marchés actifs » déjà affichés plus haut.
+       Mais mis en page comme de vraies lignes, et estompé à la troisième,
+       il dit ce qui attend derrière — ce qu'un cadre vide ne disait pas. #}
+    <div class="latest-list latest-apercu" aria-hidden="true">
+      {% for s in sectors[:3] %}
+      <div class="latest-row latest-row-fige">
+        <div><div class="latest-title">{{ get_label(s.secteur) }}</div></div>
+        <div class="latest-meta">{{ tr('latest_sector_open', n=s.cnt) }}</div>
+        <div class="latest-meta latest-flou">—</div>
+        <div class="latest-arrow">{{ '←' if dir=='rtl' else '→' }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="latest-promo">
       <div class="hero-card-promo-title">{{ tr('latest_locked_text') }}</div>
       <a href="/tarifs" class="btn btn-accent btn-lg">{{ tr('latest_locked_cta') }}</a>
     </div>

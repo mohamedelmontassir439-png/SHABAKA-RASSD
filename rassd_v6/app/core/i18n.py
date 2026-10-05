@@ -64,6 +64,13 @@ T = {
     "hero_sub_wa":           {"fr": "Maroc Entrepreneuriat surveille en continu les marchés publics, semi-publics et privés au Maroc et vous alerte dès qu'une opportunité correspond à votre secteur — par email, et un résumé WhatsApp par jour.",
                             "ar": "يراقب Maroc Entrepreneuriat باستمرار الصفقات العمومية وشبه العمومية والخاصة في المغرب، وينبّهك فور ظهور فرصة تناسب قطاعك — عبر البريد الإلكتروني، وملخّص عبر واتساب كلّ يوم."},
     "hero_cta_free":      {"fr": "Découvrir les offres →", "ar": "اكتشف العروض ←"},
+    "latest_sector_open": {"fr": "{n} marchés ouverts",
+                            "ar": "{n} صفقة مفتوحة"},
+    # Le visiteur anonyme ne voit pas les marchés — c'est la règle. Le titre
+    # doit donc annoncer ce qu'il voit vraiment: les secteurs les plus fournis.
+    "latest_title_secteurs": {"fr": "Les secteurs où <em>ça bouge</em> en ce moment",
+                               "ar": "القطاعات التي <em>تتحرّك</em> الآن"},
+    "latest_label_secteurs": {"fr": "Activité du moment", "ar": "نشاط اللحظة"},
     "hero_cta_tenders":   {"fr": "Voir les marchés", "ar": "عرض الصفقات"},
     "hero_locked_text":   {"fr": "Abonnez-vous pour voir les marchés en direct", "ar": "اشترك لمشاهدة الصفقات مباشرة"},
     "hero_locked_cta":    {"fr": "S'abonner →", "ar": "اشترك الآن ←"},

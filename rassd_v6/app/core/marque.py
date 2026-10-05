@@ -550,3 +550,37 @@ def icone(nom: str, taille: int = 22, trait: float = 1.6) -> str:
 def icones_connues() -> tuple:
     """Les noms du jeu, pour qu'un test puisse les vérifier tous."""
     return tuple(sorted(_TRACES)) + ("favori",)
+
+def frise(largeur: int = 120, hauteur: int = 30, opacite: float = 0.30,
+          couleur: str = OR) -> str:
+    """Le bandeau de faïence qui ferme un mur, en bas d'une section sombre.
+
+    Même figure que la trame — le khatam — mais alignée sur une ligne, entre
+    deux filets, comme la bande de zellige qui court au bas d'un mur de
+    riad. Elle existe pour une raison précise: la couverture est sombre et
+    texturée, le corps de la page est clair et lisse, et sans elle les deux
+    se touchent sans transition, comme deux sites cousus l'un à l'autre.
+
+    Le motif est posé à gauche, au centre et à droite: sans les deux
+    moitiés des bords, le raccord laisse un trou tous les 120 px.
+    """
+    r = hauteur * 0.34
+    y = hauteur / 2
+    etoiles = "".join(
+        f'<polygon points="{_etoile_khatam(x, y, r)}"/>'
+        for x in (0, largeur / 2, largeur))
+    losanges = "".join(
+        f'<polygon points="{x},{y - r * 0.44:.2f} {x + r * 0.44:.2f},{y} '
+        f'{x},{y + r * 0.44:.2f} {x - r * 0.44:.2f},{y}"/>'
+        for x in (largeur / 4, 3 * largeur / 4))
+    filets = (f'<path d="M0 1.2H{largeur}M0 {hauteur - 1.2:.1f}H{largeur}"/>')
+    return (f"<svg xmlns='http://www.w3.org/2000/svg' width='{largeur}'"
+            f" height='{hauteur}'><g fill='none' stroke='{couleur}'"
+            f" stroke-opacity='{opacite:.2f}' stroke-width='1'>"
+            f"{etoiles}{losanges}"
+            f"<g stroke-opacity='{opacite * 0.7:.2f}'>{filets}</g></g></svg>")
+
+
+def fond_frise(largeur: int = 120, hauteur: int = 30, opacite: float = 0.30) -> str:
+    """La frise, prête pour une propriété `background`."""
+    return _uri(frise(largeur, hauteur, opacite))

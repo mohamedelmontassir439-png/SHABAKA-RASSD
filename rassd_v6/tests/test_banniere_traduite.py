@@ -30,9 +30,24 @@ def _gabarit():
 
 
 def _regle(selecteur):
-    m = re.search(re.escape(selecteur) + r"\s*\{[^}]*\}", _gabarit())
-    assert m, f"règle introuvable: {selecteur}"
-    return m.group(0)
+    """La règle CSS entière, accolades de Jinja comprises.
+
+    Une expression qui s'arrête à la première accolade fermante coupe la
+    règle au premier `}}` d'un `{{ … }}`: depuis que le fond appelle des
+    fabriques de motifs, elle n'en rendait plus que les trois premières
+    lignes, et les tests qui la lisaient ne regardaient plus rien.
+    """
+    src = _gabarit()
+    i = src.index(selecteur + " {")
+    j = i
+    while True:
+        j = src.index("}", j + 1)
+        if src[j + 1:j + 2] == "}":      # début d'un « }} » de Jinja
+            j += 1
+            continue
+        if src[j - 1:j] == "}":          # fin d'un « }} » de Jinja
+            continue
+        return src[i:j + 1]
 
 
 class TestLeTexteEstDuTexte:
@@ -132,3 +147,55 @@ class TestLaMiseEnPageTientDansLesDeuxSens:
 
     def test_le_mouvement_se_tait_quand_on_le_demande(self):
         assert "prefers-reduced-motion" in _gabarit()
+
+
+class TestFriseEtApercu:
+    """Deux coutures de la page d'accueil.
+
+    La couverture est sombre et texturée, le corps est clair et lisse: sans
+    rien entre les deux, ils se touchent comme deux sites cousus l'un à
+    l'autre. Et la section « derniers marchés » montrait, au visiteur
+    anonyme, un grand cadre vide qui disait seulement ce qu'il n'aurait pas.
+    """
+
+    def test_la_frise_ferme_la_couverture(self):
+        regle = _regle(".hero")
+        assert "fond_frise" in regle
+        assert "repeat-x" in regle, "une frise se répète en largeur, pas en hauteur"
+        assert "bottom" in regle, "elle ferme le bas de la section"
+
+    def test_la_frise_est_la_couche_du_dessus(self):
+        """Posée plus bas, la lueur et la vignette la délavent, et elle ne
+        ferme plus rien — c'est pourtant tout son office."""
+        regle = _regle(".hero")
+        couches = regle[regle.index("background:"):]
+        assert couches.index("fond_frise") < couches.index("radial-gradient")
+
+    def test_aucun_marche_nest_montre_au_visiteur_anonyme(self, client):
+        """Le détail d'un marché est réservé aux membres activés. L'aperçu
+        montre des secteurs et leur nombre — un agrégat de même nature que
+        les totaux déjà affichés — et jamais un objet de marché."""
+        from app.core.database import get_db
+        db = get_db()
+        objets = [r[0] for r in db.execute(
+            "SELECT objet FROM tenders WHERE statut='actif' LIMIT 5").fetchall()]
+        db.close()
+        page = client.get("/").text
+        for objet in objets:
+            assert objet[:40] not in page, f"objet de marché exposé: {objet[:40]!r}"
+
+    def test_lapercu_annonce_ce_quil_montre(self, client):
+        """« Voici ce qui vient de paraître » au-dessus d'une liste de
+        secteurs annonce autre chose que ce qui suit."""
+        from app.core.i18n import tr
+        page = client.get("/").text
+        assert tr("latest_label_secteurs", "fr") in page
+        assert "ça bouge" in page
+
+    def test_lapercu_nest_pas_cliquable(self, client):
+        """Il ne mène nulle part: le faire ressembler à un lien serait
+        promettre une page qui n'existe pas pour ce visiteur."""
+        page = client.get("/").text
+        bloc = page[page.index("latest-apercu"):]
+        bloc = bloc[:bloc.index("latest-promo")]
+        assert "<a " not in bloc
