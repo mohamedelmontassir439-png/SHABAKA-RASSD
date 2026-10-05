@@ -74,7 +74,7 @@ details.del summary::-webkit-details-marker{display:none}
             <button type="submit" class="btn btn-l" style="padding:6px 10px;">{{ 'Bloquer' if m.actif else 'Débloquer' }}</button>
           </form>
           <details class="del">
-            <summary>🗑 Supprimer</summary>
+            <summary>{{ ico('corbeille', 15)|safe }} Supprimer</summary>
             <div class="del-box">
               <div class="del-warn">
                 Suppression définitive et irréversible : profil, favoris, alertes, annonces et messages de sous-traitance.

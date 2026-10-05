@@ -50,7 +50,7 @@
 <div class="doc-wrap">
   <div class="doc-actions">
     <a href="/mon-abonnement" class="btn btn-ghost btn-sm">← Mon abonnement</a>
-    <button onclick="window.print()" class="btn btn-primary btn-sm">🖨 Imprimer / Enregistrer en PDF</button>
+    <button onclick="window.print()" class="btn btn-primary btn-sm">{{ ico('imprimante', 17)|safe }} Imprimer / Enregistrer en PDF</button>
   </div>
 
   {% if request.query_params.get('accepted') %}

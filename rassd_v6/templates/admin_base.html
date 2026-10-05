@@ -88,7 +88,7 @@ a{color:inherit;text-decoration:none}
   transition:background .15s,color .15s}
 .rail-lien:hover{background:rgba(255,255,255,.07);color:#fff}
 .rail-lien[aria-current="page"]{background:var(--terre);color:#fff}
-.rail-lien .ic{flex:none;width:17px;text-align:center;font-size:var(--f3)}
+.rail-lien .ic{flex:none;width:17px;display:flex;align-items:center;justify-content:center;font-size:var(--f3)}
 .rail-lien .n{margin-inline-start:auto;font-family:var(--mono);font-size:var(--f1);
   font-weight:500;opacity:.72}
 .rail-pied{margin-top:auto;padding:14px 20px 18px;border-top:1px solid rgba(255,255,255,.08);
@@ -223,7 +223,7 @@ tbody tr:hover td{background:var(--surface2)}
 {% macro lien(url, icone, texte) %}
   <a class="rail-lien" href="{{ url }}"
      {% if url == actif %}aria-current="page"{% endif %}>
-    <span class="ic" aria-hidden="true">{{ icone }}</span><span>{{ texte }}</span>
+    <span class="ic" aria-hidden="true">{{ icone|safe }}</span><span>{{ texte }}</span>
   </a>
 {% endmacro %}
 
@@ -239,31 +239,31 @@ tbody tr:hover td{background:var(--surface2)}
 
   <div class="rail-groupe">
     <div class="rail-titre">Pilotage</div>
-    {{ lien('/admin', '◆', 'Tableau de bord') }}
-    {{ lien('/admin/sources', '⛁', 'Sources') }}
-    {{ lien('/admin/backups', '⎘', 'Sauvegardes') }}
-    {{ lien('/admin/maintenance', '⚠', 'Maintenance') }}
+    {{ lien('/admin', ico('graphique', 17), 'Tableau de bord') }}
+    {{ lien('/admin/sources', ico('veille', 17), 'Sources') }}
+    {{ lien('/admin/backups', ico('dossiers', 17), 'Sauvegardes') }}
+    {{ lien('/admin/maintenance', ico('attention', 17), 'Maintenance') }}
   </div>
 
   <div class="rail-groupe">
     <div class="rail-titre">Abonnés</div>
-    {{ lien('/admin/members', '☺', 'Membres') }}
-    {{ lien('/admin/payments', '₪', 'Paiements') }}
-    {{ lien('/admin/recap', '✉', 'Récap du jour') }}
+    {{ lien('/admin/members', ico('personne', 17), 'Membres') }}
+    {{ lien('/admin/payments', ico('argent', 17), 'Paiements') }}
+    {{ lien('/admin/recap', ico('courriel', 17), 'Récap du jour') }}
   </div>
 
   <div class="rail-groupe">
     <div class="rail-titre">Prospection</div>
-    {{ lien('/admin/prospection/plan', '◱', "Plan d'appel") }}
-    {{ lien('/admin/prospection', '☏', "File d'appel") }}
-    {{ lien('/admin/companies', '⌂', 'Entreprises') }}
-    {{ lien('/admin/annuaires', '📒', 'Annuaires') }}
-    {{ lien('/admin/prospects', '◎', 'Prospects') }}
+    {{ lien('/admin/prospection/plan', ico('presse', 17), "Plan d'appel") }}
+    {{ lien('/admin/prospection', ico('telephone', 17), "File d'appel") }}
+    {{ lien('/admin/companies', ico('immeuble', 17), 'Entreprises') }}
+    {{ lien('/admin/annuaires', ico('carnet', 17), 'Annuaires') }}
+    {{ lien('/admin/prospects', ico('cible', 17), 'Prospects') }}
   </div>
 
   <div class="rail-groupe">
     <div class="rail-titre">Place de marché</div>
-    {{ lien('/admin/sous-traitance', '⇄', 'Sous-traitance') }}
+    {{ lien('/admin/sous-traitance', ico('echange', 17), 'Sous-traitance') }}
   </div>
 
   <div class="rail-pied">

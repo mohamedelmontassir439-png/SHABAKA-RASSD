@@ -20,7 +20,7 @@
         </td>
         <td>{{ p.auteur_nom or '—' }}<br><span style="color:var(--t4); font-size:var(--f1);">{{ p.auteur_email or '' }}</span></td>
         <td><span class="badge {% if p.statut=='actif' %}b-grn{% else %}b-gray{% endif %}">{{ p.statut }}</span></td>
-        <td>{% if p.n_reports %}<span class="badge b-r">🚩 {{ p.n_reports }}</span>{% else %}—{% endif %}</td>
+        <td>{% if p.n_reports %}<span class="badge b-r">{{ ico('drapeau', 14)|safe }} {{ p.n_reports }}</span>{% else %}—{% endif %}</td>
         <td style="color:var(--t3);">{{ p.created_at[:10] }}</td>
         <td>
           <a href="/sous-traitance/{{ p.id }}" target="_blank" class="btn btn-o" style="padding:6px 10px;">Voir</a>

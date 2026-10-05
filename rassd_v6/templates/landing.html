@@ -377,7 +377,7 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
         <span class="cr">{{ tr('channel_email_rythme') }}</span>
       </div>
       <div class="channel-tile">
-        <span class="ci" style="background: rgba(47,158,91,.14);">📲</span>
+        <span class="ci" style="background: rgba(47,158,91,.14); color: var(--grn);">{{ ico('bulle', 21)|safe }}</span>
         <span class="cl">{{ tr('channel_whatsapp') }}</span>
         <span class="cr">{{ tr('channel_whatsapp_rythme') }}</span>
       </div>
@@ -418,42 +418,42 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
     <div class="section-title reveal" style="max-width: 720px;">{{ tr('feat_title')|safe }}</div>
     <div class="feat-grid">
       <div class="feat-card reveal reveal-1">
-        <div class="feat-icon" style="background: var(--indigoa); color: var(--ink);">📡</div>
+        <div class="feat-icon" style="background: var(--indigoa); color: var(--ink);">{{ ico('veille', 26)|safe }}</div>
         <div class="feat-title">{{ tr('feat1_title') }}</div>
         <div class="feat-text">{{ tr('feat1_text') }}</div>
       </div>
       <div class="feat-card reveal reveal-2">
-        <div class="feat-icon" style="background: var(--indigoa); color: var(--ink2);">🏷️</div>
+        <div class="feat-icon" style="background: var(--indigoa); color: var(--ink2);">{{ ico('etiquette', 26)|safe }}</div>
         <div class="feat-title">{{ tr('feat2_title') }}</div>
         <div class="feat-text">{{ tr('feat2_text') }}</div>
       </div>
       <div class="feat-card reveal reveal-3">
-        <div class="feat-icon" style="background: var(--purplea); color: var(--purple);">🔔</div>
+        <div class="feat-icon" style="background: var(--purplea); color: var(--purple);">{{ ico('cloche', 26)|safe }}</div>
         <div class="feat-title">{{ tr('feat3_title') }}</div>
         <div class="feat-text">{{ tr('feat3_text_wa') if cfg.WA_ENABLED else tr('feat3_text') }}</div>
       </div>
       <div class="feat-card reveal reveal-4">
-        <div class="feat-icon" style="background: var(--grna); color: var(--grn);">🗂️</div>
+        <div class="feat-icon" style="background: var(--grna); color: var(--grn);">{{ ico('dossiers', 26)|safe }}</div>
         <div class="feat-title">{{ tr('feat4_title') }}</div>
         <div class="feat-text">{{ tr('feat4_text') }}</div>
       </div>
       <div class="feat-card reveal reveal-1">
-        <div class="feat-icon" style="background: var(--indigoa); color: var(--ink);">📊</div>
+        <div class="feat-icon" style="background: var(--indigoa); color: var(--ink);">{{ ico('graphique', 26)|safe }}</div>
         <div class="feat-title">{{ tr('feat5_title') }}</div>
         <div class="feat-text">{{ tr('feat5_text') }}</div>
       </div>
       <div class="feat-card reveal reveal-2">
-        <div class="feat-icon" style="background: var(--indigoa); color: var(--ink2);">⭐</div>
+        <div class="feat-icon" style="background: var(--indigoa); color: var(--ink2);">{{ ico('favori', 26)|safe }}</div>
         <div class="feat-title">{{ tr('feat6_title') }}</div>
         <div class="feat-text">{{ tr('feat6_text') }}</div>
       </div>
       <div class="feat-card reveal reveal-3">
-        <div class="feat-icon" style="background: var(--purplea); color: var(--purple);">🏆</div>
+        <div class="feat-icon" style="background: var(--purplea); color: var(--purple);">{{ ico('trophee', 26)|safe }}</div>
         <div class="feat-title">{{ tr('feat7_title') }}</div>
         <div class="feat-text">{{ tr('feat7_text') }}</div>
       </div>
       <div class="feat-card reveal reveal-4">
-        <div class="feat-icon" style="background: var(--grna); color: var(--grn);">🔒</div>
+        <div class="feat-icon" style="background: var(--grna); color: var(--grn);">{{ ico('verrou', 26)|safe }}</div>
         <div class="feat-title">{{ tr('feat8_title') }}</div>
         <div class="feat-text">{{ tr('feat8_text') }}</div>
       </div>

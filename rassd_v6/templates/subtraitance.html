@@ -69,7 +69,7 @@
 </div>
 
 <div class="st-how">
-  <div class="st-how-title">💡 {{ tr('st_how_title') }}</div>
+  <div class="st-how-title">{{ ico('idee', 19)|safe }} {{ tr('st_how_title') }}</div>
   <div class="st-how-grid">
     <div>
       <div class="st-how-step-t">{{ tr('st_how1_t') }}</div>
@@ -150,7 +150,7 @@
       </div>
       <div class="st-row-title">{{ p.titre[:120] }}</div>
       <div class="st-row-meta">
-        {% if p.budget %}<span>💰 {{ p.budget[:30] }}</span>{% endif %}
+        {% if p.budget %}<span>{{ ico('argent', 16)|safe }} {{ p.budget[:30] }}</span>{% endif %}
         {% if p.date_limite %}<span>⏰ {{ p.date_limite }}</span>{% endif %}
         <span>{{ p.created_at[:10] }}</span>
       </div>

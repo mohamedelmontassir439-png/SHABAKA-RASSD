@@ -422,3 +422,131 @@ def fond_trame(maille: int = 120, opacite: float = 0.13) -> str:
 def fond_rosace(taille: int = 440, opacite: float = 0.16) -> str:
     """La rosace, prête pour une propriété `background`."""
     return _uri(rosace(taille, opacite))
+
+# ─── Les icônes ──────────────────────────────────────────────────────────
+#
+# Un emoji n'est pas dessiné par nous: il l'est par le système de celui qui
+# regarde. Le même 📡 est bleu et plat sur Windows, rond et dégradé sur
+# Android, gris sur iOS. Aucune cohérence n'est possible tant qu'ils sont là,
+# quoi qu'on fasse du reste de la page.
+#
+# Une seule grammaire pour tout le jeu, et c'est elle qui fait l'unité:
+#   · une grille de 24, le dessin inscrit entre 2 et 22;
+#   · un seul trait, de 1,6, bouts et angles arrondis;
+#   · aucun remplissage, aucune couleur propre — `currentColor` prend celle
+#     du texte qui l'entoure, si bien qu'une icône posée dans une carte
+#     verte est verte sans qu'on ait rien à déclarer.
+#
+# Deux d'entre elles viennent de la marque elle-même: « favori » est le
+# khatam du sceau, et « globe » reprend les méridiens du logo.
+
+_TRACES = {
+    # Veille, flux, signal
+    "veille":      '<circle cx="5" cy="19" r="1.4"/><path d="M5 13.5a5.5 5.5 0 0 1 5.5 5.5"/>'
+                   '<path d="M5 8.5a10.5 10.5 0 0 1 10.5 10.5"/>'
+                   '<path d="M5 3.5a15.5 15.5 0 0 1 15.5 15.5"/>',
+    "eclair":      '<path d="M13 2.5 4.5 14h6.5l-1 7.5L19 10h-6.5l.5-7.5Z"/>',
+    # Classement, dossiers
+    "etiquette":   '<path d="M3.5 11.4V4.6a1 1 0 0 1 1-1h6.8a1 1 0 0 1 .7.3l8.1 8.1a1 1 0 0 1 0 1.4'
+                   'l-6.8 6.8a1 1 0 0 1-1.4 0L3.8 12.1a1 1 0 0 1-.3-.7Z"/>'
+                   '<circle cx="7.6" cy="7.6" r="1.5"/>',
+    "dossiers":    '<path d="M9 2.8h5.6L19 7.2V18a1.4 1.4 0 0 1-1.4 1.4H9A1.4 1.4 0 0 1 7.6 18V4.2'
+                   'A1.4 1.4 0 0 1 9 2.8Z"/><path d="M14.4 2.8v4.6H19"/>'
+                   '<path d="M4.6 6.6V19a2.4 2.4 0 0 0 2.4 2.4h8.4"/>',
+    "carnet":      '<path d="M7.4 3h10.2a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H7.4A2.9 2.9 0 0 1 4.5 18.1'
+                   'V5.9A2.9 2.9 0 0 1 7.4 3Z"/><path d="M4.5 7.5h3M4.5 12h3M4.5 16.5h3"/>',
+    "presse":      '<path d="M9 4.4H7a2 2 0 0 0-2 2V19a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6.4a2 2 0 0 0-2-2h-2"/>'
+                   '<rect x="9" y="2.6" width="6" height="3.6" rx="1.2"/>'
+                   '<path d="M8.6 11.5h6.8M8.6 15.4h4.6"/>',
+    "trombone":    '<path d="M18.9 11.4 11.5 18.8a5 5 0 0 1-7.1-7.1l8.5-8.5a3.4 3.4 0 0 1 4.8 4.8'
+                   'l-8.1 8.1a1.8 1.8 0 0 1-2.5-2.5l7.2-7.2"/>',
+    # Alertes et canaux
+    "cloche":      '<path d="M18.2 9.4a6.2 6.2 0 1 0-12.4 0c0 5-2.1 6.2-2.1 6.2h16.6s-2.1-1.2-2.1-6.2"/>'
+                   '<path d="M13.8 19.3a2.1 2.1 0 0 1-3.6 0"/>',
+    "courriel":    '<rect x="3" y="5.2" width="18" height="13.6" rx="2"/>'
+                   '<path d="M3.6 6.6 12 13l8.4-6.4"/>',
+    "bulle":       '<path d="M20.4 11.6a8 8 0 0 1-11.8 7.1L3.6 20.4l1.7-5A8 8 0 1 1 20.4 11.6Z"/>',
+    "telephone":   '<path d="M6.2 3.2h2.9l1.9 4.8-2.4 1.5a11.5 11.5 0 0 0 5.1 5.1l1.5-2.4 4.8 1.9v2.9'
+                   'a2 2 0 0 1-2.2 2A16.4 16.4 0 0 1 4.2 5.4a2 2 0 0 1 2-2.2Z"/>',
+    # Analyse
+    "graphique":   '<path d="M4.6 18.6v-6.4M10.2 18.6V5.4M15.8 18.6v-8.8"/><path d="M3 21.2h18"/>',
+    "trophee":     '<path d="M8 3.4h8v5.2a4 4 0 0 1-8 0Z"/>'
+                   '<path d="M8 4.8H4.8v1.8a3.2 3.2 0 0 0 3.2 3.2"/>'
+                   '<path d="M16 4.8h3.2v1.8a3.2 3.2 0 0 1-3.2 3.2"/>'
+                   '<path d="M12 12.6v4.6M8.6 20.6h6.8"/>',
+    # Un billet, pas un dollar: le symbole $ n'a rien à faire sur une
+    # plateforme marocaine, et aucune icône ne peut porter le dirham sans
+    # écrire un caractère — ce qu'un tracé ne fait pas.
+    "argent":      '<rect x="2.6" y="6.4" width="18.8" height="11.2" rx="2"/>'
+                   '<circle cx="12" cy="12" r="2.8"/>'
+                   '<path d="M6.2 12h.01M17.8 12h.01"/>',
+    "idee":        '<path d="M9.4 18.4h5.2M10.4 21.2h3.2"/>'
+                   '<path d="M12 2.8a6.2 6.2 0 0 0-3.6 11.2c.6.5 1 1.3 1 2.1h5.2c0-.8.4-1.6 1-2.1'
+                   'A6.2 6.2 0 0 0 12 2.8Z"/>',
+    # Lieux, liens, recherche
+    "loupe":       '<circle cx="10.8" cy="10.8" r="6.2"/><path d="M15.4 15.4 20.4 20.4"/>',
+    "lieu":        '<path d="M12 21.2s7-6.4 7-11.2a7 7 0 1 0-14 0c0 4.8 7 11.2 7 11.2Z"/>'
+                   '<circle cx="12" cy="9.8" r="2.7"/>',
+    "lien":        '<path d="M10.2 13.1a4.2 4.2 0 0 0 6 .3l3-3a4.2 4.2 0 0 0-6-6l-1.8 1.8"/>'
+                   '<path d="M13.8 10.9a4.2 4.2 0 0 0-6-.3l-3 3a4.2 4.2 0 0 0 6 6l1.8-1.8"/>',
+    "globe":       '<circle cx="12" cy="12" r="8.6"/><ellipse cx="12" cy="12" rx="4" ry="8.6"/>'
+                   '<path d="M3.5 12h17"/>',
+    "photo":       '<rect x="3" y="6.4" width="18" height="13.6" rx="2"/>'
+                   '<circle cx="12" cy="13.2" r="3.6"/><path d="M8.6 6.4 10 4.2h4l1.4 2.2"/>',
+    # États et actions
+    "coche":       '<circle cx="12" cy="12" r="8.6"/><path d="M8 12.3 10.9 15.2 16 9.4"/>',
+    "croix":       '<circle cx="12" cy="12" r="8.6"/><path d="M9.2 9.2 14.8 14.8M14.8 9.2 9.2 14.8"/>',
+    "attention":   '<path d="M12 3.6 2.6 20.4h18.8Z"/><path d="M12 9.8v4.6M12 17.6v.1"/>',
+    "verrou":      '<rect x="4.2" y="10.2" width="15.6" height="10" rx="2.2"/>'
+                   '<path d="M7.8 10.2V7.4a4.2 4.2 0 0 1 8.4 0v2.8"/>',
+    "corbeille":   '<path d="M4.2 6.8h15.6"/>'
+                   '<path d="M9.2 6.8V5a1.2 1.2 0 0 1 1.2-1.2h3.2A1.2 1.2 0 0 1 14.8 5v1.8"/>'
+                   '<path d="M6.2 6.8 7.1 19a2 2 0 0 0 2 1.8h5.8a2 2 0 0 0 2-1.8l.9-12.2"/>'
+                   '<path d="M10.2 10.6v6M13.8 10.6v6"/>',
+    "imprimante":  '<path d="M7 9.4V3.8h10v5.6"/>'
+                   '<rect x="4" y="9.4" width="16" height="7" rx="2"/>'
+                   '<path d="M7 13.8h10v6.4H7Z"/>',
+    "drapeau":     '<path d="M5.2 21.2V3.4"/><path d="M5.2 4.6h11l-2.2 3.6 2.2 3.6h-11"/>',
+    "couronne":    '<path d="M4 18.8h16"/><path d="M4 15.6 2.9 6.8l5.3 4.1L12 4.4l3.8 6.5 5.3-4.1'
+                   '-1.1 8.8Z"/>',
+    # Un engrenage plutôt qu'une clé: huit dents calculées se tiennent,
+    # là où une clé dessinée à la main penchait toujours d'un côté.
+    "outils":      '<circle cx="12" cy="12" r="7.2"/><circle cx="12" cy="12" r="3"/>'
+                   '<path d="M19.20 12.00L21.60 12.00"/><path d="M17.09 17.09L18.79 18.79"/><path d="M12.00 19.20L12.00 21.60"/><path d="M6.91 17.09L5.21 18.79"/><path d="M4.80 12.00L2.40 12.00"/><path d="M6.91 6.91L5.21 5.21"/><path d="M12.00 4.80L12.00 2.40"/><path d="M17.09 6.91L18.79 5.21"/>',
+    "echange":     '<path d="M4 8.4h14l-3.4-3.4"/><path d="M20 15.6H6l3.4 3.4"/>',
+    # Le rail en demandait trois de plus.
+    "personne":    '<circle cx="12" cy="8" r="3.8"/>'
+                   '<path d="M4.6 20.4a7.4 7.4 0 0 1 14.8 0"/>',
+    "immeuble":    '<path d="M4.2 20.6V5.4a1 1 0 0 1 1-1h7.6a1 1 0 0 1 1 1v15.2"/>'
+                   '<path d="M13.8 10.6h5a1 1 0 0 1 1 1v9"/>'
+                   '<path d="M2.6 20.6h18.8"/>'
+                   '<path d="M7 8.4h4M7 12.4h4M7 16.4h4M17 14.4h.01M17 17.6h.01"/>',
+    "cible":       '<circle cx="12" cy="12" r="8.4"/><circle cx="12" cy="12" r="4.4"/>'
+                   '<circle cx="12" cy="12" r="1"/>',
+}
+
+
+def icone(nom: str, taille: int = 22, trait: float = 1.6) -> str:
+    """Une icône du jeu, dans la couleur du texte qui l'entoure.
+
+    `currentColor` plutôt qu'une teinte écrite: posée dans une carte verte
+    elle devient verte, dans un bouton blanc elle devient blanche, et aucune
+    page n'a à redéclarer la palette.
+
+    Un nom inconnu rend un carré vide plutôt que rien: on voit qu'il manque
+    une icône au lieu de chercher pourquoi la ligne a l'air de travers.
+    """
+    if nom == "favori":                       # le khatam du sceau
+        trace = f'<polygon points="{_etoile_khatam(12, 12, 9.2)}"/>'
+    else:
+        trace = _TRACES.get(nom, '<rect x="4" y="4" width="16" height="16" rx="2"/>')
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{taille}" height="{taille}"'
+            f' viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+            f' stroke-width="{trait}" stroke-linecap="round" stroke-linejoin="round"'
+            f' aria-hidden="true" focusable="false"'
+            f' style="flex:none;display:inline-block;vertical-align:-.18em">{trace}</svg>')
+
+
+def icones_connues() -> tuple:
+    """Les noms du jeu, pour qu'un test puisse les vérifier tous."""
+    return tuple(sorted(_TRACES)) + ("favori",)

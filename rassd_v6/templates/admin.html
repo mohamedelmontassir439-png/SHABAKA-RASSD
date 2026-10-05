@@ -117,7 +117,7 @@
           <div style="display: flex; gap: 8px; align-items: center;">
             <span id="st" class="run-status" style="color: {% if running %}var(--amberd){% else %}var(--t4){% endif %};">{% if running %}● EN COURS{% else %}○ INACTIF{% endif %}</span>
             <button onclick="launch()" id="btn" class="btn btn-p" {% if running %}disabled{% endif %}>▶ Actualiser</button>
-            <a href="/admin/scrape" class="btn btn-o" title="Fallback direct">⚡</a>
+            <a href="/admin/scrape" class="btn btn-o" title="Fallback direct">{{ ico('eclair', 17)|safe }}</a>
           </div>
         </div>
         {% if last_run %}
@@ -153,7 +153,7 @@
         <div class="card-h"><span class="card-ht">Canaux de notification</span></div>
         <div class="card-b" style="display:flex;flex-direction:column;gap:10px;">
           <div style="display:flex;align-items:center;justify-content:space-between;">
-            <span>📧 Email (Brevo/Gmail)</span>
+            <span>{{ ico('courriel', 17)|safe }} Email (Brevo/Gmail)</span>
             <span class="badge {{ 'b-grn' if (cfg.BREVO_KEY or (cfg.GMAIL_USER and cfg.GMAIL_PASS)) else 'b-r' }}">{{ 'Configuré' if (cfg.BREVO_KEY or (cfg.GMAIL_USER and cfg.GMAIL_PASS)) else 'Non configuré' }}</span>
           </div>
           {# Telegram n'est plus un canal client: il ne sert qu'à vous
@@ -161,16 +161,16 @@
              laissait croire que les membres y recevaient encore quelque
              chose. #}
           <div style="display:flex;align-items:center;justify-content:space-between;">
-            <span>📡 Supervision (Telegram)
+            <span>{{ ico('veille', 17)|safe }} Supervision (Telegram)
               <span class="meta" style="display:block">Alertes plateforme, pas d'envoi aux membres</span></span>
             <span class="badge {{ 'b-grn' if cfg.TELEGRAM_BOT else 'b-gray' }}">{{ 'Actif' if cfg.TELEGRAM_BOT else 'Non configuré' }}</span>
           </div>
           <div style="display:flex;align-items:center;justify-content:space-between;">
-            <span>💬 WhatsApp</span>
+            <span>{{ ico('bulle', 17)|safe }} WhatsApp</span>
             <span class="badge b-r" id="wa-badge">Vérification…</span>
           </div>
           <div style="display:flex;gap:8px;margin-top:6px;">
-            <a href="{{ cfg.WA_SERVICE_URL }}/qr" target="_blank" class="btn btn-o" style="flex:1;justify-content:center;">📷 Connecter WhatsApp</a>
+            <a href="{{ cfg.WA_SERVICE_URL }}/qr" target="_blank" class="btn btn-o" style="flex:1;justify-content:center;">{{ ico('photo', 17)|safe }} Connecter WhatsApp</a>
             <button onclick="checkWA()" class="btn btn-o">↻</button>
           </div>
 

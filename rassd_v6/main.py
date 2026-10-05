@@ -898,6 +898,9 @@ templates.env.globals["sceau"] = marque.sceau
 # Les motifs du zellige, calculés une fois et posés en fond.
 templates.env.globals["fond_trame"] = marque.fond_trame
 templates.env.globals["fond_rosace"] = marque.fond_rosace
+# `ico` et non `icone`: la macro du rail a un paramètre de ce nom, qui
+# masquerait la globale à l'intérieur de la macro.
+templates.env.globals["ico"] = marque.icone
 
 
 def initiales(nom: str, email: str = "") -> str:

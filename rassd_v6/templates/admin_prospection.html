@@ -73,7 +73,7 @@ th,td{padding:11px 13px;text-align:left;border-bottom:1px solid var(--line);vert
   {% if f.gagnants %}
   <form method="post" action="/admin/prospection/apparier" style="margin:-8px 0 16px">
     <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
-    <button class="btn" type="submit">📒 Chercher les fiches dans l'annuaire professionnel</button>
+    <button class="btn" type="submit">{{ ico('carnet', 16)|safe }} Chercher les fiches dans l'annuaire professionnel</button>
     <span class="meta" style="margin-inline-start:8px">
       <b>{{ nb_fiches }}</b> fiche(s) déjà rattachée(s) sur {{ nb_gagnants }}.
       Les avis d'attribution ne publient pas de contact; le rapprochement se
@@ -95,7 +95,7 @@ th,td{padding:11px 13px;text-align:left;border-bottom:1px solid var(--line);vert
       <tr>
         <td>
           <div class="nom">{{ c.legal_name[:58] }}
-            {% if c.wins %}<span class="tag abonne" title="Marchés publics remportés">🏆 {{ c.wins }}</span>{% endif %}</div>
+            {% if c.wins %}<span class="tag abonne" title="Marchés publics remportés">{{ ico('trophee', 14)|safe }} {{ c.wins }}</span>{% endif %}</div>
           <div class="meta">{{ c.city or '—' }}{% if c.subsector %} · {{ c.subsector[:38] }}{% endif %}</div>
         </td>
         <td>
@@ -105,11 +105,11 @@ th,td{padding:11px 13px;text-align:left;border-bottom:1px solid var(--line);vert
              numéro se cherche, puis se saisit depuis la fiche d'appel. #}
           {% if c.annuaire_url %}
           <a class="meta" target="_blank" rel="noopener" href="{{ c.annuaire_url }}"
-             style="color:var(--amberd);font-weight:700">📒 fiche annuaire</a>
+             style="color:var(--amberd);font-weight:700">{{ ico('carnet', 14)|safe }} fiche annuaire</a>
           {% else %}
           <a class="meta" target="_blank" rel="noopener"
              href="https://www.google.com/search?q={{ (c.legal_name ~ ' ' ~ (c.city or '') ~ ' Maroc téléphone')|urlencode }}"
-             style="color:var(--amberd);font-weight:700">🔍 chercher le numéro</a>
+             style="color:var(--amberd);font-weight:700">{{ ico('loupe', 14)|safe }} chercher le numéro</a>
           {% endif %}
           {% endif %}
           {% if c.email %}<div class="meta">{{ c.email[:30] }}</div>{% endif %}

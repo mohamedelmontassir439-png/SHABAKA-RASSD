@@ -43,8 +43,8 @@
        « Propose ses services » cochait « Recherche un sous-traitant ».
        Chaque option porte donc desormais son propre label. #}
     <div class="type-choice">
-      <label class="type-opt"><input type="radio" name="type" value="demande" checked><div class="type-opt-t">🔍 {{ tr('st_type_demande') }}</div></label>
-      <label class="type-opt"><input type="radio" name="type" value="offre"><div class="type-opt-t">🛠️ {{ tr('st_type_offre') }}</div></label>
+      <label class="type-opt"><input type="radio" name="type" value="demande" checked><div class="type-opt-t">{{ ico('loupe', 18)|safe }} {{ tr('st_type_demande') }}</div></label>
+      <label class="type-opt"><input type="radio" name="type" value="offre"><div class="type-opt-t">{{ ico('outils', 18)|safe }} {{ tr('st_type_offre') }}</div></label>
     </div>
 
     <div class="field" style="margin-bottom:16px;">

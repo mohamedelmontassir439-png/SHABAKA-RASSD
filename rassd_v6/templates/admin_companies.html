@@ -243,14 +243,14 @@
         </td>
         <td>
           {% if c.phone %}
-            <div><a href="tel:+{{ c.phone }}" class="lien-contact">📞 {{ c.phone }}</a></div>
+            <div><a href="tel:+{{ c.phone }}" class="lien-contact">{{ ico('telephone', 15)|safe }} {{ c.phone }}</a></div>
           {% endif %}
           {% if c.email %}
             <div><a href="mailto:{{ c.email }}" class="lien-contact">✉ {{ c.email[:32] }}</a></div>
           {% endif %}
           {% if c.website %}
             <div><a href="{% if not c.website.startswith('http') %}https://{% endif %}{{ c.website }}"
-                    target="_blank" rel="noopener" class="lien-contact muted">🔗 {{ c.website[:30] }}</a></div>
+                    target="_blank" rel="noopener" class="lien-contact muted">{{ ico('lien', 15)|safe }} {{ c.website[:30] }}</a></div>
           {% endif %}
           {% if not c.phone and not c.email and not c.website %}<span class="badge b-gray">à compléter</span>{% endif %}
         </td>
