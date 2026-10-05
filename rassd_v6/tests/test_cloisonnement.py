@@ -149,3 +149,33 @@ class TestTableauDeBord:
         _marche(db, "t_3", "S901")
         page = membre.get("/dashboard").text
         assert page.count(">3<") == 0 or ">2<" in page
+
+
+class TestAccueil:
+    """La page d'accueil montrait tout, à un membre connecté.
+
+    Elle interrogeait les marchés sans passer par `restreindre_aux_secteurs`,
+    seule de toutes les listes. Un abonné du bâtiment y voyait des marchés
+    d'informatique en haut de sa propre page d'accueil — précisément le tri
+    qu'on lui vend et qu'on lui laissait faire.
+    """
+
+    def test_laccueil_ne_montre_que_les_marches_du_membre(self, membre, db):
+        _marche(db, "a_sien", "T101", "ACCUEIL MARCHE DE MON METIER")
+        _marche(db, "a_autre", "S901", "ACCUEIL MARCHE D UN AUTRE METIER")
+        page = membre.get("/").text
+        assert "ACCUEIL MARCHE DE MON METIER" in page
+        assert "ACCUEIL MARCHE D UN AUTRE METIER" not in page
+
+    def test_un_profil_sans_secteur_nest_pas_restreint(self, sans_secteur, db):
+        """Comme sur `/tenders`: filtrer sur une liste vide rendrait zéro
+        marché partout, et la plateforme paraîtrait cassée à l'instant où un
+        nouveau venu la découvre. L'accueil suit donc la même règle que les
+        autres listes — c'est l'intérêt de passer par le même filtre plutôt
+        que d'en écrire un second qui en déciderait autrement."""
+        _marche(db, "a_vide", "T101", "ACCUEIL MARCHE QUELCONQUE")
+        assert "ACCUEIL MARCHE QUELCONQUE" in sans_secteur.get("/").text
+
+    def test_le_visiteur_anonyme_ne_voit_toujours_aucun_marche(self, client, db):
+        _marche(db, "a_anon", "T101", "ACCUEIL MARCHE RESERVE")
+        assert "ACCUEIL MARCHE RESERVE" not in client.get("/").text

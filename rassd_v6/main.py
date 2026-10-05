@@ -1057,8 +1057,17 @@ async def home(req: Request):
     # l'abonnement a été activé par l'admin — les visiteurs anonymes ET les
     # membres en attente d'activation ne voient qu'un aperçu générique (landing.html).
     member  = get_member(req)
-    recent  = [dict(r) for r in db.execute(
-        "SELECT * FROM tenders WHERE statut='actif' ORDER BY scraped_at DESC LIMIT 9").fetchall()] if has_access(member) else []
+    # Les marchés de ses secteurs, et d'eux seuls. Toutes les autres listes
+    # passent par `restreindre_aux_secteurs`; celle-ci ne le faisait pas, et
+    # l'accueil montrait au membre des marchés qui ne le concernaient pas —
+    # exactement le tri qu'on lui vend et qu'on lui laissait faire.
+    recent = []
+    if has_access(member):
+        ou, params = ["statut='actif'"], []
+        restreindre_aux_secteurs(member, ou, params)
+        recent = [dict(r) for r in db.execute(
+            f"SELECT * FROM tenders WHERE {' AND '.join(ou)} "
+            f"ORDER BY scraped_at DESC LIMIT 9", params).fetchall()]
     sectors = [dict(r) for r in db.execute(
         "SELECT secteur,COUNT(*) cnt FROM tenders WHERE statut='actif' GROUP BY secteur ORDER BY cnt DESC LIMIT 12").fetchall()]
     db.close()
