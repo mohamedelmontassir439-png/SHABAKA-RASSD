@@ -30,15 +30,22 @@
 .hero { position: relative; overflow: hidden; isolation: isolate;
   container-type: inline-size; padding: clamp(56px, 6.8vw, 100px) 0;
   background:
-    /* La lueur passe par-dessus le zellige: elle le baigne au lieu de le
-       laisser quadriller la marque. */
+    /* Dans l'ordre où le navigateur les empile, du dessus vers le dessous.
+       La lueur vient en premier: elle baigne les motifs au lieu de les
+       laisser quadriller la marque. La vignette, elle, passe sous les
+       rosaces — posée au-dessus, elle aurait éteint les angles qu'elles
+       occupent, et c'est précisément là qu'on veut les voir. */
     radial-gradient(112% 96% at 74% 50%, rgba(255,133,82,.34) 0%, rgba(242,102,45,.13) 34%, transparent 62%),
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='84'%3E%3Cg fill='none' stroke='%23f2662d' stroke-opacity='.11' stroke-width='1'%3E%3Cpath d='M42 2 80 42 42 82 4 42Z'/%3E%3Cpath d='M42 18 66 42 42 66 18 42Z'/%3E%3Cpath d='M42 2V82M4 42H80'/%3E%3C/g%3E%3C/svg%3E") 0 0 / 84px 84px repeat,
-    /* L'horizon: une bande de chaleur basse, comme le jour qui se lève. La
-       veille trouve les marchés avant vous — c'est l'heure que dit le fond. */
     linear-gradient(to bottom, transparent 54%, rgba(242,102,45,.16) 71%, rgba(242,102,45,.03) 82%, transparent 92%),
     radial-gradient(76% 62% at 6% 2%, rgba(255,133,82,.12) 0%, transparent 58%),
-    /* Les bords se referment: sans cela la section flotte, sans fin ni cadre. */
+    /* Deux rosaces d'angle, débordant du cadre: entières, elles feraient
+       deux médaillons concurrents de la marque. Toutes deux du côté du
+       texte — posée en bas à droite, la seconde venait se superposer au
+       globe, et deux cercles ornés l'un sur l'autre ne se lisent plus. */
+    {{ fond_rosace(560, 0.18) }} -150px -175px / 560px 560px no-repeat,
+    {{ fond_rosace(620, 0.12) }} -195px calc(100% + 165px) / 620px 620px no-repeat,
+    /* La trame: un khatam à chaque nœud du zellige, et son lacis. */
+    {{ fond_trame(132, 0.115) }} 0 0 / 132px 132px repeat,
     radial-gradient(130% 120% at 50% 50%, transparent 52%, rgba(10,7,5,.55) 100%),
     linear-gradient(156deg, #32200f 0%, #1d1410 44%, #110c09 100%); }
 
@@ -117,6 +124,13 @@
   vector-effect: non-scaling-stroke; }
 @keyframes hero-tour { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .hero-anneau { animation: none; } }
+/* La grille se retourne en arabe, le fond non: la lueur restait derrière le
+   texte et la rosace du bas venait croiser le globe. On retourne la section
+   entière, puis on remet son contenu à l'endroit — seul le fond est miroité,
+   et la composition retrouve le même équilibre dans les deux sens. */
+html[dir="rtl"] .hero { transform: scaleX(-1); }
+html[dir="rtl"] .hero-inner,
+html[dir="rtl"] .hero-meridiens { transform: scaleX(-1); }
 /* Le titre n'est plus gravé dans l'image: la bannière a été nettoyée de ses
    lettres et le texte revient en HTML, à la place exacte qu'il occupait.
    C'est ce qui lui rend la traduction — une image ne se traduit pas.

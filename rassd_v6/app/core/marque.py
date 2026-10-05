@@ -316,3 +316,109 @@ def logo_email(largeur: int = 210) -> str:
 def logo_email_sombre(largeur: int = 160) -> str:
     """Bandeau des emails posés sur fond encre."""
     return _entete_email(CREME, OR)
+
+# ─── Les motifs du zellige ───────────────────────────────────────────────
+#
+# Le khatam — l'étoile à huit branches — est la figure de base du zellige
+# marocain. Elle n'est pas « une étoile à huit pointes » dessinée au jugé:
+# c'est le polygone étoilé {8/3}, celui qu'on obtient en reliant un sommet
+# sur trois d'un octogone. Tracée avec deux rayons alternés, elle n'est
+# juste que pour un rapport précis — cos(3π/8) / cos(2π/8) = 0,5412. Au-delà
+# l'étoile s'arrondit en fleur, en deçà elle se hérisse en scie; dans les
+# deux cas l'œil marocain la reconnaît comme fausse.
+
+
+def _etoile_khatam(cx: float, cy: float, rayon: float, branches: int = 8,
+                   saut: int = 3, rotation: float = 0.0) -> str:
+    """Les sommets d'un khatam, prêts pour un `points="…"`.
+
+    `saut` dit combien de sommets on enjambe: 3 pour l'étoile à huit
+    branches du zellige, 2 pour une étoile plus ouverte.
+    """
+    creux = rayon * math.cos(saut * math.pi / branches) / math.cos(
+        (saut - 1) * math.pi / branches)
+    sommets = []
+    for i in range(branches * 2):
+        angle = math.pi * i / branches + rotation - math.pi / 2
+        r = rayon if i % 2 == 0 else creux
+        sommets.append(f"{cx + r * math.cos(angle):.2f},{cy + r * math.sin(angle):.2f}")
+    return " ".join(sommets)
+
+
+def _uri(svg: str) -> str:
+    """Un SVG prêt pour `background-image`, sans guillemets.
+
+    L'encodage ne laisse ni espace, ni parenthèse, ni apostrophe: l'adresse
+    se passe donc de guillemets, et c'est ce qui la rend posable aussi bien
+    dans une feuille de style que dans un attribut `style`, où des
+    guillemets doubles auraient refermé l'attribut.
+    """
+    import urllib.parse
+    return "url(data:image/svg+xml," + urllib.parse.quote(svg, safe="") + ")"
+
+
+def trame_zellige(maille: int = 120, opacite: float = 0.13,
+                  couleur: str = OR) -> str:
+    """La trame de fond: un khatam à chaque nœud, relié par son lacis.
+
+    Le motif se répète sur un carré. Pour qu'il se raccorde sans couture, le
+    même khatam est posé au centre **et aux quatre coins**: un dessin qui ne
+    toucherait pas ses bords laisserait une grille de vides, et c'est au
+    raccord qu'on voit qu'un fond a été fabriqué.
+    """
+    m = maille
+    r = m * 0.26
+    etoiles = "".join(
+        f'<polygon points="{_etoile_khatam(x, y, r)}"/>'
+        for x, y in ((m / 2, m / 2), (0, 0), (m, 0), (0, m), (m, m)))
+    # Le lacis: les diagonales qui relient les étoiles, comme les baguettes
+    # de plâtre entre deux pièces de faïence.
+    lacis = (f'<path d="M0 {m/2:.0f}H{m} M{m/2:.0f} 0V{m}"/>'
+             f'<path d="M0 0L{m} {m} M{m} 0L0 {m}"/>')
+    return (f"<svg xmlns='http://www.w3.org/2000/svg' width='{m}' height='{m}'>"
+            f"<g fill='none' stroke='{couleur}' stroke-opacity='{opacite:.2f}'"
+            f" stroke-width='1'>{etoiles}"
+            f"<g stroke-opacity='{opacite * 0.45:.2f}'>{lacis}</g></g></svg>")
+
+
+def rosace(taille: int = 440, opacite: float = 0.16, couleur: str = OR) -> str:
+    """La rosace d'angle: un khatam dans ses couronnes.
+
+    Trois couronnes, pas plus: l'étoile, huit étoiles filles sur un cercle,
+    et une bordure crénelée. Les rosaces des medersas en portent davantage,
+    mais elles se lisent de près; posée derrière un titre, une rosace trop
+    chargée devient une tache grise.
+    """
+    c = taille / 2
+    R = taille * 0.46
+    filles = "".join(
+        f'<polygon points="{_etoile_khatam(c + R * 0.62 * math.cos(a), c + R * 0.62 * math.sin(a), R * 0.15)}"/>'
+        for a in (math.pi * k / 4 for k in range(8)))
+    creneaux = "".join(
+        f'<line x1="{c + R * 0.90 * math.cos(a):.2f}" y1="{c + R * 0.90 * math.sin(a):.2f}"'
+        f' x2="{c + R * 1.00 * math.cos(a):.2f}" y2="{c + R * 1.00 * math.sin(a):.2f}"/>'
+        for a in (math.pi * k / 16 for k in range(32)))
+    return (f"<svg xmlns='http://www.w3.org/2000/svg' width='{taille}'"
+            f" height='{taille}' viewBox='0 0 {taille} {taille}'>"
+            f"<g fill='none' stroke='{couleur}' stroke-opacity='{opacite:.2f}'"
+            f" stroke-width='1.2'>"
+            f'<polygon points="{_etoile_khatam(c, c, R * 0.40)}"/>'
+            # 0,20 et non 0,26: le creux de l'étoile extérieure tombe à
+            # 0,40 × 0,5412 = 0,216 de R. Au-delà, les branches de l'étoile
+            # intérieure ressortent entre celles de l'autre et les deux
+            # figures se brouillent en une tache à seize pointes.
+            f'<polygon points="{_etoile_khatam(c, c, R * 0.20, rotation=math.pi / 8)}"/>'
+            f"<g stroke-opacity='{opacite * 0.8:.2f}'>{filles}</g>"
+            f"<circle cx='{c}' cy='{c}' r='{R * 0.88:.2f}'/>"
+            f"<g stroke-opacity='{opacite * 0.7:.2f}'>{creneaux}</g>"
+            f"</g></svg>")
+
+
+def fond_trame(maille: int = 120, opacite: float = 0.13) -> str:
+    """La trame, prête pour une propriété `background`."""
+    return _uri(trame_zellige(maille, opacite))
+
+
+def fond_rosace(taille: int = 440, opacite: float = 0.16) -> str:
+    """La rosace, prête pour une propriété `background`."""
+    return _uri(rosace(taille, opacite))

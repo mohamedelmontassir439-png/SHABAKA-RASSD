@@ -68,11 +68,19 @@ class TestAucuneImageDansLaCouverture:
         assert ".hero::before" not in _gabarit()
         assert _regle(".hero").count("background:") == 1
 
-    def test_le_fond_ne_charge_aucune_image_tramee(self):
+    def test_le_fond_ne_charge_aucune_image_tramee(self, client):
         """Seules les données SVG en ligne sont admises: elles ne font pas de
-        requête et ne pèsent presque rien."""
-        for url in re.findall(r'url\(["\']?([^"\')]+)', _regle(".hero")):
-            assert url.startswith("data:image/svg+xml"), url
+        requête et ne pèsent presque rien.
+
+        Sur la page rendue, et non sur le gabarit: les motifs y sont des
+        appels Jinja, aucune adresse ne s'y lit encore, et ce test passait
+        sans rien examiner — une boucle sur une liste vide ne se plaint pas.
+        """
+        regle = re.search(r"\.hero \{[^}]*\}", client.get("/").text).group(0)
+        adresses = re.findall(r"url\(([^)]+)\)", regle)
+        assert adresses, "aucun motif dans le fond"
+        for url in adresses:
+            assert url.startswith("data:image/svg+xml"), url[:60]
 
 
 class TestLaMarqueEstConservee:

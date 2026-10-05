@@ -895,6 +895,9 @@ templates.env.globals["entete_document"] = marque.entete_document
 templates.env.globals["medaillon"] = marque.medaillon
 templates.env.globals["favicon"] = marque.favicon_data_uri
 templates.env.globals["sceau"] = marque.sceau
+# Les motifs du zellige, calculés une fois et posés en fond.
+templates.env.globals["fond_trame"] = marque.fond_trame
+templates.env.globals["fond_rosace"] = marque.fond_rosace
 
 
 def initiales(nom: str, email: str = "") -> str:

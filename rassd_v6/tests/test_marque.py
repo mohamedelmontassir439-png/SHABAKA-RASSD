@@ -240,3 +240,61 @@ class TestRotation:
         svg = marque.medaillon(300)
         animes = re.findall(r'<ellipse class="mg[^"]*"', svg)
         assert len(animes) == 3, "seuls les trois méridiens doivent être animés"
+
+
+class TestMotifsDuZellige:
+    """Le khatam n'est pas « une étoile à huit pointes » dessinée au jugé.
+
+    C'est le polygone étoilé {8/3}: on relie un sommet sur trois d'un
+    octogone. Tracé avec deux rayons alternés, il n'est juste que pour un
+    rapport précis — cos(3π/8)/cos(2π/8) = 0,5412. Au-delà l'étoile
+    s'arrondit en fleur, en deçà elle se hérisse en scie, et dans les deux
+    cas l'œil la reconnaît comme fausse.
+    """
+
+    def test_le_khatam_a_seize_sommets(self):
+        """Huit pointes et huit creux: c'est ce qui en fait une étoile et
+        non un octogone."""
+        pts = marque._etoile_khatam(0, 0, 100).split()
+        assert len(pts) == 16
+
+    def test_le_creux_suit_la_proportion_du_polygone_etoile(self):
+        import math
+        pts = [tuple(map(float, p.split(","))) for p in
+               marque._etoile_khatam(0, 0, 100).split()]
+        rayons = [math.hypot(x, y) for x, y in pts]
+        pointe, creux = max(rayons), min(rayons)
+        assert abs(creux / pointe - 0.5412) < 0.002, f"{creux / pointe:.4f}"
+
+    def test_la_trame_se_raccorde(self):
+        """Le même khatam est posé au centre et aux quatre coins. Sans les
+        coins, le motif laisse une grille de vides à chaque raccord — et
+        c'est au raccord qu'on voit qu'un fond a été fabriqué."""
+        svg = marque.trame_zellige(120)
+        for coin in ("0.00,", "120.00,"):
+            assert coin in svg, f"aucun sommet en {coin}"
+        assert svg.count("<polygon") == 5
+
+    @pytest.mark.parametrize("fabrique", ["fond_trame", "fond_rosace"])
+    def test_ladresse_tient_dans_un_attribut_style(self, fabrique):
+        """Des guillemets doubles autour de l'adresse refermaient l'attribut
+        `style` qui la portait, et le motif disparaissait sans un mot."""
+        uri = getattr(marque, fabrique)()
+        assert uri.startswith("url(data:image/svg+xml,") and uri.endswith(")")
+        for interdit in ('"', "'", " ", "#"):
+            assert interdit not in uri, f"caractère non encodé: {interdit!r}"
+
+    def test_la_rosace_garde_ses_etoiles_distinctes(self):
+        """L'étoile intérieure dépassait de l'extérieure: les deux figures
+        se brouillaient en une tache à seize pointes."""
+        import math
+        svg = marque.rosace(440)
+        polys = re.findall(r'<polygon points="([^"]+)"', svg)
+        assert len(polys) >= 2
+        def rayon_max(p):
+            pts = [tuple(map(float, q.split(","))) for q in p.split()]
+            return max(math.hypot(x - 220, y - 220) for x, y in pts)
+        exterieure, interieure = rayon_max(polys[0]), rayon_max(polys[1])
+        assert interieure < exterieure * 0.5412, (
+            f"intérieure {interieure:.1f} dépasse le creux de l'extérieure "
+            f"{exterieure * 0.5412:.1f}")
