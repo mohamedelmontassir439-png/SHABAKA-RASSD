@@ -135,6 +135,11 @@ def medaillon(taille: int = 160, fond: str = BRUN) -> str:
     hauteur en fait 240. Il tient, de justesse, et c'est pourquoi le corps
     ne doit pas remonter.
 
+    La mention du bas suit la même contrainte, et elle y échouait: à 12 px
+    avec 4 d'interlettrage elle mesurait 236 unités pour une corde de 165 à
+    cette hauteur — elle traversait le cercle des deux côtés, et cela ne se
+    voyait qu'en grand format. À 8 px avec 2,2 elle en fait 148.
+
     C'est la forme de couverture: page de garde d'un document, en-tête
     d'une page sombre, image de partage. Le nom y est tracé en SVG plutôt
     qu'en HTML pour que l'ensemble reste solidaire à toute taille.
@@ -158,8 +163,8 @@ def medaillon(taille: int = 160, fond: str = BRUN) -> str:
   <polygon points="50,8 86,71 14,71" fill="none" stroke="{OR}" stroke-width="7"/>
   <polygon points="50,92 14,29 86,29" fill="none" stroke="{OR}" stroke-width="7"/>
 </g>
-<text x="150" y="271" text-anchor="middle" fill="{CREME}" letter-spacing="4"
-      font-family="Arial,Helvetica,sans-serif" font-weight="600" font-size="12"
+<text x="150" y="270" text-anchor="middle" fill="{CREME}" letter-spacing="2.2"
+      font-family="Arial,Helvetica,sans-serif" font-weight="600" font-size="8"
       opacity=".86">COUVERTURE NATIONALE</text>
 </svg>'''
 

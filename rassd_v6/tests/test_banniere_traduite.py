@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
-"""La bannière d'accueil ne doit plus porter son texte en dur.
+"""La couverture d'accueil: du texte lisible, une marque, un seul fond.
 
-Le titre, l'étiquette et le paragraphe étaient gravés dans l'image: la page
-arabe affichait donc une phrase française, et aucun moteur de recherche ne
-lisait l'accroche. Les lettres ont été effacées de l'image et le texte est
-revenu en HTML, posé à l'emplacement qu'elles occupaient.
+Trois états se sont succédé, et chacun a laissé un piège:
 
-Ce qui casse sans qu'on le voie, et que ces tests retiennent:
+1. Le titre était gravé dans un JPEG. La page arabe affichait donc une
+   accroche française, et aucun moteur de recherche ne lisait la première
+   phrase du site. Le texte est revenu en HTML.
+2. La photo servait de fond, mais un dégradé et un motif de zellige
+   l'accompagnaient: ils ne se voyaient que là où elle s'arrêtait, ce qui
+   faisait deux fonds et une couture au milieu de la section.
+3. La photo a été retirée. Le fond est désormais peint par CSS en une seule
+   propriété `background`, et la marque — le médaillon, le même tracé qu'en
+   en-tête de document — tient la place qu'occupait le globe de la photo.
 
-- une propriété logique (`inset-inline-start`) renvoie le bloc à droite en
-  arabe, c'est-à-dire par-dessus le globe: le texte devient illisible.
-- une taille en pixels ne suit pas l'image, qui est en largeur relative: le
-  bloc déborde du cadre sombre dès qu'on change de largeur d'écran.
+Ce que ces tests retiennent, c'est ce qui casse sans qu'on le voie.
 """
 import os
 import re
@@ -27,6 +29,12 @@ def _gabarit():
         return f.read()
 
 
+def _regle(selecteur):
+    m = re.search(re.escape(selecteur) + r"\s*\{[^}]*\}", _gabarit())
+    assert m, f"règle introuvable: {selecteur}"
+    return m.group(0)
+
+
 class TestLeTexteEstDuTexte:
     @pytest.mark.parametrize("langue,extrait", [
         ("fr", "La veille qui trouve"),
@@ -34,9 +42,8 @@ class TestLeTexteEstDuTexte:
     ])
     def test_l_accroche_est_rendue_dans_la_langue_demandee(self, client, langue, extrait):
         page = client.get(f"/?lang={langue}").text
-        assert extrait in page, f"accroche absente en {langue}"
         titre = re.search(r'<h1 class="hero-titre">(.*?)</h1>', page, re.S)
-        assert titre and extrait in titre.group(1)
+        assert titre and extrait in titre.group(1), f"accroche absente en {langue}"
 
     def test_l_etiquette_et_le_paragraphe_suivent_aussi(self, client):
         page = client.get("/?lang=ar").text
@@ -44,39 +51,76 @@ class TestLeTexteEstDuTexte:
         assert "قطاعك" in page
 
     def test_aucun_titre_n_est_cache_a_l_oeil(self):
-        """Le h1 était masqué parce que l'image portait le vrai titre; il ne
-        doit pas rester deux titres, l'un lu, l'autre vu."""
+        """Il ne doit pas rester deux titres, l'un lu, l'autre vu."""
         assert "hors-ecran" not in _gabarit()
 
-    def test_la_banniere_est_decorative(self):
-        """Son texte de remplacement répétait l'accroche, désormais à côté
-        d'elle: un lecteur d'écran l'annonçait deux fois."""
-        m = re.search(r'<img class="hero-banniere"[^>]*>', _gabarit(), re.S)
-        assert m and 'alt=""' in m.group(0), m.group(0) if m else "image absente"
 
-
-class TestLePlacementTientDansLesDeuxSens:
-    def test_le_bloc_est_cale_a_gauche_physiquement(self):
-        """La place libre dans l'image est à gauche, dans les deux langues."""
-        regle = re.search(r"\.hero-texte \{[^}]*\}", _gabarit()).group(0)
-        assert "left:" in regle
-        assert "inset-inline-start" not in regle, (
-            "propriété logique: en arabe le bloc passe sur le globe")
-
-    def test_les_tailles_suivent_la_largeur_de_la_banniere(self):
-        """En pixels fixes, le texte sort du cadre sombre dès qu'on change
-        de largeur: l'image, elle, est en pourcentage."""
+class TestAucuneImageDansLaCouverture:
+    def test_la_photo_a_disparu(self):
+        """Elle imposait son cadrage, sa couture, et 300 Ko au premier écran."""
         gabarit = _gabarit()
-        for classe in (".hero-titre", ".hero-dek", ".hero-sur"):
-            regle = re.search(re.escape(classe) + r" \{[^}]*\}", gabarit).group(0)
-            assert "cqw" in regle, f"{classe} ne suit pas la bannière"
+        assert "hero.jpg" not in gabarit
+        assert "hero-banniere" not in gabarit
 
-    def test_la_banniere_sert_de_conteneur_de_reference(self):
-        """Sans `container-type`, les cqw retombent sur la taille par défaut."""
-        regle = re.search(r"\.hero \{[^}]*\}", _gabarit()).group(0)
-        assert "container-type: inline-size" in regle
+    def test_le_fond_est_une_seule_propriete(self):
+        """Un `::before` posé par-dessus, c'était le second fond: il ne se
+        voyait que là où le premier s'arrêtait."""
+        assert ".hero::before" not in _gabarit()
+        assert _regle(".hero").count("background:") == 1
 
-    def test_sous_900_px_le_bloc_revient_dans_le_flux(self):
-        """Posé sur une bannière large de 400 px, le texte serait illisible."""
+    def test_le_fond_ne_charge_aucune_image_tramee(self):
+        """Seules les données SVG en ligne sont admises: elles ne font pas de
+        requête et ne pèsent presque rien."""
+        for url in re.findall(r'url\(["\']?([^"\')]+)', _regle(".hero")):
+            assert url.startswith("data:image/svg+xml"), url
+
+
+class TestLaMarqueEstConservee:
+    def test_le_medaillon_est_rendu_dans_la_couverture(self, client):
+        page = client.get("/").text
+        bloc = page[page.index('class="hero-marque"'):]
+        bloc = bloc[:bloc.index("</section>")]
+        for morceau in ("Maroc", "Entrepreneuriat", "COUVERTURE NATIONALE"):
+            assert morceau in bloc, morceau
+
+    def test_c_est_le_trace_commun_et_non_une_copie(self):
+        """Une marque redessinée dans un gabarit cesse de suivre les autres."""
+        assert "medaillon(" in _gabarit()
+
+    def test_la_mention_tient_dans_le_cercle(self):
+        """Mesurée dans le navigateur: à 12 px avec 4 d'interlettrage elle
+        faisait 236 unités pour une corde de 165 à cette hauteur — elle
+        traversait le cercle des deux côtés, et cela ne se voyait qu'en grand."""
+        from app.core import marque
+        m = re.search(r'letter-spacing="([\d.]+)"[^>]*font-size="([\d.]+)"',
+                      marque.medaillon(300), re.S)
+        assert m, "mention introuvable"
+        interlettrage, corps = float(m.group(1)), float(m.group(2))
+        # 20 glyphes; largeur moyenne mesurée à 0,667 du corps en Arial.
+        largeur = 20 * corps * 0.667 + 19 * interlettrage
+        assert largeur < 160, f"mention large de {largeur:.0f} pour une corde de 165"
+
+
+class TestLaMiseEnPageTientDansLesDeuxSens:
+    def test_la_grille_se_retourne_avec_la_langue(self):
+        """Sans photo, rien n'impose un côté: en arabe la parole passe à
+        droite et la marque à gauche, ce qui est la bonne lecture. Une marge
+        physique l'en empêcherait — c'était nécessaire tant que la place
+        libre était à gauche de la photo, ça ne l'est plus."""
+        regle = _regle(".hero-texte")
+        for fige in ("margin-left:", "margin-right:", "position: absolute", "left:"):
+            assert fige not in regle, f"{fige} fige un côté"
+
+    def test_l_anneau_ne_reprend_pas_sa_place_dans_le_flux(self):
+        """« .hero-marque svg » l'emportait en spécificité sur « .hero-anneau »:
+        l'anneau redevenait un élément du flux et poussait le médaillon contre
+        le bord droit."""
+        assert ".hero-marque > svg:not(.hero-anneau)" in _gabarit()
+
+    def test_sous_900_px_la_marque_passe_sous_la_parole(self):
         petit = re.search(r"@media\(max-width: 900px\) \{.*?\n\}", _gabarit(), re.S).group(0)
-        assert "position: static" in petit
+        assert ".hero-inner { grid-template-columns: minmax(0, 1fr)" in petit
+        assert ".hero-marque { order: 2; }" in petit
+
+    def test_le_mouvement_se_tait_quand_on_le_demande(self):
+        assert "prefers-reduced-motion" in _gabarit()
