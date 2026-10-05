@@ -31,25 +31,73 @@ BRUN = "#3a1e12"        # brun profond du médaillon
 CREME = "#f6efe6"
 
 
-def _globe(rayon: float = 30.0, centre: float = 50.0, cle: str = "g") -> str:
+def _rotation(r: float, cle: str, duree: int = 21) -> str:
+    """Le mouvement des méridiens, décrit une fois pour les trois.
+
+    Un globe ne tourne pas en pivotant sur l'écran: ses méridiens
+    s'amincissent jusqu'au trait quand ils passent de profil, puis
+    s'élargissent. On anime donc `rx`, et rien d'autre — les parallèles,
+    eux, sont invariants sous une rotation d'axe vertical, et les faire
+    bouger trahirait la sphère.
+
+    Les étapes suivent |cos θ| plutôt qu'une interpolation facile: avec un
+    `ease-in-out`, le méridien ralentit au moment où il passe de profil,
+    là où il devrait aller le plus vite, et le globe se met à respirer au
+    lieu de tourner.
+
+    Le style est écrit dans le SVG, non dans la feuille de la page: la
+    marque est servie seule — favicon, en-tête de document, image de
+    partage — et doit emporter son mouvement avec elle. Les classes portent
+    la clé pour la même raison que les dégradés: deux marques sur une page
+    ne doivent pas se commander l'une l'autre.
+
+    Sans prise en charge de l'animation des propriétés géométriques, les
+    attributs `rx` écrits sur les ellipses tiennent: on retrouve le globe
+    immobile et bien composé d'avant.
+    """
+    pas = 12  # un demi-tour: au-delà, le méridien repasse par où il était
+    etapes = "".join(
+        # Un plancher, car `rx=0` n'est pas une ellipse plate: c'est une
+        # ellipse qui ne se dessine pas. Le méridien disparaîtrait au lieu
+        # de se réduire au trait qu'il doit être, vu de profil.
+        f"{i * 100 / pas:.4g}%{{rx:{max(0.04, abs(r * math.cos(math.pi * i / pas))):.2f}px}}"
+        for i in range(pas + 1))
+    return (
+        f"<style>"
+        f"@keyframes tg{cle}{{{etapes}}}"
+        f".mg{cle}{{animation:tg{cle} {duree}s linear infinite}}"
+        f".mg{cle}b{{animation-delay:-{duree / 3:.1f}s}}"
+        f".mg{cle}c{{animation-delay:-{2 * duree / 3:.1f}s}}"
+        f"@media(prefers-reduced-motion:reduce){{.mg{cle}{{animation:none}}}}"
+        f"</style>")
+
+
+def _globe(rayon: float = 30.0, centre: float = 50.0, cle: str = "g",
+           anime: bool = True) -> str:
     """La sphère: dégradé, méridiens, parallèles, reflet, liseré.
 
     Les identifiants sont suffixés pour qu'on puisse poser deux marques sur
     la même page sans que leurs dégradés se confondent.
+
+    `anime` est faux là où le mouvement n'a pas de sens et pèse: le favicon,
+    recopié dans l'en-tête de chaque page, et les documents imprimés.
     """
     c, r = centre, rayon
+    classes = (f"mg{cle}", f"mg{cle} mg{cle}b", f"mg{cle} mg{cle}c")
     meridiens = "".join(
-        f'<ellipse cx="{c}" cy="{c}" rx="{r * f:.2f}" ry="{r}" '
+        f'<ellipse class="{classes[i] if anime else ""}" cx="{c}" cy="{c}" '
+        f'rx="{r * f:.2f}" ry="{r}" '
         f'fill="none" stroke="{OR}" stroke-width="{0.9 if f else 1.1}" '
         f'opacity="{0.52 + 0.30 * (1 - f):.2f}"/>'
-        for f in (0.80, 0.52, 0.22))
+        for i, f in enumerate((0.80, 0.52, 0.22)))
     paralleles = "".join(
         f'<ellipse cx="{c}" cy="{c + r * d:.2f}" rx="{r * math.sqrt(1 - d * d):.2f}" '
         f'ry="{r * 0.17:.2f}" fill="none" stroke="{OR}" stroke-width="0.8" '
         f'opacity="{0.46 - 0.10 * abs(d):.2f}"/>'
         for d in (-0.55, -0.22, 0.14, 0.48))
     return (
-        f'<defs>'
+        (_rotation(r, cle) if anime else "")
+        + f'<defs>'
         f'<radialGradient id="sph{cle}" cx="36%" cy="28%" r="78%">'
         f'<stop offset="0%" stop-color="#c4702f"/>'
         f'<stop offset="44%" stop-color="#6b3317"/>'
@@ -100,7 +148,8 @@ def sceau(taille: int = 14, couleur: str = OR) -> str:
             f'style="flex:none;vertical-align:middle">{"".join(pts)}</svg>')
 
 
-def etoile(taille: int = 40, couleur: str = OR, fond: str = "none") -> str:
+def etoile(taille: int = 40, couleur: str = OR, fond: str = "none",
+           anime: bool = True) -> str:
     """La marque seule: le globe dans son médaillon.
 
     Pour le favicon, l'icône de l'application et le rail d'administration.
@@ -114,7 +163,7 @@ def etoile(taille: int = 40, couleur: str = OR, fond: str = "none") -> str:
     cle = f"{taille}"
     corps = (f'<circle cx="50" cy="50" r="30" fill="#2a160d"/>'
              f'<circle cx="50" cy="50" r="30" fill="none" stroke="{couleur}" '
-             f'stroke-width="3"/>') if petit else _globe(30, 50, cle) + _socle()
+             f'stroke-width="3"/>') if petit else _globe(30, 50, cle, anime) + _socle()
     return (
         # flex:none et la largeur minimale protègent la marque: dans une barre
         # chargée, « svg { max-width: 100% } » la laissait se réduire à rien.
@@ -228,8 +277,10 @@ def entete_document(hauteur: int = 52) -> str:
 def favicon_data_uri() -> str:
     """La marque encodée pour l'attribut href d'une balise <link>."""
     import urllib.parse
+    # Sans mouvement: l'icône est recopiée dans l'en-tête de chaque page,
+    # et une feuille de style y pèserait pour rien.
     return "data:image/svg+xml," + urllib.parse.quote(
-        etoile(32, couleur=OR, fond=ENCRE), safe="")
+        etoile(32, couleur=OR, fond=ENCRE, anime=False), safe="")
 
 
 def _entete_email(couleur_texte: str, trait: str) -> str:

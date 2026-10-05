@@ -24,9 +24,17 @@ class TestGlobe:
 
     def test_les_meridiens_retrecissent_vers_le_centre(self):
         """Des demi-largeurs égales donneraient des cercles concentriques,
-        pas une sphère."""
+        pas une sphère.
+
+        L'expression ne suppose rien de ce qui précède « cx »: elle cherchait
+        « <ellipse cx », et le jour où les méridiens ont reçu une classe elle
+        n'a plus rien trouvé — or une liste vide est décroissante et sans
+        doublon, si bien que le test passait sans rien vérifier.
+        """
         svg = marque.etoile(64)
-        rx = [float(v) for v in re.findall(r'<ellipse cx="50" cy="50" rx="([\d.]+)"', svg)]
+        rx = [float(v) for v in
+              re.findall(r'<ellipse[^>]*? cx="50" cy="50" rx="([\d.]+)"', svg)]
+        assert len(rx) == 3, f"trois méridiens attendus, {len(rx)} trouvés"
         assert rx == sorted(rx, reverse=True) and len(set(rx)) == len(rx)
 
     def test_le_point_de_lumiere_est_en_haut_a_droite(self):
@@ -171,3 +179,64 @@ class TestIconeDuNavigateur:
     def test_l_icone_de_l_application_suit_aussi(self, client):
         svg = client.get("/icon-192.svg").text
         assert "<ellipse" in svg and marque.OR in svg
+
+
+class TestRotation:
+    """Le globe tourne, et il tourne comme une sphère.
+
+    Un globe qui pivote sur lui-même à l'écran n'est pas un globe qui
+    tourne: c'est un dessin qui pivote. Ce sont les méridiens qui
+    s'amincissent jusqu'au trait en passant de profil, pendant que les
+    parallèles, invariants sous une rotation d'axe vertical, ne bougent pas.
+    """
+
+    def test_les_meridiens_portent_le_mouvement(self):
+        svg = marque.medaillon(300)
+        classes = re.findall(r'<ellipse class="([^"]+)" cx="50" cy="50"', svg)
+        assert len(classes) == 3 and len(set(classes)) == 3, classes
+
+    def test_les_trois_sont_dephases(self):
+        """Sans décalage, ils s'amincissent ensemble: la sphère bat au lieu
+        de tourner."""
+        style = re.search(r"<style>(.*?)</style>", marque.medaillon(300), re.S).group(1)
+        retards = set(re.findall(r"animation-delay:(-[\d.]+s)", style))
+        assert len(retards) == 2, f"deux retards attendus, {retards}"
+
+    def test_le_meridien_de_profil_reste_un_trait(self):
+        """`rx: 0` n'est pas une ellipse plate: c'est une ellipse qui ne se
+        dessine pas. Le méridien disparaîtrait au lieu de s'amincir."""
+        style = re.search(r"<style>(.*?)</style>", marque.medaillon(300), re.S).group(1)
+        valeurs = [float(v) for v in re.findall(r"rx:([\d.]+)px", style)]
+        assert valeurs and min(valeurs) > 0, f"minimum {min(valeurs) if valeurs else '—'}"
+
+    def test_le_mouvement_suit_le_cosinus(self):
+        """Interpolé au plus simple, le méridien ralentit au moment où il
+        passe de profil — là où il devrait aller le plus vite."""
+        style = re.search(r"<style>(.*?)</style>", marque.medaillon(300), re.S).group(1)
+        v = [float(x) for x in re.findall(r"rx:([\d.]+)px", style)]
+        milieu = len(v) // 2
+        assert v[0] == max(v) and v[milieu] == min(v)
+        # Le pas s'accélère vers le profil: dernier écart > premier écart.
+        assert (v[milieu - 1] - v[milieu]) > (v[0] - v[1])
+
+    def test_deux_marques_sur_une_page_ne_se_commandent_pas(self):
+        """Le style d'un SVG n'est pas isolé: il s'applique à la page."""
+        a = set(re.findall(r"@keyframes (\w+)", marque.etoile(64)))
+        b = set(re.findall(r"@keyframes (\w+)", marque.etoile(40)))
+        assert a and b and not (a & b)
+
+    def test_le_mouvement_se_tait_quand_on_le_demande(self):
+        assert "prefers-reduced-motion" in marque.medaillon(300)
+
+    def test_licone_de_longlet_ne_porte_aucun_mouvement(self):
+        """Elle est recopiée dans l'en-tête de chaque page: une feuille de
+        style y pèserait pour rien, et rien ne l'y regarde tourner."""
+        assert "keyframes" not in marque.favicon_data_uri()
+        assert "<style>" not in marque.etoile(32, anime=False)
+
+    def test_les_paralleles_ne_bougent_pas(self):
+        """Ils sont invariants sous une rotation d'axe vertical; les animer
+        trahirait la sphère."""
+        svg = marque.medaillon(300)
+        animes = re.findall(r'<ellipse class="mg[^"]*"', svg)
+        assert len(animes) == 3, "seuls les trois méridiens doivent être animés"
