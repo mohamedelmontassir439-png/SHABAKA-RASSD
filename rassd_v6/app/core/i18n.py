@@ -264,8 +264,10 @@ T = {
     "pain_sub":           {"fr": "Les opportunités existent. Mais elles sont éparpillées sur plusieurs plateformes publiques et privées, avec des délais très courts. Sans veille systématique, vous les ratez.",
                             "ar": "الفرص موجودة. لكنها متفرقة على عدة منصات عمومية وشبه عمومية وخاصة، بآجال قصيرة جداً. بدون رصد منهجي، ستفوتك."},
     "pain1_title":        {"fr": "Sources <em>dispersées</em>", "ar": "مصادر <em>متفرقة</em>"},
-    "pain1_text":         {"fr": "Le portail national des marchés publics et les plateformes privées publient en continu. Les vérifier manuellement chaque jour est impossible.",
-                            "ar": "البوابة الوطنية للصفقات العمومية والمنصات الخاصة تنشر باستمرار. التحقق منها يدوياً كل يوم أمر مستحيل."},
+    # « les plateformes privées » nommait la concurrence et désignait d'où
+    # vient le privé. On dit ce qu'on apporte, pas où on le prend.
+    "pain1_text":         {"fr": "Le portail national des marchés publics et nos sources propres et vérifiées publient en continu. Les suivre à la main chaque jour est impossible.",
+                            "ar": "البوابة الوطنية للصفقات العمومية ومصادرنا الخاصة والموثوقة تنشر باستمرار. متابعتها يدويًّا كلّ يوم أمر مستحيل."},
     "pain2_title":        {"fr": "Délais <em>serrés</em>", "ar": "آجال <em>ضيقة</em>"},
     "pain2_text":         {"fr": "Parfois quelques jours seulement. Le temps de découvrir l'avis et monter une offre, la deadline est déjà dépassée.",
                             "ar": "أحياناً بضعة أيام فقط. بين اكتشاف الإعلان وتحضير العرض، يكون الأجل قد انتهى بالفعل."},
