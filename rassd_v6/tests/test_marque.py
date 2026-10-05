@@ -2,7 +2,7 @@
 """L'identité visuelle: un globe de méridiens dans un médaillon cerclé.
 
 Le signe dit ce que fait la plateforme — une couverture nationale, une
-veille qui embrasse le territoire. Le sceau à six branches sous le nom est
+veille qui embrasse le territoire. L'étoile sous le nom est celle du
 le khatam, motif du zellige marocain.
 
 Ces tests ne jugent pas du goût: ils tiennent ce qui casse sans qu'on le
@@ -73,13 +73,44 @@ class TestPetitesTailles:
 
 
 class TestSceau:
-    def test_le_khatam_est_fait_de_deux_triangles(self):
-        assert marque.sceau().count("<polygon") == 2
+    """L'étoile du drapeau marocain, et pas une autre.
 
-    def test_les_deux_triangles_sont_decales(self):
-        """Superposés sans décalage, ils ne font qu'un triangle."""
+    Deux triangles superposés — ce qui occupait cette place jusqu'au
+    05/10/2026 — font une étoile à **six** branches. Ce n'est pas celle du
+    Maroc, et elle se lit tout autrement. L'erreur a vécu sur la page
+    d'accueil, dans l'en-tête des documents et dans l'image de partage.
+    """
+
+    def test_letoile_a_cinq_sommets(self):
         pts = re.findall(r'points="([^"]+)"', marque.sceau())
-        assert len(pts) == 2 and pts[0] != pts[1]
+        assert len(pts) == 1, "un seul tracé, d'un seul trait"
+        assert len(pts[0].split()) == 5, f"cinq sommets attendus: {pts[0]}"
+
+    def test_elle_est_entrelacee_et_non_remplie(self):
+        """C'est le croisement du trait qui fait l'étoile du drapeau; remplie,
+        elle devient un pentagone à cinq pointes, une autre figure."""
+        assert 'fill="none"' in marque.sceau()
+
+    def test_les_sommets_sont_sur_un_cercle(self):
+        """Une étoile dont les sommets ne sont pas équidistants penche."""
+        import math
+        pts = [tuple(map(float, p.split(",")))
+               for p in re.findall(r'points="([^"]+)"', marque.sceau())[0].split()]
+        rayons = {round(math.hypot(x - 50, y - 50), 1) for x, y in pts}
+        assert len(rayons) == 1, f"sommets à des distances différentes: {rayons}"
+
+    def test_une_pointe_regarde_le_haut(self):
+        """Posée sur une pointe, l'étoile paraît tombée."""
+        pts = [tuple(map(float, p.split(",")))
+               for p in re.findall(r'points="([^"]+)"', marque.sceau())[0].split()]
+        haut = min(pts, key=lambda p: p[1])
+        assert abs(haut[0] - 50) < 0.2, f"la pointe du haut est décalée: {haut}"
+
+    def test_le_medaillon_porte_la_meme_etoile(self):
+        """Il en gardait une copie en dur: corriger le sceau ne la corrigeait
+        pas, et les deux signes auraient divergé."""
+        from app.core.marque import _etoile_marocaine
+        assert _etoile_marocaine() in marque.medaillon(300)
 
 
 class TestMedaillon:

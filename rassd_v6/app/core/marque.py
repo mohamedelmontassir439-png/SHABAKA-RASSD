@@ -4,7 +4,7 @@
 Le signe est un globe de méridiens, posé sur un arc, dans un médaillon
 cerclé. Il dit ce que fait la plateforme — une couverture nationale, une
 veille qui embrasse tout le territoire — là où l'étoile précédente disait
-l'orientation. Le sceau à six branches sous le nom est le khatam, motif du
+l'orientation. L'étoile sous le nom est celle du drapeau marocain, un
 zellige marocain et de l'ancien pavillon chérifien.
 
 Tout est tracé en SVG: le trait reste net du favicon de seize pixels à
@@ -130,22 +130,32 @@ def _socle(centre: float = 50.0, rayon: float = 30.0) -> str:
             f'stroke-width="1.6" stroke-linecap="round" opacity=".92"/>')
 
 
-def sceau(taille: int = 14, couleur: str = OR) -> str:
-    """Le khatam à six branches: deux triangles équilatéraux superposés.
+def _etoile_marocaine(cx: float = 50, cy: float = 50, rayon: float = 44) -> str:
+    """Les sommets de l'étoile du drapeau marocain, pour un `points="…"`.
 
-    Motif du zellige et de l'ancien pavillon chérifien. Tracé, pas approché:
-    deux triangles décalés d'un sixième de tour, de même rayon.
+    C'est le pentagramme {5/2}: cinq sommets reliés en sautant l'un sur
+    deux, d'un seul trait qui se recroise. Tracé sans remplissage, il donne
+    l'étoile entrelacée du drapeau — celle qu'on appelle le sceau de
+    Salomon au Maroc.
+
+    Rien à voir avec l'hexagramme qui occupait cette place: deux triangles
+    superposés font une étoile à **six** branches, qui n'est pas celle du
+    Maroc et se lit tout autrement. L'erreur est restée jusqu'au 05/10/2026.
     """
-    pts = []
-    for depart in (0, 60):
-        t = [f"{50 + 42 * math.cos(math.radians(depart + i * 120 - 90)):.1f},"
-             f"{50 + 42 * math.sin(math.radians(depart + i * 120 - 90)):.1f}"
-             for i in range(3)]
-        pts.append(f'<polygon points="{" ".join(t)}" fill="none" '
-                   f'stroke="{couleur}" stroke-width="7"/>')
+    sommets = []
+    for k in range(5):
+        a = math.radians(-90 + k * 144)      # 144° = deux cinquièmes de tour
+        sommets.append(f"{cx + rayon * math.cos(a):.1f},{cy + rayon * math.sin(a):.1f}")
+    return " ".join(sommets)
+
+
+def sceau(taille: int = 14, couleur: str = OR) -> str:
+    """L'étoile marocaine, d'un seul trait entrelacé."""
     return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{taille}" '
             f'height="{taille}" viewBox="0 0 100 100" role="presentation" '
-            f'style="flex:none;vertical-align:middle">{"".join(pts)}</svg>')
+            f'style="flex:none;vertical-align:middle">'
+            f'<polygon points="{_etoile_marocaine()}" fill="none" '
+            f'stroke="{couleur}" stroke-width="7" stroke-linejoin="miter"/></svg>')
 
 
 def etoile(taille: int = 40, couleur: str = OR, fond: str = "none",
@@ -175,7 +185,7 @@ def etoile(taille: int = 40, couleur: str = OR, fond: str = "none",
 
 
 def medaillon(taille: int = 160, fond: str = BRUN) -> str:
-    """Le médaillon complet: globe, nom, sceau, mention — sur fond sombre.
+    """Le médaillon complet: globe, nom, étoile marocaine, mention.
 
     Mise en page calculée, pas ajustée à l'œil: le globe est centré à
     (150, 105) avec un rayon de 45, si bien que son arc tombe à y=157 — sous
@@ -209,8 +219,7 @@ def medaillon(taille: int = 160, fond: str = BRUN) -> str:
 <text x="150" y="231" text-anchor="middle" fill="{OR}"
       font-family="Georgia,'Times New Roman',serif" font-weight="700" font-size="26">Entrepreneuriat</text>
 <g transform="translate(143,241) scale(.14)">
-  <polygon points="50,8 86,71 14,71" fill="none" stroke="{OR}" stroke-width="7"/>
-  <polygon points="50,92 14,29 86,29" fill="none" stroke="{OR}" stroke-width="7"/>
+  <polygon points="{_etoile_marocaine()}" fill="none" stroke="{OR}" stroke-width="7"/>
 </g>
 <text x="150" y="270" text-anchor="middle" fill="{CREME}" letter-spacing="2.2"
       font-family="Arial,Helvetica,sans-serif" font-weight="600" font-size="8"
