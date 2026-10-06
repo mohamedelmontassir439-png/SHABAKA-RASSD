@@ -37,12 +37,18 @@ class TestGlobe:
         assert len(rx) == 3, f"trois méridiens attendus, {len(rx)} trouvés"
         assert rx == sorted(rx, reverse=True) and len(set(rx)) == len(rx)
 
-    def test_le_point_de_lumiere_est_en_haut_a_droite(self):
-        """C'est lui qui fait la sphère plutôt que le disque."""
+    def test_aucun_point_blanc_ne_se_pose_sur_la_sphere(self):
+        """Il y en avait un, en haut à droite, censé figurer un reflet. À la
+        taille où la marque se regarde vraiment, il ne se lisait pas comme un
+        reflet mais comme une poussière sur l'écran."""
+        assert 'fill="#fff"' not in marque.etoile(64)
+
+    def test_le_relief_vient_du_degrade_et_du_voile(self):
+        """C'est ce qui creuse la sphère depuis que le point a disparu: sans
+        eux il ne resterait qu'un disque cerclé."""
         svg = marque.etoile(64)
-        m = re.search(r'<circle cx="([\d.]+)" cy="([\d.]+)" r="[\d.]+" fill="#fff"', svg)
-        assert m, "aucun point de lumière"
-        assert float(m.group(1)) > 50 and float(m.group(2)) < 50
+        assert "radialGradient" in svg
+        assert svg.count("<ellipse") >= 7
 
     def test_le_globe_repose_sur_un_arc(self):
         assert "<path d=" in marque.etoile(64)

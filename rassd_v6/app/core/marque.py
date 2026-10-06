@@ -115,9 +115,10 @@ def _globe(rayon: float = 30.0, centre: float = 50.0, cle: str = "g",
         f'rx="{r * 0.30:.2f}" ry="{r * 0.22:.2f}" fill="url(#ref{cle})"/></g>'
         f'<circle cx="{c}" cy="{c}" r="{r}" fill="none" stroke="{OR}" '
         f'stroke-width="1" opacity=".85"/>'
-        # Le point de lumière, en haut à droite: c'est lui qui fait la sphère.
-        f'<circle cx="{c + r * 0.30:.2f}" cy="{c - r * 0.74:.2f}" r="{r * 0.055:.2f}" '
-        f'fill="#fff" opacity=".9"/>'
+        # Pas de point de lumière. Il y en avait un, blanc, posé en haut à
+        # droite du liseré: à distance il ne se lisait pas comme un reflet
+        # mais comme une poussière sur l'écran. Le dégradé et le voile du
+        # quart supérieur gauche suffisent à creuser la sphère.
     )
 
 
