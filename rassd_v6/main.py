@@ -20,6 +20,7 @@ from app.core.security import (hash_pw, verify_pw, make_token, make_session_toke
                                 validate_password, days_left,
                                 get_csrf_token, verify_csrf, subscription_state)
 from app.core.sectors import get_label, classify
+from app.core.objets import sans_repetition
 from app.core import marque
 from app.core import organismes
 from app.core.i18n import get_lang, make_t, SUPPORTED_LANGS, tr as tr_
@@ -3158,6 +3159,43 @@ def reclasser_marches(log_fn=None) -> dict:
     if log_fn:
         log_fn(f"{stats['changes']} marché(s) reclassé(s) sur {stats['lus']}")
     return stats
+
+
+def nettoyer_intitules(log_fn=None) -> dict:
+    """Retire des intitulés déjà en base le titre qu'ils portent en double.
+
+    Le portail juxtapose dans la même cellule une version tronquée du titre
+    et sa version entière; l'extraction ramenait les deux. Mesuré le
+    06/10/2026: 121 marchés sur 3 263. Un titre affiché deux fois mange la
+    largeur de la ligne et se retrouve tel quel dans l'objet de l'alerte.
+
+    La collecte ne les produit plus, mais les lignes déjà écrites gardent
+    leur doublon: une correction d'extraction ne répare jamais le passé.
+    """
+    db = get_db()
+    stats = {"lus": 0, "nettoyes": 0}
+    try:
+        for ligne in db.execute("SELECT id, objet FROM tenders").fetchall():
+            stats["lus"] += 1
+            propre = sans_repetition(ligne["objet"] or "")
+            if propre and propre != (ligne["objet"] or ""):
+                db.execute("UPDATE tenders SET objet=? WHERE id=?", (propre, ligne["id"]))
+                stats["nettoyes"] += 1
+        db.commit()
+    finally:
+        db.close()
+    if log_fn:
+        log_fn(f"{stats['nettoyes']} intitulé(s) dédoublé(s) sur {stats['lus']}")
+    return stats
+
+
+@app.post("/admin/intitules")
+async def admin_intitules(req: Request, csrf_token: str = Form("")):
+    """Dédouble les intitulés déjà en base."""
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    csrf_guard(req, csrf_token)
+    stats = nettoyer_intitules(State.log)
+    return RedirectResponse(f"/admin/maintenance?intitules={stats['nettoyes']}", 302)
 
 
 @app.post("/admin/reclasser")

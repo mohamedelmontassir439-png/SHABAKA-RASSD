@@ -22,6 +22,7 @@ from bs4 import BeautifulSoup as BS
 from app.core.config import cfg
 from app.services.scraper import make_session, _extract_date, is_expired
 from app.core.sectors import classify
+from app.core.objets import sans_repetition
 
 logger = logging.getLogger("atlas.ao")
 
@@ -230,7 +231,7 @@ def run(known_ids: set, log_fn=print, pages: int = 3) -> list:
         texte_classement = ligne["categorie"]
         marches.append({
             "id": tid,
-            "objet": ligne["objet"],
+            "objet": sans_repetition(ligne["objet"]),
             "acheteur": ligne["acheteur"],
             "region": ligne["region"],
             "date_publication": ligne["date_publication"],

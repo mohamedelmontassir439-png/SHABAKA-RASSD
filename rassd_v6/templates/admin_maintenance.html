@@ -58,6 +58,22 @@
 
   <div class="mt-acte">
     <div>
+      <div class="mt-nom">Dédoubler les intitulés</div>
+      <div class="mt-dit">
+        Le portail juxtapose une version tronquée du titre et sa version
+        entière; l'extraction ramenait les deux. La collecte ne le fait plus,
+        mais les lignes déjà écrites gardent leur doublon. Seul l'intitulé
+        change, rien n'est supprimé.
+      </div>
+    </div>
+    <form method="post" action="/admin/intitules" class="mt-faire">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button type="submit" class="btn">{{ ico('presse', 16)|safe }} Dédoubler</button>
+    </form>
+  </div>
+
+  <div class="mt-acte">
+    <div>
       <div class="mt-nom">Vider la base des marchés</div>
       <div class="mt-dit">
         Supprime <b>tous</b> les marchés et le journal d'alertes. Rien n'est

@@ -445,7 +445,12 @@ T = {
     "detail_sector":      {"fr": "Secteur", "ar": "القطاع"},
     "detail_publication":  {"fr": "Publication", "ar": "تاريخ النشر"},
     "detail_deadline":    {"fr": "Date limite", "ar": "الموعد النهائي"},
-    "detail_amount":      {"fr": "Montant", "ar": "المبلغ"},
+    # Le portail publie « Estimation (en Dhs TTC) », pas un prix: c'est le
+    # plafond que l'acheteur s'est fixe, et l'offre retenue peut etre tres en
+    # dessous. « Montant » se lisait comme le prix du marche.
+    "detail_amount":      {"fr": "Estimation (TTC)", "ar": "التقدير (شامل الضريبة)"},
+    "detail_amount_note": {"fr": "Plafond estimé par l'acheteur — le marché peut être attribué en dessous.",
+                            "ar": "سقف يقدّره صاحب المشروع — قد تُرسى الصفقة بأقلّ منه."},
     "detail_views":       {"fr": "Vues", "ar": "المشاهدات"},
     "detail_desc":        {"fr": "Description complète", "ar": "الوصف الكامل"},
     "detail_readmore":    {"fr": "Lire la suite ▼", "ar": "قراءة المزيد ▼"},

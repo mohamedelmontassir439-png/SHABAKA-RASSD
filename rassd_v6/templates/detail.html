@@ -16,6 +16,8 @@
 .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r3); overflow: hidden; margin: 32px 0; }
 .info-cell { background: var(--surface); padding: 20px 24px; }
 .info-label { font-size:var(--f1); font-weight: 700; color: var(--amberd); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 8px; }
+/* La note sous le montant: il faut qu'elle se lise, et qu'elle ne crie pas. */
+.info-note { font-size:var(--f1); color: var(--text3); line-height: 1.5; margin-top: 6px; max-width: 34em; }
 .info-value { font-weight: 700; font-size:var(--f6); color: var(--text1); letter-spacing: -.005em; line-height: 1.25; }
 .info-value em { font-style: normal; color: var(--navy); }
 
@@ -103,6 +105,7 @@
         <div class="info-cell">
           <div class="info-label">{{ tr('detail_amount') }}</div>
           <div class="info-value" style="color: var(--grn);">{{ t.montant or '—' }}</div>
+          {% if t.montant %}<div class="info-note">{{ tr('detail_amount_note') }}</div>{% endif %}
         </div>
         {% else %}
         {# Un bon de commande ne publie pas d'estimation: la quantité commandée

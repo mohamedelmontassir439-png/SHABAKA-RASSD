@@ -11,6 +11,7 @@ import re, ssl, random, logging, requests, urllib3
 import concurrent.futures
 from datetime import datetime, date
 from app.core.sectors import classify
+from app.core.objets import sans_repetition
 
 urllib3.disable_warnings()
 logger = logging.getLogger("rassd.rt")
@@ -231,6 +232,9 @@ def parse_page(html, tid):
         objet = re.sub(r'^\d+\s*[:\-–—]\s*', '', objet).strip()  # "123: objet" → "objet"
         # Remove parentheses-only content at start
         objet = re.sub(r'^\([^)]+\)\s*', '', objet).strip()
+        # Le portail met dans la meme cellule une version tronquee du titre
+        # et sa version entiere: on ne garde que la seconde.
+        objet = sans_repetition(objet)
         # Capitalize first letter
         if objet and len(objet) > 2: objet = objet[0].upper() + objet[1:]
 
