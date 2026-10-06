@@ -225,8 +225,9 @@ def run(known_ids: set, log_fn=print, pages: int = 3) -> list:
         time.sleep(DELAI)
 
         # Classement sur le seul signal fiable: l'objet du marché et sa
-        # catégorie. Le reste de la fiche ajoute surtout du bruit.
-        texte_classement = f"{ligne['objet']} {ligne['categorie']}"
+        # catégorie. Le reste de la fiche ajoute surtout du bruit. L'objet
+        # passe en premier argument: il pèse trois fois la catégorie.
+        texte_classement = ligne["categorie"]
         marches.append({
             "id": tid,
             "objet": ligne["objet"],
@@ -235,7 +236,7 @@ def run(known_ids: set, log_fn=print, pages: int = 3) -> list:
             "date_publication": ligne["date_publication"],
             "date_limite": ligne["date_limite"],
             "montant": detail.get("montant", ""),
-            "secteur": classify(texte_classement),
+            "secteur": classify(ligne["objet"], texte_classement),
             "url": url,
             "source": "marchespublics",
             "statut": "actif",

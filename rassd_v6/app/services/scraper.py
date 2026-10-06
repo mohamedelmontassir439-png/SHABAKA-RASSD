@@ -292,7 +292,7 @@ def parse_page(html, tid):
                                               or _cell(soup, "date de publication", "publication")),
             "date_limite": date_lim,
             "montant": montant[:80],
-            "secteur": classify(" ".join([objet, nature, categorie, full[:400]])),
+            "secteur": classify(objet, " ".join([nature, categorie, full[:400]])),
             "url": f"{BASE}/show/{tid}",
             "source": "marchespublics",
             "statut": "actif",

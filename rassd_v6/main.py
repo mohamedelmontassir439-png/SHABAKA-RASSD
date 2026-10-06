@@ -19,7 +19,7 @@ from app.core.security import (hash_pw, verify_pw, make_token, make_session_toke
                                 get_member, has_access, email_ok, validate_email,
                                 validate_password, days_left,
                                 get_csrf_token, verify_csrf, subscription_state)
-from app.core.sectors import get_label
+from app.core.sectors import get_label, classify
 from app.core import marque
 from app.core import organismes
 from app.core.i18n import get_lang, make_t, SUPPORTED_LANGS, tr as tr_
@@ -3126,6 +3126,49 @@ async def admin_expire(req: Request, csrf_token: str = Form("")):
     exp, active = expire_tenders()
     State.log(f"⏳ {exp} marché(s) expiré(s), {active} actif(s)")
     return RedirectResponse(f"/admin/maintenance?expires={exp}", 302)
+
+def reclasser_marches(log_fn=None) -> dict:
+    """Repasse tous les marchés dans le classement courant.
+
+    Les règles s'affinent — un homonyme retiré, un repli corrigé — mais les
+    lignes déjà en base gardent le secteur calculé le jour de leur collecte.
+    Sans ce rattrapage, une correction ne profite qu'aux marchés à venir, et
+    la base garde indéfiniment les erreurs d'hier. Mesuré le 06/10/2026: 938
+    marchés sur 3 263 changeaient de secteur à règles nouvelles.
+
+    Le classement relit le titre et le contexte séparément, comme à la
+    collecte: `description` tient lieu de corps de l'avis, faute d'avoir
+    conservé la catégorie et le texte intégral.
+    """
+    db = get_db()
+    stats = {"lus": 0, "changes": 0}
+    try:
+        lignes = db.execute(
+            "SELECT id, objet, nature, description, secteur FROM tenders").fetchall()
+        for ligne in lignes:
+            stats["lus"] += 1
+            contexte = " ".join(x or "" for x in (ligne["nature"], ligne["description"]))
+            neuf = classify(ligne["objet"] or "", contexte)
+            if neuf != (ligne["secteur"] or ""):
+                db.execute("UPDATE tenders SET secteur=? WHERE id=?", (neuf, ligne["id"]))
+                stats["changes"] += 1
+        db.commit()
+    finally:
+        db.close()
+    if log_fn:
+        log_fn(f"{stats['changes']} marché(s) reclassé(s) sur {stats['lus']}")
+    return stats
+
+
+@app.post("/admin/reclasser")
+async def admin_reclasser(req: Request, csrf_token: str = Form("")):
+    """Rejoue le classement sur toute la base."""
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    csrf_guard(req, csrf_token)
+    stats = reclasser_marches(State.log)
+    return RedirectResponse(
+        f"/admin/maintenance?reclasses={stats['changes']}", 302)
+
 
 def _reparer_fiches_portail(limite: int = 400) -> dict:
     """Recharge les fiches du portail public collectées avant la correction.

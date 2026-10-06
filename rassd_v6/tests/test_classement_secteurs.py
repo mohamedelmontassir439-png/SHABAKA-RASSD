@@ -7,6 +7,7 @@ classés en développement informatique.
 """
 import pytest
 
+from app.core import sectors
 from app.core.sectors import classify
 
 
@@ -66,7 +67,13 @@ class TestCasReelsDeProduction:
         ("Achat de matériel informatique", "P818"),
         ("Travaux de construction d'un bâtiment", "T101"),
         ("Taille et élagage des arbres et arbustes", "T111"),
-        ("Prestations de nettoyage des locaux", "P841"),
+        # Corrigé le 06/10/2026: une PRESTATION de nettoyage est un service
+        # (S907), pas un achat de PRODUITS de nettoyage (P841). Le test
+        # figeait l'erreur qu'il était censé surveiller — les deux secteurs
+        # partagent le mot « nettoyage », et seul le mot « prestations »
+        # tranche.
+        ("Prestations de nettoyage des locaux", "S907"),
+        ("ACHAT DE DETERGENT ET PRODUITS D ENTRETIEN", "P841"),
     ])
     def test_classement_attendu(self, objet, attendu):
         assert classify(objet) == attendu, objet
@@ -123,3 +130,72 @@ class TestAmbiguitesAssumees:
         tranche pas.
         """
         assert classify("Fourniture de toner pour imprimante") in ("P825", "P818")
+
+
+class TestDefautsMesuresLe06Octobre:
+    """Quatre défauts relevés sur 3 263 avis réels, et leur correctif.
+
+    Le classement décide qui reçoit quoi. Une erreur ici ne se voit pas: le
+    marché ne manque à personne en apparence, il manque seulement à celui
+    qu'il concernait.
+    """
+
+    def test_l_ordre_du_fichier_ne_departage_plus(self):
+        """`score > best` retenait le premier secteur déclaré. T101, écrit en
+        tête, remportait 109 égalités; S911, déclaré soixante-huitième, en
+        perdait 263. La place d'un secteur dans le fichier décidait de sa
+        part — et ce biais était invisible."""
+        source = open(sectors.__file__, encoding="utf-8").read()
+        assert "score > best_score" not in source
+        # Le départage se fait sur des critères parlants avant le code.
+        assert "par_objet.get(kv[0]" in source
+
+    def test_le_titre_pese_plus_que_le_corps(self):
+        """Mille cinq cents caractères de formules administratives
+        couvraient un titre de six mots."""
+        assert sectors._POIDS_OBJET > sectors._POIDS_FOND
+
+    @pytest.mark.parametrize("objet,attendu", [
+        ("Travaux d'aménagement au niveau de la Direction Régionale", "T110"),
+        ("Réalisation de travaux d'aménagement d'espaces", "T110"),
+    ])
+    def test_des_travaux_sans_specialite_restent_des_travaux(self, objet, attendu):
+        """Ils tombaient en « Prestations diverses », un seau de services:
+        182 avis sur 348 parlant de travaux étaient rangés hors des secteurs
+        T, invisibles pour une entreprise du bâtiment."""
+        assert classify(objet) == attendu
+
+    def test_rien_ne_part_vers_un_seau_de_produits(self):
+        """Un essai routait vers « Équipement technique divers » tout avis
+        disant « achat »: 253 avis sans rapport y tombaient. Déplacer la
+        décharge dans un secteur auquel des gens s'abonnent n'est pas
+        classer. L'inconnu reste en « Prestations diverses », qui dit la
+        vérité: on ne sait pas."""
+        assert classify("Achat d'articles de sport") != "P820"
+
+    @pytest.mark.parametrize("objet,interdit", [
+        ("Réception des fonds de fouilles", "S911"),
+        ("Travaux de construction d'un atelier mécanique", "S913"),
+        ("Fourniture d'un salon pour la direction", "S917"),
+        ("Mission A :", "S902"),
+    ])
+    def test_les_homonymes_ne_detournent_plus(self, objet, interdit):
+        """« réception » d'un ouvrage n'est pas un cocktail, un « atelier »
+        mécanique n'est pas une formation, un « salon » de direction n'est
+        pas un salon professionnel."""
+        assert classify(objet) != interdit
+
+    @pytest.mark.parametrize("objet,attendu", [
+        ("ACHAT DE DETERGENT ET PRODUITS D ENTRETIEN", "P841"),
+        ("TRAVAUX D OUVRAGES D ART", "T101"),
+        ("EXTENSION DU RESEAU D ASSAINISSEMENT", "T201"),
+    ])
+    def test_une_apostrophe_absente_ne_fait_plus_manquer_le_mot(self, objet, attendu):
+        """Les avis marocains sont largement saisis en capitales, sans
+        accents ni apostrophes. Dix mots-clés en portaient une et la
+        cherchaient à la lettre — « ouvrage d'art », « réseau
+        d'assainissement », « bureau d'étude »: du BTP de première ligne."""
+        assert classify(objet) == attendu
+
+    def test_le_classement_ne_depend_pas_de_la_casse_ni_des_accents(self):
+        assert classify("TRAVAUX D ETANCHEITE") == classify("Travaux d'étanchéité")

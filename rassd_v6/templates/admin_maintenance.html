@@ -42,6 +42,22 @@
 
   <div class="mt-acte">
     <div>
+      <div class="mt-nom">Reclasser les marchés</div>
+      <div class="mt-dit">
+        Repasse tous les marchés dans le classement courant. Les règles
+        s'affinent, mais une ligne garde le secteur calculé le jour de sa
+        collecte: sans ce rattrapage, une correction ne profite qu'aux
+        marchés à venir. Rien n'est supprimé, seul le secteur change.
+      </div>
+    </div>
+    <form method="post" action="/admin/reclasser" class="mt-faire">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button type="submit" class="btn">{{ ico('etiquette', 16)|safe }} Reclasser</button>
+    </form>
+  </div>
+
+  <div class="mt-acte">
+    <div>
       <div class="mt-nom">Vider la base des marchés</div>
       <div class="mt-dit">
         Supprime <b>tous</b> les marchés et le journal d'alertes. Rien n'est

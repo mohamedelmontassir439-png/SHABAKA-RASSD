@@ -190,22 +190,36 @@ KEYWORDS: dict = {
     "S901": ["développement informatique","logiciel sur mesure","application web","système information","tic","digital","plateforme"],
     "S902": ["étude","conseil","audit","expertise","consulting","assistance technique","diagnostic"],
     "S903": ["étude btp","maîtrise d'œuvre","ingénierie","architecte","bureau d'étude","suivi travaux"],
-    "S904": ["prestation diverse","service général","mission","sous-traitance"],
+    # « mission » retire le 06/10/2026: trop general — « Mission A : »,
+    # « mission d'expertise », « mission de controle » relevent des etudes.
+    # Et S904 est le seau par defaut: il n'a pas besoin d'attirer.
+    "S904": ["prestation diverse","service général","sous-traitance"],
     "S906": ["maintenance","réparation","entretien","dépannage","service après-vente","révision"],
     "S907": ["nettoyage","hygiène","propreté","désinfection","lavage","assainissement locaux"],
     "S908": ["gardiennage","sécurité humaine","agent sécurité","vigile","intérim","rondier"],
     "S909": ["concours architecture","concours idées","appel à idées"],
     "S910": ["publicité","communication","affichage","spot","média","relations publiques","événement communication"],
-    "S911": ["restauration","traiteur","hébergement hôtel","repas","buffet","réception",
+    # « réception » retire le 06/10/2026: dans un avis de travaux, c'est la
+    # reception de l'ouvrage, pas un cocktail. 53 titres la portent, et
+    # « Reception des fonds de fouilles » tombait en Restauration. Le secteur
+    # garde quinze autres mots-cles, tous sans equivoque.
+    "S911": ["restauration","traiteur","hébergement hôtel","repas","buffet",
              "cantine","petit déjeuner","déjeuner","dîner","pause café","café",
              "collation","gâteau","eau minérale","cocktail"],
     "S912": ["assurance","couverture assurance","police assurance","multirisque"],
-    "S913": ["formation","stage","séminaire","atelier","coaching","enseignement","certification"],
+    # « atelier » precise: un atelier est aussi un local technique ou un
+    # garage, et « construction d'un atelier mecanique » n'est pas une
+    # formation.
+    "S913": ["formation","stage","séminaire","atelier de formation","coaching",
+             "enseignement","certification"],
     "S914": ["location","concession","bail","mise à disposition"],
     "S915": ["location véhicule","location matériel roulant","transport","chauffeur",
              "billet d'avion","billetterie","voyage","déplacement aérien","aller retour"],
     "S916": ["étude agricole","conseil agricole","agronomie"],
-    "S917": ["événementiel","cérémonie","conférence","congrès","forum","salon","exposition"],
+    # « salon » precise: un salon est aussi une piece et un ensemble de
+    # sieges — « fourniture d'un salon pour la direction » est du mobilier.
+    "S917": ["événementiel","cérémonie","conférence","congrès","forum",
+             "salon professionnel","exposition"],
     "S918": ["déchet","collecte déchet","traitement déchet","recyclage","déchetterie"],
     "S919": ["archivage","numérisation","gestion documentaire","stockage document"],
     "S920": ["expertise immobilière","évaluation foncière","estimation bien","géomètre expert"],
@@ -226,6 +240,9 @@ _PREFIXE_LONGUEUR_MIN = 6
 
 # Separateur tolere entre les mots d'une expression-cle: espaces, apostrophes
 # et traits d'union, plus au plus un petit mot de liaison.
+# Les particules d'elision, retirees des mots-cles: _LIAISON les remet.
+_ELISIONS = {"d", "l", "de", "du", "des", "le", "la", "les", "au", "aux"}
+
 _LIAISON = (r"[\s'" + chr(0x2019) + r"-]+(?:(?:de|du|des|d|le|la|les|l|au|aux|en|pour|sur)"
             r"[\s'" + chr(0x2019) + r"]+)?")
 
@@ -255,7 +272,17 @@ def _motifs(kw: str):
     # 30/09/2026 — tombait en « Prestations diverses ».
     # Le pluriel touche chaque mot de l'expression, pas seulement le dernier:
     # « espace vert » doit reconnaitre « espaces verts ».
-    echappe = _LIAISON.join(re.escape(mot) + r"(?:s|x)?" for mot in nu.split())
+    #
+    # On coupe aussi sur les apostrophes, et on jette les particules
+    # d'elision: c'est _LIAISON qui les reconstitue, avec ou sans apostrophe.
+    # Sans cela, « produit d'entretien » cherchait l'apostrophe a la lettre et
+    # ne voyait pas « PRODUITS D ENTRETIEN » — or les avis marocains sont
+    # largement saisis en capitales, sans accents ni apostrophes. Dix
+    # mots-cles etaient dans ce cas, dont « ouvrage d'art », « reseau
+    # d'assainissement » et « bureau d'etude »: du BTP de premiere ligne.
+    mots = [m for m in re.split(r"[\s'" + chr(0x2019) + r"]+", nu)
+            if m and m not in _ELISIONS]
+    echappe = _LIAISON.join(re.escape(mot) + r"(?:s|x)?" for mot in mots)
     # Le pluriel francais fait partie du mot entier: « arbre » doit
     # reconnaitre « arbres », « outil » reconnaitre « outils ». Sans cela,
     # borner la regle de prefixe aux mots longs ferait perdre tous les
@@ -264,51 +291,128 @@ def _motifs(kw: str):
     return (entier, re.compile(r"\b" + echappe))
 
 
-def classify(text: str) -> str:
-    """Classe un marche d'apres son texte, et rend le code officiel MB SA.
+# Un seul repli de famille, et c'est celui des travaux. « Genie civil &
+# amenagements divers » est le secteur que la nomenclature prevoit pour des
+# travaux sans specialite nommee: un entrepreneur du batiment l'a choisi
+# pour cela, et il y trouvera ce qu'il attend.
+#
+# Pas d'equivalent du cote des produits. Un essai l'a montre le 06/10/2026:
+# router vers « Equipement technique divers » tout avis disant « achat » y
+# versait 253 avis sans rapport — bacs a ordures, articles de sport,
+# alimentation animale. Cela ne classe rien: cela deplace la decharge dans
+# un secteur auquel des gens s'abonnent. Ce qu'on ne sait pas lire reste
+# donc en « Prestations diverses », qui dit au moins la verite.
+_REPLI_TRAVAUX = "T110"
+_REPLI_INCONNU = "S904"
 
-    Le score se lit en trois temps: un mot-cle present comme mot entier vaut
-    3 points, present au debut d'un mot plus long (« outil » dans
-    « outillage ») il en vaut 1, et le code du secteur ecrit noir sur blanc
-    dans le texte l'emporte sur le reste.
+# Ces mots ne designent aucun metier — « travaux » ne dit pas lesquels — et
+# ne peuvent donc pas etre des mots-cles de secteur. Mais ils suffisent a
+# dire qu'il s'agit de travaux, ce qui vaut mieux que de les ranger parmi
+# les services.
+_MOTS_TRAVAUX = re.compile(
+    r"\b(?:travaux|amenagement|reamenagement|rehabilitation|refection|"
+    r"renovation|construction|demolition|terrassement|revetement|etancheite|"
+    r"voirie|edification)")
 
-    La correspondance se faisait par simple sous-chaine, sans frontiere de
-    mot. Sur 64 mots-cles de cinq lettres ou moins, l'effet etait ravageur:
-    « tic » (Etudes TIC) se trouve dans « insecticide » et « raticide »,
-    « port » (Travaux maritimes) dans « transport », « support », « rapport »
-    et « important », « sol » (Revetement) dans « solution » et
-    « isolation ». Ces mots reviennent dans presque chaque avis.
+_POIDS_OBJET = 3   # le titre dit le metier
+_POIDS_FOND = 1    # le corps de l'avis le confirme, ou le noie
 
-    Releve en production le 30/09/2026: les marches de produits de
-    deratisation etaient classes en developpement informatique — invisibles
-    pour un fournisseur du secteur, et envoyes en alerte a des societes de
-    services numeriques. Le classement decide qui recoit quoi: une erreur ici
-    fait manquer le marche a celui qu'il concerne.
+
+def _repli(texte: str) -> str:
+    """Le seau que designe un texte: les travaux, ou l'aveu d'ignorance."""
+    if _MOTS_TRAVAUX.search(_sans_accents(texte or "")):
+        return _REPLI_TRAVAUX
+    return _REPLI_INCONNU
+
+
+def _accroches(texte: str) -> dict:
+    """{code: (score, precision)} pour un texte donne.
+
+    La precision est le mot-cle le plus parlant qui ait repondu: son nombre
+    de mots d'abord, sa longueur ensuite. C'est elle qui departage deux
+    secteurs a egalite de points.
     """
-    t = _sans_accents(text)
-    best_code, best_score = "S904", 0
-
+    if not texte:
+        return {}
+    t = _sans_accents(texte)
+    trouve = {}
     for code, keywords in KEYWORDS.items():
-        score = 0
+        score, precision = 0, (0, 0)
         for kw in keywords:
             entier, prefixe = _motifs(kw)
-            # Une expression pese autant que de mots la composent: elle decrit
-            # le marche plus precisement qu'un mot isole. « developpement
-            # informatique » (Etudes TIC) doit donc l'emporter sur le simple
-            # « informatique » (Equipements informatiques), qui figure aussi
-            # dans le texte.
             poids = len(kw.split())
             if entier.search(t):
                 score += 3 * poids
             elif len(kw) >= _PREFIXE_LONGUEUR_MIN and prefixe.search(t):
                 score += poids
-        # Le code ecrit tel quel dans le texte: preuve directe, pas indice.
+            else:
+                continue
+            precision = max(precision, (poids, len(kw)))
         if re.search(r"\b" + code.lower() + r"\b", t):
             score += 10
-        if score > best_score:
-            best_score, best_code = score, code
+            precision = max(precision, (9, 99))   # le code ecrit: preuve directe
+        if score:
+            trouve[code] = (score, precision)
+    return trouve
 
-    return best_code
+
+def classify(objet: str, contexte: str = "") -> str:
+    """Classe un marche et rend le code officiel du referentiel MB SA.
+
+    Trois regles, et chacune repare un defaut mesure sur 3 263 avis reels
+    le 06/10/2026.
+
+    **L'objet pese trois fois le reste.** Tout le texte etait auparavant
+    concatene puis pese d'un bloc: mille cinq cents caracteres de formules
+    administratives couvraient un titre de six mots. 28 % des avis
+    finissaient a egalite entre plusieurs secteurs, et cette egalite venait
+    presque toujours du corps de l'avis, jamais de son titre.
+
+    **L'egalite se tranche par la precision, non par l'ordre du fichier.**
+    `score > best` retenait le premier secteur declare: T101, ecrit en tete,
+    remportait 109 egalites pendant que S911 — Restauration, declare en
+    soixante-huitieme position — en perdait 263. La place d'un secteur dans
+    le fichier decidait de sa part. A egalite de points on prefere desormais
+    le mot-cle le plus specifique: une expression de deux mots avant un mot
+    isole, un mot long avant un court.
+
+    **Le repli suit la famille.** Un avis que rien ne reconnaissait tombait
+    en « Prestations diverses », un seau de services — y compris quand il
+    disait « Travaux d'amenagement ». 182 avis sur 348 parlant de travaux
+    etaient ranges hors des secteurs T, invisibles pour les entreprises du
+    batiment. Le repli choisit maintenant le seau de la bonne famille.
+
+    `contexte` reste facultatif: un appelant qui n'a qu'un bloc de texte le
+    passe en premier argument et retrouve l'ancien comportement, ponderation
+    mise a part.
+    """
+    par_objet, par_fond = _accroches(objet), _accroches(contexte)
+
+    # Quand le titre ne dit rien de precis, le corps de l'avis ne doit pas
+    # decider seul: il est fait de formules administratives qui accrochent au
+    # hasard. « Fourniture d'une tente caidale » n'accroche aucun mot-cle dans
+    # son titre, et sa description le faisait tomber en Restauration. Si le
+    # titre dit au moins sa famille, c'est elle qui tranche.
+    if not par_objet:
+        if _MOTS_TRAVAUX.search(_sans_accents(objet)):
+            return _REPLI_TRAVAUX
+        if not par_fond:
+            return _repli(contexte)
+
+    trouve = {}
+    for code in set(par_objet) | set(par_fond):
+        so, po = par_objet.get(code, (0, (0, 0)))
+        sf, pf = par_fond.get(code, (0, (0, 0)))
+        trouve[code] = (_POIDS_OBJET * so + _POIDS_FOND * sf, max(po, pf))
+
+    # Trois criteres parlants, du plus fort au plus faible: les points, la
+    # precision du mot-cle, puis le fait d'avoir repondu dans le titre plutot
+    # que dans le corps de l'avis. Le code ne departage qu'en dernier ressort
+    # — il le faut bien pour que le resultat soit stable d'une execution a
+    # l'autre, mais il ne tranche presque jamais.
+    return max(trouve.items(),
+               key=lambda kv: (kv[1][0], kv[1][1],
+                               par_objet.get(kv[0], (0,))[0], kv[0]))[0]
 
 
 def get_label(code: str) -> str:
