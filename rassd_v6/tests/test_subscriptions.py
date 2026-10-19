@@ -74,7 +74,7 @@ class TestInscriptionAccordeUnEssai:
         from app.core.config import cfg
         page = client.get("/register")
         token = page.cookies.get("_csrf")
-        r = client.post("/register", data={
+        r = client.post("/register", data={"phone": "0612345678", "company": "SIMAC", 
             "email": "essai@example.com", "pw": "MotDePasse1!", "pw2": "MotDePasse1!",
             "nom": "Essai", "csrf_token": token, "secteurs_sel": ["T101"]}, follow_redirects=False)
         assert r.status_code == 302
@@ -95,7 +95,7 @@ class TestInscriptionAccordeUnEssai:
     def test_nouvel_inscrit_accede_aux_marches(self, client, confirmer_email):
         page = client.get("/register")
         token = page.cookies.get("_csrf")
-        client.post("/register", data={
+        client.post("/register", data={"phone": "0612345678", "company": "SIMAC", 
             "email": "acces@example.com", "pw": "MotDePasse1!", "pw2": "MotDePasse1!",
             "nom": "Acces", "csrf_token": token, "secteurs_sel": ["T101"]}, follow_redirects=False)
         confirmer_email("acces@example.com")

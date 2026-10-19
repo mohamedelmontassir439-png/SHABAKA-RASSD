@@ -15,7 +15,7 @@ import pytest
 
 def _champs(client, **extra):
     base = {"email": "neuf@example.com", "pw": "MotDePasse1!", "pw2": "MotDePasse1!",
-            "nom": "Ahmed", "csrf_token": client.cookies.get("_csrf")}
+            "nom": "Ahmed", "phone": "0612345678", "company": "SIMAC",  "csrf_token": client.cookies.get("_csrf")}
     base.update(extra)
     return base
 

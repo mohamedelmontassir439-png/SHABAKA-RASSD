@@ -35,12 +35,12 @@
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
       <input type="hidden" name="ref" value="{{ ref or '' }}">
       <div class="grid-2">
-        <div class="field"><label for="nom">{{ tr('reg_name') }}</label><input id="nom" name="nom" class="inp" placeholder="Mohamed Alaoui" value="{{ (vals or {}).get('nom','') }}"></div>
+        <div class="field"><label for="nom">{{ tr('reg_name') }}</label><input id="nom" name="nom" class="inp" required placeholder="Mohamed Alaoui" value="{{ (vals or {}).get('nom','') }}"></div>
         <div class="field"><label for="email">{{ tr('reg_email') }}</label><input id="email" name="email" type="email" class="inp" placeholder="email@entreprise.ma" required value="{{ (vals or {}).get('email','') }}"></div>
       </div>
       <div class="grid-2">
-        <div class="field"><label for="phone">{{ tr('reg_phone') }}</label><input id="phone" name="phone" class="inp" placeholder="+212 6xx xxxxxx" value="{{ (vals or {}).get('phone','') }}"></div>
-        <div class="field"><label for="company">{{ tr('reg_company') }}</label><input id="company" name="company" class="inp" placeholder="Nom de votre société" value="{{ (vals or {}).get('company','') }}"></div>
+        <div class="field"><label for="phone">{{ tr('reg_phone') }}</label><input id="phone" name="phone" class="inp" required inputmode="tel" placeholder="06 12 34 56 78" value="{{ (vals or {}).get('phone','') }}"></div>
+        <div class="field"><label for="company">{{ tr('reg_company') }}</label><input id="company" name="company" class="inp" required placeholder="Nom de votre société" value="{{ (vals or {}).get('company','') }}"></div>
       </div>
       <div class="grid-2">
         <div class="field"><label for="pw">{{ tr('reg_pw') }}</label><input id="pw" name="pw" type="password" class="inp" required minlength="8" placeholder="{{ tr('reg_pw_hint') }}"></div>

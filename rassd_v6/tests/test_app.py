@@ -8,7 +8,7 @@ def _register(client, email="membre@example.com", **extra):
     client.get("/register")
     token = client.cookies.get("_csrf")
     data = {"email": email, "pw": "MotDePasse1!", "pw2": "MotDePasse1!",
-            "nom": "Membre Test", "csrf_token": token, "secteurs_sel": ["T101"]}
+            "nom": "Membre Test", "phone": "0612345678", "company": "SIMAC",  "csrf_token": token, "secteurs_sel": ["T101"]}
     data.update(extra)
     resp = client.post("/register", data=data)
     # L'adresse est confirmée ici: ces tests portent sur les marchés, le

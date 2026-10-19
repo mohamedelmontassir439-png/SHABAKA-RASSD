@@ -12,7 +12,7 @@ import pytest
 
 def _inscrire(client, email="nouveau@example.com"):
     client.get("/register")
-    return client.post("/register", data={
+    return client.post("/register", data={"phone": "0612345678", "company": "SIMAC", 
         "email": email, "pw": "MotDePasse1!", "pw2": "MotDePasse1!",
         "nom": "Nouveau", "csrf_token": client.cookies.get("_csrf"), "secteurs_sel": ["T101"]})
 

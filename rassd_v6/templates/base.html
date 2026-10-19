@@ -424,6 +424,15 @@ html[dir="rtl"] .section-label::before { order: 2; }
       <a href="/tarifs" class="btn btn-accent btn-sm">{{ tr('trial_banner_cta') }}</a>
     </div>
     {% endif %}
+    {# Les membres inscrits avant que ces champs ne deviennent obligatoires
+       gardent un profil troué. On ne les met pas dehors — ils paient — mais
+       on le leur dit partout, jusqu'à ce que ce soit fait. #}
+    {% if member and profil_manque(member) %}
+    <div class="sub-banner sub-banner-warn">
+      <span class="sub-banner-txt">{{ tr('profil_incomplet') }}</span>
+      <a href="/settings" class="btn btn-accent btn-sm">{{ tr('profil_completer') }}</a>
+    </div>
+    {% endif %}
     {% block body %}{% endblock %}
     </main>
 

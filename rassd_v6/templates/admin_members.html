@@ -36,13 +36,40 @@ details.del summary::-webkit-details-marker{display:none}
 
     {% if members %}
     <div class="tableau-cadre"><table>
-      <tr><th>Membre</th><th>Plan</th><th>Statut</th><th>Paiements</th><th>Inscrit</th><th>Actions</th></tr>
+      <tr><th>Membre</th><th>Joindre</th><th>Sa veille</th><th>Plan</th><th>Statut</th>
+          <th>Paiements</th><th>Inscrit</th><th>Actions</th></tr>
       {% for m in members %}
       <tr>
         <td>
           <div class="m-name">{{ (m.nom or '—')[:32] }}</div>
-          <div class="muted">{{ m.email[:38] }}</div>
           {% if m.company %}<div class="muted">{{ m.company[:32] }}</div>{% endif %}
+          {# Un profil troué se voit tout de suite: c'est lui qui empêche
+             d'appeler, et c'est la première chose à réparer. #}
+          {% if m.manque %}
+          <div><span class="badge b-r" title="Champs manquants">
+            {{ ico('attention', 12)|safe }} {{ m.manque|join(', ') }}</span></div>
+          {% endif %}
+        </td>
+        {# Tout ce qui sert à joindre, au même endroit et cliquable: on
+           appelle depuis cette page, on ne recopie pas un numéro. #}
+        <td style="white-space:nowrap">
+          {% if m.phone %}
+            <div><a class="lien-contact" href="tel:{{ m.phone }}">{{ ico('telephone', 13)|safe }} {{ tel(m.phone) }}</a></div>
+            <div><a class="lien-contact muted" target="_blank" rel="noopener"
+                    href="https://wa.me/212{{ m.phone[1:] }}">{{ ico('bulle', 12)|safe }} WhatsApp</a></div>
+          {% else %}<span class="badge b-r">sans numéro</span>{% endif %}
+          <div><a class="lien-contact muted" href="mailto:{{ m.email }}">{{ m.email[:30] }}</a></div>
+        </td>
+        <td>
+          {% for code, libelle in m.secteurs_lus[:3] %}
+            <div><span class="badge b-g" title="{{ code }}">{{ libelle[:28] }}</span></div>
+          {% endfor %}
+          {% if m.secteurs_lus|length > 3 %}
+            <div class="muted">+{{ m.secteurs_lus|length - 3 }} autre(s)</div>
+          {% elif not m.secteurs_lus %}
+            <span class="badge b-r">aucun secteur</span>
+          {% endif %}
+          <div class="muted">{{ 'un message par jour' if m.notif_rythme == 'quotidien' else 'alerte immédiate' }}</div>
         </td>
         <td>
           <form method="post" action="/admin/member/{{ m.id }}/plan">
@@ -67,7 +94,12 @@ details.del summary::-webkit-details-marker{display:none}
             <div class="muted">{{ m.total_paid|round(0)|int }} MAD</div>
           {% else %}<span class="badge b-gray">0</span>{% endif %}
         </td>
-        <td style="color:var(--t3);white-space:nowrap;">{{ m.created_at[:10] }}</td>
+        <td style="color:var(--t3);white-space:nowrap;">
+          {{ m.created_at[:10] }}
+          {# La dernière visite dit si l'abonnement sert encore. Un membre qui
+             ne revient pas se désabonnera, et on le saura trop tard. #}
+          <div class="muted">{{ ('vu ' ~ m.last_login[:10]) if m.last_login else 'jamais revenu' }}</div>
+        </td>
         <td>
           <form method="post" action="/admin/member/{{ m.id }}/toggle" style="display:inline;">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">

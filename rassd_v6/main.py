@@ -21,6 +21,8 @@ from app.core.security import (hash_pw, verify_pw, make_token, make_session_toke
                                 get_csrf_token, verify_csrf, subscription_state)
 from app.core.sectors import get_label, classify
 from app.core.objets import sans_repetition
+from app.core.profil import (nom_valide, societe_valide, telephone_marocain,
+                             telephone_normalise, profil_incomplet)
 from app.core import marque
 from app.core import organismes
 from app.core.i18n import get_lang, make_t, SUPPORTED_LANGS, tr as tr_
@@ -902,6 +904,7 @@ templates.env.globals["fond_rosace"] = marque.fond_rosace
 # `ico` et non `icone`: la macro du rail a un paramètre de ce nom, qui
 # masquerait la globale à l'intérieur de la macro.
 templates.env.globals["ico"] = marque.icone
+templates.env.globals["profil_manque"] = profil_incomplet
 templates.env.globals["fond_frise"] = marque.fond_frise
 
 
@@ -2117,6 +2120,10 @@ async def register_post(req: Request,
     # restreint rien, si bien que le nouvel inscrit recevait les deux mille
     # quatre cents marchés actifs — l'inverse de ce qu'il vient chercher. Dix
     # secondes ici lui évitent de juger la plateforme sur un flot illisible.
+    elif not nom_valide(nom): err = tr_("err_nom_requis", lang)
+    elif not (phone or "").strip(): err = tr_("err_phone_requis", lang)
+    elif not telephone_marocain(phone): err = tr_("err_phone_invalide", lang)
+    elif not societe_valide(company): err = tr_("err_company_requis", lang)
     elif not clean_secteurs(secteurs_sel): err = tr_("err_secteur_requis", lang)
     else:
         ok, msg = validate_password(pw, lang)
@@ -2144,7 +2151,11 @@ async def register_post(req: Request,
                trial_start,trial_ends,subscription_status,session_token,referral_code,referred_by,
                email_verified,email_token,email_token_expires)
                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-            (nom,email,phone,company,hash_pw(pw),json.dumps(sects),"free",created_at,
+            # Le numéro est rangé sous une seule forme: « +212 6 12 34 56 78 »
+            # et « 0612345678 » sont le même abonné, et deux écritures en
+            # feraient deux contacts dont l'un ne serait jamais rappelé.
+            (nom.strip(),email,telephone_normalise(phone),company.strip(),
+             hash_pw(pw),json.dumps(sects),"free",created_at,
              trial_start,trial_ends,"TRIAL",session_tok,my_ref_code,referred_by,
              0,email_token,token_expires))
         db.execute(
@@ -2325,6 +2336,11 @@ async def settings_post(req: Request,
         rythme = "direct"
     whatsapp = form.get("whatsapp","").strip()
     sects    = clean_secteurs(secteurs_sel)
+    # Ce qui est exigé à l'inscription ne peut pas être effacé ensuite: sans
+    # ce contrôle, l'obligation ne tiendrait qu'un écran.
+    if not nom_valide(nom) or not societe_valide(company)             or not telephone_marocain(phone) or not sects:
+        return RedirectResponse("/settings?err=incomplet", 302)
+    nom, company, phone = nom.strip(), company.strip(), telephone_normalise(phone)
     # Filtres du moteur de correspondance
     regions  = [r.strip() for r in form.getlist("notif_regions_sel") if r and r.strip()]
     types    = [t.strip() for t in form.getlist("notif_types_sel") if t and t.strip()]
@@ -3994,6 +4010,16 @@ async def admin_members(req: Request, q: str = ""):
         FROM members m WHERE {' AND '.join(where)}
         ORDER BY m.created_at DESC LIMIT 300""", params).fetchall()]
     db.close()
+    # Le gabarit n'a pas a dissequer du JSON ni a redire la regle du profil:
+    # on lui donne des listes prêtes, et le libelle plutot que le code — on
+    # appelle un plombier, pas un « T104 ».
+    for m in rows:
+        try:
+            codes = [c for c in json.loads(m.get("secteurs") or "[]") if c]
+        except (TypeError, ValueError):
+            codes = []
+        m["secteurs_lus"] = [(c, get_label(c)) for c in codes]
+        m["manque"] = profil_incomplet(m)
     csrf_tok = get_csrf_token(req) or secrets.token_urlsafe(24)
     resp = templates.TemplateResponse("admin_members.html", {
         "request": req, "cfg": cfg, "members": rows, "q": q, "csrf_token": csrf_tok})

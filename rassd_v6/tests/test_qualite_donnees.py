@@ -115,9 +115,9 @@ class TestPagesSeparees:
         db.commit()
 
         client.get("/register")
-        client.post("/register", data={
+        client.post("/register", data={"phone": "0612345678", "company": "SIMAC", 
             "email": "q@example.com", "pw": "MotDePasse1!", "pw2": "MotDePasse1!",
-            "nom": "Q", "csrf_token": client.cookies.get("_csrf"),
+            "nom": "Qods Alaoui", "csrf_token": client.cookies.get("_csrf"),
             # Les deux lignes de ce test sont en P814: sans ce secteur,
             # le cloisonnement les masque — et c'est son rôle.
             "secteurs_sel": ["P814"]})

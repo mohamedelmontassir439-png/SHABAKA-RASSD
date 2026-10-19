@@ -233,6 +233,20 @@ T = {
                            "ar": "خارج قطاعاتك"},
     "hors_secteur_texte": {"fr": "Ce marché ne relève d'aucun des secteurs que vous avez choisis. Ajoutez-le à votre profil si ce métier vous intéresse.",
                            "ar": "هذه الصفقة لا تنتمي إلى أيّ قطاع اخترته. أضف هذا المجال إلى ملفّك إن كان يهمّك."},
+    # Chaque champ exige sa raison: une obligation sans motif se contourne
+    # avec « . » ou « aaa », et on se retrouve avec des profils remplis de
+    # rien, ce qui est pire qu'un profil vide — on croit l'avoir.
+    "err_nom_requis":     {"fr": "Votre nom et prénom — c'est par lui qu'on vous appellera.",
+                            "ar": "اسمك ونسبك — بهما نناديك عند الاتّصال."},
+    "err_phone_requis":   {"fr": "Un numéro marocain joignable — les marchés urgents se discutent au téléphone.",
+                            "ar": "رقم مغربي يُجاب عليه — الصفقات المستعجلة تُناقَش هاتفيًّا."},
+    "err_phone_invalide": {"fr": "Ce numéro ne ressemble pas à un numéro marocain (06, 07 ou 05, dix chiffres).",
+                            "ar": "هذا الرقم لا يشبه رقمًا مغربيًّا (06 أو 07 أو 05، عشرة أرقام)."},
+    "err_company_requis": {"fr": "Le nom de votre société — il figure sur les actes de candidature.",
+                            "ar": "اسم شركتك — يظهر في ملفّات الترشّح."},
+    "profil_incomplet":   {"fr": "Votre profil est incomplet. Complétez-le pour que nous puissions vous joindre sur un marché urgent.",
+                            "ar": "ملفّك غير مكتمل. أكمله كي نستطيع الوصول إليك عند صفقة مستعجلة."},
+    "profil_completer":   {"fr": "Compléter mon profil", "ar": "أكمل ملفّي"},
     "err_secteur_requis": {"fr": "Choisissez au moins un secteur — c'est lui qui détermine les marchés que vous recevrez.",
                           "ar": "اختر قطاعاً واحداً على الأقل — هو ما يحدّد الصفقات التي ستصلك."},
     "channel_email_rythme":    {"fr": "dès la publication",
@@ -448,6 +462,52 @@ T = {
     # Le portail publie « Estimation (en Dhs TTC) », pas un prix: c'est le
     # plafond que l'acheteur s'est fixe, et l'offre retenue peut etre tres en
     # dessous. « Montant » se lisait comme le prix du marche.
+
+    # ── Comprendre un avis ──────────────────────────────────────────────
+    # Un avis de marché suppose connus une dizaine de mots de metier. Celui
+    # qui soumissionne pour la premiere fois perd son premier marche sur un
+    # detail de procedure, pas sur son prix. Cinq lignes, pas davantage: un
+    # pave d'explications ne se lit pas plus qu'un avis.
+    "lire_titre":        {"fr": "Comprendre cet avis", "ar": "كيف تقرأ هذا الإعلان"},
+    "lire_aide":         {"fr": "Cinq points, si c'est votre premier marché.",
+                           "ar": "خمس نقاط، إن كانت صفقتك الأولى."},
+
+    "lire_estim_t":      {"fr": "L'estimation n'est pas un prix",
+                           "ar": "التقدير ليس ثمنًا"},
+    "lire_estim_d":      {"fr": "C'est le plafond TTC que l'acheteur s'est fixé. Votre offre peut être nettement en dessous — c'est même ainsi qu'on l'emporte.",
+                           "ar": "هو السقف الذي حدّده صاحب المشروع، شاملًا الضريبة. وعرضك قد يكون أقلّ منه بكثير — وبذلك تُرسى عليك الصفقة."},
+
+    "lire_date_t":       {"fr": "La date limite est une heure, pas un jour",
+                           "ar": "الأجل ساعة، لا يوم"},
+    "lire_date_d":       {"fr": "Les plis s'ouvrent à l'heure dite. Une minute après, le dossier n'est plus recevable, quel qu'en soit le contenu. Déposez la veille.",
+                           "ar": "تُفتح الأظرفة في الساعة المحدّدة. وبعدها بدقيقة لا يُقبل الملفّ مهما كان مضمونه. أودِع في اليوم السابق."},
+
+    "lire_qualif_t":     {"fr": "La qualification passe avant le prix",
+                           "ar": "التأهيل قبل الثمن"},
+    "lire_qualif_d":     {"fr": "Le secteur indiqué détermine la qualification et la classe exigées. Sans elles, l'offre est écartée avant même d'être lue.",
+                           "ar": "القطاع المذكور يحدّد التأهيل والصنف المطلوبين. وبدونهما يُستبعد العرض قبل أن يُقرأ."},
+
+    "lire_dossier_t":    {"fr": "Le dossier se retire chez l'acheteur",
+                           "ar": "الملفّ يُسحب من صاحب المشروع"},
+    "lire_dossier_d":    {"fr": "Nous publions l'avis, pas le cahier des charges. Le CPS, les plans et les réponses aux questions sont sur le portail de l'acheteur, dont le lien figure ci-dessous.",
+                           "ar": "ننشر الإعلان لا دفتر التحمّلات. فالـCPS والتصاميم وأجوبة الأسئلة توجد لدى صاحب المشروع، ورابطه أسفله."},
+
+    "lire_caution_t":    {"fr": "Prévoyez la caution provisoire",
+                           "ar": "احسب الضمانة المؤقّتة"},
+    "lire_caution_d":    {"fr": "Elle est exigée à l'ouverture des plis et se demande à votre banque — comptez quelques jours. Son montant figure dans l'avis d'origine.",
+                           "ar": "تُطلب عند فتح الأظرفة وتُستخرج من بنكك — احسب لها بضعة أيّام. ومبلغها في الإعلان الأصلي."},
+
+    # Un bon de commande ne suit pas la meme procedure: ni estimation
+    # publiee, ni caution, ni plis a l'heure dite.
+    "lire_bdc_t":        {"fr": "Un bon de commande, pas un appel d'offres",
+                           "ar": "سند طلب، لا طلب عروض"},
+    "lire_bdc_d":        {"fr": "Procédure courte: ni caution provisoire, ni ouverture de plis. L'acheteur consulte quelques fournisseurs et commande. Répondez vite, le délai est serré.",
+                           "ar": "مسطرة قصيرة: لا ضمانة مؤقّتة ولا فتح أظرفة. يستشير صاحب المشروع بضعة موردين ثمّ يطلب. أجب بسرعة، فالأجل ضيّق."},
+
+    "lire_quantite_t":   {"fr": "La quantité tient lieu d'estimation",
+                           "ar": "الكمّية تقوم مقام التقدير"},
+    "lire_quantite_d":   {"fr": "Les bons de commande ne publient pas de montant. La quantité commandée vous dit l'ampleur, et c'est à vous de chiffrer.",
+                           "ar": "سندات الطلب لا تنشر مبلغًا. الكمّية المطلوبة تدلّك على الحجم، والتسعير عليك."},
     "detail_amount":      {"fr": "Estimation (TTC)", "ar": "التقدير (شامل الضريبة)"},
     "detail_amount_note": {"fr": "Plafond estimé par l'acheteur — le marché peut être attribué en dessous.",
                             "ar": "سقف يقدّره صاحب المشروع — قد تُرسى الصفقة بأقلّ منه."},

@@ -145,9 +145,9 @@ class TestBonDeCommandeQuantite:
                     "Matériel informatique"))
         db.commit()
         client.get("/register")
-        client.post("/register", data={
+        client.post("/register", data={"phone": "0612345678", "company": "SIMAC", 
             "email": "bc@example.com", "pw": "MotDePasse1!", "pw2": "MotDePasse1!",
-            "nom": "BC", "csrf_token": client.cookies.get("_csrf"),
+            "nom": "Badr Chraibi", "csrf_token": client.cookies.get("_csrf"),
             # Le secteur du bon de commande de ce test: sans lui, le
             # cloisonnement le masque — et c'est son rôle.
             "secteurs_sel": ["P818"]})

@@ -99,7 +99,7 @@ class TestPagesPubliques:
 class TestReglages:
     def _inscrire(self, client):
         client.get("/register")
-        client.post("/register", data={
+        client.post("/register", data={"phone": "0612345678", "company": "SIMAC", 
             "email": "set@example.com", "pw": "MotDePasse1!", "pw2": "MotDePasse1!",
             "nom": "Set", "csrf_token": client.cookies.get("_csrf"), "secteurs_sel": ["T101"]})
         from app.core.database import get_db

@@ -18,6 +18,19 @@
 .info-label { font-size:var(--f1); font-weight: 700; color: var(--amberd); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 8px; }
 /* La note sous le montant: il faut qu'elle se lise, et qu'elle ne crie pas. */
 .info-note { font-size:var(--f1); color: var(--text3); line-height: 1.5; margin-top: 6px; max-width: 34em; }
+/* ── Comprendre cet avis ─────────────────────────────── */
+.lire { border: 1px solid var(--line); border-radius: var(--r3); background: var(--surface); margin-top: 28px; overflow: hidden; }
+.lire-tete { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 18px 24px; border-bottom: 1px solid var(--line); }
+.lire-titre { font-family: var(--serif); font-weight: 700; font-size:var(--f5); color: var(--text1); }
+.lire-aide { font-size:var(--f2); color: var(--text3); }
+.lire-liste { display: grid; grid-template-columns: 1fr 1fr; }
+.lire-item { padding: 18px 24px; border-top: 1px solid var(--line); }
+.lire-item:nth-child(odd) { border-right: 1px solid var(--line); }
+html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px solid var(--line); }
+.lire-item-t { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size:var(--f3); color: var(--text1); margin-bottom: 7px; }
+.lire-item-t svg { color: var(--ink); }
+.lire-item-d { font-size:var(--f2); color: var(--text3); line-height: 1.65; }
+@media(max-width: 760px) { .lire-liste { grid-template-columns: 1fr; } .lire-item:nth-child(odd) { border-right: none; } }
 .info-value { font-weight: 700; font-size:var(--f6); color: var(--text1); letter-spacing: -.005em; line-height: 1.25; }
 .info-value em { font-style: normal; color: var(--navy); }
 
@@ -126,6 +139,50 @@
         <div class="info-cell">
           <div class="info-label">{{ tr('detail_views') }}</div>
           <div class="info-value">{{ (t.views or 0) }}</div>
+        </div>
+      </div>
+
+      {# Un avis suppose connus une dizaine de mots de métier. Celui qui
+         soumissionne pour la première fois perd son premier marché sur un
+         détail de procédure, pas sur son prix. #}
+      {% set bdc = t.type_procedure == 'bon_commande' %}
+      <div class="lire">
+        <div class="lire-tete">
+          <span class="lire-titre">{{ tr('lire_titre') }}</span>
+          <span class="lire-aide">{{ tr('lire_aide') }}</span>
+        </div>
+        <div class="lire-liste">
+          {% if bdc %}
+          <div class="lire-item">
+            <div class="lire-item-t">{{ ico('eclair', 17)|safe }} {{ tr('lire_bdc_t') }}</div>
+            <div class="lire-item-d">{{ tr('lire_bdc_d') }}</div>
+          </div>
+          <div class="lire-item">
+            <div class="lire-item-t">{{ ico('graphique', 17)|safe }} {{ tr('lire_quantite_t') }}</div>
+            <div class="lire-item-d">{{ tr('lire_quantite_d') }}</div>
+          </div>
+          {% else %}
+          <div class="lire-item">
+            <div class="lire-item-t">{{ ico('argent', 17)|safe }} {{ tr('lire_estim_t') }}</div>
+            <div class="lire-item-d">{{ tr('lire_estim_d') }}</div>
+          </div>
+          <div class="lire-item">
+            <div class="lire-item-t">{{ ico('verrou', 17)|safe }} {{ tr('lire_caution_t') }}</div>
+            <div class="lire-item-d">{{ tr('lire_caution_d') }}</div>
+          </div>
+          {% endif %}
+          <div class="lire-item">
+            <div class="lire-item-t">{{ ico('cloche', 17)|safe }} {{ tr('lire_date_t') }}</div>
+            <div class="lire-item-d">{{ tr('lire_date_d') }}</div>
+          </div>
+          <div class="lire-item">
+            <div class="lire-item-t">{{ ico('favori', 17)|safe }} {{ tr('lire_qualif_t') }}</div>
+            <div class="lire-item-d">{{ tr('lire_qualif_d') }}</div>
+          </div>
+          <div class="lire-item">
+            <div class="lire-item-t">{{ ico('dossiers', 17)|safe }} {{ tr('lire_dossier_t') }}</div>
+            <div class="lire-item-d">{{ tr('lire_dossier_d') }}</div>
+          </div>
         </div>
       </div>
 
