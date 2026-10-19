@@ -118,7 +118,7 @@
       <div class="st-piste-actions">
         {% if p.contact_phone %}
         <a class="btn btn-primary btn-sm" href="https://wa.me/{{ p.contact_phone | replace('+','') | replace(' ','') }}?text={{ p.message | urlencode }}" target="_blank" rel="noopener">{{ tr('st_piste_wa') }}</a>
-        <a class="btn btn-outline btn-sm" href="tel:{{ p.contact_phone }}">{{ p.contact_phone }}</a>
+        <a class="btn btn-outline btn-sm" href="tel:+{{ p.contact_phone | replace('+','') | replace(' ','') }}">{{ tel(p.contact_phone) }}</a>
         {% else %}
         <span class="st-piste-sans">{{ tr('st_piste_sans_contact') }}</span>
         {% endif %}

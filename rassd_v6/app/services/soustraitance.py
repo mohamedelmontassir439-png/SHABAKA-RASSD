@@ -17,6 +17,7 @@ import re
 from app.core.config import cfg
 from app.core.database import get_db
 from app.core.sectors import get_label
+from app.core.attribution import est_attribue
 
 logger = logging.getLogger("atlas.soustraitance")
 
@@ -131,6 +132,13 @@ def opportunites_pour(member: dict, limite: int = 30, jours: int = 60) -> list:
     resultats = []
     ma_societe = _norm(member.get("company") or "")
     for ligne in lignes:
+        # « Infructueux » et « Annulé » ne sont pas des entreprises: le
+        # portail les inscrit dans la colonne de l'attributaire quand la
+        # procédure n'a pas trouvé preneur. Sur 522 résultats mesurés le
+        # 19/10/2026, 157 étaient dans ce cas — un membre sur trois se
+        # voyait proposer de démarcher une société nommée « Annulé ».
+        if not est_attribue(ligne.get("adjudicataire")):
+            continue
         if parse_montant(ligne.get("montant")) < SEUIL_MONTANT:
             continue
         if ma_societe and ma_societe == _norm(ligne.get("adjudicataire")):

@@ -114,11 +114,20 @@
           <div class="res-cell-val">{{ (acheteur(r.acheteur) or '—')[:40] }}</div>
         </div>
         <div>
+          {# Une procédure déclarée infructueuse ou annulée n'a pas
+             d'attributaire: l'afficher en vert sous « Attributaire » faisait
+             croire qu'une société nommée « Infructueux » avait gagné. #}
+          {% set issue = issue_procedure(r.adjudicataire) %}
+          {% if issue %}
+          <div class="res-cell-label">{{ tr('res_issue') }}</div>
+          <div class="res-cell-val"><span class="badge badge-gray">{{ tr('res_issue_' ~ issue) }}</span></div>
+          {% else %}
           <div class="res-cell-label">{{ tr('res_winner') }}</div>
           <div class="res-cell-val" style="color: var(--grn);">{{ (r.adjudicataire or '—')[:40] }}</div>
+          {% endif %}
         </div>
         <div>
-          <div class="res-cell-label">{{ tr('detail_amount') }}</div>
+          <div class="res-cell-label">{{ tr('res_montant') }}</div>
           <div class="res-cell-val">{{ r.montant or '—' }}</div>
         </div>
         <div>

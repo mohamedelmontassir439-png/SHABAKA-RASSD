@@ -21,6 +21,8 @@ from app.core.security import (hash_pw, verify_pw, make_token, make_session_toke
                                 get_csrf_token, verify_csrf, subscription_state)
 from app.core.sectors import get_label, classify
 from app.core.objets import sans_repetition
+from app.core.attribution import (NON_COMPANY_ADJUDICATAIRE, est_attribue,
+                                  issue as issue_procedure)
 from app.core.profil import (nom_valide, societe_valide, telephone_marocain,
                              telephone_normalise, profil_incomplet)
 from app.core import marque
@@ -905,6 +907,7 @@ templates.env.globals["fond_rosace"] = marque.fond_rosace
 # masquerait la globale à l'intérieur de la macro.
 templates.env.globals["ico"] = marque.icone
 templates.env.globals["profil_manque"] = profil_incomplet
+templates.env.globals["issue_procedure"] = issue_procedure
 templates.env.globals["fond_frise"] = marque.fond_frise
 
 
@@ -2693,14 +2696,9 @@ async def admin_panel(req: Request):
     return resp
 
 
-# Le champ "adjudicataire" contient parfois, à la place d'un vrai nom
-# d'entreprise, un statut de procédure (marché resté sans suite) — ces
-# valeurs ne sont pas des prospects et fausseraient le classement.
-NON_COMPANY_ADJUDICATAIRE = {
-    "infructueux", "annule", "annulé", "voir pv", "neant", "néant",
-    "sans suite", "non attribue", "non attribué", "abandonne", "abandonné",
-    "sans objet", "declare infructueux", "déclaré infructueux",
-}
+# La liste vivait ici et ne servait qu'à la page des prospects. Elle est
+# passée dans `app/core/attribution.py`: la même notion sert maintenant aux
+# membres, qui voyaient « Infructueux » annoncé comme attributaire.
 
 def _prospects_base_filter():
     """WHERE/params qui excluent les valeurs d'adjudicataire qui ne sont pas

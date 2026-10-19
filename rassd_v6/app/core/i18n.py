@@ -508,6 +508,19 @@ T = {
                            "ar": "الكمّية تقوم مقام التقدير"},
     "lire_quantite_d":   {"fr": "Les bons de commande ne publient pas de montant. La quantité commandée vous dit l'ampleur, et c'est à vous de chiffrer.",
                            "ar": "سندات الطلب لا تنشر مبلغًا. الكمّية المطلوبة تدلّك على الحجم، والتسعير عليك."},
+    # Une procédure sans preneur: on dit son issue, on n'invente pas
+    # d'attributaire.
+    "res_issue":          {"fr": "Issue", "ar": "المآل"},
+    # Sur un résultat, le montant est celui auquel le marché a été attribué:
+    # un prix réel, et non le plafond estimé par l'acheteur. Les deux pages
+    # partageaient le même libellé, et renommer celui de l'avis a renommé
+    # celui-ci par ricochet.
+    "res_montant":        {"fr": "Montant attribué", "ar": "المبلغ المُرسى"},
+    "res_issue_infructueux": {"fr": "Infructueux — aucune offre retenue",
+                               "ar": "بلا جدوى — لم يُقبل أيّ عرض"},
+    "res_issue_annule":   {"fr": "Annulé — consultation retirée",
+                            "ar": "مُلغاة — سُحبت الاستشارة"},
+    "res_issue_sans_suite": {"fr": "Sans suite", "ar": "بلا متابعة"},
     "detail_amount":      {"fr": "Estimation (TTC)", "ar": "التقدير (شامل الضريبة)"},
     "detail_amount_note": {"fr": "Plafond estimé par l'acheteur — le marché peut être attribué en dessous.",
                             "ar": "سقف يقدّره صاحب المشروع — قد تُرسى الصفقة بأقلّ منه."},
