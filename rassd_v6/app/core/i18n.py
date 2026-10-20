@@ -463,6 +463,58 @@ T = {
     # plafond que l'acheteur s'est fixe, et l'offre retenue peut etre tres en
     # dessous. « Montant » se lisait comme le prix du marche.
 
+    # ── Conditions de l'avis ────────────────────────────────────────────
+    # Lues dans l'avis officiel du portail (app/core/conditions.py): ce
+    # qu'une entreprise cherchait en ouvrant le dossier entier.
+    "cond_titre":        {"fr": "Conditions de l'avis", "ar": "شروط ومقتضيات الصفقة"},
+    "cond_aide":         {"fr": "Relevées dans l'avis officiel — l'essentiel, sans ouvrir le dossier.",
+                           "ar": "مستخرجة من الإعلان الرسمي — الأساسي دون فتح الملفّ كاملًا."},
+    "cond_exige":        {"fr": "À prévoir", "ar": "يجب التحضير"},
+    "cond_source":       {"fr": "En cas de doute, l'avis et le règlement de consultation font foi.",
+                           "ar": "عند الشكّ، يُعتمد الإعلان الأصلي ونظام الاستشارة."},
+
+    "cond_limite":       {"fr": "Remise des plis", "ar": "آخر أجل لإيداع الأظرفة"},
+    "cond_limite_aide":  {"fr": "Date et heure exactes: après, le pli n'est plus reçu.",
+                           "ar": "اليوم والساعة بالضبط: بعدها لا يُقبل الظرف."},
+    "cond_reserve":      {"fr": "Réservé TPE, PME, coopératives", "ar": "مخصّص للمقاولات الصغرى والمتوسطة والتعاونيات"},
+    "cond_reserve_aide": {"fr": "Seules ces entreprises peuvent soumissionner — une chance si vous en êtes.",
+                           "ar": "لا يشارك فيه إلا هذا الصنف من المقاولات — فرصة إن كنت منهم."},
+    "cond_caution":      {"fr": "Caution provisoire", "ar": "الضمانة المؤقّتة"},
+    "cond_caution_aide": {"fr": "À demander à votre banque quelques jours avant le dépôt.",
+                           "ar": "تُطلب من بنكك قبل الإيداع ببضعة أيّام."},
+    "cond_agrement":     {"fr": "Agrément exigé", "ar": "الاعتماد المطلوب"},
+    "cond_agrement_aide": {"fr": "Sans cet agrément du ministère, l'offre est écartée.",
+                           "ar": "بدون هذا الاعتماد من الوزارة يُقصى العرض."},
+    "cond_qualification": {"fr": "Qualification et classe", "ar": "التأهيل والصنف"},
+    "cond_qualification_aide": {"fr": "Le certificat de qualification doit couvrir ce secteur et cette classe.",
+                           "ar": "يجب أن تغطّي شهادة التأهيل هذا القطاع وهذا الصنف."},
+    "cond_lots":         {"fr": "Allotissement", "ar": "الحصص"},
+    "cond_lots_aide":    {"fr": "Vous pouvez répondre à un seul lot; chacun a sa propre caution.",
+                           "ar": "يمكنك المشاركة في حصّة واحدة؛ ولكلّ حصّة ضمانتها."},
+    "cond_visite":       {"fr": "Visite des lieux", "ar": "زيارة الموقع"},
+    "cond_visite_aide":  {"fr": "Notez-la: l'attestation de visite est souvent demandée dans le dossier.",
+                           "ar": "سجّلها: كثيرًا ما تُطلب شهادة الزيارة في الملفّ."},
+    "cond_reunion":      {"fr": "Réunion préparatoire", "ar": "الاجتماع التحضيري"},
+    "cond_echantillons": {"fr": "Échantillons et prospectus", "ar": "العيّنات والكتيّبات"},
+    "cond_echantillons_aide": {"fr": "À déposer à part, avant cette date et à cette adresse.",
+                           "ar": "تُودَع على حدة، قبل هذا التاريخ وفي هذا العنوان."},
+    "cond_variante":     {"fr": "Variante acceptée", "ar": "قبول البدائل"},
+    "cond_depot":        {"fr": "Dépôt des offres", "ar": "إيداع العروض"},
+    "cond_ouverture":    {"fr": "Ouverture des plis", "ar": "مكان فتح الأظرفة"},
+    "cond_plans":        {"fr": "Dossier et plans", "ar": "الملفّ والتصاميم"},
+    "cond_procedure":    {"fr": "Procédure", "ar": "نوع المسطرة"},
+    "cond_contact":      {"fr": "Contact chez l'acheteur", "ar": "جهة الاتصال لدى صاحب المشروع"},
+    "cond_contact_aide": {"fr": "Pour une question sur le dossier, avant la date limite.",
+                           "ar": "لأيّ سؤال حول الملفّ، قبل آخر أجل."},
+
+    "cond_v_oui":        {"fr": "Oui", "ar": "نعم"},
+    "cond_v_non":        {"fr": "Non", "ar": "لا"},
+    "cond_v_aucune":     {"fr": "Aucune exigée", "ar": "غير مطلوبة"},
+    "cond_v_aucun":      {"fr": "Aucun exigé", "ar": "غير مطلوب"},
+    "cond_v_electronique": {"fr": "En ligne, sur le portail des marchés publics", "ar": "إلكترونيًّا، عبر بوابة الصفقات العمومية"},
+    "cond_v_par_lot":    {"fr": "Fixée lot par lot dans l'avis d'origine", "ar": "محدّدة لكلّ حصّة في الإعلان الأصلي"},
+    "cond_v_gratuit":    {"fr": "Gratuit, téléchargeable", "ar": "مجّاني، قابل للتحميل"},
+
     # ── Comprendre un avis ──────────────────────────────────────────────
     # Un avis de marché suppose connus une dizaine de mots de metier. Celui
     # qui soumissionne pour la premiere fois perd son premier marche sur un

@@ -18,6 +18,19 @@
 .info-label { font-size:var(--f1); font-weight: 700; color: var(--amberd); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 8px; }
 /* La note sous le montant: il faut qu'elle se lise, et qu'elle ne crie pas. */
 .info-note { font-size:var(--f1); color: var(--text3); line-height: 1.5; margin-top: 6px; max-width: 34em; }
+/* ── Conditions de l'avis ────────────────────────────── */
+.cond { margin: 0 0 8px; }
+.cond-tete { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.cond-titre { font-family: var(--serif); font-weight: 700; font-size:var(--f5); color: var(--text1); }
+.cond-aide { font-size:var(--f2); color: var(--text3); }
+.cond .info-grid { margin: 0; }
+.cond .info-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.cond-valeur { font-weight: 700; font-size:var(--f4); color: var(--text1); line-height: 1.45; overflow-wrap: anywhere; }
+.cond-badge { font-size:var(--f1); font-weight: 700; letter-spacing: .03em; text-transform: none; color: var(--amberd); background: var(--ambera); border-radius: 99px; padding: 2px 8px; white-space: nowrap; }
+.cond-contact { display: flex; flex-direction: column; gap: 4px; font-size:var(--f3); }
+.cond-contact a { color: var(--navy); font-weight: 600; text-decoration: none; overflow-wrap: anywhere; }
+.cond-contact a:hover, .cond-contact a:focus-visible { text-decoration: underline; }
+.cond-source { font-size:var(--f1); color: var(--text3); margin-top: 10px; }
 /* ── Comprendre cet avis ─────────────────────────────── */
 .lire { border: 1px solid var(--line); border-radius: var(--r3); background: var(--surface); margin-top: 28px; overflow: hidden; }
 .lire-tete { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 18px 24px; border-bottom: 1px solid var(--line); }
@@ -141,6 +154,46 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
           <div class="info-value">{{ (t.views or 0) }}</div>
         </div>
       </div>
+
+      {# Les conditions que l'avis officiel publie: caution, agrément, visite,
+         lieu des plis… Ce qu'une entreprise cherchait en ouvrant le dossier
+         entier. Rien ne s'affiche pour un bon de commande ou une source
+         privée, dont la description n'a pas ces champs. #}
+      {% set cases = cartes_conditions(t.description) %}
+      {% if cases %}
+      {% set mots = ('oui', 'non', 'aucune', 'aucun', 'electronique', 'gratuit', 'par_lot') %}
+      <section class="cond" aria-labelledby="cond-titre">
+        <div class="cond-tete">
+          <h2 class="cond-titre" id="cond-titre">{{ tr('cond_titre') }}</h2>
+          <span class="cond-aide">{{ tr('cond_aide') }}</span>
+        </div>
+        <div class="info-grid">
+          {% for cle, valeur, aide, exige in cases %}
+          <div class="info-cell cond-cell{% if exige %} exige{% endif %}">
+            <div class="info-label">
+              <span>{{ tr(cle) }}</span>
+              {% if exige %}<span class="cond-badge">{{ tr('cond_exige') }}</span>{% endif %}
+            </div>
+            {% if cle == 'cond_contact' %}
+              {% set c = contact_avis(valeur) %}
+              <div class="cond-contact">
+                {% if c.nom %}<span class="cond-valeur" dir="auto">{{ c.nom }}</span>{% endif %}
+                {% if c.email %}<a dir="ltr" href="mailto:{{ c.email }}">{{ c.email }}</a>{% endif %}
+                {% if c.tel %}<a href="tel:{{ c.tel }}" dir="ltr">{{ tel(c.tel) }}</a>{% endif %}
+              </div>
+            {% else %}
+              {# Les valeurs viennent de l'avis, en français: sur la page arabe, chacune
+                 prend son propre sens d'écriture, sinon « Bureau d'Ordre » s'y lit à l'envers. #}
+              <div class="cond-valeur" dir="{{ 'auto' if valeur not in mots else 'rtl' if lang == 'ar' else 'ltr' }}">{{ tr('cond_v_' ~ valeur) if valeur in mots else valeur }}</div>
+            {% endif %}
+            {% if aide %}<div class="info-note">{{ tr(aide) }}</div>{% endif %}
+          </div>
+          {% endfor %}
+          {% if cases|length is odd %}<div class="info-cell" aria-hidden="true"></div>{% endif %}
+        </div>
+        <div class="cond-source">{{ tr('cond_source') }}</div>
+      </section>
+      {% endif %}
 
       {# Un avis suppose connus une dizaine de mots de métier. Celui qui
          soumissionne pour la première fois perd son premier marché sur un

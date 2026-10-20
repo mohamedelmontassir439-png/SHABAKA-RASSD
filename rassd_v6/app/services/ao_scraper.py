@@ -148,9 +148,15 @@ def parse_fiche(html: str) -> dict:
     # La fiche commence par les menus du portail. Les garder polluerait la
     # description et, surtout, la classification sectorielle: « Aller au menu »
     # suffisait à faire passer un marché d'assainissement pour de la menuiserie.
+    # L'heure limite précède « Référence »: on la reprend avant de couper,
+    # sinon la fiche ne connaît que le jour — et un pli se refuse à la minute.
+    limite = re.search(r"Date et heure limite de remise des plis\s*:\s*"
+                       r"(\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2})", txt)
     depart = txt.find("Référence")
     if depart > 0:
         txt = txt[depart:]
+    if limite and "Date et heure limite" not in txt:
+        txt = f"Date et heure limite de remise des plis : {limite.group(1)} {txt}"
 
     montant = ""
     m = re.search(r"Estimation\s*\(en Dhs[^)]*\)\s*\*?\s*:\s*([\d\s.,]+)", txt)
@@ -160,7 +166,8 @@ def parse_fiche(html: str) -> dict:
         # qu'un budget nul qui ferait renoncer une entreprise.
         if re.search(r"[1-9]", chiffre):
             montant = f"{chiffre} MAD"
-    reserve = bool(re.search(r"Réservé à la TPE et PME", txt, re.I))
+    # L'étiquette figure sur toutes les fiches: c'est sa valeur qui compte.
+    reserve = bool(re.search(r"Réservé à la TPE et PME[^:]{0,140}:\s*\*?\s*Oui", txt, re.I))
     return {"montant": montant[:80], "reserve_pme": reserve,
             "description": txt[:3000]}
 

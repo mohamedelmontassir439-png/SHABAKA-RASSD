@@ -23,6 +23,7 @@ from app.core.sectors import get_label, classify
 from app.core.objets import sans_repetition
 from app.core.attribution import (NON_COMPANY_ADJUDICATAIRE, est_attribue,
                                   issue as issue_procedure)
+from app.core.conditions import cartes, conditions_avis, contact_detaille
 from app.core.profil import (nom_valide, societe_valide, telephone_marocain,
                              telephone_normalise, profil_incomplet)
 from app.core import marque
@@ -908,6 +909,8 @@ templates.env.globals["fond_rosace"] = marque.fond_rosace
 templates.env.globals["ico"] = marque.icone
 templates.env.globals["profil_manque"] = profil_incomplet
 templates.env.globals["issue_procedure"] = issue_procedure
+templates.env.globals["cartes_conditions"] = lambda texte: cartes(conditions_avis(texte))
+templates.env.globals["contact_avis"] = contact_detaille
 templates.env.globals["fond_frise"] = marque.fond_frise
 
 

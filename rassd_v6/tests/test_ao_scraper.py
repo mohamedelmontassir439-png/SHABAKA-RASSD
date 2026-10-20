@@ -25,13 +25,15 @@ LIGNE = """<table><tr class="on">
 FICHE = """<html><body>
 <div>Marchés publics électroniques Aller au menu Aller au contenu Mon panier
      Consultations Toutes les consultations Recherche avancée</div>
+<div>Date et heure limite de remise des plis : 11/11/2026 10:00</div>
 <div>Référence 11/2026/DRANEFFM Objet : Acquisition d’un véhicule vivier
      Acheteur public : ANEF / DRANEFFM
      Procédure : Appel d'offres ouvert | Sur offre de prix
      Catégorie principale : Fournitures Allotissement : -
      Lieu d'exécution : IFRANE IFRANE
      Estimation (en Dhs TTC) * : 470 400,00
-     Réservé à la TPE et PME installées au Maroc</div>
+     Réservé à la TPE et PME installées au Maroc, jeunes entreprises innovantes,
+     Coopératives et auto-entrepreneurs * : Oui</div>
 </body></html>"""
 
 
@@ -80,12 +82,20 @@ class TestFicheDetaillee:
 
     def test_reservation_pme_detectee(self):
         assert ao.parse_fiche(FICHE)["reserve_pme"] is True
-        assert ao.parse_fiche(FICHE.replace("Réservé à la TPE et PME", ""))["reserve_pme"] is False
+        # L'étiquette est sur toutes les fiches: seule sa valeur compte.
+        assert ao.parse_fiche(FICHE.replace("* : Oui", "* : Non"))["reserve_pme"] is False
 
     def test_description_sans_les_menus(self):
         desc = ao.parse_fiche(FICHE)["description"]
         assert "Aller au menu" not in desc and "Mon panier" not in desc
-        assert desc.startswith("Référence")
+        assert "Référence 11/2026/DRANEFFM" in desc
+
+    def test_heure_limite_gardee(self):
+        """Elle précède « Référence » sur la page: la coupe la perdait."""
+        from app.core.conditions import conditions_avis
+        desc = ao.parse_fiche(FICHE)["description"]
+        assert desc.startswith("Date et heure limite de remise des plis : 11/11/2026 10:00")
+        assert conditions_avis(desc)["limite"] == "11/11/2026 10:00"
 
 
 class TestCollecte:
