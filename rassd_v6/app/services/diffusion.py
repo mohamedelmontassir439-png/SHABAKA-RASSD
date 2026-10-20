@@ -99,6 +99,9 @@ def matiere(aujourdhui: date = None) -> dict:
                      for m in actifs if m.get("acheteur")})
     return {"actifs": len(actifs), "secteurs": secteurs,
             "vitrine": vitrine, "acheteurs": acheteurs,
+            # Le même acheteur s'écrit parfois de deux façons (≈ 5 % mesuré le
+            # 20/10/2026): un chiffre publié s'arrondit donc vers le bas.
+            "acheteurs_publies": ((acheteurs - 1) // 100) * 100 if acheteurs > 100 else acheteurs,
             "semaine": f"s{aujourdhui.isocalendar()[1]:02d}-{aujourdhui.year}"}
 
 
@@ -149,7 +152,7 @@ def publications(aujourdhui: date = None) -> list:
 
     # ── Facebook: le public large des patrons de TPE, en arabe d'abord ──
     ajoute("facebook", "ar", "Facebook — العربية", "\n".join([
-        f"📢 {m['actifs']} صفقة عمومية مفتوحة الآن في المغرب، أطلقها {m['acheteurs']} صاحب مشروع.",
+        f"📢 {m['actifs']} صفقة عمومية مفتوحة الآن في المغرب، أطلقها أكثر من {m['acheteurs_publies']} صاحب مشروع.",
         "",
         "من بينها:",
         *_lignes_marches(m["vitrine"], "ar"),
@@ -160,7 +163,7 @@ def publications(aujourdhui: date = None) -> list:
         "👉 {LIEN}",
     ]))
     ajoute("facebook", "fr", "Facebook — Français", "\n".join([
-        f"📢 {_n(m['actifs'])} marchés publics ouverts au Maroc, lancés par {_n(m['acheteurs'])} acheteurs publics.",
+        f"📢 {_n(m['actifs'])} marchés publics ouverts au Maroc, lancés par plus de {_n(m['acheteurs_publies'])} acheteurs publics.",
         "",
         "Parmi eux :",
         *_lignes_marches(m["vitrine"], "fr"),
@@ -174,7 +177,7 @@ def publications(aujourdhui: date = None) -> list:
     # ── LinkedIn: dirigeants et responsables commerciaux, ton factuel ──
     ajoute("linkedin", "fr", "LinkedIn — Français", "\n".join([
         f"Cette semaine, {_n(m['actifs'])} marchés publics sont ouverts au Maroc, "
-        f"lancés par {_n(m['acheteurs'])} acheteurs publics.",
+        f"lancés par plus de {_n(m['acheteurs_publies'])} acheteurs publics.",
         "",
         f"Les secteurs les plus demandés : {secteurs_fr}.",
         "",
