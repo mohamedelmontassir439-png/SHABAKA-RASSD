@@ -1461,9 +1461,31 @@ async def admin_campagne(req: Request):
     m = matiere()
     liens = [{"cle": c, "label": l, "lien": canaux.lien(cfg.SITE_URL, c, "/", m["semaine"])}
              for c, l in canaux.CANAUX.items()]
+    from app.services.envoi_lot import PLAFOND_JOUR, EnvoiState, candidats
     return render(req, "admin_campagne.html", {
         "matiere": m, "pubs": publications(), "liens": liens,
-        "bilan": bilan_canaux(), "invitations": bilan_invitations()})
+        "bilan": bilan_canaux(), "invitations": bilan_invitations(),
+        "a_inviter": len(candidats()), "plafond": PLAFOND_JOUR,
+        "envoi": EnvoiState.etat(),
+        "csrf_token": get_csrf_token(req) or secrets.token_urlsafe(24)})
+
+
+@app.post("/admin/campagne/emails/lancer")
+async def admin_campagne_emails(req: Request, csrf_token: str = Form("")):
+    """Lance l'envoi des invitations par email à toutes les adresses retenues."""
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    csrf_guard(req, csrf_token)
+    from app.services.envoi_lot import EnvoiState, envoyer
+    if not EnvoiState.running:
+        asyncio.create_task(envoyer())
+    return RedirectResponse("/admin/campagne#envoi", 302)
+
+
+@app.get("/admin/campagne/emails/etat")
+async def admin_campagne_emails_etat(req: Request):
+    if not _is_admin(req): return JSONResponse({"ok": False}, 401)
+    from app.services.envoi_lot import EnvoiState
+    return JSONResponse(EnvoiState.etat())
 
 
 @app.get("/admin/recap", response_class=HTMLResponse)

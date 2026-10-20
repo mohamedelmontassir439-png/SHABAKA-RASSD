@@ -48,6 +48,37 @@
   </div>
 </div>
 
+<div class="carte" id="envoi">
+  <div class="carte-h"><span class="carte-t">Invitations par email</span>
+    <span class="meta">Un message par entreprise, avec ses marchés et son lien personnel.</span></div>
+  <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px">
+    <div class="meta" style="line-height:1.7;max-width:760px">
+      <b style="color:var(--t1)">{{ a_inviter }}</b> adresse(s) à inviter. Sont écartés : « Pas intéressé »,
+      « Ne plus contacter », abonnés et essais en cours, entreprises déjà écrites par email,
+      adresses déjà membres. Sans marché ouvert dans son secteur, une entreprise ne reçoit rien.
+      Au plus {{ plafond }} envois par lot, pour laisser au quota Brevo (295 par jour) la place
+      des emails d'inscription.
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <form method="post" action="/admin/campagne/emails/lancer">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit" class="btn btn-p" {% if envoi.running or not a_inviter %}disabled{% endif %}
+          onclick="return confirm('Envoyer une invitation à {{ [a_inviter, plafond]|min }} entreprise(s) ?')">
+          {% if envoi.running %}Envoi en cours…{% else %}Envoyer les invitations{% endif %}</button>
+      </form>
+      <span class="meta" id="envoi-etat">
+        {% if envoi.started %}{{ envoi.envoyes }} envoyés · {{ envoi.echecs }} échecs · {{ envoi.ignores }} sans marché
+        {% if envoi.arret %} · {{ envoi.arret }}{% endif %}{% endif %}</span>
+    </div>
+    {% if envoi.logs %}<pre class="cp-texte" id="envoi-journal" style="max-height:220px;background:var(--fond);border-radius:var(--r2)">{{ envoi.logs|join('\n') }}</pre>{% endif %}
+  </div>
+</div>
+{% if envoi.running %}
+<script>
+setTimeout(function () { location.reload(); }, 8000);
+</script>
+{% endif %}
+
 <div class="carte">
   <div class="carte-h"><span class="carte-t">Bilan par canal</span>
     <span class="meta">Trié par abonnés payants, puis par inscrits.</span></div>
