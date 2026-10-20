@@ -43,6 +43,12 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
 .lire-item-t { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size:var(--f3); color: var(--text1); margin-bottom: 7px; }
 .lire-item-t svg { color: var(--ink); }
 .lire-item-d { font-size:var(--f2); color: var(--text3); line-height: 1.65; }
+/* La valeur de ce marché-ci, au-dessus de l'explication générale. */
+.lire-item-v { font-weight: 700; font-size:var(--f4); color: var(--text1); line-height: 1.45; margin: 0 0 8px; overflow-wrap: anywhere; }
+.lire-item-v.manque { font-weight: 600; font-size:var(--f2); color: var(--amberd); }
+.lire-item-v small { font-weight: 600; font-size:var(--f2); color: var(--text3); }
+.lire-item-v ul { margin: 4px 0 0; padding-inline-start: 18px; font-size:var(--f3); font-weight: 600; }
+.lire-item-v li { margin: 2px 0; }
 @media(max-width: 760px) { .lire-liste { grid-template-columns: 1fr; } .lire-item:nth-child(odd) { border-right: none; } }
 .info-value { font-weight: 700; font-size:var(--f6); color: var(--text1); letter-spacing: -.005em; line-height: 1.25; }
 .info-value em { font-style: normal; color: var(--navy); }
@@ -199,41 +205,73 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
          soumissionne pour la première fois perd son premier marché sur un
          détail de procédure, pas sur son prix. #}
       {% set bdc = t.type_procedure == 'bon_commande' %}
+      {% set c = chiffres_avis(t) %}
+      {% macro manque(cle='lire_v_non_publie') %}<div class="lire-item-v manque">{{ tr(cle) }}</div>{% endmacro %}
+      {% macro echeance(l) %}
+        {% if l %}<div class="lire-item-v" dir="auto">{{ l.jour }}{% if l.heure %} {{ tr('lire_v_a') }} {{ l.heure }}{% endif %}
+          <small>· {% if l.restants is none %}{% elif l.restants < 0 %}{{ tr('lire_v_clos') }}{% elif l.restants == 0 %}{{ tr('lire_v_aujourdhui') }}{% elif l.restants == 1 %}{{ tr('lire_v_demain') }}{% else %}{{ tr('lire_v_jours', n=l.restants) }}{% endif %}{% if not l.heure %} · {{ tr('lire_v_sans_heure') }}{% endif %}</small></div>
+        {% else %}{{ manque() }}{% endif %}
+      {% endmacro %}
       <div class="lire">
         <div class="lire-tete">
           <span class="lire-titre">{{ tr('lire_titre') }}</span>
           <span class="lire-aide">{{ tr('lire_aide') }}</span>
         </div>
         <div class="lire-liste">
-          {% if bdc %}
+          {% if bdc %}{# branche:bdc #}
           <div class="lire-item">
             <div class="lire-item-t">{{ ico('eclair', 17)|safe }} {{ tr('lire_bdc_t') }}</div>
+            {% if c.nature %}<div class="lire-item-v" dir="auto">{{ c.nature }}</div>{% endif %}
             <div class="lire-item-d">{{ tr('lire_bdc_d') }}</div>
           </div>
           <div class="lire-item">
             <div class="lire-item-t">{{ ico('graphique', 17)|safe }} {{ tr('lire_quantite_t') }}</div>
+            {% if c.articles %}
+            <div class="lire-item-v"><small>{{ tr('lire_v_articles', n=c.articles|length) }}</small>
+              <ul dir="auto">{% for a in c.articles[:5] %}<li>{{ a.designation }}{% if a.specification %} ({{ a.specification[:60] }}){% endif %} — {{ a.quantite }} {{ a.unite }}</li>{% endfor %}</ul>
+              {% if c.articles|length > 5 %}<small>{{ tr('lire_v_et_autres', n=c.articles|length - 5) }}</small>{% endif %}</div>
+            {% else %}{{ manque() }}{% endif %}
             <div class="lire-item-d">{{ tr('lire_quantite_d') }}</div>
           </div>
-          {% else %}
+          {% else %}{# branche:ao #}
           <div class="lire-item">
             <div class="lire-item-t">{{ ico('argent', 17)|safe }} {{ tr('lire_estim_t') }}</div>
+            {% if c.estimation %}<div class="lire-item-v" dir="ltr">{{ c.estimation }}</div>{% else %}{{ manque('lire_v_estim_absente') }}{% endif %}
             <div class="lire-item-d">{{ tr('lire_estim_d') }}</div>
           </div>
           <div class="lire-item">
             <div class="lire-item-t">{{ ico('verrou', 17)|safe }} {{ tr('lire_caution_t') }}</div>
+            {% if not c.caution %}{{ manque() }}
+            {% elif c.caution.valeur %}<div class="lire-item-v" dir="ltr">{{ c.caution.valeur }}</div>
+            {% elif c.caution.par_lot %}<div class="lire-item-v">{{ tr('lire_v_par_lot') }}</div>
+            {% else %}<div class="lire-item-v">{{ tr('lire_v_caution_aucune') }}</div>{% endif %}
             <div class="lire-item-d">{{ tr('lire_caution_d') }}</div>
           </div>
-          {% endif %}
+          {% endif %}{# branche:commun #}
           <div class="lire-item">
             <div class="lire-item-t">{{ ico('cloche', 17)|safe }} {{ tr('lire_date_t') }}</div>
+            {{ echeance(c.limite) }}
             <div class="lire-item-d">{{ tr('lire_date_d') }}</div>
           </div>
           <div class="lire-item">
-            <div class="lire-item-t">{{ ico('favori', 17)|safe }} {{ tr('lire_qualif_t') }}</div>
-            <div class="lire-item-d">{{ tr('lire_qualif_d') }}</div>
+            <div class="lire-item-t">{{ ico('favori', 17)|safe }} {{ tr('lire_bdc_garanties_t') if bdc else tr('lire_qualif_t') }}</div>
+            {% if bdc %}
+              {% if c.garanties %}<div class="lire-item-v"><small>{{ tr('lire_v_garanties') }}</small><ul dir="auto">{% for g in c.garanties %}<li>{{ g }}</li>{% endfor %}</ul></div>
+              {% else %}<div class="lire-item-v">{{ tr('lire_v_garanties_aucune') }}</div>{% endif %}
+            {% elif not c.qualification %}{{ manque() }}
+            {% elif c.qualification.valeurs %}<div class="lire-item-v"><ul dir="auto">{% for q in c.qualification.valeurs[:4] %}<li>{{ q }}</li>{% endfor %}</ul></div>
+            {% elif c.qualification.par_lot %}<div class="lire-item-v">{{ tr('lire_v_par_lot') }}</div>
+            {% else %}<div class="lire-item-v">{{ tr('lire_v_qualif_aucune') }}</div>{% endif %}
+            <div class="lire-item-d">{{ tr('lire_bdc_garanties_d') if bdc else tr('lire_qualif_d') }}</div>
           </div>
           <div class="lire-item">
             <div class="lire-item-t">{{ ico('dossiers', 17)|safe }} {{ tr('lire_dossier_t') }}</div>
+            {% if bdc %}
+              {% if c.pieces %}<div class="lire-item-v"><small>{{ tr('lire_v_pieces') }}</small><ul dir="ltr">{% for p in c.pieces %}<li>{{ p }}</li>{% endfor %}</ul></div>
+              {% else %}<div class="lire-item-v manque">{{ tr('lire_v_pieces_aucune') }}</div>{% endif %}
+            {% elif not c.dossier %}{{ manque() }}
+            {% else %}<div class="lire-item-v">{% if c.dossier.electronique %}{{ tr('lire_v_dossier_portail') }}{% else %}<span dir="auto">{{ c.dossier.adresse }}</span>{% endif %}
+              <small>· {% if c.dossier.gratuit %}{{ tr('lire_v_gratuit') }}{% else %}{{ tr('lire_v_plans') }} {{ c.dossier.prix }}{% endif %}</small></div>{% endif %}
             <div class="lire-item-d">{{ tr('lire_dossier_d') }}</div>
           </div>
         </div>

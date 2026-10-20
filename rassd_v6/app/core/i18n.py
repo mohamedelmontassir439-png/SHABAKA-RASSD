@@ -535,6 +535,32 @@ T = {
     "cond_v_par_lot":    {"fr": "Fixée lot par lot dans l'avis d'origine", "ar": "محدّدة لكلّ حصّة في الإعلان الأصلي"},
     "cond_v_gratuit":    {"fr": "Gratuit, téléchargeable", "ar": "مجّاني، قابل للتحميل"},
 
+    # ── Les valeurs réelles de l'encadré (app/core/lecture.py) ──────────
+    "lire_v_non_publie": {"fr": "Non publié par cette source — à vérifier dans l'avis de l'acheteur.",
+                           "ar": "غير منشور في هذا المصدر — تحقّق منه في إعلان صاحب المشروع."},
+    "lire_v_estim_absente": {"fr": "Non communiquée par l'acheteur.", "ar": "لم يُعلنها صاحب المشروع."},
+    "lire_v_caution_aucune": {"fr": "Aucune caution exigée.", "ar": "لا ضمانة مطلوبة."},
+    "lire_v_par_lot":    {"fr": "Fixée lot par lot dans l'avis d'origine.", "ar": "محدّدة لكلّ حصّة في الإعلان الأصلي."},
+    "lire_v_qualif_aucune": {"fr": "Aucune qualification ni agrément exigé.", "ar": "لا تأهيل ولا اعتماد مطلوب."},
+    "lire_v_a":          {"fr": "à", "ar": "على الساعة"},
+    "lire_v_sans_heure": {"fr": "heure non disponible : visez la veille", "ar": "الساعة غير متوفّرة: أودِع في اليوم السابق"},
+    "lire_bdc_garanties_t": {"fr": "Les garanties demandées", "ar": "الضمانات المطلوبة"},
+    "lire_bdc_garanties_d": {"fr": "Un bon de commande n'exige pas de qualification, mais l'acheteur peut demander des attestations ou garanties : joignez-les au devis.",
+                           "ar": "سند الطلب لا يشترط التأهيل، لكن قد يطلب صاحب المشروع شهادات أو ضمانات: أرفقها بعرض الأثمان."},
+    "lire_v_jours":      {"fr": "dans {n} jours", "ar": "بعد {n} أيّام"},
+    "lire_v_demain":     {"fr": "demain", "ar": "غدًا"},
+    "lire_v_aujourdhui": {"fr": "aujourd'hui", "ar": "اليوم"},
+    "lire_v_clos":       {"fr": "délai dépassé", "ar": "انتهى الأجل"},
+    "lire_v_dossier_portail": {"fr": "À télécharger sur marchespublics.gov.ma", "ar": "يُحمَّل من بوابة marchespublics.gov.ma"},
+    "lire_v_gratuit":    {"fr": "gratuit", "ar": "مجّانًا"},
+    "lire_v_plans":      {"fr": "Prix des plans :", "ar": "ثمن التصاميم:"},
+    "lire_v_articles":   {"fr": "{n} article(s) à chiffrer :", "ar": "{n} بند للتسعير:"},
+    "lire_v_et_autres":  {"fr": "et {n} autre(s) dans l'avis", "ar": "و{n} أخرى في الإعلان"},
+    "lire_v_garanties":  {"fr": "Garanties exigées :", "ar": "الضمانات المطلوبة:"},
+    "lire_v_garanties_aucune": {"fr": "Aucune garantie exigée.", "ar": "لا ضمانة مطلوبة."},
+    "lire_v_pieces":     {"fr": "Pièces jointes :", "ar": "المرفقات:"},
+    "lire_v_pieces_aucune": {"fr": "Aucune pièce jointe publiée.", "ar": "لا مرفقات منشورة."},
+
     # ── Comprendre un avis ──────────────────────────────────────────────
     # Un avis de marché suppose connus une dizaine de mots de metier. Celui
     # qui soumissionne pour la premiere fois perd son premier marche sur un
@@ -566,8 +592,8 @@ T = {
 
     "lire_caution_t":    {"fr": "Prévoyez la caution provisoire",
                            "ar": "احسب الضمانة المؤقّتة"},
-    "lire_caution_d":    {"fr": "Elle est exigée à l'ouverture des plis et se demande à votre banque — comptez quelques jours. Son montant figure dans l'avis d'origine.",
-                           "ar": "تُطلب عند فتح الأظرفة وتُستخرج من بنكك — احسب لها بضعة أيّام. ومبلغها في الإعلان الأصلي."},
+    "lire_caution_d":    {"fr": "Exigée à l'ouverture des plis, elle se demande à votre banque : comptez quelques jours.",
+                           "ar": "تُطلب عند فتح الأظرفة وتُستخرج من بنكك: احسب لها بضعة أيّام."},
 
     # Un bon de commande ne suit pas la meme procedure: ni estimation
     # publiee, ni caution, ni plis a l'heure dite.

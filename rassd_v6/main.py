@@ -25,6 +25,7 @@ from app.core.attribution import (NON_COMPANY_ADJUDICATAIRE, est_attribue,
                                   issue as issue_procedure)
 from app.core import canaux
 from app.core.conditions import cartes, conditions_avis, contact_detaille
+from app.core.lecture import chiffres as chiffres_lecture
 from app.core.profil import (nom_valide, societe_valide, telephone_marocain,
                              telephone_normalise, profil_incomplet)
 from app.core import marque
@@ -956,6 +957,7 @@ templates.env.globals["profil_manque"] = profil_incomplet
 templates.env.globals["issue_procedure"] = issue_procedure
 templates.env.globals["cartes_conditions"] = lambda texte: cartes(conditions_avis(texte))
 templates.env.globals["contact_avis"] = contact_detaille
+templates.env.globals["chiffres_avis"] = chiffres_lecture
 templates.env.globals["fond_frise"] = marque.fond_frise
 
 

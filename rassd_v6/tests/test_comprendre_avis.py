@@ -35,12 +35,14 @@ class TestLEncadre:
         compter ceux de chaque branche.
         """
         g = _gabarit()
-        debut = g.index("{% set bdc =")
-        si = g.index("{% if bdc %}", debut)
-        sinon = g.index("{% else %}", si)
-        fin = g.index("{% endif %}", sinon)
-        commun = g[fin:g.index('class="desc-section"', fin)]
-        return (g[si:sinon] + commun, g[sinon:fin] + commun)
+        # Chaque point porte désormais ses propres conditions (valeur
+        # publiée ou non): les branches sont repérées par leurs marques,
+        # pas par le premier « else » venu.
+        bdc = g.index("{# branche:bdc #}")
+        ao = g.index("{# branche:ao #}", bdc)
+        commun = g.index("{# branche:commun #}", ao)
+        fin = g.index('class="desc-section"', commun)
+        return (g[bdc:ao] + g[commun:fin], g[ao:commun] + g[commun:fin])
 
     def test_chaque_branche_tient_en_cinq_points(self):
         """Au-delà, il devient un mode d'emploi que personne n'ouvre."""
