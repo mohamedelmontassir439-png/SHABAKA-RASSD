@@ -1,0 +1,139 @@
+{% extends "admin_base.html" %}
+{% block titre %}Campagne{% endblock %}
+{% block soustitre %}<div class="entete-sur">Prospection</div>{% endblock %}
+{% block style %}
+.cp-tete{font-size:var(--f3);color:var(--t3);line-height:1.7;max-width:760px;margin-bottom:20px}
+.cp-pubs{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px}
+.cp-pub{background:var(--surface);border:1px solid var(--trait);border-radius:var(--r3);
+  display:flex;flex-direction:column;overflow:hidden}
+.cp-pub-h{display:flex;justify-content:space-between;align-items:center;gap:8px;
+  padding:12px 16px;border-bottom:1px solid var(--trait)}
+.cp-pub-t{font-weight:700;color:var(--t1);font-size:var(--f3)}
+.cp-texte{flex:1;margin:0;padding:14px 16px;white-space:pre-wrap;font-family:inherit;
+  font-size:var(--f2);color:var(--t2);line-height:1.6;max-height:340px;overflow:auto;
+  unicode-bidi:plaintext}
+.cp-pub-b{display:flex;gap:8px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--trait);
+  background:var(--fond)}
+.cp-lien{font-family:var(--mono);font-size:var(--f1);color:var(--t2);overflow-wrap:anywhere}
+.cp-zero{color:var(--t3)}
+.cp-cmp{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+@media(max-width:520px){.cp-pubs{grid-template-columns:minmax(0,1fr)}}
+{% endblock %}
+{% block contenu %}
+
+<p class="cp-tete">
+  La campagne publique, en trois temps. <b>Publier</b> : les textes ci-dessous
+  sont refaits à chaque ouverture avec les marchés du jour — chiffres réels,
+  trois marchés encore préparables, lien suivi. <b>Suivre</b> : chaque lien
+  porte son canal, gardé jusqu'à l'inscription. <b>Juger</b> : le bilan dit
+  quel canal amène des abonnés payants, pas seulement des essais.
+</p>
+
+<div class="chiffres">
+  <div class="chiffre">
+    <div class="chiffre-n">{{ '{:,}'.format(matiere.actifs).replace(',', ' ') }}</div>
+    <div class="chiffre-l">marchés ouverts à citer</div>
+  </div>
+  <div class="chiffre">
+    <div class="chiffre-n">{{ matiere.vitrine|length }}</div>
+    <div class="chiffre-l">marchés cités (un par secteur)</div>
+  </div>
+  <div class="chiffre">
+    <div class="chiffre-n">{{ matiere.acheteurs }}</div>
+    <div class="chiffre-l">acheteurs publics</div>
+  </div>
+  <div class="chiffre">
+    <div class="chiffre-n" style="font-size:var(--f4);font-family:var(--mono);font-weight:600">{{ matiere.semaine }}</div>
+    <div class="chiffre-l">nom de campagne des liens</div>
+  </div>
+</div>
+
+<div class="carte">
+  <div class="carte-h"><span class="carte-t">Bilan par canal</span>
+    <span class="meta">Trié par abonnés payants, puis par inscrits.</span></div>
+  <div class="tableau-cadre">
+    <table>
+      <thead>
+        <tr><th>Canal</th><th class="num">Inscrits</th><th class="num">Email confirmé</th>
+            <th class="num">Payants</th><th class="num">30 derniers jours</th></tr>
+      </thead>
+      <tbody>
+        {% for b in bilan %}
+        <tr>
+          <td>
+            <div style="font-weight:600;color:var(--t1)">{{ b.label }}</div>
+            {% if b.campagnes %}<div class="cp-cmp">
+              {% for nom, n in b.campagnes %}<span class="badge b-gray">{{ nom }} · {{ n }}</span>{% endfor %}
+            </div>{% endif %}
+            {% if b.cle == 'invitation' %}<div class="meta" style="margin-top:3px">
+              {{ invitations.envoyees }} envoyées · {{ invitations.ouvertes }} ouvertes</div>{% endif %}
+          </td>
+          <td class="num">{{ b.inscrits }}</td>
+          <td class="num">{{ b.confirmes }}</td>
+          <td class="num">{% if b.payants %}<b style="color:var(--vert)">{{ b.payants }}</b>{% else %}<span class="cp-zero">0</span>{% endif %}</td>
+          <td class="num">{{ b.recents }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="vide">Aucun inscrit pour l'instant.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="carte">
+  <div class="carte-h"><span class="carte-t">Publications de la semaine</span>
+    <span class="meta">À relire avant de publier. Le lien de chaque texte est déjà suivi.</span></div>
+  {% if pubs %}
+  <div class="cp-pubs" style="padding:16px">
+    {% for p in pubs %}
+    <article class="cp-pub">
+      <div class="cp-pub-h">
+        <span class="cp-pub-t">{{ p.titre }}</span>
+        <span class="badge b-g">{{ p.canal_label.split(' ')[0] }}</span>
+      </div>
+      <pre class="cp-texte" id="pub{{ loop.index }}" {% if p.langue == 'ar' %}dir="rtl" lang="ar"{% endif %}>{{ p.texte }}</pre>
+      <div class="cp-pub-b">
+        <button type="button" class="btn btn-p" data-copie="pub{{ loop.index }}">Copier le texte</button>
+        {% if p.partage %}<a class="btn" href="{{ p.partage }}" target="_blank" rel="noopener">Ouvrir {{ p.canal_label.split(' ')[0] }}</a>{% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="vide" style="padding:20px">Aucun marché ouvert en base : rien de vérifiable à publier aujourd'hui.</div>
+  {% endif %}
+</div>
+
+<div class="carte">
+  <div class="carte-h"><span class="carte-t">Liens suivis</span>
+    <span class="meta">Pour une affiche, une bio, une annonce payante : un lien par canal.</span></div>
+  <div class="tableau-cadre">
+    <table>
+      <thead><tr><th>Canal</th><th>Lien</th><th style="text-align:end">Copier</th></tr></thead>
+      <tbody>
+        {% for l in liens %}
+        <tr>
+          <td style="font-weight:600;color:var(--t1)">{{ l.label }}</td>
+          <td><span class="cp-lien" id="lien{{ loop.index }}">{{ l.lien }}</span></td>
+          <td style="text-align:end"><button type="button" class="btn" data-copie="lien{{ loop.index }}">Copier</button></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+document.querySelectorAll('[data-copie]').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var texte = document.getElementById(b.dataset.copie).textContent;
+    var avant = b.textContent;
+    (navigator.clipboard ? navigator.clipboard.writeText(texte) : Promise.reject())
+      .then(function () { b.textContent = 'Copié ✓'; })
+      .catch(function () { b.textContent = 'Sélectionnez et copiez'; })
+      .finally(function () { setTimeout(function () { b.textContent = avant; }, 1800); });
+  });
+});
+</script>
+{% endblock %}

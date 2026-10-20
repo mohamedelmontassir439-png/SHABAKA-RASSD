@@ -23,6 +23,7 @@ from app.core.sectors import get_label, classify
 from app.core.objets import sans_repetition
 from app.core.attribution import (NON_COMPANY_ADJUDICATAIRE, est_attribue,
                                   issue as issue_procedure)
+from app.core import canaux
 from app.core.conditions import cartes, conditions_avis, contact_detaille
 from app.core.profil import (nom_valide, societe_valide, telephone_marocain,
                              telephone_normalise, profil_incomplet)
@@ -763,6 +764,26 @@ class VerificationEmailMiddleware(BaseHTTPMiddleware):
         return await call_next(req)
 
 
+class SourceMiddleware(BaseHTTPMiddleware):
+    """Garde le canal d'un lien de campagne (« ?src=facebook ») jusqu'à l'inscription.
+
+    Premier contact seulement: un cookie déjà posé n'est pas remplacé. La
+    publication qui a fait connaître la plateforme garde le crédit, même si
+    l'on revient s'inscrire par un favori.
+    """
+    async def dispatch(self, req, call_next):
+        resp = await call_next(req)
+        q = req.query_params
+        brut = q.get("src") or q.get("utm_source") or ""
+        if brut and req.method == "GET" and not req.cookies.get(canaux.COOKIE):
+            cle = canaux.canal(brut)
+            if cle:
+                nom = canaux.campagne(q.get("cmp") or q.get("utm_campaign") or "")
+                resp.set_cookie(canaux.COOKIE, f"{cle}|{nom}", max_age=canaux.DUREE_COOKIE,
+                                httponly=True, samesite="lax", secure=COOKIE_SECURE)
+        return resp
+
+
 def csrf_guard(req: Request, csrf_token: str = ""):
     """Vérification CSRF appelée en première ligne de chaque route POST.
 
@@ -796,6 +817,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan, title=cfg.APP_NAME,
               version=cfg.APP_VERSION, docs_url=None, redoc_url=None)
 app.add_middleware(SecurityMiddleware)
+app.add_middleware(SourceMiddleware)
 app.add_middleware(VerificationEmailMiddleware)
 app.add_middleware(DomaineCanoniqueMiddleware)
 app.add_middleware(PorteAdminMiddleware)
@@ -1424,6 +1446,26 @@ async def resultat_doc_redirect(req: Request, rid: str, doc: str):
 # SOUS-TRAITANCE — annonces entre membres (demande / offre)
 # avec messagerie interne, réservé aux membres actifs (has_access)
 # ══════════════════════════════════════════════════════════
+@app.get("/admin/campagne", response_class=HTMLResponse)
+async def admin_campagne(req: Request):
+    """La campagne publique: publications de la semaine, liens suivis, bilan par canal.
+
+    Les publications sont régénérées à chaque ouverture à partir des marchés
+    en base — rien à rédiger, seulement à relire et publier. Le bilan dit
+    quel canal amène des abonnés payants, pas seulement des essais.
+    """
+    if not _is_admin(req):
+        return RedirectResponse("/admin/login", 302)
+    from app.services.diffusion import (bilan_canaux, bilan_invitations, matiere,
+                                        publications)
+    m = matiere()
+    liens = [{"cle": c, "label": l, "lien": canaux.lien(cfg.SITE_URL, c, "/", m["semaine"])}
+             for c, l in canaux.CANAUX.items()]
+    return render(req, "admin_campagne.html", {
+        "matiere": m, "pubs": publications(), "liens": liens,
+        "bilan": bilan_canaux(), "invitations": bilan_invitations()})
+
+
 @app.get("/admin/recap", response_class=HTMLResponse)
 async def admin_recap(req: Request, jour: str = ""):
     """Un bouton WhatsApp par membre, avec son recapitulatif du jour.
@@ -2150,20 +2192,22 @@ async def register_post(req: Request,
         if ref:
             r = db.execute("SELECT id FROM members WHERE referral_code=?", (ref.strip().upper(),)).fetchone()
             if r: referred_by = r["id"]
+        src, src_cmp = canaux.lire_cookie(req.cookies.get(canaux.COOKIE, ""))
+        source = "parrainage" if referred_by else (src or "direct")
         email_token   = secrets.token_urlsafe(32)
         token_expires = (now + timedelta(days=7)).isoformat()
         cur = db.execute(
             """INSERT INTO members(nom,email,phone,company,pw_hash,secteurs,plan,created_at,
                trial_start,trial_ends,subscription_status,session_token,referral_code,referred_by,
-               email_verified,email_token,email_token_expires)
-               VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+               email_verified,email_token,email_token_expires,source,source_campagne)
+               VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             # Le numéro est rangé sous une seule forme: « +212 6 12 34 56 78 »
             # et « 0612345678 » sont le même abonné, et deux écritures en
             # feraient deux contacts dont l'un ne serait jamais rappelé.
             (nom.strip(),email,telephone_normalise(phone),company.strip(),
              hash_pw(pw),json.dumps(sects),"free",created_at,
              trial_start,trial_ends,"TRIAL",session_tok,my_ref_code,referred_by,
-             0,email_token,token_expires))
+             0,email_token,token_expires,source,src_cmp))
         db.execute(
             """INSERT INTO subscriptions(member_id,plan_id,price,currency,status,
                trial_start,trial_end,created_at,updated_at)
@@ -3751,6 +3795,7 @@ async def invitation_post(req: Request, token: str, email: str = Form(""),
                 json.dumps([inv["city"]] if inv.get("city") else []),
                 maintenant.isoformat(), maintenant.isoformat()))
     db.execute("UPDATE invitations SET member_id=? WHERE token=?", (mid, token))
+    db.execute("UPDATE members SET source='invitation' WHERE id=?", (mid,))
     # L'entreprise invitée devient un prospect « essai ouvert » dans le suivi.
     db.execute("""INSERT INTO prospection(company_id,statut,created_at,updated_at)
                   VALUES(?,'essai',?,?)

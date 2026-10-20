@@ -204,7 +204,7 @@ tbody tr:hover td{background:var(--surface2)}
 {% set chemin = request.url.path %}
 {% set destinations = ['/admin', '/admin/sources', '/admin/backups', '/admin/members',
                        '/admin/payments', '/admin/recap', '/admin/maintenance',
-                       '/admin/prospection/plan',
+                       '/admin/prospection/plan', '/admin/campagne',
                        '/admin/prospection', '/admin/companies', '/admin/annuaires',
                        '/admin/prospects', '/admin/sous-traitance'] %}
 {#
@@ -254,6 +254,7 @@ tbody tr:hover td{background:var(--surface2)}
 
   <div class="rail-groupe">
     <div class="rail-titre">Prospection</div>
+    {{ lien('/admin/campagne', ico('drapeau', 17), 'Campagne') }}
     {{ lien('/admin/prospection/plan', ico('presse', 17), "Plan d'appel") }}
     {{ lien('/admin/prospection', ico('telephone', 17), "File d'appel") }}
     {{ lien('/admin/companies', ico('immeuble', 17), 'Entreprises') }}

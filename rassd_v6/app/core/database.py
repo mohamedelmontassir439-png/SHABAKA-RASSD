@@ -432,6 +432,9 @@ def migrate_db():
         "ALTER TABLE members ADD COLUMN last_digest_sent TEXT DEFAULT ''",
         "ALTER TABLE members ADD COLUMN referral_code TEXT DEFAULT ''",
         "ALTER TABLE members ADD COLUMN referred_by INTEGER DEFAULT 0",
+        # Le canal qui a amené l'inscrit (app/core/canaux.py)
+        "ALTER TABLE members ADD COLUMN source TEXT DEFAULT ''",
+        "ALTER TABLE members ADD COLUMN source_campagne TEXT DEFAULT ''",
         "ALTER TABLE tenders ADD COLUMN type_procedure TEXT DEFAULT 'marche'",
         "ALTER TABLE tender_results ADD COLUMN type_procedure TEXT DEFAULT 'marche'",
         # Abonnement / essai gratuit
