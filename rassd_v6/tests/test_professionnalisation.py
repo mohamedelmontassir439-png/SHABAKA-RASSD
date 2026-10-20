@@ -173,8 +173,13 @@ class TestPagesPubliques:
     def test_sitemap_liste_les_secteurs(self, client, db):
         _marche(db, "t_seo")
         xml = client.get("/sitemap.xml").text
-        assert xml.count("<loc>") > 50, "un plan de site à 4 URLs n'existe pas pour Google"
-        assert "/marches-publics/" in xml
+        # Le secteur du marché y figure. Un secteur sans marché ouvert n'y
+        # est pas: une page presque vide pèse contre le site chez Google
+        # (règle du 20/10/2026, voir test_seo.py).
+        from app.core.sectors import get_label
+        from app.services.seo import slug_secteur
+        assert f"/marches-publics/{slug_secteur(get_label('T101'))}<" in xml
+        assert "/marches-publics<" in xml
         assert "<?xml" in xml and "\n" in xml
 
 

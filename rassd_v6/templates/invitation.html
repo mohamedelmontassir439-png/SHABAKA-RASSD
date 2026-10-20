@@ -1,5 +1,6 @@
 {% extends "base_public.html" %}
 {% block title %}{{ inv.legal_name[:50] }} — {{ tr('inv_title_plain') }}{% endblock %}
+{% block robots %}noindex,follow{% endblock %}
 {% block body %}
 <style>
 .iv-wrap { max-width: 900px; margin: 0 auto; padding: 46px 20px 80px; }

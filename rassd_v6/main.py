@@ -703,7 +703,7 @@ CHEMINS_LIBRES_EXACTS = frozenset((
 ))
 CHEMINS_LIBRES_PREFIXES = (
     "/verifier-email", "/settings", "/static", "/admin", "/icon-",
-    "/marches-publics",
+    "/marches-publics", "/appel-offres",
     # L'invitation est une page publique: l'entreprise invitée n'a pas encore
     # de compte, elle ne peut donc pas avoir confirmé d'adresse.
     "/invitation",
@@ -1251,6 +1251,13 @@ async def bons_commande_page(req: Request, q:str="", s:str="", r:str="",
 async def tender_detail(req: Request, tid: str):
     m0 = get_member(req)
     if not m0:
+        # Un lien partagé (WhatsApp, email) mène à la page publique du
+        # marché plutôt qu'à un formulaire de connexion: le visiteur voit
+        # de quoi il s'agit, et c'est de là qu'il s'inscrit.
+        from app.services import seo
+        t_pub = seo.marche(tid[len(seo.PREFIXE):]) if tid.startswith(seo.PREFIXE) else None
+        if t_pub:
+            return RedirectResponse(seo.chemin(t_pub), 302)
         return RedirectResponse("/login?next=/tenders/" + tid, 302)
     if not has_access(m0):
         return RedirectResponse("/tarifs?locked=1", 302)
@@ -4496,7 +4503,9 @@ async def marches_index(req: Request):
     « appel d'offres nettoyage Casablanca ». Ces pages annoncent le volume
     réel et un aperçu, sans livrer le détail réservé aux membres.
     """
-    return render(req, "seo_index.html", {"pages": _secteurs_publics()})
+    from app.services.seo import villes_publiques
+    return render(req, "seo_index.html", {"pages": _secteurs_publics(),
+                                          "villes": villes_publiques()})
 
 
 @app.get("/marches-publics/{slug}", response_class=HTMLResponse)
@@ -4507,16 +4516,51 @@ async def marches_secteur(req: Request, slug: str):
         return render(req, "404.html", {}, status_code=404)
     db = get_db()
     apercu = [dict(r) for r in db.execute(
-        """SELECT id, objet, acheteur, region, date_limite, montant, type_procedure
+        """SELECT id, objet, acheteur, region, date_limite, montant, type_procedure, source
            FROM tenders WHERE statut='actif' AND secteur=?
-           ORDER BY scraped_at DESC LIMIT 6""", (page["code"],)).fetchall()]
+           ORDER BY scraped_at DESC LIMIT 12""", (page["code"],)).fetchall()]
     villes = [r[0] for r in db.execute(
         """SELECT region FROM tenders WHERE statut='actif' AND secteur=? AND region!=''
            GROUP BY region ORDER BY COUNT(*) DESC LIMIT 8""", (page["code"],)).fetchall()]
     db.close()
     proches = [p for p in pages if p["code"] != page["code"] and p["n"]][:8]
+    from app.services import seo
+    from app.core.villes import ville as nom_ville
+    for t in apercu:
+        t["chemin"] = seo.chemin(t) if seo.a_une_page(t) else ""
+    pages_villes = {v["nom"]: v for v in seo.villes_publiques()}
+    villes = [{"nom": nom_ville(v) or v, "page": pages_villes.get(nom_ville(v))} for v in villes]
     return render(req, "seo_secteur.html",
                   {"page": page, "apercu": apercu, "villes": villes, "proches": proches})
+
+
+@app.get("/appel-offres/{ref}", response_class=HTMLResponse)
+async def marche_public(req: Request, ref: str):
+    """La page publique d'un appel d'offres du portail national (app/services/seo.py)."""
+    from app.services import seo
+    numero = ref.split("-", 1)[0]
+    t = seo.marche(numero)
+    if not t:
+        return render(req, "404.html", {}, status_code=404)
+    # Une seule adresse par marché: un intitulé corrigé change le texte de
+    # l'adresse, et l'ancienne renvoie vers la nouvelle au lieu de doubler.
+    attendu = seo.chemin(t)
+    if req.url.path != attendu:
+        return RedirectResponse(attendu, 301)
+    f = seo.fiche(t)
+    villes = {v["nom"]: v for v in seo.villes_publiques()}
+    return render(req, "seo_marche.html", {
+        "f": f, "voisins": seo.voisins(t), "ville_page": villes.get(f["ville"])})
+
+
+@app.get("/marches-publics/ville/{slug}", response_class=HTMLResponse)
+async def marches_ville(req: Request, slug: str):
+    from app.services import seo
+    p = seo.page_ville(slug)
+    if not p:
+        return render(req, "404.html", {}, status_code=404)
+    autres = [v for v in seo.villes_publiques() if v["slug"] != slug][:16]
+    return render(req, "seo_ville.html", {"p": p, "autres": autres})
 
 
 @app.post("/webhooks/brevo")
@@ -4545,16 +4589,22 @@ async def webhook_brevo(req: Request):
 
 @app.get("/sitemap.xml")
 async def sitemap():
-    # Les fiches de marchés restent hors du plan du site: elles redirigent
-    # vers /login et exposeraient des identifiants sans rien apporter. Les
-    # pages sectorielles, elles, ont du contenu public et un volume réel.
-    urls = [f"{cfg.SITE_URL}/", f"{cfg.SITE_URL}/tarifs", f"{cfg.SITE_URL}/login",
-            f"{cfg.SITE_URL}/register", f"{cfg.SITE_URL}/contact",
-            f"{cfg.SITE_URL}/marches-publics", f"{cfg.SITE_URL}/sous-traitance",
-            f"{cfg.SITE_URL}/mentions-legales", f"{cfg.SITE_URL}/cgu",
-            f"{cfg.SITE_URL}/confidentialite"]
-    urls += [f"{cfg.SITE_URL}/marches-publics/{p['slug']}" for p in _secteurs_publics()]
-    corps = "\n".join(f"  <url><loc>{u}</loc></url>" for u in urls)
+    # Les fiches membres (/tenders/…) restent hors du plan: elles demandent
+    # une connexion. Y figurent les pages publiques — secteurs, villes, et un
+    # appel d'offres du portail national par page, tant qu'il est ouvert.
+    from app.services import seo
+    from xml.sax.saxutils import escape
+    site = cfg.SITE_URL.rstrip("/")
+    urls = [(f"{site}{c}", "") for c in (
+        "/", "/tarifs", "/register", "/contact", "/marches-publics", "/sous-traitance",
+        "/mentions-legales", "/cgu", "/confidentialite")]
+    urls += [(f"{site}/marches-publics/{p['slug']}", "") for p in _secteurs_publics() if p["n"]]
+    urls += [(f"{site}/marches-publics/ville/{v['slug']}", "") for v in seo.villes_publiques()]
+    urls += [(site + seo.chemin(t), (t.get("scraped_at") or "")[:10])
+             for t in seo.marches_ouverts_publics()]
+    corps = "\n".join(
+        f"  <url><loc>{escape(u)}</loc>" + (f"<lastmod>{d}</lastmod>" if d else "") + "</url>"
+        for u, d in urls)
     xml = ('<?xml version="1.0" encoding="UTF-8"?>\n'
            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
            f"{corps}\n</urlset>")
@@ -4562,7 +4612,14 @@ async def sitemap():
 
 @app.get("/robots.txt")
 async def robots():
-    return Response(f"User-agent: *\nAllow: /\nSitemap: {cfg.SITE_URL}/sitemap.xml\n",
+    # Les espaces membres et les liens à jeton n'ont rien à offrir à un
+    # moteur: on lui épargne de les parcourir. Les pages publiques restent
+    # ouvertes, et le plan du site les liste.
+    prives = ["/api/", "/settings", "/dashboard", "/favorites", "/tenders", "/bons-de-commande",
+              "/resultats", "/recap/", "/invitation/", "/reset", "/verifier-email", "/webhooks/",
+              "/abonnement", "/documents/"]
+    regles = "".join(f"Disallow: {c}\n" for c in prives)
+    return Response(f"User-agent: *\nAllow: /\n{regles}Sitemap: {cfg.SITE_URL}/sitemap.xml\n",
                     media_type="text/plain")
 
 # ── PWA (installable sur mobile) ───────────────────────────

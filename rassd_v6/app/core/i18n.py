@@ -14,6 +14,26 @@ T = {
     # ── Chrome partagé (base.html) ─────────────────────────────
     "skip_to_content":      {"fr": "Aller au contenu", "ar": "الانتقال إلى المحتوى"},
     "brand_tagline":        {"fr": "Plateforme des marchés au Maroc", "ar": "منصة الصفقات في المغرب"},
+    # ── Référencement: titre et description de chaque page publique ──────
+    # Une description par page: la même partout, Google n'en montre aucune
+    # et compose la sienne avec ce qu'il trouve — le menu, souvent.
+    "seo_desc_defaut":   {"fr": "Appels d'offres, bons de commande et marchés publics, semi-publics et privés au Maroc : veille quotidienne par secteur et par ville, alertes par email.",
+                           "ar": "طلبات العروض وسندات الطلب والصفقات العمومية وشبه العمومية والخاصة في المغرب: رصد يومي حسب القطاع والمدينة، وتنبيهات بالبريد."},
+    "seo_titre_accueil": {"fr": "Appels d'offres et marchés publics au Maroc — Maroc Entrepreneuriat",
+                           "ar": "طلبات العروض والصفقات العمومية في المغرب — Maroc Entrepreneuriat"},
+    "seo_desc_accueil":  {"fr": "Tous les appels d'offres du Maroc réunis, triés par secteur et par ville, avec les conditions de chaque avis en clair : caution, qualification, visite, heure limite. Essai gratuit.",
+                           "ar": "كلّ طلبات العروض في المغرب في مكان واحد، مرتّبة حسب القطاع والمدينة، مع شروط كلّ إعلان مبسّطة: الضمانة، التأهيل، الزيارة، آخر أجل. تجربة مجّانية."},
+    "seo_titre_tarifs":  {"fr": "Tarifs de la veille des marchés publics — Maroc Entrepreneuriat",
+                           "ar": "أسعار رصد الصفقات العمومية — Maroc Entrepreneuriat"},
+    "seo_desc_tarifs":   {"fr": "Veille des appels d'offres au Maroc à partir de 249 MAD par mois : alertes quotidiennes, conditions des avis, résultats d'attribution et sous-traitance. Essai gratuit, sans carte.",
+                           "ar": "رصد طلبات العروض في المغرب ابتداءً من 249 درهمًا شهريًّا: تنبيهات يومية، شروط الإعلانات، نتائج الإسناد والمناولة. تجربة مجّانية بلا بطاقة."},
+    "seo_titre_inscription": {"fr": "Créer un compte — essai gratuit — Maroc Entrepreneuriat",
+                           "ar": "إنشاء حساب — تجربة مجّانية — Maroc Entrepreneuriat"},
+    "seo_desc_inscription": {"fr": "Recevez chaque matin les appels d'offres de votre secteur et de votre ville. Inscription en une minute, essai gratuit sans carte bancaire.",
+                           "ar": "توصّل كلّ صباح بطلبات العروض الخاصّة بقطاعك ومدينتك. تسجيل في دقيقة، وتجربة مجّانية بلا بطاقة بنكية."},
+    "seo_titre_contact": {"fr": "Contact — Maroc Entrepreneuriat", "ar": "اتصل بنا — Maroc Entrepreneuriat"},
+    "seo_desc_contact":  {"fr": "Une question sur la veille des marchés publics, un abonnement ou un appel d'offres ? Écrivez-nous ou appelez-nous.",
+                           "ar": "سؤال حول رصد الصفقات العمومية أو الاشتراك أو طلب عروض؟ راسلنا أو اتصل بنا."},
     "search_placeholder":   {"fr": "Rechercher un marché, secteur, mot-clé…", "ar": "ابحث عن صفقة، قطاع، كلمة مفتاحية…"},
     "upsell_title":         {"fr": "Abonnement Premium", "ar": "العضوية المميزة"},
     "upsell_text":          {"fr": "Profitez de toutes les fonctionnalités et alertes illimitées.", "ar": "استفد من جميع الميزات والتنبيهات غير المحدودة."},

@@ -1,12 +1,8 @@
 {% extends "base_public.html" %}
 {% block title %}{{ page.label }} — {{ page.n }} appels d'offres ouverts au Maroc{% endblock %}
+{% set monolingue = true %}
+{% block description %}{{ page.n }} appels d'offres et bons de commande ouverts en {{ page.label }} au Maroc : objet, acheteur public, ville, date limite. Mise à jour en continu.{% endblock %}
 {% block head %}
-<meta name="description" content="{{ page.n }} marchés et bons de commande ouverts en {{ page.label }} au Maroc. Objet, acheteur public, date limite : la veille tourne en continu.">
-<link rel="canonical" href="{{ cfg.SITE_URL }}/marches-publics/{{ page.slug }}">
-<meta property="og:title" content="{{ page.label }} — marchés ouverts au Maroc">
-<meta property="og:description" content="{{ page.n }} consultations en cours dans ce secteur, mises à jour en continu.">
-<meta property="og:url" content="{{ cfg.SITE_URL }}/marches-publics/{{ page.slug }}">
-<meta property="og:type" content="website">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -63,7 +59,7 @@
 
   {% for t in apercu %}
   <div class="ss-item">
-    <div class="ss-obj">{{ t.objet[:150] }}{% if t.objet|length > 150 %}…{% endif %}</div>
+    <div class="ss-obj">{% if t.chemin %}<a href="{{ t.chemin }}" style="color:inherit">{{ t.objet[:150] }}{% if t.objet|length > 150 %}…{% endif %}</a>{% else %}{{ t.objet[:150] }}{% if t.objet|length > 150 %}…{% endif %}{% endif %}</div>
     <div class="ss-meta">
       <span class="badge badge-terra">{{ 'Bon de commande' if t.type_procedure == 'bon_commande' else "Appel d'offres" }}</span>
       {% if t.region %}<span class="badge badge-gray">{{ t.region[:22] }}</span>{% endif %}
@@ -79,7 +75,7 @@
 
   {% if villes %}
   <div class="ss-villes">
-    {% for v in villes %}<span class="badge badge-gray">{{ v[:24] }}</span>{% endfor %}
+    {% for v in villes %}{% if v.page %}<a class="badge badge-gray" href="/marches-publics/ville/{{ v.page.slug }}">{{ v.nom[:24] }}</a>{% else %}<span class="badge badge-gray">{{ v.nom[:24] }}</span>{% endif %}{% endfor %}
   </div>
   {% endif %}
   {% endif %}

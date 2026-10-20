@@ -3,8 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="MAROC ENTREPRENEURIAT — La référence des marchés publics, semi-publics et privés au Maroc. Veille en temps réel, alertes par email.">
 <title>{% block title %}MAROC ENTREPRENEURIAT — Marchés Publics, Semi-publics & Privés du Maroc{% endblock %}</title>
+{# Description et consigne aux robots: chaque page peut les redéfinir.
+   Déclarées ici sans s'afficher, elles sont lues par la tête commune. #}
+{% if false %}{% block description %}{{ tr('seo_desc_defaut') }}{% endblock %}{% block robots %}noindex,follow{% endblock %}{% endif %}
+{% with titre=self.title(), desc=self.description(), robots=self.robots()|trim %}{% include "_seo_tete.html" %}{% endwith %}
 {# L'icône suit la marque: écrite en dur, elle est restée à l'ancienne
      étoile pendant que tout le reste changeait. #}
 <link rel="icon" type="image/svg+xml" href="{{ favicon() }}">

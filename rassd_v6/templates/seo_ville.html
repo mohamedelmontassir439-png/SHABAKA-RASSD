@@ -1,0 +1,67 @@
+{% extends "base_public.html" %}
+{% set monolingue = true %}
+{% set v = p.ville %}
+{# « d'Agadir », « de Rabat » #}
+{% set de_v = ("d'" if v.nom[:1] in 'AEIOUÉÈYH' else 'de ') ~ v.nom %}
+{% block title %}Appels d'offres à {{ v.nom }} : {{ v.n }} marchés publics ouverts | Maroc Entrepreneuriat{% endblock %}
+{% block description %}{{ v.n }} appels d'offres et marchés publics ouverts à {{ v.nom }} et sa province : travaux, fournitures, services. Date limite, secteur, estimation — mis à jour chaque jour.{% endblock %}
+{% block head %}
+<script type="application/ld+json">
+{{ {
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": "Appels d'offres à " ~ v.nom,
+  "url": cfg.SITE_URL ~ "/marches-publics/ville/" ~ v.slug,
+  "isPartOf": {"@type": "WebSite", "name": "Maroc Entrepreneuriat", "url": cfg.SITE_URL}
+} | tojson }}
+</script>
+<style>
+.av-wrap { max-width: 900px; margin: 0 auto; padding: 40px 20px 80px; }
+.av-fil { font-size:var(--f2); color: var(--text3); margin-bottom: 16px; }
+.av-fil a { color: var(--ink); font-weight: 600; text-decoration: none; }
+.av-h1 { font-family: var(--serif); font-weight: 700; font-size: clamp(26px, 4.6vw, 36px); color: var(--text1); line-height: 1.25; text-wrap: balance; }
+.av-lede { color: var(--text3); font-size:var(--f4); line-height: 1.7; margin: 14px 0 22px; max-width: 64ch; }
+.av-secteurs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; }
+.av-secteurs a { font-size:var(--f2); color: var(--text2); background: var(--surface); border: 1px solid var(--line); border-radius: var(--rp); padding: 6px 13px; text-decoration: none; }
+.av-secteurs a:hover, .av-secteurs a:focus-visible { border-color: var(--ink); color: var(--ink); }
+.av-m { display: block; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); padding: 15px 18px; margin-bottom: 8px; text-decoration: none; }
+.av-m:hover, .av-m:focus-visible { border-color: var(--ink); }
+.av-m b { display: block; color: var(--text1); font-size:var(--f4); font-weight: 600; line-height: 1.45; }
+.av-m span { color: var(--text3); font-size:var(--f2); }
+.av-cta { margin-top: 28px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 26px; text-align: center; box-shadow: var(--sh); }
+.av-cta h2 { font-family: var(--serif); font-size:var(--f6); color: var(--text1); margin-bottom: 8px; }
+.av-cta p { color: var(--text3); font-size:var(--f4); margin: 0 auto 16px; max-width: 56ch; line-height: 1.6; }
+.av-autres { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 32px; }
+.av-autres a { font-size:var(--f2); color: var(--text2); text-decoration: none; border-bottom: 1px dotted var(--line2); }
+</style>
+{% endblock %}
+{% block body %}
+<div class="av-wrap">
+  <nav class="av-fil" aria-label="Fil d'Ariane"><a href="/marches-publics">Marchés publics</a> › {{ v.nom }}</nav>
+  <h1 class="av-h1">Appels d'offres à {{ v.nom }} : {{ v.n }} marché{{ 's' if v.n > 1 else '' }} ouvert{{ 's' if v.n > 1 else '' }}</h1>
+  <p class="av-lede">Les consultations en cours dont le lieu d'exécution est {{ v.nom }} ou sa province : appels d'offres des communes, administrations et établissements publics, bons de commande. La liste se met à jour chaque jour et les marchés clôturés en sortent d'eux-mêmes.</p>
+
+  {% if p.secteurs %}
+  <div class="av-secteurs">
+    {% for s in p.secteurs %}<a href="/marches-publics/{{ s.slug }}">{{ s.label }} ({{ s.n }})</a>{% endfor %}
+  </div>
+  {% endif %}
+
+  {% for m in p.marches %}
+  <a class="av-m" href="{{ m.chemin }}"><b>{{ m.objet[:150] }}{% if m.objet|length > 150 %}…{% endif %}</b>
+    <span>{{ m.secteur_label }}{% if m.date_limite %} · limite {{ m.date_limite }}{% endif %}{% if m.montant %} · {{ m.montant }}{% endif %}</span></a>
+  {% endfor %}
+
+  <div class="av-cta">
+    <h2>Les marchés {{ de_v }}, chaque matin</h2>
+    <p>Choisissez votre secteur et {{ v.nom }} à l'inscription : chaque nouvel appel d'offres vous arrive par email, avec l'acheteur, les conditions de l'avis et le lien officiel. Essai gratuit de {{ cfg.TRIAL_DAYS }} jours.</p>
+    <a href="/register?src=seo" class="btn btn-primary btn-lg">Créer mon compte →</a>
+  </div>
+
+  {% if autres %}
+  <div class="av-autres">
+    {% for a in autres %}<a href="/marches-publics/ville/{{ a.slug }}">Appels d'offres {{ a.nom }} ({{ a.n }})</a>{% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

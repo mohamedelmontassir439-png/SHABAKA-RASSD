@@ -1,0 +1,114 @@
+{% extends "base_public.html" %}
+{% set monolingue = true %}
+{% set t = f.t %}
+{% block title %}{{ t.objet[:1]|upper }}{{ t.objet[1:68] }}{% if f.ville %} — {{ f.ville }}{% endif %} | Appel d'offres{% endblock %}
+{% block description %}Appel d'offres{% if f.ville %} à {{ f.ville }}{% endif %}{% if f.secteur %}, {{ f.secteur }}{% endif %} : {{ t.objet[:110] }}.{% if t.date_limite %} Date limite {{ t.date_limite }}.{% endif %}{% if t.montant %} Estimation {{ t.montant }}.{% endif %}{% endblock %}
+{% block robots %}{{ 'index,follow' if f.ouvert else 'noindex,follow' }}{% endblock %}
+{% block head %}
+<script type="application/ld+json">
+{{ {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {"@type": "ListItem", "position": 1, "name": "Marchés publics", "item": cfg.SITE_URL ~ "/marches-publics"},
+    {"@type": "ListItem", "position": 2, "name": f.secteur or "Secteur", "item": cfg.SITE_URL ~ "/marches-publics/" ~ f.secteur_slug},
+    {"@type": "ListItem", "position": 3, "name": t.objet[:90]}
+  ]
+} | tojson }}
+</script>
+<style>
+.am-wrap { max-width: 900px; margin: 0 auto; padding: 40px 20px 80px; }
+.am-fil { font-size:var(--f2); color: var(--text3); margin-bottom: 16px; display: flex; gap: 6px; flex-wrap: wrap; }
+.am-fil a { color: var(--ink); font-weight: 600; text-decoration: none; }
+.am-fil a:hover { text-decoration: underline; }
+.am-sur { font-size:var(--f1); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--amberd); margin-bottom: 10px; }
+.am-h1 { font-family: var(--serif); font-weight: 700; font-size: clamp(24px, 4.2vw, 34px); color: var(--text1); line-height: 1.25; text-wrap: balance; }
+.am-etat { margin: 20px 0 24px; padding: 13px 18px; border-radius: var(--r2); font-weight: 700; font-size:var(--f3); }
+.am-etat.ouvert { background: var(--grna); color: var(--grn); border: 1px solid rgba(29,154,108,.25); }
+.am-etat.clos { background: var(--surface2); color: var(--text3); border: 1px solid var(--line); }
+.am-grille { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r3); overflow: hidden; }
+.am-case { background: var(--surface); padding: 18px 22px; }
+.am-cle { font-size:var(--f1); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--amberd); margin-bottom: 7px; }
+.am-val { font-weight: 700; font-size:var(--f4); color: var(--text1); line-height: 1.4; overflow-wrap: anywhere; }
+.am-val a { color: var(--ink); }
+.am-verrou { color: var(--text3); font-weight: 600; font-size:var(--f3); display: flex; align-items: center; gap: 7px; }
+.am-cond { margin-top: 28px; background: var(--golda); border-radius: var(--r3); padding: 22px 24px; }
+.am-cond h2 { font-family: var(--serif); font-size:var(--f5); color: var(--text1); margin-bottom: 10px; }
+.am-cond ul { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 0; padding: 0; list-style: none; }
+.am-cond li { background: var(--surface); border: 1px solid var(--line); border-radius: var(--rp); padding: 5px 12px; font-size:var(--f2); font-weight: 600; color: var(--text2); }
+.am-cond p { color: var(--text2); font-size:var(--f3); line-height: 1.65; }
+.am-cta { margin-top: 28px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 26px; text-align: center; box-shadow: var(--sh); }
+.am-cta h2 { font-family: var(--serif); font-size:var(--f6); color: var(--text1); margin-bottom: 8px; }
+.am-cta p { color: var(--text3); font-size:var(--f4); margin: 0 auto 16px; max-width: 56ch; line-height: 1.6; }
+.am-voisins { margin-top: 40px; }
+.am-voisins h2 { font-size:var(--f2); font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--amberd); margin-bottom: 14px; }
+.am-v { display: block; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); padding: 14px 18px; margin-bottom: 8px; text-decoration: none; }
+.am-v:hover, .am-v:focus-visible { border-color: var(--ink); }
+.am-v b { display: block; color: var(--text1); font-size:var(--f3); font-weight: 600; line-height: 1.45; }
+.am-v span { color: var(--text3); font-size:var(--f2); }
+@media (max-width: 640px) { .am-grille { grid-template-columns: minmax(0, 1fr); } }
+</style>
+{% endblock %}
+{% block body %}
+<div class="am-wrap">
+  <nav class="am-fil" aria-label="Fil d'Ariane">
+    <a href="/marches-publics">Marchés publics</a> ›
+    {% if f.secteur %}<a href="/marches-publics/{{ f.secteur_slug }}">{{ f.secteur }}</a> ›{% endif %}
+    {% if ville_page %}<a href="/marches-publics/ville/{{ ville_page.slug }}">{{ ville_page.nom }}</a>{% endif %}
+  </nav>
+
+  <div class="am-sur">Appel d'offres{% if f.categorie %} · {{ f.categorie }}{% endif %}{% if f.ville %} · {{ f.ville }}{% endif %}</div>
+  <h1 class="am-h1">{{ t.objet[:1]|upper }}{{ t.objet[1:] }}</h1>
+
+  {% if f.ouvert %}
+  <div class="am-etat ouvert">Consultation ouverte{% if f.jours is not none %} — {{ f.jours }} jour{{ 's' if f.jours > 1 else '' }} avant la date limite{% endif %}</div>
+  {% else %}
+  <div class="am-etat clos">Consultation clôturée. Les marchés ouverts du même secteur sont listés plus bas.</div>
+  {% endif %}
+
+  <div class="am-grille">
+    <div class="am-case"><div class="am-cle">Date limite</div><div class="am-val">{{ t.date_limite or '—' }}</div></div>
+    <div class="am-case"><div class="am-cle">Lieu d'exécution</div><div class="am-val">
+      {% if ville_page %}<a href="/marches-publics/ville/{{ ville_page.slug }}">{{ f.ville }}</a>{% else %}{{ f.ville or '—' }}{% endif %}</div></div>
+    <div class="am-case"><div class="am-cle">Secteur</div><div class="am-val">
+      {% if f.secteur %}<a href="/marches-publics/{{ f.secteur_slug }}">{{ f.secteur }}</a>{% else %}—{% endif %}</div></div>
+    <div class="am-case"><div class="am-cle">Estimation (TTC)</div><div class="am-val">{{ t.montant or 'Non communiquée' }}</div></div>
+    {% if f.procedure %}<div class="am-case"><div class="am-cle">Procédure</div><div class="am-val">{{ f.procedure }}</div></div>{% endif %}
+    {% if f.reference %}<div class="am-case"><div class="am-cle">Référence</div><div class="am-val">{{ f.reference }}</div></div>{% endif %}
+    <div class="am-case"><div class="am-cle">Acheteur public</div><div class="am-verrou">{{ ico('verrou', 15)|safe }} Réservé aux membres</div></div>
+    <div class="am-case"><div class="am-cle">Avis officiel et dossier</div><div class="am-verrou">{{ ico('verrou', 15)|safe }} Réservé aux membres</div></div>
+  </div>
+
+  <section class="am-cond" aria-labelledby="am-cond-t">
+    <h2 id="am-cond-t">Les conditions de cet avis</h2>
+    {% if f.exigences %}
+    <p>L'avis exige notamment ce qui suit. Les montants, classes et dates sont lus et expliqués dans la fiche membre, sans ouvrir le dossier :</p>
+    <ul>{% for cle in f.exigences %}<li>{{ tr(cle) }}</li>{% endfor %}</ul>
+    {% else %}
+    <p>Caution, qualifications, visite des lieux, échantillons, lieu de dépôt : les membres lisent chaque condition de l'avis en clair, sans ouvrir le dossier.</p>
+    {% endif %}
+  </section>
+
+  <div class="am-cta">
+    {% if member %}
+    <h2>Fiche complète</h2>
+    <p>Acheteur, conditions détaillées, avis officiel et contact : tout est dans votre espace.</p>
+    <a href="/tenders/{{ t.id }}" class="btn btn-primary btn-lg">Ouvrir la fiche →</a>
+    {% else %}
+    <h2>Ne manquez plus un marché{% if f.secteur %} en {{ f.secteur }}{% endif %}</h2>
+    <p>Recevez chaque matin les appels d'offres de votre secteur et de votre ville, avec l'acheteur, les conditions et le lien officiel. Essai gratuit de {{ cfg.TRIAL_DAYS }} jours, sans carte bancaire.</p>
+    <a href="/register?src=seo" class="btn btn-primary btn-lg">Voir la fiche complète gratuitement →</a>
+    {% endif %}
+  </div>
+
+  {% if voisins %}
+  <section class="am-voisins" aria-labelledby="am-v-t">
+    <h2 id="am-v-t">Autres marchés ouverts{% if f.secteur %} en {{ f.secteur }}{% endif %}</h2>
+    {% for v in voisins %}
+    <a class="am-v" href="{{ v.chemin }}"><b>{{ v.objet[:140] }}{% if v.objet|length > 140 %}…{% endif %}</b>
+      <span>{{ v.ville or '' }}{% if v.date_limite %} · limite {{ v.date_limite }}{% endif %}{% if v.montant %} · {{ v.montant }}{% endif %}</span></a>
+    {% endfor %}
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

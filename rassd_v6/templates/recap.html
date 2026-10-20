@@ -1,5 +1,6 @@
 {% extends "base_public.html" %}
 {% block title %}{{ marches|length }} marché(s) pour vous — Maroc Entrepreneuriat{% endblock %}
+{% block robots %}noindex,follow{% endblock %}
 {% block head %}
 {# Un récapitulatif personnel n'a rien à faire dans un index de moteur. #}
 <meta name="robots" content="noindex, nofollow">

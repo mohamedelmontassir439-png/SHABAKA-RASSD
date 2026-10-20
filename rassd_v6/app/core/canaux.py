@@ -37,6 +37,7 @@ CANAUX = {
     "salon":      "Salon, réunion, formation",
     "presse":     "Presse, radio",
     "partenaire": "Partenaire (fédération, CRI, chambre)",
+    "seo":        "Recherche Google (pages publiques)",
 }
 
 # Ceux qu'on ne met pas dans un lien: ils se déduisent de l'inscription.
