@@ -398,11 +398,24 @@ html[dir="rtl"] .section-label::before { order: 2; }
         {{ initiales(member.nom, member.email) }}
       </a>
       {% endif %}
-      <div class="topbar-search">
-        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7.5"/><path d="M21 21l-4.3-4.3"/></svg>
-        <input aria-label="{{ tr('aria_recherche') }}" type="text" placeholder="{{ tr('search_placeholder') }}" disabled>
+      {# La recherche mène à la liste des marchés, filtrée. Elle était
+         désactivée: une case qu'on voit et qui ne répond pas fait douter
+         de tout le reste. #}
+      <form class="topbar-search" role="search" method="get" action="/tenders">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7.5"/><path d="M21 21l-4.3-4.3"/></svg>
+        <input id="recherche-haut" name="q" aria-label="{{ tr('aria_recherche') }}" type="search"
+               placeholder="{{ tr('search_placeholder') }}" maxlength="120"
+               value="{{ request.query_params.get('q', '') if request and request.url.path == '/tenders' else '' }}">
         <kbd>Ctrl+K</kbd>
-      </div>
+      </form>
+      <script>
+      document.addEventListener('keydown', function (e) {
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'K')) {
+          var c = document.getElementById('recherche-haut');
+          if (c) { e.preventDefault(); c.focus(); c.select(); }
+        }
+      });
+      </script>
       <div class="topbar-spacer"></div>
       {% if not member %}<a href="/tarifs" class="btn btn-accent btn-sm topbar-cta">{{ tr('nav_signup') }}</a>{% endif %}
       <div class="topbar-lang">

@@ -108,6 +108,29 @@ class State:
         if len(cls.logs) > 700:
             cls.logs = cls.logs[-500:]
 
+def filtre_recherche(q: str, where: list, params: list):
+    """La recherche des listes de marchés: intitulé, acheteur, avis — et secteur.
+
+    La case du haut promet « marché, secteur, mot-clé »: un nom de secteur
+    (« peinture ») trouve aussi les marchés classés dans ce secteur, même
+    quand le mot n'est pas dans leur intitulé. Comparaison sans accents ni
+    casse, à partir de trois lettres pour ne pas ouvrir tous les secteurs
+    sur « de ».
+    """
+    q = (q or "").strip()[:120]
+    if not q:
+        return
+    clause = "objet LIKE ? OR acheteur LIKE ? OR description LIKE ?"
+    params += [f"%{q}%"] * 3
+    cle = _empreinte(q)
+    if len(cle) >= 3:
+        codes = [c for c, l in cfg.SECTEURS.items() if cle in _empreinte(l)]
+        if codes:
+            clause += f" OR secteur IN ({','.join('?' * len(codes))})"
+            params += codes
+    where.append(f"({clause})")
+
+
 # ══════════════════════════════════════════════════════════
 # SCRAPER ENGINE
 # ══════════════════════════════════════════════════════════
@@ -1146,9 +1169,7 @@ async def tenders_page(req: Request, q:str="", s:str="", r:str="", t:str="",
     siens = restreindre_aux_secteurs(m0, where, params)
     if siens and s not in siens:
         s = ""
-    if q:
-        where.append("(objet LIKE ? OR acheteur LIKE ? OR description LIKE ?)")
-        params += [f"%{q}%"]*3
+    filtre_recherche(q, where, params)
     if s: where.append("secteur=?");    params.append(s)
     if r: where.append("region=?");     params.append(r)
     # Le filtre porte sur la nature de l'acheteur, pas sur la provenance de
@@ -1200,9 +1221,7 @@ async def bons_commande_page(req: Request, q:str="", s:str="", r:str="",
     siens = restreindre_aux_secteurs(m0, where, params)
     if siens and s not in siens:
         s = ""
-    if q:
-        where.append("(objet LIKE ? OR acheteur LIKE ? OR description LIKE ?)")
-        params += [f"%{q}%"]*3
+    filtre_recherche(q, where, params)
     if s: where.append("secteur=?"); params.append(s)
     if r: where.append("region=?");  params.append(r)
     filtre_echeance(e, where, params)
