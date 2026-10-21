@@ -50,3 +50,35 @@ class TestParseBudget:
     def test_structure_inattendue_ne_casse_pas(self):
         assert _parse_budget("<td>rien</td>") == ""
         assert _parse_budget("") == ""
+
+
+class TestCaution:
+    """La caution se lit dans la même cellule: le plus petit des deux montants."""
+
+    def test_la_caution_est_le_petit_montant(self):
+        from app.services.private_scraper import _parse_caution
+        assert _parse_caution(_row("23.000,00 1.160.000,00")) == "23.000,00 MAD"
+
+    def test_un_montant_seul_n_est_pas_une_caution(self):
+        from app.services.private_scraper import _parse_caution
+        assert _parse_caution(_row("1.160.000,00")) == ""
+
+    def test_non_publiee(self):
+        from app.services.private_scraper import _parse_caution
+        assert _parse_caution(_row("------ 1.160.000,00")) == ""
+
+    def test_elle_arrive_sur_la_fiche(self):
+        from app.core.lecture import chiffres
+        from app.services.private_scraper import _description
+        d = _description("SGPTV", "Peinture des grues", _row("10.000,00 499.200,00"))
+        c = chiffres({"id": "gm_1", "type_procedure": "marche", "montant": "499.200,00 MAD",
+                      "date_limite": "28/10/2026", "description": d})
+        assert c["caution"] == {"valeur": "10.000,00 MAD"}
+
+    def test_l_heure_limite_aussi(self):
+        from app.core.lecture import chiffres
+        from app.services.private_scraper import _description
+        d = _description("ADM", "Inventaire", _row("10.000,00 499.200,00"))
+        c = chiffres({"id": "gm_1", "type_procedure": "marche", "montant": "",
+                      "date_limite": "30/09/2026", "description": d})
+        assert (c["limite"]["jour"], c["limite"]["heure"]) == ("30/09/2026", "10:00")

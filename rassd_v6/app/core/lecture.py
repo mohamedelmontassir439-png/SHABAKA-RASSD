@@ -144,8 +144,16 @@ def chiffres(t) -> dict:
     out["estimation"] = montant if montant and not _nul(montant) else None
 
     if out["source"] != "portail":
-        # Pas d'avis détaillé: on ne sait ni la caution ni la qualification.
-        out["caution"] = out["qualification"] = out["dossier"] = None
+        # Pas d'avis détaillé: ni qualification ni dossier. La caution, la
+        # source privée la publie à côté du budget — gardée depuis le
+        # 21/10/2026 (private_scraper._parse_caution).
+        h = re.search(r"Date et heure limite de remise des plis\s*:\s*(\d{2}/\d{2}/\d{4})\s+(\d{2}:\d{2})", desc)
+        if h:
+            out["limite"] = {"jour": h.group(1), "heure": h.group(2),
+                             "restants": _jours_restants(h.group(1))}
+        m = re.search(r"Caution provisoire\s*:\s*([\d][\d\s.,]*\s*MAD)", desc)
+        out["caution"] = {"valeur": m.group(1).strip()} if m and not _nul(m.group(1)) else None
+        out["qualification"] = out["dossier"] = None
         return out
 
     lots = bool(re.search(r"[2-9]|\d{2}", cond.get("allotissement", "")))

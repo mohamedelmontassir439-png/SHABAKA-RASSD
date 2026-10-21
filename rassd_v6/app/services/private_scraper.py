@@ -109,6 +109,41 @@ def _parse_budget(row_html: str) -> str:
     return f"{plus_eleve} MAD"
 
 
+def _parse_caution(row_html: str) -> str:
+    """La caution provisoire, lue dans la même cellule que le budget.
+
+    La cellule « Caution/Budget » porte les deux montants; on ne gardait que
+    le budget, et la fiche disait « caution non publiée » alors qu'elle
+    l'était. La caution est le plus petit des deux — seulement quand il y en
+    a deux: un montant seul est le budget, et le prendre pour une caution
+    ferait demander à la banque une garantie du montant du marché.
+    """
+    cells = _CELL_RE.findall(row_html)
+    if len(cells) <= 3:
+        return ""
+    montants = _MONEY_RE.findall(cells[3])
+    if len(montants) < 2:
+        return ""
+    plus_petit = min(montants, key=lambda v: float(v.replace(".", "").replace(",", ".")))
+    if not re.search(r"[1-9]", plus_petit):
+        return ""
+    return f"{plus_petit} MAD"
+
+
+def _description(acheteur: str, objet: str, row_html: str) -> str:
+    """Le texte rangé en description, caution comprise quand elle est publiée."""
+    caution = _parse_caution(row_html)
+    texte = f"{acheteur} {objet}"
+    if caution:
+        texte += f" Caution provisoire : {caution}"
+    # L'heure limite est dans la même cellule que le jour; date_limite ne
+    # garde que le jour (les tris et filtres en dépendent), l'heure va ici.
+    heure = re.search(r"(\d{2}/\d{2}/\d{4})\s+(\d{2}:\d{2})", row_html)
+    if heure:
+        texte += f" Date et heure limite de remise des plis : {heure.group(1)} {heure.group(2)}"
+    return texte[:3000]
+
+
 def _parse_row(row_html: str):
     id_m = ID_RE.search(row_html)
     if not id_m:
@@ -149,7 +184,7 @@ def _parse_row(row_html: str):
         "type_offre":       "Privé",
         "source":           "global-marches",
         "statut":           "actif",
-        "description":      full_text[:3000],
+        "description":      _description(acheteur, objet, row_html),
         "scraped_at":       datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
 
@@ -401,7 +436,7 @@ def _parse_po_row(row_html: str, type_offre: str):
         "type_offre":       type_offre,
         "source":           "global-marches",
         "statut":           "actif",
-        "description":      full_text[:3000],
+        "description":      _description(acheteur, objet, row_html),
         "scraped_at":       datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "type_procedure":   "bon_commande",
     }
