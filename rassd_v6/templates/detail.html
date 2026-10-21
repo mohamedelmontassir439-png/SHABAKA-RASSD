@@ -31,6 +31,19 @@
 .cond-contact a { color: var(--navy); font-weight: 600; text-decoration: none; overflow-wrap: anywhere; }
 .cond-contact a:hover, .cond-contact a:focus-visible { text-decoration: underline; }
 .cond-source { font-size:var(--f1); color: var(--text3); margin-top: 10px; }
+/* ── Dossier administratif face au marché ─────────────── */
+.dos { border: 1px solid var(--line); border-radius: var(--r3); background: var(--surface); margin-top: 28px; padding: 18px 22px; }
+.dos-tete { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.dos-titre { font-family: var(--serif); font-weight: 700; font-size:var(--f5); color: var(--text1); }
+.dos-aide { font-size:var(--f2); color: var(--text3); }
+.dos-ligne { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line); font-size:var(--f3); color: var(--text1); }
+.dos-ligne a { color: inherit; text-decoration: none; }
+.dos-ligne a:hover { text-decoration: underline; }
+.dos-etat { font-size:var(--f1); font-weight: 700; border-radius: 99px; padding: 3px 10px; white-space: nowrap; }
+.dos-etat.ok { background: var(--grna); color: var(--grn); }
+.dos-etat.manquante { background: var(--ambera); color: var(--amberd); }
+.dos-etat.expiree_a_la_date { background: var(--reda); color: var(--red); }
+.dos-complet { color: var(--grn); font-weight: 700; font-size:var(--f3); }
 /* ── Comprendre cet avis ─────────────────────────────── */
 .lire { border: 1px solid var(--line); border-radius: var(--r3); background: var(--surface); margin-top: 28px; overflow: hidden; }
 .lire-tete { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; padding: 18px 24px; border-bottom: 1px solid var(--line); }
@@ -198,6 +211,27 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
           {% if cases|length is odd %}<div class="info-cell" aria-hidden="true"></div>{% endif %}
         </div>
         <div class="cond-source">{{ tr('cond_source') }}</div>
+      </section>
+      {% endif %}
+
+      {# Le dossier administratif du membre, vérifié à la date limite du
+         marché: une attestation qui expire la veille du dépôt ne vaut rien
+         ce jour-là (app/services/coffre.py). #}
+      {% if dossier_admin %}
+      {% set manquent = dossier_admin|rejectattr('etat', 'equalto', 'ok')|list %}
+      <section class="dos" aria-labelledby="dos-titre">
+        <div class="dos-tete">
+          <h2 class="dos-titre" id="dos-titre">{{ tr('dossier_titre') }}</h2>
+          <span class="dos-aide">{{ tr('dossier_aide') }}</span>
+        </div>
+        {% if not manquent %}<p class="dos-complet">✓ {{ tr('dossier_complet') }}</p>{% endif %}
+        {% for d in dossier_admin %}
+        <div class="dos-ligne">
+          <a href="/coffre#p-{{ d.code }}">{{ coffre_libelle(d.code, lang) }}</a>
+          <span class="dos-etat {{ d.etat }}">{{ tr('dossier_ok') if d.etat == 'ok' else (tr('dossier_manquante') if d.etat == 'manquante' else tr('dossier_expiree')) }}</span>
+        </div>
+        {% endfor %}
+        {% if manquent %}<div style="margin-top:12px"><a href="/coffre" class="btn btn-primary btn-sm">{{ tr('dossier_ouvrir') }} →</a></div>{% endif %}
       </section>
       {% endif %}
 

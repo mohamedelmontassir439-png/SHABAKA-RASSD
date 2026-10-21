@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}{{ tr('coffre_titre') }} — Maroc Entrepreneuriat{% endblock %}
+{% block body %}
+<style>
+.cf-hero { padding: 40px 0 22px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap; }
+.cf-lede { color: var(--text3); font-size:var(--f4); line-height: 1.65; max-width: 62ch; margin-top: 10px; }
+.cf-jauge { min-width: 220px; }
+.cf-jauge b { font-family: var(--serif); font-size:var(--f7); color: var(--text1); font-variant-numeric: tabular-nums; }
+.cf-jauge span { display: block; color: var(--text3); font-size:var(--f2); margin-top: 2px; }
+.cf-barre { height: 8px; border-radius: 99px; background: var(--surface2); overflow: hidden; margin-top: 10px; }
+.cf-barre i { display: block; height: 100%; background: var(--grn); }
+.cf-msg { margin: 18px 0 0; padding: 12px 16px; border-radius: var(--r2); font-weight: 600; font-size:var(--f3); }
+.cf-msg.ok { background: var(--grna); color: var(--grn); }
+.cf-msg.err { background: var(--reda); color: var(--red); }
+.cf-groupe { font-size:var(--f2); font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--amberd); margin: 30px 0 12px; }
+.cf-liste { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.cf-carte { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; scroll-margin-top: 90px; }
+.cf-carte:target { border-color: var(--ink); box-shadow: var(--sh2); }
+.cf-tete { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.cf-nom { font-weight: 700; color: var(--text1); font-size:var(--f4); line-height: 1.35; }
+.cf-aide { color: var(--text3); font-size:var(--f2); line-height: 1.55; }
+.cf-etat { font-size:var(--f1); font-weight: 700; border-radius: 99px; padding: 3px 10px; white-space: nowrap; }
+.cf-etat.valide, .cf-etat.permanent { background: var(--grna); color: var(--grn); }
+.cf-etat.bientot { background: var(--ambera); color: var(--amberd); }
+.cf-etat.expire { background: var(--reda); color: var(--red); }
+.cf-etat.manquante { background: var(--surface2); color: var(--text3); }
+.cf-fichier { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size:var(--f2); color: var(--text2); }
+.cf-fichier a { color: var(--navy); font-weight: 600; overflow-wrap: anywhere; }
+.cf-form { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; align-items: end; border-top: 1px dashed var(--line); padding-top: 10px; }
+.cf-form label { font-size:var(--f1); color: var(--text3); font-weight: 600; display: flex; flex-direction: column; gap: 4px; }
+.cf-form input[type=date] { padding: 7px 9px; border: 1px solid var(--line); border-radius: var(--r1); background: var(--surface); font: inherit; color: var(--text1); }
+.cf-form .cf-plein { grid-column: 1 / -1; }
+.cf-form input[type=file] { font-size:var(--f2); max-width: 100%; }
+.cf-suppr { background: none; border: none; color: var(--text3); font-size:var(--f2); cursor: pointer; text-decoration: underline; padding: 0; }
+@media (max-width: 860px) { .cf-liste { grid-template-columns: minmax(0, 1fr); } }
+</style>
+
+<div class="container">
+  <section class="cf-hero">
+    <div>
+      <div class="section-label">{{ tr('coffre_label') }}</div>
+      <h1 class="display-l">{{ tr('coffre_titre') }}</h1>
+      <p class="cf-lede">{{ tr('coffre_lede') }}</p>
+    </div>
+    <div class="cf-jauge">
+      <b dir="ltr">{{ a_jour }} / {{ requises }}</b>
+      <span>{{ tr('coffre_jauge') }}</span>
+      <div class="cf-barre"><i style="width:{{ (100 * a_jour / requises)|round|int if requises else 0 }}%"></i></div>
+    </div>
+  </section>
+
+  {% if ok == 'supprime' %}<div class="cf-msg ok">{{ tr('coffre_ok_suppr') }}</div>
+  {% elif ok %}<div class="cf-msg ok">{{ tr('coffre_ok') }}</div>{% endif %}
+  {% if err %}<div class="cf-msg err">{{ tr('coffre_err_' ~ err) if err in ('format', 'taille', 'vide', 'date', 'type') else tr('coffre_err_vide') }}</div>{% endif %}
+
+  {% for groupe in (true, false) %}
+  <div class="cf-groupe">{{ tr('coffre_groupe_requis') if groupe else tr('coffre_groupe_autres') }}</div>
+  <div class="cf-liste">
+    {% for l in lignes if l.requise == groupe %}
+    {% set p = l.piece %}
+    <article class="cf-carte" id="p-{{ l.code }}">
+      <div class="cf-tete">
+        <div>
+          <div class="cf-nom">{{ l.libelle }}</div>
+          <div class="cf-aide">{{ l.aide }}</div>
+        </div>
+        {% if not p %}<span class="cf-etat manquante">{{ tr('coffre_manquante') }}</span>
+        {% elif p.statut == 'expire' %}<span class="cf-etat expire">{{ tr('coffre_expiree') }}</span>
+        {% elif p.statut == 'bientot' %}<span class="cf-etat bientot">{{ tr('coffre_bientot', n=p.reste) }}</span>
+        {% elif p.statut == 'permanent' %}<span class="cf-etat permanent">{{ tr('coffre_deposee') }}</span>
+        {% else %}<span class="cf-etat valide">{{ tr('coffre_valide') }}</span>{% endif %}
+      </div>
+
+      {% if p %}
+      <div class="cf-fichier">
+        <a href="/coffre/{{ p.id }}/fichier">{{ p.nom_original }}</a>
+        {% if p.expire_le %}<span>· {{ tr('coffre_expire_le') }} <b dir="ltr">{{ p.expire_le }}</b></span>{% endif %}
+        <form method="post" action="/coffre/{{ p.id }}/supprimer" style="display:inline"
+              onsubmit="return confirm('{{ tr('coffre_confirmer_suppr') }}')">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button type="submit" class="cf-suppr">{{ tr('coffre_supprimer') }}</button>
+        </form>
+      </div>
+      {% endif %}
+
+      <form class="cf-form" method="post" action="/coffre/deposer" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="type_piece" value="{{ l.code }}">
+        <label class="cf-plein">{{ tr('coffre_fichier') }}
+          <input type="file" name="fichier" accept=".pdf,.jpg,.jpeg,.png" required></label>
+        <label>{{ tr('coffre_delivre_le') }}<input type="date" name="delivre_le"></label>
+        <label>{{ tr('coffre_expire_le') }}{% if l.mois %} <small>({{ tr('coffre_auto', n=l.mois) }})</small>{% endif %}
+          <input type="date" name="expire_le"></label>
+        <div class="cf-plein"><button type="submit" class="btn btn-primary btn-sm">{{ tr('coffre_remplacer') if p else tr('coffre_deposer') }}</button></div>
+      </form>
+    </article>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -339,6 +339,10 @@ html[dir="rtl"] .section-label::before { order: 2; }
           <svg viewBox="0 0 24 24"><path d="M12 2.5l3.09 6.26L21.5 9.6l-4.75 4.63 1.12 6.53L12 17.7l-5.87 3.06 1.12-6.53L2.5 9.6l6.41-.84L12 2.5z"/></svg>
           <span>{{ tr('nav_favorites') }}</span>
         </a>
+        <a href="/coffre" class="side-link {% if request.url.path.startswith('/coffre') %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="15" rx="2"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><circle cx="12" cy="13.5" r="2.5"/><path d="M12 16v2"/></svg>
+          <span>{{ tr('nav_coffre') }}</span>
+        </a>
         <a href="/settings" class="side-link {% if request.url.path == '/settings' %}active{% endif %}">
           <svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
           <span>{{ tr('nav_alerts') }}</span>

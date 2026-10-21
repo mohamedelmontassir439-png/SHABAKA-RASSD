@@ -134,6 +134,23 @@ CREATE TABLE IF NOT EXISTS subcontract_posts (
 -- Invitations envoyées aux entreprises collectées. Le jeton est personnel:
 -- il pré-remplit le profil de sous-traitance et permet de savoir quelles
 -- campagnes convertissent, entreprise par entreprise.
+-- Le coffre du dossier administratif (app/services/coffre.py).
+CREATE TABLE IF NOT EXISTS coffre_pieces (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    member_id     INTEGER NOT NULL,
+    type          TEXT NOT NULL,
+    libelle       TEXT DEFAULT '',
+    fichier       TEXT NOT NULL,
+    nom_original  TEXT DEFAULT '',
+    taille        INTEGER DEFAULT 0,
+    delivre_le    TEXT DEFAULT '',
+    expire_le     TEXT DEFAULT '',
+    rappels_faits TEXT DEFAULT '[]',
+    created_at    TEXT DEFAULT '',
+    updated_at    TEXT DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS idx_coffre_membre ON coffre_pieces(member_id, type);
+
 CREATE TABLE IF NOT EXISTS invitations (
     token      TEXT PRIMARY KEY,
     company_id INTEGER NOT NULL,

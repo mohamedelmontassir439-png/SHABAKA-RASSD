@@ -6,7 +6,7 @@ import os, re, json, secrets, asyncio, logging, hashlib, csv, io, time, tracebac
 from datetime import datetime, date, timedelta
 from contextlib import asynccontextmanager
 from collections import defaultdict
-from fastapi import FastAPI, Request, Form, HTTPException
+from fastapi import FastAPI, Request, Form, HTTPException, File, UploadFile
 from fastapi.responses import (HTMLResponse, RedirectResponse,
                                JSONResponse, StreamingResponse, Response, FileResponse)
 from fastapi.templating import Jinja2Templates
@@ -483,6 +483,25 @@ async def daily_digest_scheduler():
         await asyncio.sleep(1800)
 
 
+async def coffre_scheduler():
+    """Prévient, une fois par seuil, qu'une pièce du coffre va expirer."""
+    from app.services.coffre import envoyer_rappels
+    await asyncio.sleep(420)
+    dernier = ""
+    while True:
+        try:
+            maintenant = datetime.now()
+            jour = maintenant.strftime("%Y-%m-%d")
+            if maintenant.hour >= 9 and dernier != jour:
+                loop = asyncio.get_event_loop()
+                n = await loop.run_in_executor(None, envoyer_rappels)
+                dernier = jour
+                if n: logger.info(f"[coffre] {n} rappel(s) d'expiration")
+        except Exception as e:
+            logger.error(f"[coffre_scheduler] {e}")
+        await asyncio.sleep(1800)
+
+
 async def recap_prep_scheduler():
     """Fige chaque soir le lot à envoyer à la main le lendemain matin.
 
@@ -836,6 +855,7 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(renewal_scheduler())
     asyncio.create_task(daily_digest_scheduler())
     asyncio.create_task(recap_prep_scheduler())
+    asyncio.create_task(coffre_scheduler())
     yield
 
 app = FastAPI(lifespan=lifespan, title=cfg.APP_NAME,
@@ -958,6 +978,7 @@ templates.env.globals["issue_procedure"] = issue_procedure
 templates.env.globals["cartes_conditions"] = lambda texte: cartes(conditions_avis(texte))
 templates.env.globals["contact_avis"] = contact_detaille
 templates.env.globals["chiffres_avis"] = chiffres_lecture
+templates.env.globals["coffre_libelle"] = lambda code, lang="fr": __import__("app.services.coffre", fromlist=["TYPES"]).TYPES.get(code, (code, code))[1 if lang == "ar" else 0]
 templates.env.globals["fond_frise"] = marque.fond_frise
 
 
@@ -1305,7 +1326,10 @@ async def tender_detail(req: Request, tid: str):
     except Exception as e:
         logger.warning(f"[commit] {e}")
     db.close()
-    return render(req, "detail.html", {"t":dict(t),"related":related,"is_fav":is_fav})
+    from app.services.coffre import pour_marche
+    dossier_admin = pour_marche(m0["id"], dict(t)) if m0 else []
+    return render(req, "detail.html", {"t":dict(t),"related":related,"is_fav":is_fav,
+                                       "dossier_admin": dossier_admin})
 
 @app.get("/tenders/{tid}/source")
 async def tender_source_redirect(req: Request, tid: str):
@@ -1348,6 +1372,74 @@ async def toggle_fav(req: Request, tid: str):
         db.commit()
         return JSONResponse({"ok":True,"fav":True})
     finally: db.close()
+
+@app.get("/coffre", response_class=HTMLResponse)
+async def coffre_page(req: Request, ok: str = "", err: str = ""):
+    """Le dossier administratif du membre: ses pièces et leur validité."""
+    member = get_member(req)
+    if not member: return RedirectResponse("/login?next=/coffre", 302)
+    if not has_access(member): return RedirectResponse("/tarifs?locked=1", 302)
+    from app.services import coffre
+    mes = coffre.pieces(member["id"])
+    lang = get_lang(req)
+    lignes = []
+    for code, (fr, ar, mois, requise, aide_fr, aide_ar) in coffre.TYPES.items():
+        lignes.append({"code": code, "libelle": ar if lang == "ar" else fr,
+                       "aide": aide_ar if lang == "ar" else aide_fr, "mois": mois,
+                       "requise": requise, "piece": mes.get(code)})
+    a_jour = sum(1 for l in lignes if l["requise"] and l["piece"]
+                 and l["piece"]["statut"] in ("valide", "bientot", "permanent"))
+    requises = sum(1 for l in lignes if l["requise"])
+    return render(req, "coffre.html", {
+        "lignes": lignes, "ok": ok, "err": err, "a_jour": a_jour, "requises": requises,
+        "csrf_token": get_csrf_token(req) or secrets.token_urlsafe(24)})
+
+
+@app.post("/coffre/deposer")
+async def coffre_deposer(req: Request, type_piece: str = Form(""), delivre_le: str = Form(""),
+                         expire_le: str = Form(""), csrf_token: str = Form(""),
+                         fichier: UploadFile = File(None)):
+    member = get_member(req)
+    if not member: return RedirectResponse("/login?next=/coffre", 302)
+    if not has_access(member): return RedirectResponse("/tarifs?locked=1", 302)
+    csrf_guard(req, csrf_token)
+    from app.services import coffre
+    if not fichier or not fichier.filename:
+        return RedirectResponse("/coffre?err=vide#p-" + type_piece[:20], 302)
+    # On lit une octet de plus que la limite: assez pour savoir qu'elle est
+    # dépassée sans charger en mémoire un fichier de 500 Mo.
+    contenu = await fichier.read(coffre.TAILLE_MAX + 1)
+    ok, info = coffre.enregistrer(member["id"], type_piece, contenu, fichier.filename,
+                                  delivre_le.strip(), expire_le.strip())
+    if not ok:
+        return RedirectResponse(f"/coffre?err={info}#p-{type_piece[:20]}", 302)
+    return RedirectResponse(f"/coffre?ok={type_piece[:20]}#p-{type_piece[:20]}", 302)
+
+
+@app.get("/coffre/{pid}/fichier")
+async def coffre_fichier(req: Request, pid: int):
+    member = get_member(req)
+    if not member: return RedirectResponse("/login?next=/coffre", 302)
+    from app.services import coffre
+    p = coffre.piece(member["id"], pid)
+    if not p or not os.path.exists(coffre.chemin(p)):
+        return render(req, "404.html", {}, status_code=404)
+    from fastapi.responses import FileResponse
+    ext = os.path.splitext(p["fichier"])[1].lower()
+    return FileResponse(coffre.chemin(p), media_type=coffre.EXTENSIONS.get(ext, "application/octet-stream"),
+                        filename=p["nom_original"] or f"piece{ext}",
+                        headers={"Cache-Control": "private, no-store"})
+
+
+@app.post("/coffre/{pid}/supprimer")
+async def coffre_supprimer(req: Request, pid: int, csrf_token: str = Form("")):
+    member = get_member(req)
+    if not member: return RedirectResponse("/login?next=/coffre", 302)
+    csrf_guard(req, csrf_token)
+    from app.services import coffre
+    coffre.supprimer(member["id"], pid)
+    return RedirectResponse("/coffre?ok=supprime", 302)
+
 
 @app.get("/favorites", response_class=HTMLResponse)
 async def favorites_page(req: Request):
