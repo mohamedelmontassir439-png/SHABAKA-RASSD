@@ -134,6 +134,32 @@ CREATE TABLE IF NOT EXISTS subcontract_posts (
 -- Invitations envoyées aux entreprises collectées. Le jeton est personnel:
 -- il pré-remplit le profil de sous-traitance et permet de savoir quelles
 -- campagnes convertissent, entreprise par entreprise.
+-- Les concurrents qu'un membre suit (app/services/veille_resultats.py).
+CREATE TABLE IF NOT EXISTS concurrents_suivis (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    member_id  INTEGER NOT NULL,
+    nom        TEXT NOT NULL,
+    nom_norm   TEXT NOT NULL,
+    created_at TEXT DEFAULT '',
+    UNIQUE(member_id, nom_norm)
+);
+-- Les offres qu'un membre prépare, étape par étape (app/services/suivi.py).
+CREATE TABLE IF NOT EXISTS suivi_offres (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    member_id     INTEGER NOT NULL,
+    tender_id     TEXT NOT NULL,
+    objet         TEXT DEFAULT '',
+    acheteur      TEXT DEFAULT '',
+    date_limite   TEXT DEFAULT '',
+    etape         TEXT DEFAULT 'etude',
+    notes         TEXT DEFAULT '',
+    montant_offre TEXT DEFAULT '',
+    rappels_faits TEXT DEFAULT '[]',
+    created_at    TEXT DEFAULT '',
+    updated_at    TEXT DEFAULT '',
+    UNIQUE(member_id, tender_id)
+);
+
 -- Le coffre du dossier administratif (app/services/coffre.py).
 CREATE TABLE IF NOT EXISTS coffre_pieces (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,

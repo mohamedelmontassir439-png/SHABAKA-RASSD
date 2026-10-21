@@ -25,6 +25,11 @@ _MENTIONS = {
     "infructueux": "infructueux",
     "declare infructueux": "infructueux",
     "annule": "annule",
+    # Le féminin et le pluriel: « annulée » passait pour un attributaire
+    # (relevé le 21/10/2026).
+    "annulee": "annule", "annules": "annule", "annulees": "annule",
+    "infructueuse": "infructueux", "infructueuses": "infructueux",
+    "declaree infructueuse": "infructueux",
     "sans suite": "sans_suite",
     "non attribue": "sans_suite",
     "abandonne": "sans_suite",
@@ -37,7 +42,9 @@ _MENTIONS = {
 def _nu(texte: str) -> str:
     d = unicodedata.normalize("NFD", (texte or "").strip().lower())
     sans = "".join(c for c in d if unicodedata.category(c) != "Mn")
-    return re.sub(r"\s+", " ", sans)
+    # « annulée. », « Infructueux ! »: la ponctuation autour ne change pas
+    # la mention (relevé le 21/10/2026).
+    return re.sub(r"\s+", " ", sans).strip(" .!;:,-–—")
 
 
 def issue(adjudicataire: str) -> str:

@@ -90,8 +90,8 @@ class TestRendu:
         g = main.templates.get_template("detail.html")
         source = g.environment.loader.get_source(g.environment, "detail.html")[0]
         debut = source.index("{% set bdc =")
-        fin = source.index('class="desc-section"')
-        bloc = source[debut:source.rfind("{% if", 0, fin)]
+        # L'encadré s'arrête où commencent les marchés comparables.
+        bloc = source[debut:source.index("{# Ce que les marchés déjà attribués")]
         tpl = main.templates.env.from_string(bloc)
         return tpl.render(t=t, tr=lambda k, **kw: k + (str(kw.get("n", "")) if kw else ""),
                           ico=lambda *a: "", lang="fr")

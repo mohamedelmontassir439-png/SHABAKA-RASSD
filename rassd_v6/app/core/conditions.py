@@ -162,7 +162,11 @@ def cartes(cond: dict) -> list:
     if cond.get("agrements"):
         c.append(("cond_agrement", cond["agrements"], "cond_agrement_aide", True))
     if cond.get("qualifications"):
-        c.append(("cond_qualification", cond["qualifications"], "cond_qualification_aide", True))
+        # Une ligne par qualification: le texte brut enchaîne ministère,
+        # secteur et classe et se lit mal dès la deuxième.
+        from app.core.lecture import qualifications_lisibles
+        c.append(("cond_qualification", " · ".join(qualifications_lisibles(cond["qualifications"])),
+                  "cond_qualification_aide", True))
     if not cond.get("agrements") and not cond.get("qualifications") and not en_lots:
         c.append(("cond_agrement", "aucun", "", False))
 

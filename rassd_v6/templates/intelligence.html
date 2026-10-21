@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}{{ tr('intel_titre') }} — Maroc Entrepreneuriat{% endblock %}
+{% block body %}
+<style>
+.in-hero { padding: 40px 0 22px; border-bottom: 1px solid var(--line); }
+.in-lede { color: var(--text3); font-size:var(--f4); line-height: 1.65; max-width: 64ch; margin-top: 10px; }
+.in-cherche { display: flex; gap: 8px; margin-top: 18px; max-width: 620px; }
+.in-cherche input { flex: 1; min-width: 0; padding: 11px 14px; border: 1px solid var(--line); border-radius: var(--r2); background: var(--surface); font: inherit; color: var(--text1); }
+.in-note { font-size:var(--f2); color: var(--text3); margin-top: 8px; max-width: 64ch; line-height: 1.55; }
+.in-titre { font-size:var(--f2); font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--amberd); margin: 28px 0 12px; }
+.in-chiffres { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.in-chiffre { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 16px 18px; }
+.in-chiffre b { display: block; font-family: var(--serif); font-size:var(--f6); color: var(--text1); font-variant-numeric: tabular-nums; }
+.in-chiffre span { color: var(--text3); font-size:var(--f2); }
+.in-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+.in-tag { background: var(--surface); border: 1px solid var(--line); border-radius: 99px; padding: 5px 12px; font-size:var(--f2); color: var(--text2); }
+.in-ligne { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); padding: 13px 16px; margin-bottom: 8px; align-items: center; }
+.in-ligne b { color: var(--text1); font-weight: 600; font-size:var(--f3); line-height: 1.45; display: block; }
+.in-ligne span { color: var(--text3); font-size:var(--f2); }
+.in-ligne .num { font-weight: 700; color: var(--grn); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.in-rang { display: flex; justify-content: space-between; gap: 12px; padding: 11px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); margin-bottom: 6px; text-decoration: none; color: var(--text1); font-weight: 600; font-size:var(--f3); }
+.in-rang:hover, .in-rang:focus-visible { border-color: var(--ink); }
+.in-rang em { font-style: normal; color: var(--text3); font-weight: 600; white-space: nowrap; }
+.in-vide { color: var(--text3); font-size:var(--f3); padding: 18px 0; }
+@media (max-width: 760px) { .in-chiffres { grid-template-columns: minmax(0, 1fr); } }
+</style>
+
+<div class="container">
+  <section class="in-hero">
+    <div class="section-label">{{ tr('intel_label') }}</div>
+    <h1 class="display-l">{{ tr('intel_titre') }}</h1>
+    <p class="in-lede">{{ tr('intel_lede') }}</p>
+    <form class="in-cherche" method="get" action="/intelligence" role="search">
+      <input type="search" name="q" value="{{ q }}" placeholder="{{ tr('intel_placeholder') }}" aria-label="{{ tr('intel_placeholder') }}" maxlength="120">
+      <button type="submit" class="btn btn-primary">{{ tr('intel_chercher') }}</button>
+    </form>
+    <p class="in-note">{{ tr('intel_note') }}</p>
+  </section>
+
+  {% if q %}
+    {% if profil.marches %}
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:26px">
+      <h2 style="font-family:var(--serif);font-size:var(--f6);color:var(--text1)">{{ profil.nom }}</h2>
+      <form method="post" action="/intelligence/suivre">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <input type="hidden" name="nom" value="{{ q }}">
+        {% if suivi_actuel %}<input type="hidden" name="arreter" value="1">
+        <button type="submit" class="btn">{{ tr('intel_ne_plus_suivre') }}</button>
+        {% else %}<button type="submit" class="btn btn-primary">{{ ico('cloche', 15)|safe }} {{ tr('intel_suivre') }}</button>{% endif %}
+      </form>
+    </div>
+    <div class="in-chiffres" style="margin-top:14px">
+      <div class="in-chiffre"><b>{{ profil.marches }}</b><span>{{ tr('intel_marches_gagnes') }}</span></div>
+      <div class="in-chiffre"><b dir="ltr">{{ profil.total or '—' }}</b><span>{{ tr('intel_montant_cumule') }}</span></div>
+      <div class="in-chiffre"><b>{{ profil.acheteurs|length }}</b><span>{{ tr('intel_acheteurs') }}</span></div>
+    </div>
+    {% if profil.secteurs %}<div class="in-titre">{{ tr('intel_secteurs') }}</div>
+    <div class="in-tags">{% for s, n in profil.secteurs %}<span class="in-tag">{{ s }} ({{ n }})</span>{% endfor %}</div>{% endif %}
+    {% if profil.acheteurs %}<div class="in-titre">{{ tr('intel_ses_acheteurs') }}</div>
+    <div class="in-tags">{% for a, n in profil.acheteurs %}<span class="in-tag">{{ a }} ({{ n }})</span>{% endfor %}</div>{% endif %}
+    {% if profil.villes %}<div class="in-titre">{{ tr('intel_villes') }}</div>
+    <div class="in-tags">{% for v, n in profil.villes %}<span class="in-tag">{{ v }} ({{ n }})</span>{% endfor %}</div>{% endif %}
+    <div class="in-titre">{{ tr('intel_derniers') }}</div>
+    {% for r in profil.lignes %}
+    <div class="in-ligne"><div><b>{{ r.objet[:170] }}</b>
+      <span>{{ (r.acheteur or '').split('/')[-1][:70] }}{% if r.ville %} · {{ r.ville }}{% endif %}{% if r.date_adjudication %} · {{ r.date_adjudication }}{% endif %}</span></div>
+      <div class="num" dir="ltr">{{ r.montant_txt }}</div></div>
+    {% endfor %}
+    {% else %}
+    <p class="in-vide">{{ tr('intel_aucun', q=q) }}</p>
+    {% endif %}
+  {% else %}
+    {% if suivis %}
+    <div class="in-titre">{{ tr('intel_mes_suivis') }}</div>
+    <div class="in-tags">{% for s in suivis %}<a class="in-tag" href="/intelligence?q={{ s.nom|urlencode }}">{{ ico('cloche', 13)|safe }} {{ s.nom }}</a>{% endfor %}</div>
+    {% endif %}
+    <div class="in-titre">{{ tr('intel_classement') }}</div>
+    {% for nom, n in classement %}
+    <a class="in-rang" href="/intelligence?q={{ nom|urlencode }}"><span>{{ loop.index }}. {{ nom }}</span><em>{{ tr('intel_n_marches', n=n) }}</em></a>
+    {% else %}
+    <p class="in-vide">{{ tr('intel_classement_vide') }}</p>
+    {% endfor %}
+  {% endif %}
+</div>
+{% endblock %}

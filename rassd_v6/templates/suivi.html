@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}{{ tr('suivi_titre') }} — Maroc Entrepreneuriat{% endblock %}
+{% block body %}
+<style>
+.sv-hero { padding: 40px 0 22px; border-bottom: 1px solid var(--line); }
+.sv-lede { color: var(--text3); font-size:var(--f4); line-height: 1.65; max-width: 64ch; margin-top: 10px; }
+.sv-etape { margin-top: 26px; }
+.sv-etape-t { display: flex; align-items: center; gap: 10px; font-size:var(--f2); font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--amberd); margin-bottom: 10px; }
+.sv-etape-t span { background: var(--surface2); color: var(--text3); border-radius: 99px; padding: 1px 9px; letter-spacing: 0; }
+.sv-carte { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 16px 18px; margin-bottom: 10px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; }
+.sv-objet { font-weight: 600; color: var(--text1); font-size:var(--f4); line-height: 1.4; text-decoration: none; }
+.sv-objet:hover { text-decoration: underline; }
+.sv-meta { color: var(--text3); font-size:var(--f2); margin-top: 5px; }
+.sv-prochaine { margin-top: 9px; display: inline-flex; gap: 6px; align-items: center; font-size:var(--f2); font-weight: 700; padding: 4px 11px; border-radius: 99px; background: var(--ambera); color: var(--amberd); }
+.sv-prochaine.urgent { background: var(--reda); color: var(--red); }
+.sv-actions { display: flex; flex-direction: column; gap: 6px; align-items: stretch; min-width: 170px; }
+.sv-actions select { padding: 7px 9px; border: 1px solid var(--line); border-radius: var(--r1); background: var(--surface); font: inherit; color: var(--text1); }
+.sv-retirer { background: none; border: none; color: var(--text3); font-size:var(--f2); text-decoration: underline; cursor: pointer; padding: 0; }
+.sv-vide { text-align: center; padding: 70px 20px; color: var(--text3); font-size:var(--f4); line-height: 1.7; }
+@media (max-width: 700px) { .sv-carte { grid-template-columns: minmax(0, 1fr); } }
+</style>
+
+<div class="container">
+  <section class="sv-hero">
+    <div class="section-label">{{ tr('suivi_label') }}</div>
+    <h1 class="display-l">{{ tr('suivi_titre') }}</h1>
+    <p class="sv-lede">{{ tr('suivi_lede') }}</p>
+  </section>
+
+  {% set total = namespace(n=0) %}
+  {% for e in etapes %}{% set total.n = total.n + tableau[e]|length %}{% endfor %}
+  {% if not total.n %}
+  <div class="sv-vide">{{ tr('suivi_vide') }}<br><a href="/tenders" class="btn btn-primary" style="margin-top:16px">{{ tr('suivi_parcourir') }}</a></div>
+  {% endif %}
+
+  {% for e in etapes if tableau[e] %}
+  <section class="sv-etape">
+    <div class="sv-etape-t">{{ tr('suivi_etape_' ~ e) }} <span>{{ tableau[e]|length }}</span></div>
+    {% for s in tableau[e] %}
+    <article class="sv-carte">
+      <div>
+        <a class="sv-objet" href="/tenders/{{ s.tender_id }}">{{ s.objet[:170] }}</a>
+        <div class="sv-meta">{{ (s.acheteur or '')[:80] }}{% if s.date_limite %} · {{ tr('detail_deadline') }} {{ s.date_limite }}{% endif %}{% if s.montant %} · <span dir="ltr">{{ s.montant }}</span>{% endif %}</div>
+        {% if s.prochaine and e in ('etude', 'preparation', 'caution') %}
+        <div class="sv-prochaine {% if s.prochaine.reste <= 2 %}urgent{% endif %}">
+          {{ ico('cloche', 13)|safe }} {{ tr('suivi_ech_' ~ s.prochaine.cle) }} — <span dir="ltr">{{ s.prochaine.jour.strftime('%d/%m/%Y') }}</span>
+          ({{ tr('lire_v_aujourdhui') if s.prochaine.reste == 0 else tr('lire_v_jours', n=s.prochaine.reste) }})
+        </div>
+        {% endif %}
+        {% if s.notes %}<div class="sv-meta" style="white-space:pre-wrap">{{ s.notes }}</div>{% endif %}
+      </div>
+      <form class="sv-actions" method="post" action="/suivi/{{ s.id }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <label class="sr-only" for="et{{ s.id }}">{{ tr('suivi_changer') }}</label>
+        <select id="et{{ s.id }}" name="etape" onchange="this.form.submit()">
+          {% for x in etapes %}<option value="{{ x }}" {% if x == s.etape %}selected{% endif %}>{{ tr('suivi_etape_' ~ x) }}</option>{% endfor %}
+        </select>
+        <noscript><button type="submit" class="btn btn-sm">{{ tr('suivi_changer') }}</button></noscript>
+      </form>
+    </article>
+    {% endfor %}
+  </section>
+  {% endfor %}
+</div>
+{% endblock %}

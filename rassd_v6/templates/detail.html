@@ -31,6 +31,23 @@
 .cond-contact a { color: var(--navy); font-weight: 600; text-decoration: none; overflow-wrap: anywhere; }
 .cond-contact a:hover, .cond-contact a:focus-visible { text-decoration: underline; }
 .cond-source { font-size:var(--f1); color: var(--text3); margin-top: 10px; }
+/* ── Suivi de l'offre et marchés comparables ───────────── */
+.sv-bloc { border: 1px solid var(--line); border-radius: var(--r3); background: var(--surface); margin-top: 28px; padding: 18px 22px; scroll-margin-top: 90px; }
+.sv-bloc-tete { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.sv-bloc-titre { font-family: var(--serif); font-weight: 700; font-size:var(--f5); color: var(--text1); }
+.sv-bloc-aide { font-size:var(--f2); color: var(--text3); margin-top: 4px; }
+.sv-form { display: grid; grid-template-columns: minmax(0, 220px) minmax(0, 1fr); gap: 10px; margin-top: 14px; align-items: start; }
+.sv-form select, .sv-form textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r1); background: var(--surface); font: inherit; color: var(--text1); }
+.sv-form textarea { min-height: 70px; resize: vertical; }
+.sv-ech { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.sv-ech span { font-size:var(--f2); font-weight: 600; padding: 4px 11px; border-radius: 99px; background: var(--surface2); color: var(--text2); }
+.sv-ech span.passe { opacity: .5; text-decoration: line-through; }
+.cmp-ligne { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); align-items: center; }
+.cmp-ligne b { color: var(--text1); font-weight: 600; font-size:var(--f3); line-height: 1.45; display: block; }
+.cmp-ligne span { color: var(--text3); font-size:var(--f2); }
+.cmp-ligne a { color: var(--navy); font-weight: 600; text-decoration: none; }
+.cmp-montant { font-weight: 700; color: var(--grn); white-space: nowrap; font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) { .sv-form { grid-template-columns: minmax(0, 1fr); } }
 /* ── Dossier administratif face au marché ─────────────── */
 .dos { border: 1px solid var(--line); border-radius: var(--r3); background: var(--surface); margin-top: 28px; padding: 18px 22px; }
 .dos-tete { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
@@ -174,6 +191,43 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
         </div>
       </div>
 
+      {# L'offre du membre pour ce marché: suivie ou non, son étape, ses
+         notes, et les échéances que l'avis fixe (app/services/suivi.py). #}
+      <section class="sv-bloc" id="suivi" aria-labelledby="sv-titre">
+        <div class="sv-bloc-tete">
+          <div>
+            <h2 class="sv-bloc-titre" id="sv-titre">{{ tr('suivi_bloc_titre') }}</h2>
+            {% if not mon_suivi %}<div class="sv-bloc-aide">{{ tr('suivi_bloc_aide') }}</div>{% endif %}
+          </div>
+          {% if not mon_suivi %}
+          <form method="post" action="/suivi/ajouter">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="tender_id" value="{{ t.id }}">
+            <button type="submit" class="btn btn-primary">＋ {{ tr('suivi_ajouter') }}</button>
+          </form>
+          {% endif %}
+        </div>
+        {% if mon_suivi %}
+        <form class="sv-form" method="post" action="/suivi/{{ mon_suivi.id }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="hidden" name="retour" value="/tenders/{{ t.id }}#suivi">
+          <select name="etape" aria-label="{{ tr('suivi_changer') }}">
+            {% for x in etapes_suivi %}<option value="{{ x }}" {% if x == mon_suivi.etape %}selected{% endif %}>{{ tr('suivi_etape_' ~ x) }}</option>{% endfor %}
+          </select>
+          <textarea name="notes" aria-label="{{ tr('suivi_notes') }}" placeholder="{{ tr('suivi_notes') }}">{{ mon_suivi.notes }}</textarea>
+          <div style="grid-column:1/-1;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+            <button type="submit" class="btn btn-primary btn-sm">{{ tr('suivi_enregistrer') }}</button>
+            <a href="/suivi" style="font-size:var(--f2);color:var(--navy);font-weight:600">{{ tr('nav_suivi') }} →</a>
+          </div>
+        </form>
+        {% endif %}
+        {% if echeances %}
+        <div class="sv-ech" aria-label="{{ tr('suivi_echeances') }}">
+          {% for e in echeances %}<span class="{{ 'passe' if e.reste < 0 else '' }}">{{ tr('suivi_ech_' ~ e.cle) }} · <bdi dir="ltr">{{ e.jour.strftime('%d/%m/%Y') }}</bdi></span>{% endfor %}
+        </div>
+        {% endif %}
+      </section>
+
       {# Les conditions que l'avis officiel publie: caution, agrément, visite,
          lieu des plis… Ce qu'une entreprise cherchait en ouvrant le dossier
          entier. Rien ne s'affiche pour un bon de commande ou une source
@@ -310,6 +364,34 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
           </div>
         </div>
       </div>
+
+      {# Ce que les marchés déjà attribués disent de celui-ci: des faits —
+         tel marché, tel attributaire, tel montant —, jamais un « rabais
+         habituel » que la source ne permet pas de calculer
+         (app/services/intelligence.py). #}
+      {% if comparables.lignes or gagnants %}
+      <section class="sv-bloc" aria-labelledby="cmp-titre">
+        {% if comparables.lignes %}
+        <div class="sv-bloc-tete">
+          <h2 class="sv-bloc-titre" id="cmp-titre">{{ tr('comp_titre') }}</h2>
+          <span class="sv-bloc-aide">{{ tr('comp_' ~ comparables.portee) }} · {{ comparables.total }}</span>
+        </div>
+        {% for r in comparables.lignes %}
+        <div class="cmp-ligne"><div><b>{{ r.objet[:150] }}</b>
+          <span><a href="/intelligence?q={{ r.adjudicataire|urlencode }}">{{ r.adjudicataire[:60] }}</a>{% if r.date_adjudication %} · {{ r.date_adjudication }}{% endif %}{% if r.ville %} · {{ r.ville }}{% endif %}</span></div>
+          <div class="cmp-montant" dir="ltr">{{ r.montant_txt }}</div></div>
+        {% endfor %}
+        {% endif %}
+        {% if gagnants %}
+        <h3 class="sv-bloc-titre" style="font-size:var(--f4);margin-top:18px">{{ tr('comp_gagnants') }}</h3>
+        {% for g in gagnants %}
+        <div class="cmp-ligne"><div><a href="/intelligence?q={{ g.nom|urlencode }}">{{ g.nom }}</a></div>
+          <span>{{ tr('intel_n_marches', n=g.marches) }}</span></div>
+        {% endfor %}
+        {% endif %}
+        <p class="sv-bloc-aide" style="margin-top:10px">{{ tr('intel_note') }}</p>
+      </section>
+      {% endif %}
 
       {% if t.description and (t.description or '')|length > 80 %}
       <div class="desc-section">

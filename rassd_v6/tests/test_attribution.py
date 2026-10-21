@@ -93,3 +93,15 @@ class TestLesLibelles:
             page = f.read()
         assert 'href="tel:+{{ p.contact_phone' in page
         assert "tel(p.contact_phone)" in page
+
+
+class TestFormesAccordees:
+    """« annulée. » passait pour une entreprise (relevé le 21/10/2026)."""
+
+    @pytest.mark.parametrize("brut,attendu", [
+        ("annulée.", "annule"), ("Annulees", "annule"), ("Infructueuse", "infructueux"),
+        ("Déclarée infructueuse !", "infructueux"), ("STE ANNULÉE SARL", ""),
+    ])
+    def test_genre_nombre_ponctuation(self, brut, attendu):
+        from app.core.attribution import issue
+        assert issue(brut) == attendu

@@ -196,7 +196,7 @@ def _save_results(results: list) -> int:
     # attributaire n'est jamais relie a son telephone et la piste de
     # sous-traitance reste inexploitable.
     from app.services.companies import normalize_company_name
-    db = get_db(); saved = 0
+    db = get_db(); saved = 0; nouveaux = []
     for r in results:
         try:
             db.execute("""INSERT OR IGNORE INTO tender_results
@@ -215,9 +215,18 @@ def _save_results(results: list) -> int:
                  normalize_company_name(r.get("adjudicataire",""))))
             if db.execute("SELECT changes()").fetchone()[0]:
                 saved += 1
+                nouveaux.append(r)
         except Exception as e:
             logger.error(f"[save_results] {e}")
     db.commit(); db.close()
+    # Un concurrent suivi qui gagne, un marché suivi qui est attribué: le
+    # membre l'apprend le jour même. Une panne ici ne doit pas faire perdre
+    # la collecte qui vient d'être enregistrée.
+    try:
+        from app.services.veille_resultats import notifier
+        notifier(nouveaux)
+    except Exception as e:
+        logger.error(f"[veille_resultats] {e}")
     return saved
 
 def _record_run(source: str, status: str, found: int = 0, saved: int = 0,
@@ -480,6 +489,25 @@ async def daily_digest_scheduler():
                 if n: logger.info(f"[résumé quotidien] {n} envoi(s)")
         except Exception as e:
             logger.error(f"[daily_digest_scheduler] {e}")
+        await asyncio.sleep(1800)
+
+
+async def suivi_scheduler():
+    """Rappelle les échéances des offres en préparation: visite, caution, dépôt."""
+    from app.services.suivi import envoyer_rappels
+    await asyncio.sleep(480)
+    dernier = ""
+    while True:
+        try:
+            maintenant = datetime.now()
+            jour = maintenant.strftime("%Y-%m-%d")
+            if maintenant.hour >= 8 and dernier != jour:
+                loop = asyncio.get_event_loop()
+                n = await loop.run_in_executor(None, envoyer_rappels)
+                dernier = jour
+                if n: logger.info(f"[suivi] {n} rappel(s) d'échéance")
+        except Exception as e:
+            logger.error(f"[suivi_scheduler] {e}")
         await asyncio.sleep(1800)
 
 
@@ -856,6 +884,7 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(daily_digest_scheduler())
     asyncio.create_task(recap_prep_scheduler())
     asyncio.create_task(coffre_scheduler())
+    asyncio.create_task(suivi_scheduler())
     yield
 
 app = FastAPI(lifespan=lifespan, title=cfg.APP_NAME,
@@ -1327,9 +1356,16 @@ async def tender_detail(req: Request, tid: str):
         logger.warning(f"[commit] {e}")
     db.close()
     from app.services.coffre import pour_marche
+    from app.services import intelligence, suivi
     dossier_admin = pour_marche(m0["id"], dict(t)) if m0 else []
-    return render(req, "detail.html", {"t":dict(t),"related":related,"is_fav":is_fav,
-                                       "dossier_admin": dossier_admin})
+    return render(req, "detail.html", {
+        "t": dict(t), "related": related, "is_fav": is_fav, "dossier_admin": dossier_admin,
+        "mon_suivi": suivi.pour_marche(m0["id"], tid),
+        "echeances": suivi.echeances(dict(t)),
+        "etapes_suivi": suivi.ETAPES,
+        "comparables": intelligence.comparables(dict(t)),
+        "gagnants": intelligence.qui_gagne(t["secteur"] or "", t["region"] or ""),
+        "csrf_token": get_csrf_token(req) or secrets.token_urlsafe(24)})
 
 @app.get("/tenders/{tid}/source")
 async def tender_source_redirect(req: Request, tid: str):
@@ -1372,6 +1408,86 @@ async def toggle_fav(req: Request, tid: str):
         db.commit()
         return JSONResponse({"ok":True,"fav":True})
     finally: db.close()
+
+@app.get("/intelligence", response_class=HTMLResponse)
+async def intelligence_page(req: Request, q: str = ""):
+    """Qui gagne quoi, à quel prix: un concurrent, ou les plus actifs du secteur."""
+    member = get_member(req)
+    if not member: return RedirectResponse("/login?next=/intelligence", 302)
+    if not has_access(member): return RedirectResponse("/tarifs?locked=1", 302)
+    from app.services import intelligence as I
+    from app.services.companies import normalize_company_name
+    from app.services.veille_resultats import suivis
+    q = (q or "").strip()[:120]
+    mes_suivis = suivis(member["id"])
+    suivi_actuel = bool(q) and any(s["nom_norm"] == normalize_company_name(q) for s in mes_suivis)
+    return render(req, "intelligence.html", {
+        "q": q, "profil": I.profil_concurrent(q) if q else {},
+        "classement": I.classement(mes_secteurs(member)) if not q else [],
+        "suivis": mes_suivis,
+        "suivi_actuel": suivi_actuel,
+        "csrf_token": get_csrf_token(req) or secrets.token_urlsafe(24)})
+
+
+@app.post("/intelligence/suivre")
+async def intelligence_suivre(req: Request, nom: str = Form(""), arreter: str = Form(""),
+                              csrf_token: str = Form("")):
+    member = get_member(req)
+    if not member: return RedirectResponse("/login?next=/intelligence", 302)
+    csrf_guard(req, csrf_token)
+    from app.services.veille_resultats import ne_plus_suivre, suivre
+    if arreter:
+        ne_plus_suivre(member["id"], nom)
+    else:
+        suivre(member["id"], nom)
+    from urllib.parse import quote
+    return RedirectResponse(f"/intelligence?q={quote(nom.strip())}", 302)
+
+
+@app.get("/suivi", response_class=HTMLResponse)
+async def suivi_page(req: Request):
+    """Les offres en préparation, étape par étape, avec la prochaine échéance."""
+    member = get_member(req)
+    if not member: return RedirectResponse("/login?next=/suivi", 302)
+    if not has_access(member): return RedirectResponse("/tarifs?locked=1", 302)
+    from app.services import suivi
+    return render(req, "suivi.html", {"tableau": suivi.tableau(member["id"]),
+                                      "etapes": suivi.ETAPES,
+                                      "csrf_token": get_csrf_token(req) or secrets.token_urlsafe(24)})
+
+
+@app.post("/suivi/ajouter")
+async def suivi_ajouter(req: Request, tender_id: str = Form(""), csrf_token: str = Form("")):
+    member = get_member(req)
+    if not member: return RedirectResponse("/login", 302)
+    if not has_access(member): return RedirectResponse("/tarifs?locked=1", 302)
+    csrf_guard(req, csrf_token)
+    db = get_db()
+    t = db.execute("SELECT * FROM tenders WHERE id=?", (tender_id,)).fetchone()
+    db.close()
+    if not t:
+        return RedirectResponse("/suivi", 302)
+    from app.services import suivi
+    suivi.ajouter(member["id"], dict(t))
+    return RedirectResponse(f"/tenders/{tender_id}#suivi", 302)
+
+
+@app.post("/suivi/{sid}")
+async def suivi_modifier(req: Request, sid: int, etape: str = Form(None), notes: str = Form(None),
+                         montant_offre: str = Form(None), retirer: str = Form(""),
+                         retour: str = Form("/suivi"), csrf_token: str = Form("")):
+    member = get_member(req)
+    if not member: return RedirectResponse("/login", 302)
+    csrf_guard(req, csrf_token)
+    from app.services import suivi
+    if retirer:
+        suivi.retirer(member["id"], sid)
+    else:
+        suivi.modifier(member["id"], sid, etape, notes, montant_offre)
+    # Retour seulement vers une page du site: jamais une adresse externe.
+    cible = retour if retour.startswith("/") and not retour.startswith("//") else "/suivi"
+    return RedirectResponse(cible, 302)
+
 
 @app.get("/coffre", response_class=HTMLResponse)
 async def coffre_page(req: Request, ok: str = "", err: str = ""):
