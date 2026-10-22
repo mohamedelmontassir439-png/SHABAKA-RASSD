@@ -145,3 +145,24 @@ class TestAlertesResultats:
         _membre(db)
         monkeypatch.setattr("app.services.notifications.email_send", lambda *a: True)
         assert V.notifier([{"objet": "x", "adjudicataire": "SOMAGEC"}]) == 0
+
+
+class TestAcheteur:
+    def test_adresse_entiere(self):
+        from app.services.intelligence import slug_acheteur
+        a = slug_acheteur("DIRECTION PROVINCIALE DE L'EQUIPEMENT DU TRANSPORT DE LA LOGISTIQUE ET DE L'EAU DE RABAT")
+        b = slug_acheteur("DIRECTION PROVINCIALE DE L'EQUIPEMENT DU TRANSPORT DE LA LOGISTIQUE ET DE L'EAU DE GUERCIF")
+        assert a != b
+
+    def test_profil(self, client, db):
+        _membre(db); _marche(db)
+        _resultat(db, "r1", acheteur="DIRECTION PROVINCIALE DE BOULEMANE")
+        _resultat(db, "r2", adj="Annulé", acheteur="DIRECTION PROVINCIALE DE BOULEMANE")
+        from app.services.intelligence import profil_acheteur, slug_acheteur
+        s = slug_acheteur("DIRECTION PROVINCIALE DE BOULEMANE")
+        p = profil_acheteur(s)
+        assert p["n_ouverts"] == 1 and p["resultats"] == 2 and p["taux_annule"] == 50
+        client.cookies.set("_session", "jeton-intel-1")
+        page = client.get(f"/acheteurs/{s}").text
+        assert "STE ATLAS BTP SARL" in page and "50 %" in page
+        assert f"/acheteurs/{s}" in client.get("/tenders/ao_9").text

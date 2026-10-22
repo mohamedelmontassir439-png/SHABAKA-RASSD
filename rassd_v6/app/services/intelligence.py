@@ -176,3 +176,58 @@ def classement(secteurs: list, limite: int = 10) -> list:
         for g in qui_gagne(s, limite=50):
             compte[g["nom"]] += g["marches"]
     return compte.most_common(limite)
+
+
+# ─── Profil d'un acheteur ────────────────────────────────────────────────
+
+def slug_acheteur(nom: str) -> str:
+    """L'adresse d'un acheteur, entière: tronquée, « Direction provinciale de
+    l'équipement… de Rabat » et « … de Guercif » se confondaient."""
+    return re.sub(r"\s+", "-", cle_acheteur(nom))[:160]
+
+
+def profil_acheteur(slug_demande: str) -> dict:
+    """Ce que les avis et les résultats disent d'un acheteur public.
+
+    Combien il publie, pour quels montants, dans quels secteurs; combien de
+    ses consultations finissent infructueuses ou annulées — un acheteur qui
+    annule une fois sur trois ne se prépare pas comme un autre —, et qui
+    remporte ses marchés.
+    """
+    from app.core.attribution import issue
+    from app.core.sectors import get_label
+    db = get_db()
+    try:
+        avis = [dict(r) for r in db.execute(
+            """SELECT id, objet, acheteur, secteur, region, montant, date_limite, statut, source
+               FROM tenders WHERE acheteur != ''""").fetchall()]
+    finally:
+        db.close()
+    siens = [a for a in avis if slug_acheteur(a["acheteur"]) == slug_demande]
+    resultats = [_forme(r) for r in _resultats("acheteur != ''")
+                 if slug_acheteur(r["acheteur"]) == slug_demande]
+    if not siens and not resultats:
+        return {}
+    nom = (siens or resultats)[0]["acheteur"].split("/")[-1].strip()
+    issues = Counter(issue(r.get("adjudicataire") or "") or "attribue" for r in resultats)
+    montants = [montant(a["montant"]) for a in siens if montant(a["montant"])]
+    gagnants = Counter()
+    for r in resultats:
+        for n in noms_gagnants(r.get("adjudicataire") or ""):
+            if est_attribue(n):
+                gagnants[n.strip(" -.")] += 1
+    secteurs = Counter(get_label(a["secteur"]) or a["secteur"] for a in siens if a["secteur"])
+    ouverts = [a for a in siens if a["statut"] == "actif"]
+    total_res = sum(issues.values())
+    return {
+        "nom": nom, "slug": slug_demande, "avis": len(siens), "ouverts": ouverts[:15],
+        "n_ouverts": len(ouverts),
+        "montant_median": lisible(sorted(montants)[len(montants) // 2]) if montants else "",
+        "secteurs": secteurs.most_common(6),
+        "resultats": total_res,
+        "taux_infructueux": round(100 * issues.get("infructueux", 0) / total_res) if total_res else None,
+        "taux_annule": round(100 * (issues.get("annule", 0) + issues.get("sans_suite", 0)) / total_res)
+        if total_res else None,
+        "gagnants": gagnants.most_common(8),
+        "derniers": sorted(resultats, key=_date_tri, reverse=True)[:12],
+    }

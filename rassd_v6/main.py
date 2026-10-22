@@ -1007,6 +1007,8 @@ templates.env.globals["issue_procedure"] = issue_procedure
 templates.env.globals["cartes_conditions"] = lambda texte: cartes(conditions_avis(texte))
 templates.env.globals["contact_avis"] = contact_detaille
 templates.env.globals["chiffres_avis"] = chiffres_lecture
+from app.services.intelligence import slug_acheteur as _slug_acheteur
+templates.env.globals["slug_acheteur"] = _slug_acheteur
 templates.env.globals["coffre_libelle"] = lambda code, lang="fr": __import__("app.services.coffre", fromlist=["TYPES"]).TYPES.get(code, (code, code))[1 if lang == "ar" else 0]
 templates.env.globals["fond_frise"] = marque.fond_frise
 
@@ -1464,6 +1466,20 @@ async def intelligence_suivre(req: Request, nom: str = Form(""), arreter: str = 
         suivre(member["id"], nom)
     from urllib.parse import quote
     return RedirectResponse(f"/intelligence?q={quote(nom.strip())}", 302)
+
+
+@app.get("/acheteurs/{slug}", response_class=HTMLResponse)
+async def acheteur_page(req: Request, slug: str):
+    """Le profil d'un acheteur public: volume, montants, annulations, gagnants."""
+    member = get_member(req)
+    if not member: return RedirectResponse(f"/login?next=/acheteurs/{slug}", 302)
+    if not has_access(member): return RedirectResponse("/tarifs?locked=1", 302)
+    from app.services.intelligence import profil_acheteur
+    loop = asyncio.get_event_loop()
+    p = await loop.run_in_executor(None, lambda: profil_acheteur(slug[:160]))
+    if not p:
+        return render(req, "404.html", {}, status_code=404)
+    return render(req, "acheteur.html", {"p": p})
 
 
 @app.get("/suivi", response_class=HTMLResponse)

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}{{ p.nom[:60] }} — {{ tr('ach_label') }}{% endblock %}
+{% block body %}
+<style>
+.ac-hero { padding: 40px 0 22px; border-bottom: 1px solid var(--line); }
+.ac-h1 { font-family: var(--serif); font-weight: 700; font-size: clamp(24px, 4vw, 34px); color: var(--text1); line-height: 1.25; text-wrap: balance; margin-top: 6px; }
+.ac-chiffres { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 22px; }
+.ac-chiffre { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 16px 18px; }
+.ac-chiffre b { display: block; font-family: var(--serif); font-size:var(--f6); color: var(--text1); font-variant-numeric: tabular-nums; }
+.ac-chiffre span { color: var(--text3); font-size:var(--f2); }
+.ac-chiffre.alerte b { color: var(--red); }
+.ac-titre { font-size:var(--f2); font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--amberd); margin: 28px 0 12px; }
+.ac-tags { display: flex; gap: 8px; flex-wrap: wrap; }
+.ac-tag { background: var(--surface); border: 1px solid var(--line); border-radius: 99px; padding: 5px 12px; font-size:var(--f2); color: var(--text2); text-decoration: none; }
+a.ac-tag:hover { border-color: var(--ink); }
+.ac-ligne { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); padding: 12px 16px; margin-bottom: 8px; align-items: center; text-decoration: none; }
+.ac-ligne b { color: var(--text1); font-weight: 600; font-size:var(--f3); line-height: 1.45; display: block; }
+.ac-ligne span { color: var(--text3); font-size:var(--f2); }
+.ac-ligne .num { font-weight: 700; color: var(--grn); white-space: nowrap; }
+.ac-note { color: var(--text3); font-size:var(--f2); margin-top: 10px; line-height: 1.55; max-width: 70ch; }
+@media (max-width: 860px) { .ac-chiffres { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+</style>
+
+<div class="container">
+  <section class="ac-hero">
+    <div class="section-label">{{ tr('ach_label') }}</div>
+    <h1 class="ac-h1">{{ p.nom }}</h1>
+    <div class="ac-chiffres">
+      <div class="ac-chiffre"><b>{{ p.n_ouverts }}</b><span>{{ tr('ach_ouverts') }}</span></div>
+      <div class="ac-chiffre"><b dir="ltr">{{ p.montant_median or '—' }}</b><span>{{ tr('ach_median') }}</span></div>
+      <div class="ac-chiffre"><b>{{ p.resultats }}</b><span>{{ tr('ach_resultats') }}</span></div>
+      <div class="ac-chiffre {% if p.taux_annule is not none and p.taux_annule >= 25 %}alerte{% endif %}">
+        <b>{{ (p.taux_annule ~ ' %') if p.taux_annule is not none else '—' }}</b><span>{{ tr('ach_annule') }}</span></div>
+    </div>
+    {% if p.taux_infructueux %}<p class="ac-note">{{ tr('ach_infructueux', n=p.taux_infructueux) }}</p>{% endif %}
+    <p class="ac-note">{{ tr('ach_note') }}</p>
+  </section>
+
+  {% if p.ouverts %}
+  <div class="ac-titre">{{ tr('ach_marches_ouverts') }}</div>
+  {% for a in p.ouverts %}
+  <a class="ac-ligne" href="/tenders/{{ a.id }}"><div><b>{{ a.objet[:170] }}</b>
+    <span>{{ tr('detail_deadline') }} {{ a.date_limite }}</span></div>
+    <div class="num" dir="ltr">{{ a.montant or '' }}</div></a>
+  {% endfor %}
+  {% endif %}
+
+  {% if p.secteurs %}<div class="ac-titre">{{ tr('intel_secteurs') }}</div>
+  <div class="ac-tags">{% for s, n in p.secteurs %}<span class="ac-tag">{{ s }} ({{ n }})</span>{% endfor %}</div>{% endif %}
+
+  {% if p.gagnants %}<div class="ac-titre">{{ tr('ach_gagnants') }}</div>
+  <div class="ac-tags">{% for nom, n in p.gagnants %}<a class="ac-tag" href="/intelligence?q={{ nom|urlencode }}">{{ nom }} ({{ n }})</a>{% endfor %}</div>{% endif %}
+
+  {% if p.derniers %}<div class="ac-titre">{{ tr('ach_derniers') }}</div>
+  {% for r in p.derniers %}
+  <div class="ac-ligne"><div><b>{{ r.objet[:170] }}</b>
+    <span>{{ r.adjudicataire[:70] }}{% if r.date_adjudication %} · {{ r.date_adjudication }}{% endif %}</span></div>
+    <div class="num" dir="ltr">{{ r.montant_txt }}</div></div>
+  {% endfor %}
+  {% endif %}
+</div>
+{% endblock %}

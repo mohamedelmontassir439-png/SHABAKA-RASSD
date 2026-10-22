@@ -57,7 +57,7 @@
     {% if profil.secteurs %}<div class="in-titre">{{ tr('intel_secteurs') }}</div>
     <div class="in-tags">{% for s, n in profil.secteurs %}<span class="in-tag">{{ s }} ({{ n }})</span>{% endfor %}</div>{% endif %}
     {% if profil.acheteurs %}<div class="in-titre">{{ tr('intel_ses_acheteurs') }}</div>
-    <div class="in-tags">{% for a, n in profil.acheteurs %}<span class="in-tag">{{ a }} ({{ n }})</span>{% endfor %}</div>{% endif %}
+    <div class="in-tags">{% for a, n in profil.acheteurs %}<a class="in-tag" href="/acheteurs/{{ slug_acheteur(a) }}">{{ a }} ({{ n }})</a>{% endfor %}</div>{% endif %}
     {% if profil.villes %}<div class="in-titre">{{ tr('intel_villes') }}</div>
     <div class="in-tags">{% for v, n in profil.villes %}<span class="in-tag">{{ v }} ({{ n }})</span>{% endfor %}</div>{% endif %}
     <div class="in-titre">{{ tr('intel_derniers') }}</div>

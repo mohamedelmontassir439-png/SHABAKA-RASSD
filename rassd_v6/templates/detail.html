@@ -161,7 +161,7 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
       <div class="info-grid">
         <div class="info-cell">
           <div class="info-label">{{ tr('detail_buyer') }}</div>
-          <div class="info-value">{{ (acheteur(t.acheteur) or '—')[:60] }}</div>
+          <div class="info-value">{% if t.acheteur %}<a href="/acheteurs/{{ slug_acheteur(t.acheteur) }}" style="color:inherit;text-decoration:underline;text-decoration-color:var(--line2);text-underline-offset:4px">{{ (acheteur(t.acheteur) or '—')[:60] }}</a>{% else %}—{% endif %}</div>
         </div>
         <div class="info-cell">
           <div class="info-label">{{ tr('detail_sector') }}</div>
