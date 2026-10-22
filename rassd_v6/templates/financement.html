@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{{ tr('fin_titre') }} — Maroc Entrepreneuriat{% endblock %}
+{% block body %}
+<style>
+.fn-hero { padding: 40px 0 22px; border-bottom: 1px solid var(--line); }
+.fn-lede { color: var(--text3); font-size:var(--f4); line-height: 1.65; max-width: 66ch; margin-top: 10px; }
+.fn-grille { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 22px; margin-top: 26px; align-items: start; }
+.fn-types { display: flex; flex-direction: column; gap: 10px; }
+.fn-type { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 15px 18px; }
+.fn-type b { color: var(--text1); font-size:var(--f4); }
+.fn-type p { color: var(--text2); font-size:var(--f3); line-height: 1.55; margin: 6px 0 0; }
+.fn-type small { display: block; color: var(--text3); font-size:var(--f2); margin-top: 6px; }
+.fn-form { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 20px; position: sticky; top: 88px; display: flex; flex-direction: column; gap: 10px; }
+.fn-form label { font-size:var(--f2); font-weight: 600; color: var(--text2); display: flex; flex-direction: column; gap: 5px; }
+.fn-form select, .fn-form input, .fn-form textarea { padding: 9px 11px; border: 1px solid var(--line); border-radius: var(--r1); background: var(--surface); font: inherit; color: var(--text1); }
+.fn-form textarea { min-height: 80px; resize: vertical; }
+.fn-msg { margin-top: 18px; padding: 12px 16px; border-radius: var(--r2); font-weight: 600; font-size:var(--f3); }
+.fn-msg.ok { background: var(--grna); color: var(--grn); }
+.fn-msg.err { background: var(--reda); color: var(--red); }
+.fn-titre { font-size:var(--f2); font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--amberd); margin: 30px 0 12px; }
+.fn-ligne { display: flex; justify-content: space-between; gap: 12px; padding: 11px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); margin-bottom: 6px; font-size:var(--f3); color: var(--text1); }
+.fn-statut { font-size:var(--f1); font-weight: 700; border-radius: 99px; padding: 3px 10px; background: var(--surface2); color: var(--text3); white-space: nowrap; }
+@media (max-width: 900px) { .fn-grille { grid-template-columns: minmax(0, 1fr); } .fn-form { position: static; } }
+</style>
+
+<div class="container">
+  <section class="fn-hero">
+    <div class="section-label">{{ tr('fin_label') }}</div>
+    <h1 class="display-l">{{ tr('fin_titre') }}</h1>
+    <p class="fn-lede">{{ tr('fin_lede') }}</p>
+  </section>
+  {% if ok %}<div class="fn-msg ok">{{ tr('fin_ok') }}</div>{% endif %}
+  {% if err %}<div class="fn-msg err">{{ tr('fin_err') }}</div>{% endif %}
+
+  <div class="fn-grille">
+    <div class="fn-types">
+      {% for code, v in types.items() %}
+      <div class="fn-type"><b>{{ v[1] if lang == 'ar' else v[0] }}</b>
+        <p>{{ v[3] if lang == 'ar' else v[2] }}</p>
+        <small>{{ tr('fin_pieces') }} {{ v[5] if lang == 'ar' else v[4] }}</small></div>
+      {% endfor %}
+      <p class="fn-lede" style="font-size:var(--f2)">{{ tr('fin_conseil') }}</p>
+    </div>
+
+    <form class="fn-form" method="post" action="/financement">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="tender_id" value="{{ marche.id if marche else '' }}">
+      <b style="font-family:var(--serif);font-size:var(--f5);color:var(--text1)">{{ tr('fin_demander') }}</b>
+      {% if marche %}<div style="font-size:var(--f2);color:var(--text3)">{{ tr('fin_pour') }} <b style="color:var(--text1)">{{ marche.objet[:140] }}</b></div>{% endif %}
+      <label>{{ tr('fin_type') }}
+        <select name="type_demande" required>
+          {% for code, v in types.items() %}<option value="{{ code }}" {% if code == type_choisi %}selected{% endif %}>{{ v[1] if lang == 'ar' else v[0] }}</option>{% endfor %}
+        </select></label>
+      <label>{{ tr('fin_montant') }}<input name="montant" required value="{{ montant }}" dir="ltr" placeholder="350 000 MAD"></label>
+      <label>{{ tr('fin_echeance') }}<input name="echeance" type="date" value="{{ echeance }}"></label>
+      <label>{{ tr('fin_message') }}<textarea name="message" placeholder="{{ tr('fin_message_aide') }}"></textarea></label>
+      <button type="submit" class="btn btn-primary">{{ tr('fin_envoyer') }}</button>
+      <small style="color:var(--text3);font-size:var(--f1);line-height:1.5">{{ tr('fin_mention') }}</small>
+    </form>
+  </div>
+
+  {% if demandes %}
+  <div class="fn-titre">{{ tr('fin_mes_demandes') }}</div>
+  {% for d in demandes %}
+  <div class="fn-ligne"><span>{{ types[d.type][1] if lang == 'ar' else types[d.type][0] }} · <b dir="ltr">{{ d.montant }}</b>{% if d.objet %} · {{ d.objet[:80] }}{% endif %}</span>
+    <span class="fn-statut">{{ tr('fin_statut_' ~ d.statut) }}</span></div>
+  {% endfor %}
+  {% endif %}
+</div>
+{% endblock %}

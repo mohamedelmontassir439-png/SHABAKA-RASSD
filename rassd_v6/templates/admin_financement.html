@@ -1,0 +1,39 @@
+{% extends "admin_base.html" %}
+{% block titre %}Demandes de financement{% endblock %}
+{% block soustitre %}<div class="entete-sur">Abonnés</div>{% endblock %}
+{% block contenu %}
+<p class="meta" style="max-width:760px;line-height:1.7;margin-bottom:18px">
+  Cautions et financements demandés par les membres. Chaque demande vous arrive aussi par
+  email. Appelez le membre, montez le dossier avec lui, puis notez l'avancement ici : il le
+  voit dans son espace.
+</p>
+<div class="carte">
+  <div class="tableau-cadre">
+    <table>
+      <thead><tr><th>Membre</th><th>Demande</th><th>Marché</th><th>Reçue</th><th style="text-align:end">Statut</th></tr></thead>
+      <tbody>
+        {% for d in demandes %}
+        <tr>
+          <td><div style="font-weight:600;color:var(--t1)">{{ d.company or d.nom }}</div>
+            <div class="meta">{{ d.nom }} · <a href="tel:{{ d.phone }}">{{ d.phone }}</a> · <a href="mailto:{{ d.email }}">{{ d.email }}</a></div></td>
+          <td><b>{{ types[d.type][0] if d.type in types else d.type }}</b><div class="meta num">{{ d.montant }}{% if d.echeance %} · avant {{ d.echeance }}{% endif %}</div>
+            {% if d.message %}<div class="meta" style="white-space:pre-wrap;margin-top:4px">{{ d.message[:300] }}</div>{% endif %}</td>
+          <td class="meta">{% if d.tender_id %}<a href="/tenders/{{ d.tender_id }}" target="_blank" rel="noopener">{{ (d.objet or d.tender_id)[:80] }}</a>{% else %}—{% endif %}</td>
+          <td class="meta num">{{ d.created_at[:16]|replace('T', ' ') }}</td>
+          <td style="text-align:end">
+            <form method="post" action="/admin/financement/{{ d.id }}" style="display:inline-flex;gap:6px">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+              <select name="statut" onchange="this.form.submit()" aria-label="Statut">
+                {% for s in statuts %}<option value="{{ s }}" {% if s == d.statut %}selected{% endif %}>{{ s }}</option>{% endfor %}
+              </select>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="vide">Aucune demande pour l'instant.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

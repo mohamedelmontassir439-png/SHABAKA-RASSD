@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}{{ tr('grp_titre') }} — Maroc Entrepreneuriat{% endblock %}
+{% block body %}
+<style>
+.gp-hero { padding: 40px 0 22px; border-bottom: 1px solid var(--line); }
+.gp-lede { color: var(--text3); font-size:var(--f4); line-height: 1.65; max-width: 66ch; margin-top: 10px; }
+.gp-titre { font-size:var(--f2); font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--amberd); margin: 28px 0 12px; }
+.gp-carte { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 16px 18px; margin-bottom: 10px; }
+.gp-carte b { color: var(--text1); }
+.gp-meta { color: var(--text3); font-size:var(--f2); margin-top: 4px; }
+.gp-msg { white-space: pre-wrap; color: var(--text2); font-size:var(--f3); margin-top: 8px; line-height: 1.55; }
+.gp-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.gp-statut { font-size:var(--f1); font-weight: 700; border-radius: 99px; padding: 3px 10px; background: var(--surface2); color: var(--text3); }
+.gp-statut.acceptee { background: var(--grna); color: var(--grn); }
+.gp-contact { margin-top: 8px; font-size:var(--f3); color: var(--text1); }
+.gp-contact a { color: var(--navy); font-weight: 600; }
+.gp-vide { color: var(--text3); font-size:var(--f3); }
+</style>
+<div class="container">
+  <section class="gp-hero">
+    <div class="section-label">{{ tr('grp_label') }}</div>
+    <h1 class="display-l">{{ tr('grp_titre') }}</h1>
+    <p class="gp-lede">{{ tr('grp_lede') }}</p>
+    <a class="btn" href="/groupements/modele" style="margin-top:14px">{{ tr('grp_modele') }}</a>
+  </section>
+
+  <div class="gp-titre">{{ tr('grp_recues') }}</div>
+  {% for p in props.recues %}
+  <article class="gp-carte">
+    <b>{{ p.de_societe or p.de_nom }}</b> · <span class="gp-statut {{ p.statut }}">{{ tr('grp_statut_' ~ p.statut) }}</span>
+    <div class="gp-meta"><a href="/tenders/{{ p.tender_id }}">{{ p.objet[:160] }}</a></div>
+    {% if p.message %}<div class="gp-msg">{{ p.message }}</div>{% endif %}
+    {% if p.statut == 'envoyee' %}
+    <div class="gp-actions">
+      {% for oui in (1, 0) %}
+      <form method="post" action="/groupements/{{ p.id }}/repondre">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}"><input type="hidden" name="accepte" value="{{ oui }}">
+        <button type="submit" class="btn {{ 'btn-primary' if oui else '' }} btn-sm">{{ tr('grp_accepter') if oui else tr('grp_decliner') }}</button>
+      </form>
+      {% endfor %}
+    </div>
+    {% elif p.statut == 'acceptee' %}
+    <div class="gp-contact">{{ p.de_nom }} · <a href="tel:{{ p.de_tel }}" dir="ltr">{{ tel(p.de_tel) }}</a> · <a href="mailto:{{ p.de_email }}">{{ p.de_email }}</a></div>
+    {% endif %}
+  </article>
+  {% else %}<p class="gp-vide">{{ tr('grp_aucune') }}</p>{% endfor %}
+
+  <div class="gp-titre">{{ tr('grp_envoyees') }}</div>
+  {% for p in props.envoyees %}
+  <article class="gp-carte">
+    <b>{{ p.a_societe or p.a_nom }}</b> · <span class="gp-statut {{ p.statut }}">{{ tr('grp_statut_' ~ p.statut) }}</span>
+    <div class="gp-meta"><a href="/tenders/{{ p.tender_id }}">{{ p.objet[:160] }}</a></div>
+    {% if p.statut == 'acceptee' %}
+    <div class="gp-contact">{{ p.a_nom }} · <a href="tel:{{ p.a_tel }}" dir="ltr">{{ tel(p.a_tel) }}</a> · <a href="mailto:{{ p.a_email }}">{{ p.a_email }}</a></div>
+    {% endif %}
+  </article>
+  {% else %}<p class="gp-vide">{{ tr('grp_aucune_envoyee') }}</p>{% endfor %}
+</div>
+{% endblock %}

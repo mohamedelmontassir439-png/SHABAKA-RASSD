@@ -184,6 +184,33 @@ CREATE TABLE IF NOT EXISTS qualifs_membre (
     UNIQUE(member_id, code)
 );
 
+-- Les demandes de caution ou de financement (app/services/financement.py).
+CREATE TABLE IF NOT EXISTS demandes_financement (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    member_id  INTEGER NOT NULL,
+    type       TEXT NOT NULL,
+    montant    TEXT DEFAULT '',
+    tender_id  TEXT DEFAULT '',
+    objet      TEXT DEFAULT '',
+    echeance   TEXT DEFAULT '',
+    message    TEXT DEFAULT '',
+    statut     TEXT DEFAULT 'nouvelle',
+    created_at TEXT DEFAULT '',
+    updated_at TEXT DEFAULT ''
+);
+-- Les propositions de groupement entre membres (app/services/groupement.py).
+CREATE TABLE IF NOT EXISTS propositions_groupement (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    tender_id   TEXT NOT NULL,
+    objet       TEXT DEFAULT '',
+    from_member INTEGER NOT NULL,
+    to_member   INTEGER NOT NULL,
+    message     TEXT DEFAULT '',
+    statut      TEXT DEFAULT 'envoyee',
+    created_at  TEXT DEFAULT '',
+    updated_at  TEXT DEFAULT ''
+);
+
 -- Le coffre du dossier administratif (app/services/coffre.py).
 CREATE TABLE IF NOT EXISTS coffre_pieces (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,

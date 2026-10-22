@@ -326,6 +326,31 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
       </section>
       {% endif %}
 
+      {# Former un groupement quand une qualification manque: les membres qui
+         la détiennent, et la proposition. Les coordonnées ne s'échangent
+         qu'après acceptation (app/services/groupement.py). #}
+      {% if groupement and (groupement.manquantes or grp_msg) and t.type_procedure != 'bon_commande' %}
+      <section class="sv-bloc" id="groupement" aria-labelledby="grp-titre">
+        <h2 class="sv-bloc-titre" id="grp-titre">{{ tr('grp_bloc_titre') }}</h2>
+        <p class="sv-bloc-aide">{{ tr('grp_bloc_aide', q=groupement.manquantes|map(attribute='code')|join(', ')) }}</p>
+        {% if grp_msg == 'envoye' %}<div class="cf-msg ok" style="background:var(--grna);color:var(--grn);padding:10px 14px;border-radius:var(--r2);margin-top:10px">{{ tr('grp_envoye') }}</div>
+        {% elif grp_msg %}<div class="an-err">{{ tr('grp_err') }}</div>{% endif %}
+        {% for p in groupement.partenaires %}
+        <div class="cmp-ligne"><div><b>{{ p.societe }}</b>{% if p.apports %}<span>{{ p.apports|join(' · ') }}</span>{% endif %}</div>
+          {% if p.deja %}<span class="dos-etat ok">{{ tr('grp_deja') }}</span>
+          {% else %}
+          <form method="post" action="/groupements/proposer" style="display:flex;gap:6px;align-items:center">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="tender_id" value="{{ t.id }}"><input type="hidden" name="to_member" value="{{ p.member_id }}">
+            <input type="hidden" name="message" value="{{ tr('grp_message_defaut') }}">
+            <button type="submit" class="btn btn-sm">{{ tr('grp_proposer') }}</button>
+          </form>{% endif %}
+        </div>
+        {% else %}<p class="sv-bloc-aide" style="margin-top:8px">{{ tr('grp_personne') }}</p>{% endfor %}
+        <p style="margin-top:12px"><a href="/groupements/modele?tender={{ t.id }}" style="font-size:var(--f2);font-weight:700;color:var(--navy)">{{ tr('grp_modele') }} →</a></p>
+      </section>
+      {% endif %}
+
       {# Le dossier administratif du membre, vérifié à la date limite du
          marché: une attestation qui expire la veille du dépôt ne vaut rien
          ce jour-là (app/services/coffre.py). #}
@@ -400,6 +425,7 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
             <div class="lire-item-t">{{ ico('verrou', 17)|safe }} {{ tr('lire_caution_t') }}</div>
             {% if not c.caution %}{{ manque() }}
             {% elif c.caution.valeur %}<div class="lire-item-v" dir="ltr">{{ c.caution.valeur }}</div>
+            <a href="/financement?tender={{ t.id }}&type=caution_provisoire" style="font-size:var(--f2);font-weight:700;color:var(--navy)">{{ tr('fin_demander_caution') }} →</a>
             {% elif c.caution.par_lot %}<div class="lire-item-v">{{ tr('lire_v_par_lot') }}</div>
             {% else %}<div class="lire-item-v">{{ tr('lire_v_caution_aucune') }}</div>{% endif %}
             <div class="lire-item-d">{{ tr('lire_caution_d') }}</div>

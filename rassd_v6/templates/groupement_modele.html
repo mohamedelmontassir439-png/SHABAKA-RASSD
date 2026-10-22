@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Convention de groupement — modèle</title>
+<style>
+  body { font-family: Georgia, "Times New Roman", serif; color: #1d1712; background: #fff; max-width: 760px; margin: 32px auto; padding: 0 20px; line-height: 1.6; font-size: 11pt; }
+  h1 { font-size: 16pt; text-align: center; margin-bottom: 4px; }
+  .sous { text-align: center; color: #6b5d50; margin-top: 0; }
+  h2 { font-size: 12pt; margin-top: 26px; }
+  .champ { background: #fdf3df; padding: 0 4px; }
+  .avert { border: 1px solid #e8d6b5; background: #fcf6ea; padding: 12px 16px; font-family: Arial, sans-serif; font-size: 10pt; color: #5a4a3a; }
+  .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 40px; }
+  .signatures div { border-top: 1px solid #1d1712; padding-top: 8px; min-height: 90px; }
+  @media print { .avert, .imprimer { display: none; } body { margin: 0 auto; } }
+</style>
+</head>
+<body>
+<p class="avert">Modèle indicatif proposé par Maroc Entrepreneuriat. Il suit la trame habituelle des groupements en marchés publics marocains, mais chaque marché a ses règles : vérifiez le règlement de consultation (forme du groupement admise, pièces exigées) et faites relire la convention avant signature. <button class="imprimer" onclick="window.print()">Imprimer</button></p>
+
+<h1>CONVENTION DE GROUPEMENT</h1>
+<p class="sous">pour le marché n° <span class="champ">{{ marche.reference or '……………' }}</span> — {{ marche.objet or '……………………………………' }}</p>
+
+<h2>Entre les soussignés</h2>
+<p>1. La société <span class="champ">……………………</span>, <span class="champ">forme juridique</span>, au capital de <span class="champ">…………</span> MAD, immatriculée au RC de <span class="champ">……</span> sous le n° <span class="champ">……</span>, ICE <span class="champ">……</span>, représentée par <span class="champ">……………</span>, ci-après « le mandataire » ;</p>
+<p>2. La société <span class="champ">……………………</span>, <span class="champ">forme juridique</span>, au capital de <span class="champ">…………</span> MAD, immatriculée au RC de <span class="champ">……</span> sous le n° <span class="champ">……</span>, ICE <span class="champ">……</span>, représentée par <span class="champ">……………</span> ;</p>
+
+<h2>Article 1 — Objet</h2>
+<p>Les parties constituent un groupement pour présenter une offre commune au marché cité ci-dessus, lancé par <span class="champ">{{ marche.acheteur or '……………' }}</span>, et, s'il leur est attribué, pour l'exécuter.</p>
+
+<h2>Article 2 — Forme du groupement</h2>
+<p>Le groupement est <span class="champ">conjoint / solidaire</span> (rayer la mention inutile). En groupement solidaire, chaque membre est engagé pour la totalité du marché ; en groupement conjoint, chacun l'est pour la part qui lui revient, le mandataire étant en outre solidaire des autres membres envers le maître d'ouvrage, selon ce que prévoit le règlement de consultation.</p>
+
+<h2>Article 3 — Mandataire</h2>
+<p>La société <span class="champ">……………………</span> est désignée mandataire. Elle représente le groupement auprès du maître d'ouvrage, signe l'offre au nom de tous (avec les pouvoirs joints), coordonne l'exécution et reçoit les paiements <span class="champ">pour le compte de chacun / sur le compte commun</span>.</p>
+
+<h2>Article 4 — Répartition des prestations et du montant</h2>
+<p>Membre 1 : <span class="champ">prestations ……………</span> — <span class="champ">… %</span> du montant.<br>
+Membre 2 : <span class="champ">prestations ……………</span> — <span class="champ">… %</span> du montant.</p>
+
+<h2>Article 5 — Garanties</h2>
+<p>La caution provisoire, puis la caution définitive, sont constituées <span class="champ">par le mandataire pour le compte du groupement / par chaque membre à hauteur de sa part</span>.</p>
+
+<h2>Article 6 — Durée</h2>
+<p>La convention prend effet à sa signature. Elle prend fin si le marché n'est pas attribué au groupement, ou à la réception définitive et à la libération des garanties.</p>
+
+<h2>Article 7 — Différends</h2>
+<p>Les parties cherchent d'abord un accord amiable. À défaut, le tribunal de commerce de <span class="champ">……………</span> est compétent.</p>
+
+<p>Fait à <span class="champ">……………</span>, le <span class="champ">……………</span>, en <span class="champ">…</span> exemplaires.</p>
+<div class="signatures"><div>Pour le membre 1 (mandataire)<br>Nom, qualité, signature et cachet</div><div>Pour le membre 2<br>Nom, qualité, signature et cachet</div></div>
+</body>
+</html>

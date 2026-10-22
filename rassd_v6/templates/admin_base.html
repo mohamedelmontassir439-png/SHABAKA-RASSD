@@ -203,7 +203,7 @@ tbody tr:hover td{background:var(--surface2)}
 <body>
 {% set chemin = request.url.path %}
 {% set destinations = ['/admin', '/admin/sources', '/admin/backups', '/admin/members',
-                       '/admin/payments', '/admin/recap', '/admin/maintenance',
+                       '/admin/payments', '/admin/recap', '/admin/maintenance', '/admin/financement',
                        '/admin/prospection/plan', '/admin/campagne',
                        '/admin/prospection', '/admin/companies', '/admin/annuaires',
                        '/admin/prospects', '/admin/sous-traitance'] %}
@@ -250,6 +250,7 @@ tbody tr:hover td{background:var(--surface2)}
     {{ lien('/admin/members', ico('personne', 17), 'Membres') }}
     {{ lien('/admin/payments', ico('argent', 17), 'Paiements') }}
     {{ lien('/admin/recap', ico('courriel', 17), 'Récap du jour') }}
+    {{ lien('/admin/financement', ico('argent', 17), 'Demandes de financement') }}
   </div>
 
   <div class="rail-groupe">

@@ -1377,7 +1377,7 @@ async def tender_detail(req: Request, tid: str):
         logger.warning(f"[commit] {e}")
     db.close()
     from app.services.coffre import pour_marche
-    from app.services import eligibilite, intelligence, suivi
+    from app.services import eligibilite, groupement, intelligence, suivi
     dossier_admin = pour_marche(m0["id"], dict(t)) if m0 else []
     return render(req, "detail.html", {
         "t": dict(t), "related": related, "is_fav": is_fav, "dossier_admin": dossier_admin,
@@ -1387,6 +1387,8 @@ async def tender_detail(req: Request, tid: str):
         "comparables": intelligence.comparables(dict(t)),
         "analyse": _derniere_analyse(m0["id"], tid),
         "eligibilite": eligibilite.pour_marche(m0["id"], dict(t)),
+        "groupement": groupement.partenaires(m0["id"], dict(t)),
+        "grp_msg": req.query_params.get("grp", ""),
         "analyse_msg": req.query_params.get("analyse", ""),
         "gagnants": intelligence.qui_gagne(t["secteur"] or "", t["region"] or ""),
         "csrf_token": get_csrf_token(req) or secrets.token_urlsafe(24)})
@@ -1480,6 +1482,122 @@ async def acheteur_page(req: Request, slug: str):
     if not p:
         return render(req, "404.html", {}, status_code=404)
     return render(req, "acheteur.html", {"p": p})
+
+
+@app.get("/financement", response_class=HTMLResponse)
+async def financement_page(req: Request, tender: str = "", type: str = "", ok: str = "", err: str = ""):
+    """Garanties et financement: ce qu'il faut savoir, et la demande."""
+    member = get_member(req)
+    if not member: return RedirectResponse("/login?next=/financement", 302)
+    if not has_access(member): return RedirectResponse("/tarifs?locked=1", 302)
+    from app.services import financement
+    marche, montant, echeance = None, "", ""
+    if tender:
+        db = get_db()
+        r = db.execute("SELECT * FROM tenders WHERE id=?", (tender[:60],)).fetchone()
+        db.close()
+        if r:
+            marche = dict(r)
+            if type == "caution_provisoire":
+                c = chiffres_lecture(marche).get("caution") or {}
+                montant = c.get("valeur", "")
+            try:
+                echeance = datetime.strptime((marche.get("date_limite") or "")[:10], "%d/%m/%Y").strftime("%Y-%m-%d")
+            except ValueError:
+                echeance = ""
+    return render(req, "financement.html", {
+        "types": financement.TYPES, "type_choisi": type if type in financement.TYPES else "caution_provisoire",
+        "marche": marche, "montant": montant, "echeance": echeance, "ok": ok, "err": err,
+        "demandes": financement.mes_demandes(member["id"]),
+        "csrf_token": get_csrf_token(req) or secrets.token_urlsafe(24)})
+
+
+@app.post("/financement")
+async def financement_post(req: Request, type_demande: str = Form(""), montant: str = Form(""),
+                           tender_id: str = Form(""), echeance: str = Form(""),
+                           message: str = Form(""), csrf_token: str = Form("")):
+    member = get_member(req)
+    if not member: return RedirectResponse("/login?next=/financement", 302)
+    if not has_access(member): return RedirectResponse("/tarifs?locked=1", 302)
+    csrf_guard(req, csrf_token)
+    if not check_rate_limit(f"financement_{member['id']}", 10, 3600):
+        return RedirectResponse("/financement?err=1", 302)
+    from app.services import financement
+    ok, _ = financement.creer(member, type_demande, montant, tender_id, echeance, message)
+    return RedirectResponse("/financement?ok=1" if ok else "/financement?err=1", 302)
+
+
+@app.get("/admin/financement", response_class=HTMLResponse)
+async def admin_financement(req: Request):
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    from app.services import financement
+    return render(req, "admin_financement.html", {
+        "demandes": financement.toutes(), "types": financement.TYPES, "statuts": financement.STATUTS,
+        "csrf_token": get_csrf_token(req) or secrets.token_urlsafe(24)})
+
+
+@app.post("/admin/financement/{did}")
+async def admin_financement_statut(req: Request, did: int, statut: str = Form(""),
+                                   csrf_token: str = Form("")):
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    csrf_guard(req, csrf_token)
+    from app.services import financement
+    financement.changer_statut(did, statut)
+    return RedirectResponse("/admin/financement", 302)
+
+
+@app.get("/groupements", response_class=HTMLResponse)
+async def groupements_page(req: Request):
+    member = get_member(req)
+    if not member: return RedirectResponse("/login?next=/groupements", 302)
+    if not has_access(member): return RedirectResponse("/tarifs?locked=1", 302)
+    from app.services import groupement
+    return render(req, "groupements.html", {"props": groupement.mes_propositions(member["id"]),
+                                            "csrf_token": get_csrf_token(req) or secrets.token_urlsafe(24)})
+
+
+@app.get("/groupements/modele", response_class=HTMLResponse)
+async def groupement_modele(req: Request, tender: str = ""):
+    member = get_member(req)
+    if not member: return RedirectResponse("/login?next=/groupements/modele", 302)
+    marche = {}
+    if tender:
+        db = get_db()
+        r = db.execute("SELECT * FROM tenders WHERE id=?", (tender[:60],)).fetchone()
+        db.close()
+        if r:
+            marche = dict(r)
+            marche["reference"] = conditions_avis(marche.get("description") or "").get("reference", "")
+    return render(req, "groupement_modele.html", {"marche": marche})
+
+
+@app.post("/groupements/proposer")
+async def groupement_proposer(req: Request, tender_id: str = Form(""), to_member: int = Form(0),
+                              message: str = Form(""), csrf_token: str = Form("")):
+    member = get_member(req)
+    if not member: return RedirectResponse("/login", 302)
+    if not has_access(member): return RedirectResponse("/tarifs?locked=1", 302)
+    csrf_guard(req, csrf_token)
+    if not check_rate_limit(f"groupement_{member['id']}", 20, 3600):
+        return RedirectResponse(f"/tenders/{tender_id}?grp=trop#groupement", 302)
+    db = get_db()
+    t = db.execute("SELECT * FROM tenders WHERE id=?", (tender_id[:60],)).fetchone()
+    db.close()
+    if not t:
+        return RedirectResponse("/groupements", 302)
+    from app.services import groupement
+    ok, code = groupement.proposer(member, to_member, dict(t), message)
+    return RedirectResponse(f"/tenders/{tender_id}?grp={'envoye' if ok else code}#groupement", 302)
+
+
+@app.post("/groupements/{pid}/repondre")
+async def groupement_repondre(req: Request, pid: int, accepte: int = Form(0), csrf_token: str = Form("")):
+    member = get_member(req)
+    if not member: return RedirectResponse("/login", 302)
+    csrf_guard(req, csrf_token)
+    from app.services import groupement
+    groupement.repondre(member["id"], pid, bool(accepte))
+    return RedirectResponse("/groupements", 302)
 
 
 @app.get("/suivi", response_class=HTMLResponse)
