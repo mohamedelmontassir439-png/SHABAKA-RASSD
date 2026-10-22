@@ -48,6 +48,18 @@
 .cmp-ligne a { color: var(--navy); font-weight: 600; text-decoration: none; }
 .cmp-montant { font-weight: 700; color: var(--grn); white-space: nowrap; font-variant-numeric: tabular-nums; }
 @media (max-width: 640px) { .sv-form { grid-template-columns: minmax(0, 1fr); } }
+/* ── Lecture du dossier CPS / RC ─────────────────────── */
+.an-grille { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r2); overflow: hidden; margin-top: 14px; }
+.an-case { background: var(--surface); padding: 14px 16px; }
+.an-case.alerte { background: var(--reda); }
+.an-cle { display: flex; justify-content: space-between; gap: 8px; font-size:var(--f1); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--amberd); margin-bottom: 6px; }
+.an-val { font-weight: 700; color: var(--text1); font-size:var(--f4); }
+.an-src { margin-top: 6px; font-size:var(--f1); color: var(--text3); line-height: 1.5; }
+.an-src summary { cursor: pointer; font-weight: 600; }
+.an-liste { margin: 8px 0 0; padding-inline-start: 20px; font-size:var(--f3); color: var(--text2); line-height: 1.6; }
+.an-form { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
+.an-err { margin-top: 10px; padding: 10px 14px; border-radius: var(--r2); background: var(--reda); color: var(--red); font-weight: 600; font-size:var(--f3); }
+@media (max-width: 640px) { .an-grille { grid-template-columns: minmax(0, 1fr); } }
 /* ── Dossier administratif face au marché ─────────────── */
 .dos { border: 1px solid var(--line); border-radius: var(--r3); background: var(--surface); margin-top: 28px; padding: 18px 22px; }
 .dos-tete { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
@@ -265,6 +277,52 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
           {% if cases|length is odd %}<div class="info-cell" aria-hidden="true"></div>{% endif %}
         </div>
         <div class="cond-source">{{ tr('cond_source') }}</div>
+      </section>
+      {% endif %}
+
+      {# La lecture du dossier de consultation déposé par le membre: chaque
+         valeur avec la phrase d'où elle est tirée, et ce qui s'écarte des
+         usages signalé « à lire de près » (app/services/analyse_dossier.py). #}
+      {% if t.type_procedure != 'bon_commande' %}
+      <section class="sv-bloc" id="analyse" aria-labelledby="an-titre">
+        <h2 class="sv-bloc-titre" id="an-titre">{{ tr('an_titre') }}</h2>
+        {% if not analyse %}<p class="sv-bloc-aide">{{ tr('an_aide') }}</p>{% endif %}
+        {% if analyse_msg %}<div class="an-err">{{ tr('an_err_' ~ analyse_msg) if analyse_msg in ('vide', 'taille', 'format', 'scanne', 'trop') else tr('an_err_format') }}</div>{% endif %}
+        {% if analyse %}
+          {% set r = analyse.resultat %}
+          <p class="sv-bloc-aide">{{ tr('an_lu') }} {{ (r.fichiers or [analyse.nom])|join(', ') }}</p>
+          {% set cles = ['delai_execution', 'penalites', 'plafond_penalites', 'caution_definitive', 'retenue_garantie', 'delai_garantie', 'paiement', 'prix', 'avance', 'sous_traitance'] %}
+          {% set trouvees = cles|select('in', r)|list %}
+          {% if trouvees %}
+          <div class="an-grille">
+            {% for k in trouvees %}{% set v = r[k] %}
+            <div class="an-case{% if v.alerte %} alerte{% endif %}">
+              <div class="an-cle"><span>{{ tr('an_' ~ k) }}</span>{% if v.alerte %}<span class="cond-badge">{{ tr('an_a_verifier') }}</span>{% endif %}</div>
+              <div class="an-val">{{ v.valeur }}</div>
+              <details class="an-src"><summary>{{ tr('an_source') }}</summary><span dir="auto">« {{ v.source }} »</span></details>
+            </div>
+            {% endfor %}
+            {% if trouvees|length is odd %}<div class="an-case" aria-hidden="true"></div>{% endif %}
+          </div>
+          {% endif %}
+          {% if r.pieces %}<h3 class="sv-bloc-titre" style="font-size:var(--f4);margin-top:16px">{{ tr('an_pieces') }}</h3>
+          <ul class="an-liste" dir="auto">{% for p in r.pieces %}<li>{{ p }}</li>{% endfor %}</ul>{% endif %}
+          {% if r.criteres %}<h3 class="sv-bloc-titre" style="font-size:var(--f4);margin-top:16px">{{ tr('an_criteres') }}</h3>
+          <ul class="an-liste" dir="auto">{% for p in r.criteres %}<li>{{ p }}</li>{% endfor %}</ul>{% endif %}
+          {% if r.bordereau %}
+          <div style="margin-top:16px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
+            <b style="color:var(--text1)">{{ tr('an_bordereau', n=r.bordereau|length) }}</b>
+            <a class="btn btn-sm" href="/tenders/{{ t.id }}/bordereau.csv">{{ tr('an_csv') }}</a>
+          </div>
+          <ul class="an-liste" dir="auto">{% for l in r.bordereau[:8] %}<li>{{ l.n }} — {{ l.designation }} — {{ l.quantite }} {{ l.unite }}</li>{% endfor %}</ul>
+          {% endif %}
+          {% if not trouvees and not r.pieces and not r.criteres and not r.bordereau %}<p class="an-err">{{ tr('an_rien') }}</p>{% endif %}
+        {% endif %}
+        <form class="an-form" method="post" action="/tenders/{{ t.id }}/analyser" enctype="multipart/form-data">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <input type="file" name="fichier" accept=".pdf,.docx,.zip" required aria-label="{{ tr('an_titre') }}">
+          <button type="submit" class="btn btn-primary btn-sm">{{ tr('an_refaire') if analyse else tr('an_deposer') }}</button>
+        </form>
       </section>
       {% endif %}
 

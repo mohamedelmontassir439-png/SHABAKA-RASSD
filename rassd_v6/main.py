@@ -1364,6 +1364,8 @@ async def tender_detail(req: Request, tid: str):
         "echeances": suivi.echeances(dict(t)),
         "etapes_suivi": suivi.ETAPES,
         "comparables": intelligence.comparables(dict(t)),
+        "analyse": _derniere_analyse(m0["id"], tid),
+        "analyse_msg": req.query_params.get("analyse", ""),
         "gagnants": intelligence.qui_gagne(t["secteur"] or "", t["region"] or ""),
         "csrf_token": get_csrf_token(req) or secrets.token_urlsafe(24)})
 
@@ -1487,6 +1489,70 @@ async def suivi_modifier(req: Request, sid: int, etape: str = Form(None), notes:
     # Retour seulement vers une page du site: jamais une adresse externe.
     cible = retour if retour.startswith("/") and not retour.startswith("//") else "/suivi"
     return RedirectResponse(cible, 302)
+
+
+def _derniere_analyse(member_id: int, tender_id: str):
+    db = get_db()
+    try:
+        r = db.execute("""SELECT * FROM analyses_dossier WHERE member_id=? AND tender_id=?
+                          ORDER BY id DESC LIMIT 1""", (member_id, tender_id)).fetchone()
+    finally:
+        db.close()
+    if not r:
+        return None
+    d = dict(r)
+    d["resultat"] = json.loads(d["resultat"] or "{}")
+    return d
+
+
+@app.post("/tenders/{tid}/analyser")
+async def analyser_dossier(req: Request, tid: str, csrf_token: str = Form(""),
+                           fichier: UploadFile = File(None)):
+    """Lit le CPS ou le règlement déposé et garde le résumé."""
+    member = get_member(req)
+    if not member: return RedirectResponse(f"/login?next=/tenders/{tid}", 302)
+    if not has_access(member): return RedirectResponse("/tarifs?locked=1", 302)
+    csrf_guard(req, csrf_token)
+    if not check_rate_limit(f"analyse_{member['id']}", 20, 3600):
+        return RedirectResponse(f"/tenders/{tid}?analyse=trop#analyse", 302)
+    from app.services import analyse_dossier as A
+    if not fichier or not fichier.filename:
+        return RedirectResponse(f"/tenders/{tid}?analyse=vide#analyse", 302)
+    contenu = await fichier.read(A.TAILLE_MAX + 1)
+    loop = asyncio.get_event_loop()
+    resultat = await loop.run_in_executor(None, lambda: A.analyser(contenu, fichier.filename))
+    if resultat.get("erreur"):
+        return RedirectResponse(f"/tenders/{tid}?analyse={resultat['erreur']}#analyse", 302)
+    db = get_db()
+    try:
+        db.execute("""INSERT INTO analyses_dossier(member_id,tender_id,nom,resultat,created_at)
+                      VALUES(?,?,?,?,?)""",
+                   (member["id"], tid[:60], fichier.filename[:160], json.dumps(resultat, ensure_ascii=False),
+                    datetime.now().isoformat(timespec="seconds")))
+        db.commit()
+    finally:
+        db.close()
+    return RedirectResponse(f"/tenders/{tid}#analyse", 302)
+
+
+@app.get("/tenders/{tid}/bordereau.csv")
+async def bordereau_csv(req: Request, tid: str):
+    """Le bordereau des prix lu dans le dossier, prêt à chiffrer dans un tableur."""
+    member = get_member(req)
+    if not member: return RedirectResponse(f"/login?next=/tenders/{tid}", 302)
+    a = _derniere_analyse(member["id"], tid)
+    if not a or not a["resultat"].get("bordereau"):
+        return render(req, "404.html", {}, status_code=404)
+    buf = io.StringIO()
+    w = csv.writer(buf, delimiter=";")
+    w.writerow(["N°", "Désignation", "Unité", "Quantité", "Prix unitaire HT", "Montant HT"])
+    for i, l in enumerate(a["resultat"]["bordereau"], start=2):
+        # La colonne montant porte la formule: l'entreprise saisit ses prix,
+        # le tableur fait les produits.
+        w.writerow([l["n"], l["designation"], l["unite"], l["quantite"], "", f"=D{i}*E{i}"])
+    nom = re.sub(r"[^A-Za-z0-9_-]", "_", tid)[:40]
+    return Response(content=buf.getvalue().encode("utf-8-sig"), media_type="text/csv",
+                    headers={"Content-Disposition": f"attachment; filename=bordereau_{nom}.csv"})
 
 
 @app.get("/coffre", response_class=HTMLResponse)

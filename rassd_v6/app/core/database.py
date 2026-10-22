@@ -160,6 +160,19 @@ CREATE TABLE IF NOT EXISTS suivi_offres (
     UNIQUE(member_id, tender_id)
 );
 
+-- La lecture du dossier de consultation déposé par un membre
+-- (app/services/analyse_dossier.py). Le fichier n'est pas gardé, seulement
+-- le résultat.
+CREATE TABLE IF NOT EXISTS analyses_dossier (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    member_id  INTEGER NOT NULL,
+    tender_id  TEXT NOT NULL,
+    nom        TEXT DEFAULT '',
+    resultat   TEXT DEFAULT '{}',
+    created_at TEXT DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS idx_analyse_membre ON analyses_dossier(member_id, tender_id);
+
 -- Le coffre du dossier administratif (app/services/coffre.py).
 CREATE TABLE IF NOT EXISTS coffre_pieces (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
