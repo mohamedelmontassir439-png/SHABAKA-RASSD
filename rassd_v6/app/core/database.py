@@ -173,6 +173,17 @@ CREATE TABLE IF NOT EXISTS analyses_dossier (
 );
 CREATE INDEX IF NOT EXISTS idx_analyse_membre ON analyses_dossier(member_id, tender_id);
 
+-- Les qualifications déclarées par un membre (app/services/eligibilite.py).
+CREATE TABLE IF NOT EXISTS qualifs_membre (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    member_id  INTEGER NOT NULL,
+    code       TEXT NOT NULL,
+    libelle    TEXT DEFAULT '',
+    classe     TEXT NOT NULL,
+    created_at TEXT DEFAULT '',
+    UNIQUE(member_id, code)
+);
+
 -- Le coffre du dossier administratif (app/services/coffre.py).
 CREATE TABLE IF NOT EXISTS coffre_pieces (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,

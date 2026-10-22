@@ -343,6 +343,17 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
           <span class="dos-etat {{ d.etat }}">{{ tr('dossier_ok') if d.etat == 'ok' else (tr('dossier_manquante') if d.etat == 'manquante' else tr('dossier_expiree')) }}</span>
         </div>
         {% endfor %}
+        {% if eligibilite and eligibilite.lignes %}
+        <h3 class="dos-titre" style="font-size:var(--f4);margin-top:14px">{{ tr('elig_marche') }}</h3>
+        {% for l in eligibilite.lignes %}
+        <div class="dos-ligne">
+          <span><b dir="ltr">{{ l.code }}</b> {{ l.libelle }} — {{ tr('elig_classe') }} {{ l.classe }}</span>
+          {% if l.ok is none %}<a class="dos-etat manquante" href="/coffre#qualifs">{{ tr('elig_declarer') }}</a>
+          {% elif l.ok %}<span class="dos-etat ok">{{ tr('elig_ok', c=l.ma_classe) }}</span>
+          {% else %}<span class="dos-etat expiree_a_la_date">{{ tr('elig_non', c=l.ma_classe or '—') }}</span>{% endif %}
+        </div>
+        {% endfor %}
+        {% endif %}
         {% if manquent %}<div style="margin-top:12px"><a href="/coffre" class="btn btn-primary btn-sm">{{ tr('dossier_ouvrir') }} →</a></div>{% endif %}
       </section>
       {% endif %}

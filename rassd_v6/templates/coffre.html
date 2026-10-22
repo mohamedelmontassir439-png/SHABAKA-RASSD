@@ -53,6 +53,37 @@
   {% elif ok %}<div class="cf-msg ok">{{ tr('coffre_ok') }}</div>{% endif %}
   {% if err %}<div class="cf-msg err">{{ tr('coffre_err_' ~ err) if err in ('format', 'taille', 'vide', 'date', 'type') else tr('coffre_err_vide') }}</div>{% endif %}
 
+  <section id="qualifs" style="scroll-margin-top:90px">
+    <div class="cf-groupe">{{ tr('elig_titre') }}</div>
+    <p class="cf-aide" style="max-width:70ch">{{ tr('elig_aide') }}</p>
+    {% if err == 'qualif' %}<div class="cf-msg err">{{ tr('elig_err') }}</div>{% endif %}
+    <div class="cf-liste" style="margin-top:12px">
+      <article class="cf-carte">
+        {% for q in qualifs %}
+        <div class="cf-fichier" style="justify-content:space-between">
+          <span><b dir="ltr">{{ q.code }}</b> {{ q.libelle }} — {{ tr('elig_classe') }} <b>{{ q.classe }}</b></span>
+          <form method="post" action="/qualifications" style="display:inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <input type="hidden" name="code" value="{{ q.code }}"><input type="hidden" name="retirer" value="1">
+            <button type="submit" class="cf-suppr">{{ tr('coffre_supprimer') }}</button>
+          </form>
+        </div>
+        {% else %}<div class="cf-aide">{{ tr('elig_aucune') }}</div>{% endfor %}
+        <form class="cf-form" method="post" action="/qualifications">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <label>{{ tr('elig_code') }}
+            <input name="code" list="catalogue-qualifs" required placeholder="A.2" style="padding:7px 9px;border:1px solid var(--line);border-radius:var(--r1);background:var(--surface);font:inherit"></label>
+          <datalist id="catalogue-qualifs">{% for c in catalogue %}<option value="{{ c.code }}">{{ c.code }} {{ c.libelle }}</option>{% endfor %}</datalist>
+          <label>{{ tr('elig_classe') }}
+            <select name="classe" required style="padding:7px 9px;border:1px solid var(--line);border-radius:var(--r1);background:var(--surface);font:inherit">
+              {% for c in classes %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+            </select></label>
+          <div class="cf-plein"><button type="submit" class="btn btn-primary btn-sm">{{ tr('elig_ajouter') }}</button></div>
+        </form>
+      </article>
+    </div>
+  </section>
+
   {% for groupe in (true, false) %}
   <div class="cf-groupe">{{ tr('coffre_groupe_requis') if groupe else tr('coffre_groupe_autres') }}</div>
   <div class="cf-liste">

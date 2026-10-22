@@ -1204,7 +1204,7 @@ def filtre_echeance(valeur: str, where: list, params: list) -> None:
 
 @app.get("/tenders", response_class=HTMLResponse)
 async def tenders_page(req: Request, q:str="", s:str="", r:str="", t:str="",
-                        e:str="", page:int=1, sort:str="recent"):
+                        e:str="", page:int=1, sort:str="recent", elig:str=""):
     m0 = get_member(req)
     if not m0:
         return RedirectResponse("/login?next=/tenders", 302)
@@ -1231,10 +1231,28 @@ async def tenders_page(req: Request, q:str="", s:str="", r:str="", t:str="",
     filtre_echeance(e, where, params)
     wh    = " AND ".join(where)
     order = "scraped_at DESC" if sort == "recent" else f"{DATE_LIMITE_ISO} ASC"
-    total = db.execute(f"SELECT COUNT(*) FROM tenders WHERE {wh}", params).fetchone()[0]
-    rows  = [dict(x) for x in db.execute(
-        f"SELECT * FROM tenders WHERE {wh} ORDER BY {order} LIMIT ? OFFSET ?",
-        params+[per,(page-1)*per]).fetchall()]
+    from app.services import eligibilite
+    mes_qualifs = eligibilite.mes_qualifications(m0["id"])
+    if elig and mes_qualifs:
+        # Les exigences sont dans le texte de l'avis: le tri se fait ici,
+        # puis la page est découpée. Un avis sans exigence reste: tout le
+        # monde peut y répondre.
+        candidats = db.execute(
+            f"SELECT id, description FROM tenders WHERE {wh} ORDER BY {order}", params).fetchall()
+        ouverts = [c["id"] for c in candidats
+                   if eligibilite.verdict(mes_qualifs, eligibilite.exigences(
+                       c["description"] if (c["id"] or "").startswith("ao_") else ""))["etat"]
+                   in ("libre", "eligible")]
+        total = len(ouverts)
+        ids = ouverts[(page-1)*per: page*per]
+        par_id = {x["id"]: dict(x) for x in db.execute(
+            f"SELECT * FROM tenders WHERE id IN ({','.join('?' * len(ids))})", ids).fetchall()} if ids else {}
+        rows = [par_id[i] for i in ids if i in par_id]
+    else:
+        total = db.execute(f"SELECT COUNT(*) FROM tenders WHERE {wh}", params).fetchone()[0]
+        rows  = [dict(x) for x in db.execute(
+            f"SELECT * FROM tenders WHERE {wh} ORDER BY {order} LIMIT ? OFFSET ?",
+            params+[per,(page-1)*per]).fetchall()]
     favs = {x[0] for x in db.execute(
         "SELECT tender_id FROM favorites WHERE member_id=?", (m0["id"],)).fetchall()}
     my_secteurs = clean_secteurs(json.loads(m0.get("secteurs","[]") or "[]"))
@@ -1253,7 +1271,8 @@ async def tenders_page(req: Request, q:str="", s:str="", r:str="", t:str="",
     return render(req, "tenders.html", {
         "tenders":rows,"total":total,"page":page,"pages":pages,
         "q":q,"sf":s,"rf":r,"tf":t,"ef":e,"sort":sort,"favs":favs,"regions":regions,
-        "secteurs_dispo":secteurs_dispo,"my_secteurs":my_secteurs})
+        "secteurs_dispo":secteurs_dispo,"my_secteurs":my_secteurs,
+        "elig": "1" if elig and mes_qualifs else "", "a_des_qualifs": bool(mes_qualifs)})
 
 @app.get("/bons-de-commande", response_class=HTMLResponse)
 async def bons_commande_page(req: Request, q:str="", s:str="", r:str="",
@@ -1356,7 +1375,7 @@ async def tender_detail(req: Request, tid: str):
         logger.warning(f"[commit] {e}")
     db.close()
     from app.services.coffre import pour_marche
-    from app.services import intelligence, suivi
+    from app.services import eligibilite, intelligence, suivi
     dossier_admin = pour_marche(m0["id"], dict(t)) if m0 else []
     return render(req, "detail.html", {
         "t": dict(t), "related": related, "is_fav": is_fav, "dossier_admin": dossier_admin,
@@ -1365,6 +1384,7 @@ async def tender_detail(req: Request, tid: str):
         "etapes_suivi": suivi.ETAPES,
         "comparables": intelligence.comparables(dict(t)),
         "analyse": _derniere_analyse(m0["id"], tid),
+        "eligibilite": eligibilite.pour_marche(m0["id"], dict(t)),
         "analyse_msg": req.query_params.get("analyse", ""),
         "gagnants": intelligence.qui_gagne(t["secteur"] or "", t["region"] or ""),
         "csrf_token": get_csrf_token(req) or secrets.token_urlsafe(24)})
@@ -1555,6 +1575,21 @@ async def bordereau_csv(req: Request, tid: str):
                     headers={"Content-Disposition": f"attachment; filename=bordereau_{nom}.csv"})
 
 
+@app.post("/qualifications")
+async def qualifications_post(req: Request, code: str = Form(""), classe: str = Form(""),
+                              retirer: str = Form(""), csrf_token: str = Form("")):
+    member = get_member(req)
+    if not member: return RedirectResponse("/login?next=/coffre", 302)
+    csrf_guard(req, csrf_token)
+    from app.services import eligibilite
+    if retirer:
+        eligibilite.retirer(member["id"], code)
+        return RedirectResponse("/coffre#qualifs", 302)
+    libelle = next((c["libelle"] for c in eligibilite.catalogue() if c["code"] == code.strip().upper()), "")
+    ok = eligibilite.ajouter(member["id"], code, classe, libelle)
+    return RedirectResponse("/coffre" + ("" if ok else "?err=qualif") + "#qualifs", 302)
+
+
 @app.get("/coffre", response_class=HTMLResponse)
 async def coffre_page(req: Request, ok: str = "", err: str = ""):
     """Le dossier administratif du membre: ses pièces et leur validité."""
@@ -1572,8 +1607,11 @@ async def coffre_page(req: Request, ok: str = "", err: str = ""):
     a_jour = sum(1 for l in lignes if l["requise"] and l["piece"]
                  and l["piece"]["statut"] in ("valide", "bientot", "permanent"))
     requises = sum(1 for l in lignes if l["requise"])
+    from app.services import eligibilite
     return render(req, "coffre.html", {
         "lignes": lignes, "ok": ok, "err": err, "a_jour": a_jour, "requises": requises,
+        "qualifs": eligibilite.mes_qualifications(member["id"]),
+        "catalogue": eligibilite.catalogue(), "classes": eligibilite.CLASSES,
         "csrf_token": get_csrf_token(req) or secrets.token_urlsafe(24)})
 
 
