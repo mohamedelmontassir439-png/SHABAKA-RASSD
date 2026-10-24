@@ -26,6 +26,7 @@ from app.core.attribution import (NON_COMPANY_ADJUDICATAIRE, est_attribue,
 from app.core import canaux
 from app.core.conditions import cartes, conditions_avis, contact_detaille
 from app.core.lecture import chiffres as chiffres_lecture
+from app.services.classement_ia import classer_liste as classer_ia
 from app.core.profil import (nom_valide, societe_valide, telephone_marocain,
                              telephone_normalise, profil_incomplet)
 from app.core import marque
@@ -167,8 +168,8 @@ def _save_tenders(tenders: list, new_list: list) -> int:
                 (id,objet,acheteur,secteur,region,montant,
                  date_publication,date_limite,description,
                  url,statut,scraped_at,updated_at,type_offre,source,type_procedure,
-                 nature,quantite,organisme)
-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                 nature,quantite,organisme,secteur_ia)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (t["id"], t["objet"], t["acheteur"],
                  t.get("secteur",""), t.get("region",""),
                  t.get("montant",""), t.get("date_publication",""),
@@ -177,7 +178,8 @@ def _save_tenders(tenders: list, new_list: list) -> int:
                  t.get("type_offre","Public"), t.get("source","marchespublics"),
                  t.get("type_procedure","marche"),
                  t.get("nature",""), t.get("quantite",""),
-                 organismes.categorie(t.get("acheteur",""), t.get("type_offre",""))))
+                 organismes.categorie(t.get("acheteur",""), t.get("type_offre","")),
+                 t.get("secteur_ia","")))
             if db.execute("SELECT changes()").fetchone()[0]:
                 saved += 1
                 new_list.append(t)
@@ -203,8 +205,8 @@ def _save_results(results: list) -> int:
                 (id,reference,objet,acheteur,adjudicataire,region,budget,montant,
                  secteur,date_adjudication,date_ouverture,date_affichage,
                  dao_url,pv_url,scraped_at,type_procedure,montant_num,
-                 adjudicataire_norm)
-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                 adjudicataire_norm,secteur_ia)
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
                 (r["id"], r.get("reference",""), r["objet"], r.get("acheteur",""),
                  r.get("adjudicataire",""), r.get("region",""), r.get("budget",""),
                  r.get("montant",""), r.get("secteur",""),
@@ -212,7 +214,8 @@ def _save_results(results: list) -> int:
                  r.get("date_affichage",""), r.get("dao_url",""), r.get("pv_url",""),
                  r["scraped_at"], r.get("type_procedure","marche"),
                  parse_montant(r.get("montant","")),
-                 normalize_company_name(r.get("adjudicataire",""))))
+                 normalize_company_name(r.get("adjudicataire","")),
+                 r.get("secteur_ia","")))
             if db.execute("SELECT changes()").fetchone()[0]:
                 saved += 1
                 nouveaux.append(r)
@@ -293,6 +296,9 @@ async def do_scrape():
             known_ao = {r[0] for r in db.execute("SELECT id FROM tenders").fetchall()}
             db.close()
             ao_results = await loop.run_in_executor(None, lambda: ao_run(known_ao, State.log))
+            # Le secteur est lu par le sens avant l'enregistrement: les alertes
+            # partent sur ce secteur-là (app/services/classement_ia.py).
+            await loop.run_in_executor(None, lambda: classer_ia(ao_results))
             State.found += len(ao_results)
             saved_ao = _save_tenders(ao_results, new_tenders)
             State.saved += saved_ao
@@ -312,6 +318,9 @@ async def do_scrape():
             known3 = {r[0] for r in db.execute("SELECT id FROM tenders").fetchall()}
             db.close()
             gm_results = await loop.run_in_executor(None, lambda: gm_run(known3, State.log))
+            # Le secteur est lu par le sens avant l'enregistrement: les alertes
+            # partent sur ce secteur-là (app/services/classement_ia.py).
+            await loop.run_in_executor(None, lambda: classer_ia(gm_results))
             State.found += len(gm_results)
             saved3 = _save_tenders(gm_results, new_tenders)
             State.saved += saved3
@@ -331,6 +340,9 @@ async def do_scrape():
             known4  = {r[0] for r in db.execute("SELECT id FROM tender_results").fetchall()}
             db.close()
             gm_res  = await loop.run_in_executor(None, lambda: gm_run_results(known4, State.log))
+            # Le secteur est lu par le sens avant l'enregistrement: les alertes
+            # partent sur ce secteur-là (app/services/classement_ia.py).
+            await loop.run_in_executor(None, lambda: classer_ia(gm_res))
             saved4  = _save_results(gm_res)
             State.log(f"✅ Résultats des marchés: {saved4} nouveaux")
             _record_run("global-marches-results", "SUCCESS", len(gm_res), saved4, started=_t)
@@ -348,6 +360,9 @@ async def do_scrape():
             known5  = {r[0] for r in db.execute("SELECT id FROM tenders").fetchall()}
             db.close()
             bc_results = await loop.run_in_executor(None, lambda: gm_run_bc(known5, State.log))
+            # Le secteur est lu par le sens avant l'enregistrement: les alertes
+            # partent sur ce secteur-là (app/services/classement_ia.py).
+            await loop.run_in_executor(None, lambda: classer_ia(bc_results))
             State.found += len(bc_results)
             saved5 = _save_tenders(bc_results, new_tenders)
             State.saved += saved5
@@ -367,6 +382,9 @@ async def do_scrape():
             known6  = {r[0] for r in db.execute("SELECT id FROM tender_results").fetchall()}
             db.close()
             bc_res  = await loop.run_in_executor(None, lambda: gm_run_bc_results(known6, State.log))
+            # Le secteur est lu par le sens avant l'enregistrement: les alertes
+            # partent sur ce secteur-là (app/services/classement_ia.py).
+            await loop.run_in_executor(None, lambda: classer_ia(bc_res))
             saved6  = _save_results(bc_res)
             State.log(f"✅ Résultats des bons de commande: {saved6} nouveaux")
             _record_run("bc-results", "SUCCESS", len(bc_res), saved6, started=_t)
@@ -489,6 +507,25 @@ async def daily_digest_scheduler():
                 if n: logger.info(f"[résumé quotidien] {n} envoi(s)")
         except Exception as e:
             logger.error(f"[daily_digest_scheduler] {e}")
+        await asyncio.sleep(1800)
+
+
+async def classement_ia_scheduler():
+    """Chaque nuit, relit par le sens les avis restés classés par mots-clés."""
+    from app.services import classement_ia
+    await asyncio.sleep(600)
+    dernier = ""
+    while True:
+        try:
+            maintenant = datetime.now()
+            jour = maintenant.strftime("%Y-%m-%d")
+            if (maintenant.hour >= 2 and dernier != jour and classement_ia.disponible()
+                    and not classement_ia.ReclassementState.running):
+                loop = asyncio.get_event_loop()
+                await loop.run_in_executor(None, lambda: classement_ia.reclasser(limite=500))
+                dernier = jour
+        except Exception as e:
+            logger.error(f"[classement_ia_scheduler] {e}")
         await asyncio.sleep(1800)
 
 
@@ -885,6 +922,7 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(recap_prep_scheduler())
     asyncio.create_task(coffre_scheduler())
     asyncio.create_task(suivi_scheduler())
+    asyncio.create_task(classement_ia_scheduler())
     yield
 
 app = FastAPI(lifespan=lifespan, title=cfg.APP_NAME,
@@ -1525,6 +1563,39 @@ async def financement_post(req: Request, type_demande: str = Form(""), montant: 
     from app.services import financement
     ok, _ = financement.creer(member, type_demande, montant, tender_id, echeance, message)
     return RedirectResponse("/financement?ok=1" if ok else "/financement?err=1", 302)
+
+
+@app.get("/admin/classement", response_class=HTMLResponse)
+async def admin_classement(req: Request):
+    """Le classement par le sens: état, reprise de la base, changements."""
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    from app.services import classement_ia
+    db = get_db()
+    try:
+        compte = {}
+        for table, filtre in (("tenders", "statut='actif'"), ("tender_results", "1=1")):
+            total = db.execute(f"SELECT COUNT(*) FROM {table} WHERE {filtre}").fetchone()[0]
+            lus = db.execute(f"SELECT COUNT(*) FROM {table} WHERE {filtre} "
+                             "AND COALESCE(secteur_ia,'')!=''").fetchone()[0]
+            compte[table] = {"total": total, "lus": lus}
+    finally:
+        db.close()
+    return render(req, "admin_classement.html", {
+        "disponible": classement_ia.disponible(), "modele": classement_ia.MODELE,
+        "compte": compte, "etat": classement_ia.ReclassementState.etat(),
+        "a_reprendre": len(classement_ia.a_reprendre()),
+        "csrf_token": get_csrf_token(req) or secrets.token_urlsafe(24)})
+
+
+@app.post("/admin/classement/lancer")
+async def admin_classement_lancer(req: Request, csrf_token: str = Form("")):
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    csrf_guard(req, csrf_token)
+    from app.services import classement_ia
+    if classement_ia.disponible() and not classement_ia.ReclassementState.running:
+        loop = asyncio.get_event_loop()
+        loop.run_in_executor(None, classement_ia.reclasser)
+    return RedirectResponse("/admin/classement", 302)
 
 
 @app.get("/admin/financement", response_class=HTMLResponse)

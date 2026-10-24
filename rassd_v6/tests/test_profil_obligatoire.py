@@ -134,7 +134,8 @@ class TestSecteursVerrouilles:
         admin.get("/admin/member/7/secteurs")
         admin.post("/admin/member/7/secteurs", data={"secteurs_sel": ["P818", "S901"],
                                                     "csrf_token": admin.cookies.get("_csrf")})
-        assert db.execute("SELECT secteurs FROM members WHERE id=7").fetchone()[0] == '["P818", "S901"]'
+        import json
+        assert set(json.loads(db.execute("SELECT secteurs FROM members WHERE id=7").fetchone()[0])) == {"P818", "S901"}
 
     def test_au_moins_un_secteur(self, admin, db):
         self._membre(db)

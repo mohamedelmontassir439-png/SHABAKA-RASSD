@@ -202,7 +202,7 @@ tbody tr:hover td{background:var(--surface2)}
 </head>
 <body>
 {% set chemin = request.url.path %}
-{% set destinations = ['/admin', '/admin/sources', '/admin/backups', '/admin/members',
+{% set destinations = ['/admin', '/admin/sources', '/admin/classement', '/admin/backups', '/admin/members',
                        '/admin/payments', '/admin/recap', '/admin/maintenance', '/admin/financement',
                        '/admin/prospection/plan', '/admin/campagne',
                        '/admin/prospection', '/admin/companies', '/admin/annuaires',
@@ -241,6 +241,7 @@ tbody tr:hover td{background:var(--surface2)}
     <div class="rail-titre">Pilotage</div>
     {{ lien('/admin', ico('graphique', 17), 'Tableau de bord') }}
     {{ lien('/admin/sources', ico('veille', 17), 'Sources') }}
+    {{ lien('/admin/classement', ico('etiquette', 17), 'Classement des secteurs') }}
     {{ lien('/admin/backups', ico('dossiers', 17), 'Sauvegardes') }}
     {{ lien('/admin/maintenance', ico('attention', 17), 'Maintenance') }}
   </div>

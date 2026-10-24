@@ -356,6 +356,26 @@ def _accroches(texte: str) -> dict:
     return trouve
 
 
+# Ce qui suit ces mots désigne le bénéficiaire ou le lieu, pas ce qu'on
+# achète: « Nettoyage des bâtiments de l'Institut de Formation », «
+# Climatisation des salles de la Fondation Mohammed VI », « Matériel
+# informatique au profit de l'école ». Audit du 24/10/2026: c'était la
+# première cause d'erreur du classement par mots-clés.
+_BENEFICIAIRE = re.compile(
+    r"(?:au profit d|pour le compte d|pour les besoins d|destine|relevant d|au niveau d"
+    r"|situe|sis |sise |a la (?:commune|province|prefecture|ville)"
+    r"|(?:de l'|de l’|du |de la |des |aux? )(?:institut|ecole|fondation|centre|faculte|universite"
+    r"|lycee|college|hopital|direction|agence|office|ministere|commune|province|prefecture"
+    r"|chambre|complexe|residence|delegation|caisse|societe|etablissement|academie|conseil))")
+
+
+def _objet_utile(objet: str) -> str:
+    """L'objet coupé avant le bénéficiaire, s'il en reste assez pour classer."""
+    nu = _sans_accents(objet or "")
+    m = _BENEFICIAIRE.search(nu)
+    return (objet or "")[:m.start()] if m and m.start() >= 12 else (objet or "")
+
+
 def classify(objet: str, contexte: str = "") -> str:
     """Classe un marche et rend le code officiel du referentiel MB SA.
 
@@ -386,7 +406,9 @@ def classify(objet: str, contexte: str = "") -> str:
     passe en premier argument et retrouve l'ancien comportement, ponderation
     mise a part.
     """
-    par_objet, par_fond = _accroches(objet), _accroches(contexte)
+    # D'abord ce qui est acheté, sans le bénéficiaire; à défaut, tout l'objet.
+    par_objet = _accroches(_objet_utile(objet)) or _accroches(objet)
+    par_fond = _accroches(contexte)
 
     # Quand le titre ne dit rien de precis, le corps de l'avis ne doit pas
     # decider seul: il est fait de formules administratives qui accrochent au

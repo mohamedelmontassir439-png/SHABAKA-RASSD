@@ -1,0 +1,69 @@
+{% extends "admin_base.html" %}
+{% block titre %}Classement des secteurs{% endblock %}
+{% block soustitre %}<div class="entete-sur">Pilotage</div>{% endblock %}
+{% block style %}
+.cl-tete{font-size:var(--f3);color:var(--t3);line-height:1.7;max-width:780px;margin-bottom:18px}
+.cl-ligne{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,220px) minmax(0,220px);gap:12px;padding:9px 0;border-top:1px solid var(--trait);font-size:var(--f2);color:var(--t1)}
+.cl-avant{color:var(--t3);text-decoration:line-through}
+.cl-apres{color:var(--vert);font-weight:700}
+.jauge{height:7px;border-radius:var(--rp);background:var(--surface2);overflow:hidden;margin-top:9px}
+.jauge i{display:block;height:100%;background:var(--vert)}
+@media(max-width:760px){.cl-ligne{grid-template-columns:minmax(0,1fr)}}
+{% endblock %}
+{% block contenu %}
+<p class="cl-tete">
+  Chaque avis, bon de commande et résultat est classé <b>par le sens</b> : le modèle
+  <span class="num">{{ modele }}</span> lit l'intitulé et le début de l'avis, cherche ce qui est
+  acheté ou exécuté, et choisit parmi les 83 secteurs officiels. Les nouveaux avis le sont avant
+  d'être enregistrés — les alertes partent donc sur le bon secteur. Sans clé d'API, le classement
+  par mots-clés reste en place.
+</p>
+
+{% if not disponible %}
+<div class="carte" style="padding:16px 20px;border-color:var(--terre)">
+  <b style="color:var(--t1)">Clé d'API absente.</b>
+  <div class="meta" style="margin-top:6px;line-height:1.7">
+    Ajoutez la variable <span class="num">ANTHROPIC_API_KEY</span> dans Railway (service
+    <i>web</i> → Variables), puis redéployez. La clé se crée sur console.anthropic.com → API Keys.
+  </div>
+</div>
+{% endif %}
+
+<div class="chiffres">
+  {% for table, libelle in (('tenders', 'marchés et bons ouverts'), ('tender_results', 'résultats')) %}
+  {% set c = compte[table] %}
+  <div class="chiffre">
+    <div class="chiffre-n">{{ c.lus }} / {{ c.total }}</div>
+    <div class="chiffre-l">{{ libelle }} classés par le sens</div>
+    <div class="jauge"><i style="width:{{ (100 * c.lus / c.total)|round|int if c.total else 0 }}%"></i></div>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="carte">
+  <div class="carte-h"><span class="carte-t">Reprendre la base</span>
+    <span class="meta">{{ a_reprendre }} avis encore classés par mots-clés.</span></div>
+  <div style="padding:14px 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+    <form method="post" action="/admin/classement/lancer">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button type="submit" class="btn btn-p" {% if not disponible or etat.running or not a_reprendre %}disabled{% endif %}>
+        {% if etat.running %}Reclassement en cours…{% else %}Reclasser par le sens{% endif %}</button>
+    </form>
+    {% if etat.started %}<span class="meta">{{ etat.faits }} / {{ etat.total }} lus · {{ etat.changes }} changés
+      {% if etat.arret %} · {{ etat.arret }}{% endif %}</span>{% endif %}
+  </div>
+</div>
+
+{% if etat.exemples %}
+<div class="carte">
+  <div class="carte-h"><span class="carte-t">Derniers changements</span>
+    <span class="meta">Avant (mots-clés) → après (sens).</span></div>
+  <div style="padding:4px 20px 14px">
+    {% for e in etat.exemples|reverse %}
+    <div class="cl-ligne"><span>{{ e.objet }}</span><span class="cl-avant">{{ e.avant }}</span><span class="cl-apres">{{ e.apres }}</span></div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% if etat.running %}<script>setTimeout(function () { location.reload(); }, 8000);</script>{% endif %}
+{% endblock %}

@@ -528,6 +528,9 @@ def migrate_db():
         "ALTER TABLE members ADD COLUMN referred_by INTEGER DEFAULT 0",
         # Le canal qui a amené l'inscrit (app/core/canaux.py)
         "ALTER TABLE members ADD COLUMN source TEXT DEFAULT ''",
+        # Heure du classement par le sens (app/services/classement_ia.py)
+        "ALTER TABLE tenders ADD COLUMN secteur_ia TEXT DEFAULT ''",
+        "ALTER TABLE tender_results ADD COLUMN secteur_ia TEXT DEFAULT ''",
         "ALTER TABLE members ADD COLUMN source_campagne TEXT DEFAULT ''",
         "ALTER TABLE tenders ADD COLUMN type_procedure TEXT DEFAULT 'marche'",
         "ALTER TABLE tender_results ADD COLUMN type_procedure TEXT DEFAULT 'marche'",
