@@ -5,12 +5,14 @@ sur le site alors qu'aucune ne part est la pire des deux options. Le code
 du canal reste entier — ces tests vérifient qu'il est bien hors ligne, et
 qu'il revient intact une fois le drapeau remis à 1.
 """
+import re
 from datetime import date, datetime, timedelta
 
 import pytest
 
 import app.services.notifications as notif
 from app.core.config import cfg
+from app.core.i18n import tr
 
 
 def _membre_wa(db, email="wa@example.com"):
@@ -114,10 +116,14 @@ class TestReglages:
         assert page.status_code == 200
         assert 'name="whatsapp"' not in page.text, "pas de champ numéro"
         assert 'name="notif_wa"' not in page.text, "pas de case à cocher WhatsApp"
-        # Plus aucune trace du canal: ni champ, ni promesse « bientôt ». On ne
-        # mentionne pas un service qu'on ne rend pas.
-        assert "whatsapp" not in page.text.lower()
-        assert "واتساب" not in page.text
+        # Plus aucune trace du canal d'alertes: ni champ, ni promesse
+        # « bientôt ». On ne mentionne pas un service qu'on ne rend pas.
+        # Seule exception depuis le 24/10/2026: le lien pour écrire au
+        # fondateur afin de changer ses secteurs — un contact, pas une alerte.
+        sans_contact = re.sub(r'<a [^>]*href="https://wa\.me/[^"]*"[^>]*>.*?</a>', "", page.text, flags=re.S)
+        sans_contact = sans_contact.replace(tr("set_sectors_verrou", "fr"), "")
+        assert "whatsapp" not in sans_contact.lower()
+        assert "واتساب" not in sans_contact
 
     def test_envoi_de_code_refuse(self, client, monkeypatch):
         monkeypatch.setattr(cfg, "WA_ENABLED", False)

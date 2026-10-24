@@ -160,23 +160,18 @@
 
     <section class="set-block">
       <div class="set-block-h">{{ tr('set_sectors')|safe }}</div>
-      <div class="set-block-sub">{{ tr('set_sectors_sub') }}</div>
-      {% for group_name, group_sectors in sector_groups.items() %}
-      <div class="sector-group">
-        <div class="sector-group-title">{{ group_name }}</div>
-        <div class="sector-chips">
-          {% for code, label in group_sectors.items() %}
-          {% set full = code + ' – ' + label %}
-          {% set checked = code in ms or full in ms %}
-          <label class="sector-chip">
-            <input type="checkbox" name="secteurs_sel" value="{{ code }}" {% if checked %}checked{% endif %}>
-            <span class="sector-chip-code">{{ code }}</span>
-            <span>{{ label[:32] }}</span>
-          </label>
-          {% endfor %}
-        </div>
+      <div class="set-block-sub">{{ tr('set_sectors_verrou') }}</div>
+      <div class="sector-chips" style="margin-top:12px">
+        {% for group_name, group_sectors in sector_groups.items() %}{% for code, label in group_sectors.items() %}
+        {% if code in ms or (code + ' – ' + label) in ms %}
+        <span class="sector-chip" style="cursor:default"><span class="sector-chip-code">{{ code }}</span><span>{{ label[:40] }}</span></span>
+        {% endif %}
+        {% endfor %}{% endfor %}
       </div>
-      {% endfor %}
+      {% set noms = [] %}
+      {% for group_name, group_sectors in sector_groups.items() %}{% for code, label in group_sectors.items() %}{% if code in ms %}{% set _ = noms.append(code ~ ' ' ~ label) %}{% endif %}{% endfor %}{% endfor %}
+      <a class="btn btn-accent" style="margin-top:16px" target="_blank" rel="noopener"
+         href="https://wa.me/{{ cfg.PAYMENT_PHONE|replace('+','')|replace(' ','') }}?text={{ tr('wa_msg_secteurs', email=member.email, actuels=noms|join(', '))|urlencode }}">{{ tr('set_sectors_wa') }}</a>
     </section>
 
     <div class="save-bar">

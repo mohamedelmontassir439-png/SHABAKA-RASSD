@@ -233,6 +233,12 @@ T = {
     "grp_err":           {"fr": "Proposition non envoyée (déjà faite ou destinataire introuvable).", "ar": "لم يُرسل الاقتراح (سبق إرساله أو المرسل إليه غير موجود)."},
     "grp_personne":      {"fr": "Aucun membre ne détient encore cette qualification. Les membres qui la déclareront apparaîtront ici.", "ar": "لا منخرط يملك هذا التأهيل بعد. سيظهر هنا من يصرّح به."},
     "grp_message_defaut": {"fr": "Bonjour, je prépare une offre pour ce marché et vous détenez la qualification qui me manque. Seriez-vous intéressé par une réponse en groupement ?", "ar": "مرحبًا، أحضّر عرضًا لهذه الصفقة وأنتم تملكون التأهيل الذي ينقصني. هل تهمّكم المشاركة في إطار تجمّع؟"},
+    # ── Secteurs verrouillés: changement par WhatsApp (24/10/2026) ──────
+    "set_sectors_verrou": {"fr": "Vos secteurs déterminent les marchés que vous recevez. Pour les modifier, écrivez-nous sur WhatsApp : nous les changeons pour vous.",
+                           "ar": "قطاعاتك تحدّد الصفقات التي تصلك. لتغييرها، راسلنا عبر واتساب: نغيّرها لك."},
+    "set_sectors_wa":    {"fr": "Demander un changement sur WhatsApp", "ar": "طلب التغيير عبر واتساب"},
+    "wa_msg_secteurs":   {"fr": "Bonjour, je souhaite modifier mes secteurs sur Maroc Entrepreneuriat. Compte : {email}. Secteurs actuels : {actuels}. Nouveaux secteurs souhaités : ",
+                           "ar": "مرحبًا، أرغب في تغيير قطاعاتي في Maroc Entrepreneuriat. الحساب: {email}. القطاعات الحالية: {actuels}. القطاعات الجديدة المطلوبة: "},
     "search_placeholder":   {"fr": "Rechercher un marché, secteur, mot-clé…", "ar": "ابحث عن صفقة، قطاع، كلمة مفتاحية…"},
     "upsell_title":         {"fr": "Abonnement Premium", "ar": "العضوية المميزة"},
     "upsell_text":          {"fr": "Profitez de toutes les fonctionnalités et alertes illimitées.", "ar": "استفد من جميع الميزات والتنبيهات غير المحدودة."},

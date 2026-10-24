@@ -2881,10 +2881,14 @@ async def settings_post(req: Request,
     if rythme not in ("direct", "quotidien"):
         rythme = "direct"
     whatsapp = form.get("whatsapp","").strip()
-    sects    = clean_secteurs(secteurs_sel)
+    # Les secteurs ne se modifient plus ici: le membre écrit sur WhatsApp et
+    # l'administration les change (décision du fondateur, 24/10/2026). Ce
+    # qu'envoie le formulaire est ignoré — une case cochée à la main dans
+    # le navigateur ne doit rien ouvrir. On réécrit les secteurs actuels.
+    sects    = clean_secteurs(json.loads(member.get("secteurs") or "[]"))
     # Ce qui est exigé à l'inscription ne peut pas être effacé ensuite: sans
     # ce contrôle, l'obligation ne tiendrait qu'un écran.
-    if not nom_valide(nom) or not societe_valide(company)             or not telephone_marocain(phone) or not sects:
+    if not nom_valide(nom) or not societe_valide(company)             or not telephone_marocain(phone):
         return RedirectResponse("/settings?err=incomplet", 302)
     nom, company, phone = nom.strip(), company.strip(), telephone_normalise(phone)
     # Filtres du moteur de correspondance
@@ -4387,6 +4391,40 @@ async def admin_reparer_fiches(req: Request, limite: int = 400):
     loop = asyncio.get_event_loop()
     resultat = await loop.run_in_executor(None, lambda: _reparer_fiches_portail(limite))
     return JSONResponse({"ok": True, "reclasses": reclasses, **resultat})
+
+
+@app.get("/admin/member/{mid}/secteurs", response_class=HTMLResponse)
+async def admin_member_secteurs(req: Request, mid: int, err: str = ""):
+    """Les secteurs d'un membre, modifiés par l'administration à sa demande."""
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    db = get_db()
+    m = db.execute("SELECT * FROM members WHERE id=?", (mid,)).fetchone()
+    db.close()
+    if not m:
+        return RedirectResponse("/admin/members", 302)
+    m = dict(m)
+    return render(req, "admin_secteurs_membre.html", {
+        "m": m, "actuels": clean_secteurs(json.loads(m.get("secteurs") or "[]")),
+        "sector_groups": cfg.SECTOR_GROUPS, "err": err,
+        "csrf_token": get_csrf_token(req) or secrets.token_urlsafe(24)})
+
+
+@app.post("/admin/member/{mid}/secteurs")
+async def admin_member_secteurs_post(req: Request, mid: int, csrf_token: str = Form(""),
+                                     secteurs_sel: list = Form(default=[])):
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    csrf_guard(req, csrf_token)
+    sects = clean_secteurs(secteurs_sel)
+    if not sects:
+        return RedirectResponse(f"/admin/member/{mid}/secteurs?err=1", 302)
+    db = get_db()
+    try:
+        db.execute("UPDATE members SET secteurs=? WHERE id=?", (json.dumps(sects), mid))
+        db.commit()
+    finally:
+        db.close()
+    logger.info(f"[admin] secteurs du membre {mid} -> {sects}")
+    return RedirectResponse("/admin/members", 302)
 
 
 @app.post("/admin/member/{mid}/plan")

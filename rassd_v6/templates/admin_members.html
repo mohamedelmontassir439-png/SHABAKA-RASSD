@@ -101,6 +101,7 @@ details.del summary::-webkit-details-marker{display:none}
           <div class="muted">{{ ('vu ' ~ m.last_login[:10]) if m.last_login else 'jamais revenu' }}</div>
         </td>
         <td>
+          <a class="btn btn-l" style="padding:6px 10px;" href="/admin/member/{{ m.id }}/secteurs">Secteurs</a>
           <form method="post" action="/admin/member/{{ m.id }}/toggle" style="display:inline;">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <button type="submit" class="btn btn-l" style="padding:6px 10px;">{{ 'Bloquer' if m.actif else 'Débloquer' }}</button>

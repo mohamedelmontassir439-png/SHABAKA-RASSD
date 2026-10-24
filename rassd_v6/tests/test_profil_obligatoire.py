@@ -106,3 +106,39 @@ class TestProfilsDejaInscrits:
         racine = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         with open(os.path.join(racine, "templates", "base.html"), encoding="utf-8") as f:
             assert "profil_manque(member)" in f.read()
+
+
+class TestSecteursVerrouilles:
+    """Depuis le 24/10/2026, le membre ne change plus ses secteurs lui-même:
+    il écrit au fondateur sur WhatsApp, qui les modifie dans l'administration."""
+
+    def _membre(self, db):
+        from datetime import date, timedelta
+        db.execute("""INSERT INTO members(id,nom,email,phone,company,plan,subscription_status,trial_ends,
+                      pw_hash,session_token,actif,secteurs,email_verified)
+                      VALUES(7,'Ahmed Alaoui','v@x.ma','0612345678','SIMAC','pro','ACTIVE',?,'x',
+                      'jeton-verrou-7',1,'["T101"]',1)""", ((date.today() + timedelta(days=90)).isoformat(),))
+        db.commit()
+
+    def test_le_formulaire_ne_change_pas_les_secteurs(self, client, db):
+        self._membre(db)
+        client.cookies.set("_session", "jeton-verrou-7")
+        page = client.get("/settings").text
+        assert 'name="secteurs_sel"' not in page and "wa.me/" in page
+        client.post("/settings", data={"nom": "Ahmed Alaoui", "phone": "0612345678", "company": "SIMAC",
+                                        "secteurs_sel": ["P818", "S901"], "csrf_token": client.cookies.get("_csrf")})
+        assert db.execute("SELECT secteurs FROM members WHERE id=7").fetchone()[0] == '["T101"]'
+
+    def test_l_administration_les_change(self, admin, db):
+        self._membre(db)
+        admin.get("/admin/member/7/secteurs")
+        admin.post("/admin/member/7/secteurs", data={"secteurs_sel": ["P818", "S901"],
+                                                    "csrf_token": admin.cookies.get("_csrf")})
+        assert db.execute("SELECT secteurs FROM members WHERE id=7").fetchone()[0] == '["P818", "S901"]'
+
+    def test_au_moins_un_secteur(self, admin, db):
+        self._membre(db)
+        admin.get("/admin/member/7/secteurs")
+        r = admin.post("/admin/member/7/secteurs", data={"csrf_token": admin.cookies.get("_csrf")},
+                       follow_redirects=False)
+        assert "err=1" in r.headers["location"]
