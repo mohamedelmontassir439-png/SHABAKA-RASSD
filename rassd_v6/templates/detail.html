@@ -158,6 +158,17 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
       </div>
       {% endif %}
 
+      {% if report %}
+      <div class="deadline-banner" style="background:var(--ambera);border:1px solid rgba(242,169,59,.35);color:var(--amberd);flex-direction:column;align-items:flex-start;gap:4px">
+        {% if report.etat == 'applique' %}
+        <span>{{ tr('report_applique', avant=report.avant, apres=report.apres) }}</span>
+        {% else %}
+        <span>{{ tr('report_possible', avant=report.avant, apres=report.apres) }}</span>
+        {% endif %}
+        <span style="font-weight:500;font-size:var(--f2)">{{ report.report.motif_ar if lang == 'ar' else report.report.motif_fr }} · {{ tr('report_heure') }}</span>
+      </div>
+      {% endif %}
+
       <div class="info-grid">
         <div class="info-cell">
           <div class="info-label">{{ tr('detail_buyer') }}</div>

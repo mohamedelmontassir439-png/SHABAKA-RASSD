@@ -916,6 +916,11 @@ def csrf_guard(req: Request, csrf_token: str = ""):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    try:
+        from app.services.reports_officiels import appliquer
+        appliquer()
+    except Exception as e:
+        logger.error(f"[reports] {e}")
     State.log(f"MAROC ENTREPRENEURIAT v{cfg.APP_VERSION}")
     if cfg.WA_SECRET == "atlas_wa_secret_2024":
         logger.warning("[startup] WA_SECRET utilise sa valeur par défaut — configure-la dans les variables d'environnement Railway.")
@@ -1053,6 +1058,8 @@ templates.env.globals["issue_procedure"] = issue_procedure
 templates.env.globals["cartes_conditions"] = lambda texte, tid="ao_": cartes(conditions_avis(texte), portail=(tid or "").startswith("ao_"))
 templates.env.globals["contact_avis"] = contact_detaille
 templates.env.globals["chiffres_avis"] = chiffres_lecture
+from app.services.reports_officiels import report_actif as _report_actif
+templates.env.globals["report_actif"] = _report_actif
 from app.services.intelligence import slug_acheteur as _slug_acheteur
 templates.env.globals["slug_acheteur"] = _slug_acheteur
 templates.env.globals["coffre_libelle"] = lambda code, lang="fr": __import__("app.services.coffre", fromlist=["TYPES"]).TYPES.get(code, (code, code))[1 if lang == "ar" else 0]
@@ -1143,6 +1150,13 @@ def get_stats() -> dict:
     finally: db.close()
 
 def expire_tenders() -> tuple:
+    # Les reports officiels d'abord: sans eux, un marché dont la date a été
+    # repoussée par la TGR serait clos à son ancienne date.
+    try:
+        from app.services.reports_officiels import appliquer
+        appliquer()
+    except Exception as e:
+        logger.error(f"[reports] {e}")
     db = get_db(); today = date.today(); expired = []
     for row in db.execute("SELECT id,date_limite FROM tenders WHERE statut='actif' AND date_limite!=''").fetchall():
         m = re.search(r'(\d{2}/\d{2}/\d{4}|\d{4}-\d{2}-\d{2})', str(row["date_limite"]))
@@ -1423,7 +1437,7 @@ async def tender_detail(req: Request, tid: str):
         logger.warning(f"[commit] {e}")
     db.close()
     from app.services.coffre import pour_marche
-    from app.services import eligibilite, groupement, intelligence, suivi
+    from app.services import eligibilite, groupement, intelligence, reports_officiels, suivi
     dossier_admin = pour_marche(m0["id"], dict(t)) if m0 else []
     return render(req, "detail.html", {
         "t": dict(t), "related": related, "is_fav": is_fav, "dossier_admin": dossier_admin,
@@ -1432,6 +1446,7 @@ async def tender_detail(req: Request, tid: str):
         "etapes_suivi": suivi.ETAPES,
         "comparables": intelligence.comparables(dict(t)),
         "analyse": _derniere_analyse(m0["id"], tid),
+        "report": reports_officiels.pour_marche(dict(t)),
         "eligibilite": eligibilite.pour_marche(m0["id"], dict(t)),
         "groupement": groupement.partenaires(m0["id"], dict(t)),
         "grp_msg": req.query_params.get("grp", ""),

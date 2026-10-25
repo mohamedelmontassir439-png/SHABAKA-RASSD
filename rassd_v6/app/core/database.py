@@ -532,6 +532,9 @@ def migrate_db():
         "ALTER TABLE tenders ADD COLUMN secteur_ia TEXT DEFAULT ''",
         # Fiche de la source privée lue (app/services/fiches_privees.py)
         "ALTER TABLE tenders ADD COLUMN fiche_lue TEXT DEFAULT ''",
+        # Report officiel d'une date limite (app/services/reports_officiels.py)
+        "ALTER TABLE tenders ADD COLUMN date_limite_initiale TEXT DEFAULT ''",
+        "ALTER TABLE tenders ADD COLUMN report_motif TEXT DEFAULT ''",
         "ALTER TABLE tenders ADD COLUMN dao_url TEXT DEFAULT ''",
         "ALTER TABLE tender_results ADD COLUMN secteur_ia TEXT DEFAULT ''",
         "ALTER TABLE members ADD COLUMN source_campagne TEXT DEFAULT ''",

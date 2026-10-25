@@ -299,6 +299,11 @@ T = {
     "gd_cta_b":          {"fr": "Essai gratuit", "ar": "تجربة مجّانية"},
     "gd_lien":           {"fr": "Comment déposer en ligne", "ar": "كيف أودِع إلكترونيًّا"},
     "footer_guide_depot": {"fr": "Guide du dépôt électronique", "ar": "دليل الإيداع الإلكتروني"},
+    # ── Reports officiels des dates limites (reports_officiels.py) ───────
+    "report_applique":   {"fr": "Date limite reportée : {avant} → {apres}", "ar": "تمّ تأجيل آخر أجل: {avant} ← {apres}"},
+    "report_possible":   {"fr": "Si ce marché se dépose sur le portail national, sa date limite est reportée : {avant} → {apres}. Vérifiez auprès de l'acheteur.", "ar": "إن كانت هذه الصفقة تُودَع في البوابة الوطنية، فآخر أجلها مؤجَّل: {avant} ← {apres}. تحقّق لدى صاحب المشروع."},
+    "report_heure":      {"fr": "à l'heure initialement fixée", "ar": "في الساعة المحدّدة أصلًا"},
+    "report_bandeau":    {"fr": "Portail des marchés publics suspendu jusqu'au 26/10 : les dates limites sont reportées par la TGR —", "ar": "بوابة الصفقات العمومية معلّقة إلى 26/10: الآجال مؤجّلة من طرف الخزينة العامة —"},
     "search_placeholder":   {"fr": "Rechercher un marché, secteur, mot-clé…", "ar": "ابحث عن صفقة، قطاع، كلمة مفتاحية…"},
     "upsell_title":         {"fr": "Abonnement Premium", "ar": "العضوية المميزة"},
     "upsell_text":          {"fr": "Profitez de toutes les fonctionnalités et alertes illimitées.", "ar": "استفد من جميع الميزات والتنبيهات غير المحدودة."},

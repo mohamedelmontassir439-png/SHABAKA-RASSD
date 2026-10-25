@@ -464,7 +464,14 @@ html[dir="rtl"] .section-label::before { order: 2; }
     {# Les membres inscrits avant que ces champs ne deviennent obligatoires
        gardent un profil troué. On ne les met pas dehors — ils paient — mais
        on le leur dit partout, jusqu'à ce que ce soit fait. #}
-    {% if member and profil_manque(member) %}
+    {% set _rep = report_actif() %}
+{% if member and _rep %}
+<div role="status" style="background:var(--ambera);color:var(--amberd);padding:10px 18px;font-size:var(--f2);font-weight:600;text-align:center;border-bottom:1px solid rgba(242,169,59,.35)">
+  {{ tr('report_bandeau') }}
+  {% for avant, apres in _rep.dates.items() %}<span dir="ltr" style="white-space:nowrap">{{ avant[:5] }} → {{ apres[:5] }}</span>{% if not loop.last %} · {% endif %}{% endfor %}
+</div>
+{% endif %}
+{% if member and profil_manque(member) %}
     <div class="sub-banner sub-banner-warn">
       <span class="sub-banner-txt">{{ tr('profil_incomplet') }}</span>
       <a href="/settings" class="btn btn-accent btn-sm">{{ tr('profil_completer') }}</a>
