@@ -15,8 +15,13 @@
   Chaque avis, bon de commande et résultat est classé <b>par le sens</b> : le modèle
   <span class="num">{{ modele }}</span> lit l'intitulé et le début de l'avis, cherche ce qui est
   acheté ou exécuté, et choisit parmi les 83 secteurs officiels. Les nouveaux avis le sont avant
-  d'être enregistrés — les alertes partent donc sur le bon secteur. Sans clé d'API, le classement
-  par mots-clés reste en place.
+  d'être enregistrés — les alertes partent donc sur le bon secteur.
+</p>
+<p class="cl-tete">
+  Sans clé d'API, un <b>modèle interne</b> prend le relais : il a appris de 3 984 intitulés classés
+  à la main et de chaque classement fait ici. Sur des avis qu'il n'avait jamais vus, il trouve le bon
+  secteur dans 69 % des cas quand il est sûr de lui (86 % des avis), contre 43 % pour les mots-clés.
+  En dessous d'une confiance de {{ seuil_local }}, l'avis garde son classement par mots-clés.
 </p>
 
 {% if not disponible %}
@@ -40,9 +45,29 @@
   {% endfor %}
 </div>
 
+<div class="chiffres">
+  <div class="chiffre"><div class="chiffre-n">{{ methodes.manuel }}</div><div class="chiffre-l">classés à la main</div></div>
+  <div class="chiffre"><div class="chiffre-n">{{ methodes.local }}</div><div class="chiffre-l">par le modèle interne</div></div>
+  <div class="chiffre"><div class="chiffre-n">{{ methodes.modele }}</div><div class="chiffre-l">par le modèle de langage</div></div>
+</div>
+
+<div class="carte">
+  <div class="carte-h"><span class="carte-t">Modèle interne</span>
+    <span class="meta">Sans clé d'API. Repasse chaque nuit sur les avis classés par mots-clés.</span></div>
+  <div style="padding:14px 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+    <form method="post" action="/admin/classement/local">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <button type="submit" class="btn btn-p" {% if local.running %}disabled{% endif %}>
+        {% if local.running %}Classement en cours…{% else %}Classer avec le modèle interne{% endif %}</button>
+    </form>
+    {% if local.dernier %}<span class="meta">{{ local.dernier.quand }} : {{ local.dernier.classes }} classés sur
+      {{ local.dernier.lus }} lus · {{ local.dernier.changes }} changés</span>{% endif %}
+  </div>
+</div>
+
 <div class="carte">
   <div class="carte-h"><span class="carte-t">Reprendre la base</span>
-    <span class="meta">{{ a_reprendre }} avis encore classés par mots-clés.</span></div>
+    <span class="meta">{{ a_reprendre }} avis pas encore lus par le modèle de langage.</span></div>
   <div style="padding:14px 20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
     <form method="post" action="/admin/classement/lancer">
       <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
@@ -65,5 +90,5 @@
   </div>
 </div>
 {% endif %}
-{% if etat.running %}<script>setTimeout(function () { location.reload(); }, 8000);</script>{% endif %}
+{% if etat.running or local.running %}<script>setTimeout(function () { location.reload(); }, 8000);</script>{% endif %}
 {% endblock %}

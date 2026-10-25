@@ -523,7 +523,11 @@ async def daily_digest_scheduler():
 
 
 async def classement_ia_scheduler():
-    """Chaque nuit, relit par le sens les avis restés classés par mots-clés."""
+    """Chaque nuit, relit par le sens les avis restés classés par mots-clés.
+
+    Avec une clé d'API, par le modèle de langage; sans clé, par le modèle
+    interne (app/services/classement_local.py), dès le démarrage.
+    """
     from app.services import classement_ia
     await asyncio.sleep(600)
     dernier = ""
@@ -531,10 +535,15 @@ async def classement_ia_scheduler():
         try:
             maintenant = datetime.now()
             jour = maintenant.strftime("%Y-%m-%d")
+            loop = asyncio.get_event_loop()
             if (maintenant.hour >= 2 and dernier != jour and classement_ia.disponible()
                     and not classement_ia.ReclassementState.running):
-                loop = asyncio.get_event_loop()
                 await loop.run_in_executor(None, lambda: classement_ia.reclasser(limite=500))
+                dernier = jour
+            elif dernier != jour and not classement_ia.disponible():
+                # Sans clé: le modèle appris des classements faits à la main.
+                from app.services import classement_local
+                await loop.run_in_executor(None, classement_local.reclasser_base)
                 dernier = jour
         except Exception as e:
             logger.error(f"[classement_ia_scheduler] {e}")
@@ -1631,10 +1640,20 @@ async def admin_classement(req: Request):
             lus = db.execute(f"SELECT COUNT(*) FROM {table} WHERE {filtre} "
                              "AND COALESCE(secteur_ia,'')!=''").fetchone()[0]
             compte[table] = {"total": total, "lus": lus}
+        methodes = {"manuel": 0, "local": 0, "modele": 0}
+        for table in ("tenders", "tender_results"):
+            for r in db.execute(f"""SELECT CASE WHEN secteur_ia LIKE 'manuel:%' THEN 'manuel'
+                                      WHEN secteur_ia LIKE 'local:%' THEN 'local' ELSE 'modele' END m,
+                                      COUNT(*) n FROM {table} WHERE COALESCE(secteur_ia,'')!=''
+                                    GROUP BY m""").fetchall():
+                methodes[r["m"]] += r["n"]
     finally:
         db.close()
+    from app.services import classement_local
     return render(req, "admin_classement.html", {
         "disponible": classement_ia.disponible(), "modele": classement_ia.MODELE,
+        "methodes": methodes, "local": _etat_local(),
+        "seuil_local": classement_local.SEUIL,
         "compte": compte, "etat": classement_ia.ReclassementState.etat(),
         "a_reprendre": len(classement_ia.a_reprendre()),
         "csrf_token": get_csrf_token(req) or secrets.token_urlsafe(24)})
@@ -1678,7 +1697,37 @@ async def admin_classement_import(req: Request):
         db.commit()
     finally:
         db.close()
+    from app.services import classement_local
+    classement_local.oublier()
     return JSONResponse({"ok": True, "ecrits": ecrits})
+
+
+_ETAT_LOCAL = {"running": False, "dernier": None}
+
+
+def _etat_local() -> dict:
+    return dict(_ETAT_LOCAL)
+
+
+def _reclasser_local():
+    from app.services import classement_local
+    _ETAT_LOCAL["running"] = True
+    try:
+        _ETAT_LOCAL["dernier"] = classement_local.reclasser_base() | {
+            "quand": datetime.now().strftime("%d/%m %H:%M")}
+    finally:
+        _ETAT_LOCAL["running"] = False
+
+
+@app.post("/admin/classement/local")
+async def admin_classement_local(req: Request, csrf_token: str = Form("")):
+    """Passe le modèle interne sur les avis encore classés par mots-clés."""
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    csrf_guard(req, csrf_token)
+    if not _ETAT_LOCAL["running"]:
+        loop = asyncio.get_event_loop()
+        loop.run_in_executor(None, _reclasser_local)
+    return RedirectResponse("/admin/classement", 302)
 
 
 @app.post("/admin/classement/lancer")
@@ -3871,7 +3920,10 @@ def reclasser_marches(log_fn=None) -> dict:
     stats = {"lus": 0, "changes": 0}
     try:
         lignes = db.execute(
-            "SELECT id, objet, nature, description, secteur FROM tenders").fetchall()
+            # Un secteur lu par le sens (modèle, ou à la main) n'est pas
+            # rejoué par les mots-clés.
+            "SELECT id, objet, nature, description, secteur FROM tenders "
+            "WHERE COALESCE(secteur_ia,'')=''").fetchall()
         for ligne in lignes:
             stats["lus"] += 1
             contexte = " ".join(x or "" for x in (ligne["nature"], ligne["description"]))
@@ -3957,7 +4009,8 @@ def _reparer_fiches_portail(limite: int = 400) -> dict:
             if not fiche:
                 echecs += 1
             else:
-                db.execute("""UPDATE tenders SET acheteur=?, region=?, secteur=?,
+                db.execute("""UPDATE tenders SET acheteur=?, region=?,
+                              secteur=CASE WHEN COALESCE(secteur_ia,'')='' THEN ? ELSE secteur END,
                               type_procedure=? WHERE id=?""",
                            (fiche["acheteur"], fiche["region"], fiche["secteur"],
                             fiche["type_procedure"], tid))

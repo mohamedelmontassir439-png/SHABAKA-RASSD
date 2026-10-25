@@ -16,9 +16,10 @@ On lui donne les 83 secteurs officiels et il ne peut répondre que par l'un
 d'eux (schéma JSON à énumération fermée). Les avis passent par lots de
 vingt-cinq: une requête, vingt-cinq classements.
 
-Sans clé d'API, ou si l'appel échoue, rien ne casse: le classement par
-mots-clés reste celui de l'avis, et le marché sera repris au passage
-suivant (colonne `secteur_ia` vide).
+Sans clé d'API, ou si l'appel échoue, rien ne casse: le modèle interne
+appris des classements faits à la main prend le relais
+(app/services/classement_local.py), à défaut le classement par mots-clés,
+et le marché sera repris au passage suivant.
 """
 import json
 import logging
@@ -147,18 +148,26 @@ def classer_liste(items: list, client=None) -> int:
     Chaque avis classé reçoit `secteur` (le code) et `secteur_ia` (l'heure):
     l'enregistrement les écrit, et le marché ne sera pas repris.
     """
-    if not items or (client is None and not disponible()):
+    if not items:
         return 0
     n = 0
-    maintenant = datetime.now().isoformat(timespec="seconds")
-    for debut in range(0, len(items), LOT):
-        lot = [i for i in items[debut:debut + LOT] if i.get("id") and i.get("objet")]
-        codes = classer_lot(lot, client)
-        for i in lot:
-            if i["id"] in codes:
-                i["secteur"] = codes[i["id"]]
-                i["secteur_ia"] = maintenant
-                n += 1
+    if client is not None or disponible():
+        maintenant = datetime.now().isoformat(timespec="seconds")
+        for debut in range(0, len(items), LOT):
+            lot = [i for i in items[debut:debut + LOT] if i.get("id") and i.get("objet")]
+            codes = classer_lot(lot, client)
+            for i in lot:
+                if i["id"] in codes:
+                    i["secteur"] = codes[i["id"]]
+                    i["secteur_ia"] = maintenant
+                    n += 1
+    # Sans clé, ou pour ce que l'API n'a pas rendu: le modèle appris des
+    # classements faits à la main (app/services/classement_local.py).
+    try:
+        from app.services import classement_local
+        n += classement_local.classer_liste(items)
+    except Exception as e:
+        logger.warning(f"[classement_local] {e}")
     return n
 
 
@@ -178,17 +187,19 @@ class ReclassementState:
 
 
 def a_reprendre(limite: int = 0) -> list:
-    """(table, ligne) des avis jamais lus par le modèle: marchés ouverts et résultats."""
+    """(table, ligne) des avis jamais lus par le modèle de langage: marchés ouverts
+    et résultats. Ceux du modèle interne (« local:… ») en font partie."""
     from app.core.database import get_db
     db = get_db()
     try:
         tenders = [("tenders", dict(r)) for r in db.execute(
             """SELECT id, objet, nature, description, secteur FROM tenders
-               WHERE statut='actif' AND COALESCE(secteur_ia,'')=''
+               WHERE statut='actif' AND (COALESCE(secteur_ia,'')='' OR secteur_ia LIKE 'local:%')
                ORDER BY scraped_at DESC""").fetchall()]
         resultats = [("tender_results", dict(r)) for r in db.execute(
             """SELECT id, objet, '' AS nature, '' AS description, secteur FROM tender_results
-               WHERE COALESCE(secteur_ia,'')='' ORDER BY scraped_at DESC""").fetchall()]
+               WHERE COALESCE(secteur_ia,'')='' OR secteur_ia LIKE 'local:%'
+               ORDER BY scraped_at DESC""").fetchall()]
     finally:
         db.close()
     tout = tenders + resultats
