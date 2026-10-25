@@ -29,6 +29,10 @@ logger = logging.getLogger("atlas.fiches_privees")
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
 BASE = "https://global-marches.com"
 PAUSE = 1.5
+# Version de la lecture, préfixée à fiche_lue: une fiche lue par une
+# version antérieure est relue une fois. v2 (25/10/2026): le portail
+# national n'est plus supposé quand l'avis ne le nomme pas.
+VERSION = "v2"
 
 # Les étiquettes de la fiche, dans leur ordre. La valeur court jusqu'à la
 # suivante. « D.réunion » n'a pas de deux-points sur la page.
@@ -91,12 +95,20 @@ def description(acheteur: str, objet: str, f: dict) -> str:
     if f.get("reference"):
         p.append(f"Référence {f['reference']}")
     electronique = (f.get("electronique") or "").lower().startswith("oui")
+    # La source dit « Soumission électronique : Oui » sans dire où. On ne
+    # nomme le portail national que si l'avis le nomme: certaines sociétés
+    # ont leur propre plateforme (relevé du 25/10/2026 sur 24 fiches).
+    portail = bool(re.search(r"portail des march[ée]s publics|marchespublics\.gov\.ma",
+                             (f.get("observation") or "") + " " + (f.get("retrait") or ""), re.I))
     if f.get("retrait"):
         p.append(f"Adresse de retrait des dossiers : {f['retrait']}")
-    elif electronique:
+    elif electronique and portail:
         p.append("Adresse de retrait des dossiers : www.marchespublics.gov.ma")
-    if electronique:
+    if electronique and portail:
         p.append("Adresse de dépôt des offres : dépôt électronique sur www.marchespublics.gov.ma")
+    elif electronique:
+        p.append("Adresse de dépôt des offres : dépôt électronique — plateforme indiquée dans l'avis "
+                 "ou le DAO (le plus souvent le portail des marchés publics)")
     elif f.get("electronique"):
         p.append("Adresse de dépôt des offres : dépôt papier auprès de l'acheteur — "
                  + (f.get("retrait") or "voir l'avis"))
@@ -134,8 +146,9 @@ def enrichir(limite: int = 60, session=None, pause: float = PAUSE, log_fn=None) 
         a_lire = [dict(r) for r in db.execute(
             """SELECT id, objet, acheteur, url, description FROM tenders
                WHERE source='global-marches' AND statut='actif'
-                 AND COALESCE(fiche_lue,'')='' AND url LIKE '%/share/%'
-               ORDER BY scraped_at DESC LIMIT ?""", (limite,)).fetchall()]
+                 AND COALESCE(fiche_lue,'') NOT LIKE ? AND url LIKE '%/share/%'
+               ORDER BY COALESCE(fiche_lue,'') = '' DESC, scraped_at DESC LIMIT ?""",
+            (VERSION + ":%", limite)).fetchall()]
     finally:
         db.close()
     if not a_lire:
@@ -152,7 +165,7 @@ def enrichir(limite: int = 60, session=None, pause: float = PAUSE, log_fn=None) 
         except requests.RequestException as e:
             logger.warning(f"[fiches_privees] {t['id']}: {e}")
             continue
-        maintenant = datetime.now().isoformat(timespec="seconds")
+        maintenant = VERSION + ":" + datetime.now().isoformat(timespec="seconds")
         db = get_db()
         try:
             if champs:

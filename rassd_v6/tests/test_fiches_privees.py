@@ -120,3 +120,20 @@ class TestFiche:
         monkeypatch.setattr(pieces, "recuperer", lambda url: (b"PK\x03\x04zip", "application/zip", "zip"))
         r = client.get("/tenders/gm_1556229/dao")
         assert r.status_code == 200 and r.content.startswith(b"PK")
+
+
+class TestPlateforme:
+    def test_portail_seulement_s_il_est_nomme(self):
+        f = F.lire_fiche(FICHE.replace("<td>Non</td>", "<td>Oui</td>"))
+        d = F.description("A", "B", f)
+        assert "plateforme indiquée dans l'avis" in d and "dépôt électronique sur www.marchespublics" not in d
+        f["observation"] = "dépôt obligatoire dans le portail des marchés publics"
+        assert "dépôt électronique sur www.marchespublics.gov.ma" in F.description("A", "B", f)
+
+    def test_une_ancienne_lecture_est_refaite_une_fois(self, db):
+        _avis(db)
+        db.execute("UPDATE tenders SET fiche_lue='2026-10-25T01:00:00'"); db.commit()
+        s = FausseSession(FICHE)
+        assert F.enrichir(session=s, pause=0) == 1
+        assert db.execute("SELECT fiche_lue FROM tenders").fetchone()[0].startswith("v2:")
+        assert F.enrichir(session=s, pause=0) == 0
