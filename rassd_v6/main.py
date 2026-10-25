@@ -329,6 +329,10 @@ async def do_scrape():
             try:
                 from app.services.fiches_privees import enrichir
                 await loop.run_in_executor(None, lambda: enrichir(60, log_fn=State.log))
+                # Puis, pour les avis à dépôt électronique, le lien exact:
+                # par la référence sur le portail, sinon dans le dossier.
+                from app.services.lien_depot import rapprocher
+                await loop.run_in_executor(None, lambda: rapprocher(40))
             except Exception as e:
                 logger.error(f"[fiches_privees] {e}")
             State.saved += saved3

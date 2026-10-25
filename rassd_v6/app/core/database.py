@@ -534,6 +534,11 @@ def migrate_db():
         "ALTER TABLE tenders ADD COLUMN fiche_lue TEXT DEFAULT ''",
         # Report officiel d'une date limite (app/services/reports_officiels.py)
         "ALTER TABLE tenders ADD COLUMN date_limite_initiale TEXT DEFAULT ''",
+        # Lien de dépôt retrouvé (app/services/lien_depot.py)
+        "ALTER TABLE tenders ADD COLUMN lien_depot TEXT DEFAULT ''",
+        "ALTER TABLE tenders ADD COLUMN lien_depot_origine TEXT DEFAULT ''",
+        "ALTER TABLE tenders ADD COLUMN lien_depot_extrait TEXT DEFAULT ''",
+        "ALTER TABLE tenders ADD COLUMN lien_depot_cherche TEXT DEFAULT ''",
         "ALTER TABLE tenders ADD COLUMN report_motif TEXT DEFAULT ''",
         "ALTER TABLE tenders ADD COLUMN dao_url TEXT DEFAULT ''",
         "ALTER TABLE tender_results ADD COLUMN secteur_ia TEXT DEFAULT ''",
