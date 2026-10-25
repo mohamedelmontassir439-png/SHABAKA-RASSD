@@ -1640,6 +1640,47 @@ async def admin_classement(req: Request):
         "csrf_token": get_csrf_token(req) or secrets.token_urlsafe(24)})
 
 
+@app.get("/admin/classement/export")
+async def admin_classement_export(req: Request, depuis: int = 0, n: int = 400):
+    """Les avis encore classés par mots-clés, pour un classement fait à la main."""
+    if not _is_admin(req): return JSONResponse({"ok": False}, 401)
+    from app.services import classement_ia
+    liste = classement_ia.a_reprendre()
+    morceau = liste[max(0, depuis): max(0, depuis) + min(max(n, 1), 1000)]
+    return JSONResponse({"total": len(liste), "depuis": depuis, "avis": [
+        {"t": "r" if table == "tender_results" else "m", "id": l["id"],
+         "objet": (l["objet"] or "")[:260], "nature": (l.get("nature") or "")[:80],
+         "secteur": l["secteur"]} for table, l in morceau]})
+
+
+@app.post("/admin/classement/import")
+async def admin_classement_import(req: Request):
+    """Écrit un classement fait à la main: [{"id", "secteur"}]. Codes vérifiés."""
+    if not _is_admin(req): return JSONResponse({"ok": False}, 401)
+    if not verify_csrf(req, req.headers.get("X-CSRF-Token", "")):
+        return JSONResponse({"ok": False, "msg": "csrf"}, 403)
+    try:
+        donnees = await req.json()
+    except Exception:
+        return JSONResponse({"ok": False, "msg": "json"}, 400)
+    marque = "manuel:" + datetime.now().isoformat(timespec="seconds")
+    ecrits = 0
+    db = get_db()
+    try:
+        for d in donnees if isinstance(donnees, list) else []:
+            code, aid = (d.get("secteur") or ""), (d.get("id") or "")
+            if code not in cfg.SECTEURS or not aid:
+                continue
+            for table in ("tenders", "tender_results"):
+                cur = db.execute(f"UPDATE {table} SET secteur=?, secteur_ia=? WHERE id=?",
+                                 (code, marque, aid))
+                ecrits += cur.rowcount
+        db.commit()
+    finally:
+        db.close()
+    return JSONResponse({"ok": True, "ecrits": ecrits})
+
+
 @app.post("/admin/classement/lancer")
 async def admin_classement_lancer(req: Request, csrf_token: str = Form("")):
     if not _is_admin(req): return RedirectResponse("/admin/login", 302)

@@ -114,3 +114,23 @@ class TestReprise:
         monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
         page = admin.get("/admin/classement").text
         assert "Clé d'API absente" in page and "ANTHROPIC_API_KEY" in page
+
+
+class TestManuel:
+    def test_export_puis_import(self, admin, db):
+        db.execute("""INSERT INTO tenders(id,objet,acheteur,secteur,statut,scraped_at,url)
+                      VALUES('ao_1','Nettoyage des bâtiments de l''Institut de Formation','A','S913','actif','2026-10-01','u')""")
+        db.commit()
+        e = admin.get("/admin/classement/export").json()
+        assert e["total"] == 1 and e["avis"][0]["id"] == "ao_1"
+        r = admin.post("/admin/classement/import", json=[{"id": "ao_1", "secteur": "S906"},
+                                                         {"id": "ao_1", "secteur": "ZZZ"}],
+                       headers={"X-CSRF-Token": admin.cookies.get("_csrf")})
+        assert r.json() == {"ok": True, "ecrits": 1}
+        row = db.execute("SELECT secteur, secteur_ia FROM tenders").fetchone()
+        assert row["secteur"] == "S906" and row["secteur_ia"].startswith("manuel:")
+        assert admin.get("/admin/classement/export").json()["total"] == 0
+
+    def test_import_sans_jeton_refuse(self, admin, db):
+        r = admin.post("/admin/classement/import", json=[])
+        assert r.status_code == 403
