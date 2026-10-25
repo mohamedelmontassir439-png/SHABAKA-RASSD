@@ -153,7 +153,12 @@ def chiffres(t) -> dict:
                              "restants": _jours_restants(h.group(1))}
         m = re.search(r"Caution provisoire\s*:\s*([\d][\d\s.,]*\s*MAD)", desc)
         out["caution"] = {"valeur": m.group(1).strip()} if m and not _nul(m.group(1)) else None
-        out["qualification"] = out["dossier"] = None
+        out["qualification"] = None
+        # La fiche lue (app/services/fiches_privees.py) dit où retirer le
+        # dossier et s'il se dépose en ligne.
+        retrait = _propre(conditions_avis(desc).get("retrait", ""))
+        out["dossier"] = {"electronique": "marchespublics.gov.ma" in retrait.lower(),
+                          "adresse": retrait[:200], "gratuit": True, "prix": ""} if retrait else None
         return out
 
     lots = bool(re.search(r"[2-9]|\d{2}", cond.get("allotissement", "")))

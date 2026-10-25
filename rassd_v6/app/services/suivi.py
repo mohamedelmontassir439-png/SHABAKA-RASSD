@@ -104,7 +104,9 @@ def echeances(t: dict, aujourdhui: date = None) -> list:
     """Les dates qui comptent pour ce marché, tirées de l'avis, dans l'ordre."""
     aujourdhui = aujourdhui or date.today()
     desc = (t or {}).get("description") or ""
-    cond = conditions_avis(desc) if (t.get("id") or "").startswith("ao_") else {}
+    # Avis du portail, ou fiche de la source privée réécrite sous les mêmes
+    # étiquettes (app/services/fiches_privees.py): les deux se lisent pareil.
+    cond = conditions_avis(desc)
     limite = _jour(cond.get("limite") or t.get("date_limite") or "")
     liste = []
     if cond.get("visite") and _jour(cond["visite"]):

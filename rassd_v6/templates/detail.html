@@ -244,7 +244,7 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
          lieu des plis… Ce qu'une entreprise cherchait en ouvrant le dossier
          entier. Rien ne s'affiche pour un bon de commande ou une source
          privée, dont la description n'a pas ces champs. #}
-      {% set cases = cartes_conditions(t.description) %}
+      {% set cases = cartes_conditions(t.description, t.id) %}
       {% if cases %}
       {% set mots = ('oui', 'non', 'aucune', 'aucun', 'electronique', 'gratuit', 'par_lot') %}
       <section class="cond" aria-labelledby="cond-titre">
@@ -513,6 +513,9 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
       <div class="action-card">
         {% if t.source == 'marchespublics' %}
         <a href="/tenders/{{ t.id }}/source" target="_blank" class="btn btn-primary btn-full" style="margin-bottom: 8px;">{{ tr('detail_source') }}</a>
+        {% elif t.dao_url %}
+        <a href="/tenders/{{ t.id }}/dao" class="btn btn-primary btn-full" style="margin-bottom: 8px;">{{ tr('detail_dao') }}</a>
+        {% if request.query_params.get('dao') == 'indisponible' %}<div style="font-size:var(--f1);color:var(--red);margin-bottom:8px">{{ tr('detail_dao_indispo') }}</div>{% endif %}
         {% endif %}
         {% if member %}
         <button onclick="toggleFav(this,'{{ t.id }}')" id="favbtn" class="btn btn-outline btn-full btn-sm {% if is_fav %}active{% endif %}" data-add="{{ tr('detail_fav_add') }}" data-remove="{{ tr('detail_fav_remove') }}">

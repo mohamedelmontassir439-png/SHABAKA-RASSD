@@ -49,6 +49,11 @@ _ETIQUETTES = (
     ("reunion",       r"Réunion"),
     ("visite",        r"Visites des lieux"),
     ("variante",      r"Variante"),
+    # Champs de la source privée, réécrits par app/services/fiches_privees.py
+    # sous des étiquettes qui ne peuvent pas apparaître dans un avis du portail.
+    ("delai_execution", r"Délai d'exécution prévu"),
+    ("type_consultation", r"Type de consultation"),
+    ("observation",   r"Observations de l'acheteur"),
     ("contact",       r"Contact Administratif"),
 )
 
@@ -118,7 +123,7 @@ def _montant_nul(valeur: str) -> bool:
     return not re.search(r"[1-9]", valeur or "")
 
 
-def cartes(cond: dict) -> list:
+def cartes(cond: dict, portail: bool = True) -> list:
     """Les cases à afficher, dans l'ordre où un soumissionnaire se pose les
     questions: puis-je répondre, que dois-je préparer, où et quand déposer.
 
@@ -156,7 +161,9 @@ def cartes(cond: dict) -> list:
         c.append(("cond_caution", caution, "cond_caution_aide", True))
     elif en_lots:
         c.append(("cond_caution", "par_lot", "cond_caution_aide", True))
-    else:
+    elif portail:
+        # « Aucune » ne se dit que d'un avis du portail, qui publie toujours
+        # le champ: ailleurs, un champ absent veut dire « on ne sait pas ».
         c.append(("cond_caution", "aucune", "", False))
 
     if cond.get("agrements"):
@@ -167,7 +174,7 @@ def cartes(cond: dict) -> list:
         from app.core.lecture import qualifications_lisibles
         c.append(("cond_qualification", " · ".join(qualifications_lisibles(cond["qualifications"])),
                   "cond_qualification_aide", True))
-    if not cond.get("agrements") and not cond.get("qualifications") and not en_lots:
+    if not cond.get("agrements") and not cond.get("qualifications") and not en_lots and portail:
         c.append(("cond_agrement", "aucun", "", False))
 
     if cond.get("visite"):
@@ -181,6 +188,15 @@ def cartes(cond: dict) -> list:
     if variante:
         c.append(("cond_variante", "oui" if variante.startswith("oui") else "non", "", False))
 
+    if cond.get("delai_execution"):
+        c.append(("cond_delai_execution", cond["delai_execution"], "", False))
+    if cond.get("type_consultation"):
+        reserve_pme = "pme" in cond["type_consultation"].lower()
+        c.append(("cond_type_consultation", cond["type_consultation"],
+                  "cond_reserve_aide" if reserve_pme else "", reserve_pme))
+    retrait = cond.get("retrait", "")
+    if retrait and "marchespublics.gov.ma" not in retrait.lower():
+        c.append(("cond_retrait", retrait, "cond_retrait_aide", False))
     depot = cond.get("depot", "")
     if depot:
         bas = depot.lower()
@@ -195,6 +211,8 @@ def cartes(cond: dict) -> list:
 
     if cond.get("procedure"):
         c.append(("cond_procedure", cond["procedure"], "", False))
+    if cond.get("observation"):
+        c.append(("cond_observation", cond["observation"], "", False))
     if cond.get("contact"):
         c.append(("cond_contact", cond["contact"], "cond_contact_aide", False))
     return c

@@ -732,6 +732,13 @@ T = {
     "cond_contact_aide": {"fr": "Pour une question sur le dossier, avant la date limite.",
                            "ar": "لأيّ سؤال حول الملفّ، قبل آخر أجل."},
 
+    "cond_delai_execution": {"fr": "Délai d'exécution", "ar": "أجل التنفيذ"},
+    "cond_type_consultation": {"fr": "Type de consultation", "ar": "نوع الاستشارة"},
+    "cond_retrait":      {"fr": "Où retirer le dossier", "ar": "أين يُسحب الملفّ"},
+    "cond_retrait_aide": {"fr": "Le dossier se retire à cette adresse, aux heures de bureau, avant de préparer l'offre.", "ar": "يُسحب الملفّ من هذا العنوان، خلال أوقات العمل، قبل تحضير العرض."},
+    "cond_observation":  {"fr": "Observations de l'acheteur", "ar": "ملاحظات صاحب المشروع"},
+    "detail_dao":        {"fr": "Télécharger le dossier (DAO)", "ar": "تحميل ملفّ طلب العروض"},
+    "detail_dao_indispo": {"fr": "Dossier momentanément indisponible : réessayez dans quelques minutes.", "ar": "الملفّ غير متاح مؤقّتًا: أعد المحاولة بعد دقائق."},
     "cond_v_oui":        {"fr": "Oui", "ar": "نعم"},
     "cond_v_non":        {"fr": "Non", "ar": "لا"},
     "cond_v_aucune":     {"fr": "Aucune exigée", "ar": "غير مطلوبة"},

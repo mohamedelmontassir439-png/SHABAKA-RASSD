@@ -530,6 +530,9 @@ def migrate_db():
         "ALTER TABLE members ADD COLUMN source TEXT DEFAULT ''",
         # Heure du classement par le sens (app/services/classement_ia.py)
         "ALTER TABLE tenders ADD COLUMN secteur_ia TEXT DEFAULT ''",
+        # Fiche de la source privée lue (app/services/fiches_privees.py)
+        "ALTER TABLE tenders ADD COLUMN fiche_lue TEXT DEFAULT ''",
+        "ALTER TABLE tenders ADD COLUMN dao_url TEXT DEFAULT ''",
         "ALTER TABLE tender_results ADD COLUMN secteur_ia TEXT DEFAULT ''",
         "ALTER TABLE members ADD COLUMN source_campagne TEXT DEFAULT ''",
         "ALTER TABLE tenders ADD COLUMN type_procedure TEXT DEFAULT 'marche'",

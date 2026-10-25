@@ -323,6 +323,14 @@ async def do_scrape():
             await loop.run_in_executor(None, lambda: classer_ia(gm_results))
             State.found += len(gm_results)
             saved3 = _save_tenders(gm_results, new_tenders)
+            # Comment répondre et à qui s'adresser: la fiche de chaque avis
+            # (heure, dépôt, contact, caution, DAO). Les avis déjà en base
+            # sont repris par lots à chaque passage.
+            try:
+                from app.services.fiches_privees import enrichir
+                await loop.run_in_executor(None, lambda: enrichir(60, log_fn=State.log))
+            except Exception as e:
+                logger.error(f"[fiches_privees] {e}")
             State.saved += saved3
             State.log(f"✅ Marchés privés: {saved3} nouveaux")
             _record_run("global-marches", "SUCCESS", len(gm_results), saved3, started=_t)
@@ -1042,7 +1050,7 @@ templates.env.globals["fond_rosace"] = marque.fond_rosace
 templates.env.globals["ico"] = marque.icone
 templates.env.globals["profil_manque"] = profil_incomplet
 templates.env.globals["issue_procedure"] = issue_procedure
-templates.env.globals["cartes_conditions"] = lambda texte: cartes(conditions_avis(texte))
+templates.env.globals["cartes_conditions"] = lambda texte, tid="ao_": cartes(conditions_avis(texte), portail=(tid or "").startswith("ao_"))
 templates.env.globals["contact_avis"] = contact_detaille
 templates.env.globals["chiffres_avis"] = chiffres_lecture
 from app.services.intelligence import slug_acheteur as _slug_acheteur
@@ -1449,6 +1457,32 @@ async def tender_source_redirect(req: Request, tid: str):
     if not t or not t["url"] or t["source"] != "marchespublics":
         return RedirectResponse("/tenders/" + tid, 302)
     return RedirectResponse(t["url"], 302)
+
+@app.get("/tenders/{tid}/dao")
+async def tender_dao(req: Request, tid: str):
+    """Le dossier d'appel d'offres d'un avis de la source privée, servi par la
+    plateforme (même règle que les pièces des résultats: le membre ne quitte
+    pas le site)."""
+    m0 = get_member(req)
+    if not m0:
+        return RedirectResponse("/login?next=/tenders/" + tid, 302)
+    if not has_access(m0):
+        return RedirectResponse("/tarifs?locked=1", 302)
+    db = get_db()
+    t = db.execute("SELECT objet, dao_url FROM tenders WHERE id=?", (tid,)).fetchone()
+    db.close()
+    if not t or not (t["dao_url"] or "").startswith("https://global-marches.com/"):
+        return RedirectResponse(f"/tenders/{tid}", 302)
+    from app.services import pieces
+    loop = asyncio.get_event_loop()
+    contenu, type_c, ext = await loop.run_in_executor(None, pieces.recuperer, t["dao_url"])
+    if not contenu:
+        return RedirectResponse(f"/tenders/{tid}?dao=indisponible", 302)
+    nom = pieces.nom_fichier(t["objet"], "dao", ext)
+    return Response(contenu, media_type=type_c, headers={
+        "Content-Disposition": f'attachment; filename="{nom}"',
+        "Cache-Control": "private, max-age=86400"})
+
 
 @app.post("/tenders/{tid}/favorite")
 async def toggle_fav(req: Request, tid: str):

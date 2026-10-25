@@ -133,7 +133,7 @@ class TestFiche:
     def test_le_gabarit_pose_les_cases(self):
         with open(os.path.join(RACINE, "templates", "detail.html"), encoding="utf-8") as f:
             g = f.read()
-        assert "cartes_conditions(t.description)" in g
+        assert "cartes_conditions(t.description, t.id)" in g
         # Avant l'encadré pédagogique: les faits d'abord, l'explication ensuite.
         assert g.index('class="cond"') < g.index('class="lire"')
 
