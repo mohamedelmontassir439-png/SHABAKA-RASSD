@@ -272,6 +272,7 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
               <div class="cond-valeur" dir="{{ 'auto' if valeur not in mots else 'rtl' if lang == 'ar' else 'ltr' }}">{{ tr('cond_v_' ~ valeur) if valeur in mots else valeur }}</div>
             {% endif %}
             {% if aide %}<div class="info-note">{{ tr(aide) }}</div>{% endif %}
+            {% if cle == 'cond_depot' and valeur == 'electronique' %}<a href="/guide/depot-electronique" target="_blank" style="display:inline-block;margin-top:6px;font-size:var(--f2);font-weight:700;color:var(--navy)">{{ tr('gd_lien') }} →</a>{% endif %}
           </div>
           {% endfor %}
           {% if cases|length is odd %}<div class="info-cell" aria-hidden="true"></div>{% endif %}

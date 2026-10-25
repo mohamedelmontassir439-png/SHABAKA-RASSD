@@ -1,0 +1,140 @@
+{% extends "base_public.html" %}
+{% block title %}{{ tr('gd_titre_page') }}{% endblock %}
+{% block description %}{{ tr('gd_desc_page') }}{% endblock %}
+{% block head %}
+<script type="application/ld+json">
+{{ {
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  "name": tr('gd_titre'),
+  "inLanguage": lang,
+  "step": [
+    {"@type": "HowToStep", "position": 1, "name": tr('gd_e1_t'), "text": tr('gd_e1_d')},
+    {"@type": "HowToStep", "position": 2, "name": tr('gd_e2_t'), "text": tr('gd_e2_d')},
+    {"@type": "HowToStep", "position": 3, "name": tr('gd_e3_t'), "text": tr('gd_e3_d')},
+    {"@type": "HowToStep", "position": 4, "name": tr('gd_e4_t'), "text": tr('gd_e4_d')},
+    {"@type": "HowToStep", "position": 5, "name": tr('gd_e5_t'), "text": tr('gd_e5_d')}
+  ]
+} | tojson }}
+</script>
+<style>
+.gd { max-width: 980px; margin: 0 auto; padding: 40px 20px 80px; }
+.gd-sur { font-size:var(--f1); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--amberd); }
+.gd-h1 { font-family: var(--serif); font-weight: 700; font-size: clamp(26px, 4.4vw, 38px); color: var(--text1); line-height: 1.2; margin: 8px 0 12px; text-wrap: balance; }
+.gd-lede { color: var(--text3); font-size:var(--f4); line-height: 1.7; max-width: 68ch; }
+.gd-portail { margin-top: 18px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.gd-url { font-family: var(--mono); font-size:var(--f3); background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); padding: 8px 14px; color: var(--text1); }
+.gd-titre { font-family: var(--serif); font-size:var(--f6); color: var(--text1); margin: 44px 0 6px; }
+.gd-sous { color: var(--text3); font-size:var(--f3); margin-bottom: 18px; }
+.gd-prerequis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.gd-pre { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 18px; }
+.gd-pre b { display: block; color: var(--text1); font-size:var(--f4); margin: 10px 0 6px; }
+.gd-pre p { color: var(--text2); font-size:var(--f3); line-height: 1.6; margin: 0; }
+.gd-pre small { display: block; margin-top: 10px; color: var(--amberd); font-weight: 700; font-size:var(--f2); }
+.gd-etape { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 300px); gap: 24px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 22px 24px; margin-bottom: 14px; }
+.gd-num { display: inline-flex; width: 30px; height: 30px; border-radius: 50%; background: var(--ink); color: #fff; align-items: center; justify-content: center; font-weight: 700; font-size:var(--f3); margin-bottom: 10px; }
+.gd-etape h3 { font-size:var(--f5); color: var(--text1); margin: 0 0 8px; }
+.gd-etape p { color: var(--text2); font-size:var(--f3); line-height: 1.7; margin: 0; }
+.gd-etape .gd-astuce { margin-top: 10px; font-size:var(--f2); color: var(--amberd); font-weight: 600; }
+.gd-schema { width: 100%; height: auto; color: var(--text3); }
+.gd-alerte { background: var(--reda); border: 1px solid rgba(214,69,69,.25); border-radius: var(--r3); padding: 18px 20px; margin-top: 18px; }
+.gd-alerte b { color: var(--red); }
+.gd-alerte ul, .gd-check ul { margin: 8px 0 0; padding-inline-start: 20px; color: var(--text2); font-size:var(--f3); line-height: 1.8; }
+.gd-check { background: var(--grna); border: 1px solid rgba(29,154,108,.25); border-radius: var(--r3); padding: 18px 20px; margin-top: 18px; }
+.gd-check b { color: var(--grn); }
+.gd-faq details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); padding: 14px 18px; margin-bottom: 8px; }
+.gd-faq summary { cursor: pointer; font-weight: 700; color: var(--text1); font-size:var(--f3); }
+.gd-faq p { color: var(--text2); font-size:var(--f3); line-height: 1.7; margin: 10px 0 0; }
+.gd-note { color: var(--text3); font-size:var(--f2); margin-top: 26px; line-height: 1.6; }
+.gd-cta { margin-top: 30px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 24px; text-align: center; }
+@media (max-width: 760px) {
+  .gd-prerequis { grid-template-columns: minmax(0, 1fr); }
+  .gd-etape { grid-template-columns: minmax(0, 1fr); }
+}
+@media print { .gd-cta, header, footer, nav { display: none !important; } .gd-etape { break-inside: avoid; } }
+</style>
+{% endblock %}
+{% block body %}
+{# Les schémas sont des dessins, pas des captures du portail: ses écrans
+   changent, et ils ne nous appartiennent pas. Ils montrent où regarder. #}
+{% macro ecran(contenu) %}
+<svg class="gd-schema" viewBox="0 0 300 180" role="img" aria-hidden="true">
+  <rect style="fill:var(--surface2)" x="1" y="1" width="298" height="178" rx="10" stroke="currentColor" stroke-opacity=".35"/>
+  <rect x="1" y="1" width="298" height="22" rx="10" fill="currentColor" fill-opacity=".12"/>
+  <circle cx="14" cy="12" r="3.5" fill="currentColor" fill-opacity=".4"/><circle cx="26" cy="12" r="3.5" fill="currentColor" fill-opacity=".4"/><circle cx="38" cy="12" r="3.5" fill="currentColor" fill-opacity=".4"/>
+  <rect style="fill:var(--surface)" x="54" y="6" width="200" height="12" rx="6"/>
+  <text x="62" y="15.5" font-size="8" fill="currentColor" font-family="monospace">marchespublics.gov.ma</text>
+  {{ contenu|safe }}
+</svg>
+{% endmacro %}
+
+<div class="gd">
+  <div class="gd-sur">{{ tr('gd_sur') }}</div>
+  <h1 class="gd-h1">{{ tr('gd_titre') }}</h1>
+  <p class="gd-lede">{{ tr('gd_lede') }}</p>
+  <div class="gd-portail">
+    <span class="gd-url" dir="ltr">www.marchespublics.gov.ma</span>
+    <a class="btn btn-primary" href="https://www.marchespublics.gov.ma" target="_blank" rel="noopener">{{ tr('gd_ouvrir_portail') }} ↗</a>
+  </div>
+
+  <h2 class="gd-titre">{{ tr('gd_avant_t') }}</h2>
+  <p class="gd-sous">{{ tr('gd_avant_d') }}</p>
+  <div class="gd-prerequis">
+    {% for i in (1, 2, 3) %}
+    <div class="gd-pre">
+      <span class="gd-num">{{ ['A', 'B', 'C'][i - 1] }}</span>
+      <b>{{ tr('gd_p' ~ i ~ '_t') }}</b>
+      <p>{{ tr('gd_p' ~ i ~ '_d') }}</p>
+      <small>{{ tr('gd_p' ~ i ~ '_quand') }}</small>
+    </div>
+    {% endfor %}
+  </div>
+
+  <h2 class="gd-titre">{{ tr('gd_etapes_t') }}</h2>
+  <p class="gd-sous">{{ tr('gd_etapes_d') }}</p>
+
+  {% set schemas = [
+    '<rect style="fill:var(--surface)" x="90" y="50" width="120" height="90" rx="8" stroke="currentColor" stroke-opacity=".3"/><rect x="104" y="66" width="92" height="12" rx="4" fill="currentColor" fill-opacity=".15"/><rect x="104" y="86" width="92" height="12" rx="4" fill="currentColor" fill-opacity=".15"/><rect style="fill:var(--ink)" x="118" y="110" width="64" height="18" rx="6"/>',
+    '<rect style="fill:var(--surface);stroke:var(--ink)" x="20" y="40" width="200" height="18" rx="6" stroke-width="2"/><text x="28" y="52.5" font-size="8" fill="currentColor" font-family="monospace">Référence : 01/2026/…</text><rect style="fill:var(--ink)" x="228" y="40" width="54" height="18" rx="6"/><rect style="fill:var(--surface)" x="20" y="72" width="262" height="26" rx="6" stroke="currentColor" stroke-opacity=".25"/><rect style="fill:var(--surface)" x="20" y="106" width="262" height="26" rx="6" stroke="currentColor" stroke-opacity=".25"/><rect style="fill:var(--surface)" x="20" y="140" width="262" height="26" rx="6" stroke="currentColor" stroke-opacity=".25"/>',
+    '<rect style="fill:var(--surface)" x="20" y="40" width="262" height="40" rx="8" stroke="currentColor" stroke-opacity=".25"/><rect x="32" y="52" width="140" height="8" rx="4" fill="currentColor" fill-opacity=".25"/><rect style="fill:var(--ink)" x="200" y="48" width="70" height="20" rx="6"/><rect style="fill:var(--surface)" x="20" y="92" width="120" height="70" rx="8" stroke="currentColor" stroke-opacity=".25"/><path d="M60 112h40v34H60z" fill="currentColor" fill-opacity=".15"/><rect style="fill:var(--surface);stroke:var(--ink)" x="160" y="92" width="122" height="70" rx="8" stroke-width="2"/><text x="176" y="131" font-size="9" fill="currentColor">Dépôt</text>',
+    '<rect style="fill:var(--surface)" x="20" y="36" width="262" height="24" rx="6" stroke="currentColor" stroke-opacity=".25"/><rect style="fill:var(--surface)" x="20" y="66" width="262" height="24" rx="6" stroke="currentColor" stroke-opacity=".25"/><rect style="fill:var(--surface)" x="20" y="96" width="262" height="24" rx="6" stroke="currentColor" stroke-opacity=".25"/><rect style="fill:var(--surface)" x="20" y="126" width="262" height="24" rx="6" stroke="currentColor" stroke-opacity=".25"/><path style="stroke:var(--grn)" d="M262 44l6 6 10-10M262 74l6 6 10-10M262 104l6 6 10-10" stroke-width="2.5" fill="none"/><path style="stroke:var(--ink)" d="M200 150c8-14 16 6 24-8s14 8 22-4" stroke-width="2" fill="none"/>',
+    '<rect style="fill:var(--surface);stroke:var(--grn)" x="70" y="40" width="160" height="122" rx="10" stroke-width="2"/><circle style="fill:var(--grna);stroke:var(--grn)" cx="150" cy="78" r="18" stroke-width="2"/><path style="stroke:var(--grn)" d="M141 78l6 6 12-12" stroke-width="3" fill="none"/><rect x="92" y="108" width="116" height="8" rx="4" fill="currentColor" fill-opacity=".25"/><rect x="104" y="124" width="92" height="8" rx="4" fill="currentColor" fill-opacity=".18"/><rect style="fill:var(--grn)" x="118" y="140" width="64" height="12" rx="5"/>'
+  ] %}
+  {% for i in range(1, 6) %}
+  <section class="gd-etape">
+    <div>
+      <span class="gd-num">{{ i }}</span>
+      <h3>{{ tr('gd_e' ~ i ~ '_t') }}</h3>
+      <p>{{ tr('gd_e' ~ i ~ '_d') }}</p>
+      <div class="gd-astuce">{{ tr('gd_e' ~ i ~ '_astuce') }}</div>
+    </div>
+    {{ ecran(schemas[i - 1]) }}
+  </section>
+  {% endfor %}
+
+  <div class="gd-alerte">
+    <b>{{ tr('gd_pieges_t') }}</b>
+    <ul>{% for i in range(1, 5) %}<li>{{ tr('gd_piege' ~ i) }}</li>{% endfor %}</ul>
+  </div>
+
+  <div class="gd-check">
+    <b>{{ tr('gd_calendrier_t') }}</b>
+    <ul>{% for i in range(1, 5) %}<li>{{ tr('gd_cal' ~ i) }}</li>{% endfor %}</ul>
+  </div>
+
+  <h2 class="gd-titre">{{ tr('gd_faq_t') }}</h2>
+  <div class="gd-faq">
+    {% for i in range(1, 5) %}
+    <details><summary>{{ tr('gd_q' ~ i) }}</summary><p>{{ tr('gd_r' ~ i) }}</p></details>
+    {% endfor %}
+  </div>
+
+  <p class="gd-note">{{ tr('gd_note') }}</p>
+
+  <div class="gd-cta">
+    <h2 style="font-family:var(--serif);font-size:var(--f6);color:var(--text1);margin-bottom:8px">{{ tr('gd_cta_t') }}</h2>
+    <p style="color:var(--text3);font-size:var(--f4);margin:0 auto 16px;max-width:56ch">{{ tr('gd_cta_d') }}</p>
+    <a class="btn btn-primary btn-lg" href="/register?src=seo">{{ tr('gd_cta_b') }}</a>
+  </div>
+</div>
+{% endblock %}

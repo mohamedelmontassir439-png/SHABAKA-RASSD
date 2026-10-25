@@ -796,7 +796,7 @@ CHEMINS_LIBRES_EXACTS = frozenset((
 ))
 CHEMINS_LIBRES_PREFIXES = (
     "/verifier-email", "/settings", "/static", "/admin", "/icon-",
-    "/marches-publics", "/appel-offres",
+    "/marches-publics", "/appel-offres", "/guide",
     # L'invitation est une page publique: l'entreprise invitée n'a pas encore
     # de compte, elle ne peut donc pas avoir confirmé d'adresse.
     "/invitation",
@@ -5086,6 +5086,12 @@ def _secteurs_publics() -> list:
     return sorted(pages, key=lambda p: -p["n"])
 
 
+@app.get("/guide/depot-electronique", response_class=HTMLResponse)
+async def guide_depot(req: Request):
+    """Le guide public du dépôt électronique sur marchespublics.gov.ma."""
+    return render(req, "guide_depot.html", {})
+
+
 @app.get("/marches-publics", response_class=HTMLResponse)
 async def marches_index(req: Request):
     """Annuaire public des secteurs — porte d'entrée depuis les moteurs.
@@ -5188,7 +5194,7 @@ async def sitemap():
     site = cfg.SITE_URL.rstrip("/")
     urls = [(f"{site}{c}", "") for c in (
         "/", "/tarifs", "/register", "/contact", "/marches-publics", "/sous-traitance",
-        "/mentions-legales", "/cgu", "/confidentialite")]
+        "/mentions-legales", "/cgu", "/confidentialite", "/guide/depot-electronique")]
     urls += [(f"{site}/marches-publics/{p['slug']}", "") for p in _secteurs_publics() if p["n"]]
     urls += [(f"{site}/marches-publics/ville/{v['slug']}", "") for v in seo.villes_publiques()]
     urls += [(site + seo.chemin(t), (t.get("scraped_at") or "")[:10])
