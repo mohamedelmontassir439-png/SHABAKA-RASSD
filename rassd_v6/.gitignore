@@ -12,6 +12,7 @@ secrets.json
 
 # --- Base de données locale ---
 data/
+!app/data/
 *.db
 *.db-journal
 *.db-wal
