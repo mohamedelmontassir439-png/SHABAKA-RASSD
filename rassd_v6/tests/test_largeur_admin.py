@@ -127,6 +127,6 @@ class TestTarifs:
             for valeur in prix:
                 # On ne cherche que les tarifs accolés à une période: « 249/mois »,
                 # « 2499 MAD ». Un nombre isolé peut être tout autre chose.
-                if re.search(rf"{valeur}\s*(?:/|MAD|درهم)", contenu):
+                if re.search(rf"\b{valeur}\s*(?:/|MAD|درهم)", contenu):
                     fautifs.setdefault(os.path.basename(chemin), []).append(valeur)
         assert not fautifs, f"tarifs écrits en dur: {fautifs}"

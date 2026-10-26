@@ -21,15 +21,15 @@
 
 /* Filtres en ligne, alignes sur la page des resultats. */
 .filtres-ligne { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 18px 0 4px; }
-.filtres-ligne .search-input { flex: 1 1 240px; min-width: 200px; }
-.filtres-ligne .inp-sm { flex: 0 1 auto; max-width: 210px; padding: 8px 10px; font-size:var(--f2); }
-@media (max-width: 640px) { .filtres-ligne .inp-sm { flex: 1 1 calc(50%% - 4px); max-width: none; } }
+.filtres-ligne .search-input { flex: 1 1 100%; min-width: 200px; }
+.filtres-ligne .inp-sm { flex: 1 1 140px; max-width: none; padding: 8px 10px; font-size:var(--f2); }
+@media (max-width: 640px) { .filtres-ligne .inp-sm { flex: 1 1 calc(50% - 4px); max-width: none; } }
 .tenders-layout { padding: 4px 32px 40px; }
 
 .tenders-table { display: flex; flex-direction: column; gap: 10px; }
 .tender-row {
   display: grid;
-  grid-template-columns: 1fr 200px 140px 32px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 200px) 140px auto;
   gap: 20px;
   align-items: center;
   padding: 18px 20px;
@@ -68,7 +68,7 @@
   .tenders-layout { padding: 4px 18px 32px; }
   .tenders-hero { padding: 20px 18px 0; }
   .tenders-hero-grid { grid-template-columns: 1fr; }
-  .tender-row { grid-template-columns: 1fr; gap: 10px; }
+  .tender-row { grid-template-columns: minmax(0, 1fr); gap: 10px; }
   .row-arrow { display: none; }
 }
 </style>
@@ -107,7 +107,7 @@
     <select aria-label="{{ tr('aria_f_region') }}" name="r" class="inp inp-sm">
       <option value="">{{ tr('filter_region_all') }}</option>
       {% for reg in regions %}
-      <option value="{{ reg }}" {% if reg==rf %}selected{% endif %}>{{ reg[:26] }}</option>
+      <option value="{{ reg }}" {% if reg==rf %}selected{% endif %}>{{ nom_region(reg, lang) }}</option>
       {% endfor %}
     </select>
     {% endif %}

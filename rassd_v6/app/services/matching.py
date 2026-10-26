@@ -111,8 +111,15 @@ def matches(member: dict, tender: dict) -> tuple:
         return False, "secteur"
 
     if f["regions"]:
+        # Une région officielle (« Souss-Massa ») couvre ses provinces et ses
+        # villes; une ancienne sélection (« Taroudannt ») garde la comparaison
+        # par le texte.
+        from app.core.regions import est_officielle, region_de
         t_region = _norm(tender.get("region", ""))
-        if not t_region or not any(_norm(r) in t_region or t_region in _norm(r) for r in f["regions"]):
+        sa_region = region_de(tender.get("region", ""))
+        if not t_region or not any(
+                (r == sa_region) if est_officielle(r) else (_norm(r) in t_region or t_region in _norm(r))
+                for r in f["regions"]):
             return False, "region"
 
     if f["types"]:

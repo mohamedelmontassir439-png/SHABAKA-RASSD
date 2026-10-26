@@ -9,11 +9,11 @@
 
 .dash-wrap { padding: 22px 32px 40px; display: flex; flex-direction: column; gap: 20px; }
 
-.kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.kpi-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
 .kpi-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 20px 22px; box-shadow: var(--sh), var(--shg); }
 .kpi-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .kpi-icon { width: 38px; height: 38px; border-radius:var(--r2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.kpi-icon svg { width: 19px; height: 19px; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.kpi-icon svg { width: 19px; height: 19px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .kpi-icon.i-indigo { background: var(--indigoa); color: var(--indigo); }
 .kpi-icon.i-grn { background: var(--grna); color: var(--grn); }
 .kpi-icon.i-gold { background: var(--golda); color: var(--goldd); }
@@ -23,12 +23,12 @@
 .kpi-value { font-family: var(--serif); font-weight: 700; font-size:var(--f7); color: var(--text1); line-height: 1; }
 .kpi-label { font-size:var(--f2); color: var(--text3); margin-top: 7px; font-weight: 600; }
 
-.mid-row { display: grid; grid-template-columns: 1fr 1.3fr; gap: 16px; align-items: stretch; }
+.mid-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 16px; align-items: stretch; }
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); box-shadow: var(--sh), var(--shg); padding: 20px 22px; display: flex; flex-direction: column; }
 
 /* ── Mon compte ────────────────────────────────────────── */
 .account-panel { margin-top: 16px; }
-.account-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r2); overflow: hidden; margin-bottom: 16px; }
+.account-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r2); overflow: hidden; margin-bottom: 16px; }
 .account-cell { background: var(--surface); padding: 14px 16px; min-width: 0; }
 .account-label { font-size:var(--f1); font-weight: 700; color: var(--goldd); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 6px; }
 .account-value { font-size:var(--f4); font-weight: 700; color: var(--text1); overflow-wrap: anywhere; }
@@ -46,10 +46,10 @@
 .account-danger-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .account-danger-form .inp { width: 200px; }
 @media (max-width: 900px) {
-  .account-grid { grid-template-columns: 1fr 1fr; }
+  .account-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .account-danger-form .inp { width: 100%; }
 }
-@media (max-width: 520px) { .account-grid { grid-template-columns: 1fr; } }
+@media (max-width: 520px) { .account-grid { grid-template-columns: minmax(0, 1fr); } }
 .panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .panel-title { font-weight: 700; font-size:var(--f4); color: var(--text1); }
 .panel-link { font-size:var(--f2); font-weight: 600; color: var(--goldd); }
@@ -70,7 +70,7 @@
 .mini-row { display: flex; align-items: center; gap: 12px; padding: 10px 6px; border-radius: var(--r2); transition: background .15s; }
 .mini-row:hover { background: var(--surface2); }
 .mini-icon { width: 34px; height: 34px; border-radius:var(--r2); background: var(--surface2); color: var(--text3); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.mini-icon svg { width: 16px; height: 16px; stroke-width: 2; fill: none; }
+.mini-icon svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .mini-info { min-width: 0; flex: 1; }
 .mini-title { font-size:var(--f2); font-weight: 600; color: var(--text1); line-height: 1.35; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mini-sub { font-size:var(--f1); color: var(--text3); margin-top: 2px; }
@@ -85,11 +85,13 @@
 .trend-chart-wrap svg { width: 100%; height: 200px; display: block; }
 .trend-empty { text-align: center; padding: 40px 0; color: var(--text3); font-size:var(--f3); }
 
-.bottom-row { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+.bottom-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; }
 .activity-row { display: flex; align-items: flex-start; gap: 12px; padding: 12px 4px; border-bottom: 1px solid var(--line); }
 .activity-row:last-child { border-bottom: none; }
+.mini-icon.af-urgent { background: var(--reda); color: var(--red); }
+.mini-icon.af-proche { background: var(--golda); color: var(--goldd); }
 .activity-icon { width: 30px; height: 30px; border-radius: 50%; background: var(--grna); color: var(--grn); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
-.activity-icon svg { width: 14px; height: 14px; stroke-width: 2; fill: none; }
+.activity-icon svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .activity-text { font-size:var(--f2); color: var(--text2); line-height: 1.5; }
 .activity-time { font-size:var(--f1); color: var(--text4); margin-top: 2px; }
 
@@ -101,19 +103,20 @@
 .locked-panel-text { font-size:var(--f4); color: var(--text3); max-width: 440px; line-height: 1.65; }
 
 @media(max-width: 1200px) {
-  .mid-row { grid-template-columns: 1fr; }
-  .kpi-row { grid-template-columns: 1fr 1fr; }
+  .mid-row { grid-template-columns: minmax(0, 1fr); }
+  .kpi-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 }
 @media(max-width: 900px) {
   .dash-hero, .dash-wrap { padding-left: 18px; padding-right: 18px; }
-  .kpi-row { grid-template-columns: 1fr 1fr; }
-  .bottom-row { grid-template-columns: 1fr; }
+  .kpi-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .bottom-row { grid-template-columns: minmax(0, 1fr); }
 }
 </style>
 
 <section class="dash-hero">
   <h1 class="dash-greeting">{{ tr('dash_hello', name=(member.nom or tr('dash_welcome_default'))|e)|safe }}</h1>
-  <div class="dash-meta">{{ tr('dash_member_since') }} {{ (member.created_at or '')[:10] }}</div>
+  {% set depuis = (member.created_at or '')[:10] %}
+  {% if depuis|length == 10 %}<div class="dash-meta">{{ tr('dash_member_since') }} {{ depuis[8:10] }}/{{ depuis[5:7] }}/{{ depuis[:4] }}</div>{% endif %}
 </section>
 
 <div class="dash-wrap">
@@ -159,38 +162,38 @@
 
   <div class="mid-row">
     <div class="panel">
-      <div class="panel-head"><div class="panel-title">{{ tr('dash_sector_dist') }}</div></div>
-      {% if sector_dist and sector_dist|length > 0 %}
-        {% set total = sector_dist | sum(attribute='n') %}
-        {% set colors = ['var(--indigo)','var(--grn)','var(--gold)'] %}
-        {% set ns = namespace(cum=0, stops="") %}
-        {% for s in sector_dist %}
-          {% set pct = (s.n / total * 100) if total > 0 else 0 %}
-          {% set c = colors[loop.index0 % 3] %}
-          {% set stop = c ~ " " ~ (ns.cum|round(2)) ~ "% " ~ ((ns.cum + pct)|round(2)) ~ "%" %}
-          {% set ns.stops = ns.stops ~ (", " if ns.stops else "") ~ stop %}
-          {% set ns.cum = ns.cum + pct %}
+      <div class="panel-head"><div class="panel-title">{{ tr('dash_a_faire') }}</div>
+        <a href="/suivi" class="panel-link">{{ tr('nav_suivi') }} {{ '←' if dir=='rtl' else '→' }}</a></div>
+      {% if a_faire %}
+      <div class="mini-list">
+        {% for t in a_faire %}
+        <a href="{{ t.lien }}" class="mini-row">
+          <div class="mini-icon af-{{ 'urgent' if t.reste <= 2 else 'proche' }}">
+            {% if t.type == 'coffre' %}<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="15" rx="2"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            {% else %}<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>{% endif %}
+          </div>
+          <div class="mini-info">
+            {% if t.type == 'coffre' %}
+            <div class="mini-title">{{ tr('dash_af_renouveler') }} : {{ t.ar if lang == 'ar' else t.fr }}</div>
+            <div class="mini-sub">{% if t.reste < 0 %}{{ tr('dash_af_expiree') }}{% else %}{{ tr('dash_af_expire_dans', n=t.reste) }}{% endif %}</div>
+            {% else %}
+            <div class="mini-title">{{ tr('suivi_ech_' ~ t.cle) }} — {{ t.jour }} · {% if t.reste == 0 %}{{ tr('dash_af_aujourdhui') }}{% else %}{{ tr('dash_af_dans', n=t.reste) }}{% endif %}</div>
+            <div class="mini-sub">{{ t.objet[:70] }}</div>
+            {% endif %}
+          </div>
+        </a>
         {% endfor %}
-        <div class="donut-wrap">
-          <div class="donut" style="background: conic-gradient({{ ns.stops|safe }});">
-            <div class="donut-center"><div class="donut-center-n">{{ total }}</div><div class="donut-center-l">{{ tr('res_hero_label').split(' ')[0] if false else tr('live_tenders') }}</div></div>
-          </div>
-          <div class="donut-legend">
-            {% for s in sector_dist %}
-            {% set pct = (s.n / total * 100) if total > 0 else 0 %}
-            <div class="donut-legend-row">
-              <span class="donut-dot" style="background:{{ colors[loop.index0 % 3] }};"></span>
-              <span class="donut-legend-label">{{ s.label }}</span>
-              <span class="donut-legend-pct">{{ pct|round|int }}%</span>
-            </div>
-            {% endfor %}
-          </div>
-        </div>
+      </div>
       {% else %}
-      <div class="empty-tile"><div class="empty-tile-text">{{ tr('dash_no_data') }}</div></div>
+      <div class="empty-tile">
+        <div class="empty-tile-text">{{ tr('dash_af_vide') }}</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+          <a href="/tenders" class="btn btn-outline btn-sm">{{ tr('dash_all_tenders') }}</a>
+          <a href="/coffre" class="btn btn-outline btn-sm">{{ tr('nav_coffre') }}</a>
+        </div>
+      </div>
       {% endif %}
     </div>
-
     <div class="panel">
       <div class="panel-head">
         <div class="panel-title">{{ tr('dash_recommended') }}</div>
@@ -258,7 +261,7 @@
           <div class="activity-icon"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></div>
           <div>
             <div class="activity-text">{{ tr('dash_activity_sent', channel=n.channel, objet=n.objet[:60]|e)|safe }}</div>
-            <div class="activity-time">{{ n.sent_at[:16] }}</div>
+            <div class="activity-time num">{% set d = n.sent_at or '' %}{{ d[8:10] }}/{{ d[5:7] }}/{{ d[:4] }}{% if d|length > 15 %} · {{ d[11:16] }}{% endif %}</div>
           </div>
         </div>
         {% endfor %}
@@ -271,13 +274,38 @@
     </div>
 
     <div class="panel">
-      <div class="panel-head"><div class="panel-title">{{ tr('dash_quick_access') }}</div></div>
-      <div style="display:flex; flex-direction:column; gap:10px;">
-        <a href="/tenders" class="btn btn-outline btn-full">{{ tr('dash_all_tenders') }}</a>
-        <a href="/favorites" class="btn btn-outline btn-full">{{ tr('dash_favorites') }}</a>
-        <a href="/settings" class="btn btn-outline btn-full">{{ tr('dash_alerts') }}</a>
-      </div>
+      <div class="panel-head"><div class="panel-title">{{ tr('dash_sector_dist') }}</div></div>
+      {% if sector_dist and sector_dist|length > 0 %}
+        {% set total = sector_dist | sum(attribute='n') %}
+        {% set colors = ['var(--indigo)','var(--grn)','var(--gold)'] %}
+        {% set ns = namespace(cum=0, stops="") %}
+        {% for s in sector_dist %}
+          {% set pct = (s.n / total * 100) if total > 0 else 0 %}
+          {% set c = colors[loop.index0 % 3] %}
+          {% set stop = c ~ " " ~ (ns.cum|round(2)) ~ "% " ~ ((ns.cum + pct)|round(2)) ~ "%" %}
+          {% set ns.stops = ns.stops ~ (", " if ns.stops else "") ~ stop %}
+          {% set ns.cum = ns.cum + pct %}
+        {% endfor %}
+        <div class="donut-wrap">
+          <div class="donut" style="background: conic-gradient({{ ns.stops|safe }});">
+            <div class="donut-center"><div class="donut-center-n">{{ total }}</div><div class="donut-center-l">{{ tr('res_hero_label').split(' ')[0] if false else tr('live_tenders') }}</div></div>
+          </div>
+          <div class="donut-legend">
+            {% for s in sector_dist %}
+            {% set pct = (s.n / total * 100) if total > 0 else 0 %}
+            <div class="donut-legend-row">
+              <span class="donut-dot" style="background:{{ colors[loop.index0 % 3] }};"></span>
+              <span class="donut-legend-label">{{ tr('dash_fam_' ~ s.code) }}</span>
+              <span class="donut-legend-pct">{{ pct|round|int }}%</span>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% else %}
+      <div class="empty-tile"><div class="empty-tile-text">{{ tr('dash_no_data') }}</div></div>
+      {% endif %}
     </div>
+
   </div>
 {% endif %}
 
@@ -324,7 +352,8 @@
       <a href="/settings" class="btn btn-outline btn-sm">{{ tr('dash_account_alerts') }}</a>
       <a href="/settings/export" class="btn btn-outline btn-sm">{{ tr('set_export_cta') }}</a>
     </div>
-
+    {# Gardé ici aussi: un membre dont l'abonnement a expiré doit pouvoir
+       supprimer son compte sans passer par une page fermée. #}
     <details class="account-danger">
       <summary>{{ tr('set_delete_title') }}</summary>
       <div class="account-danger-box">
@@ -338,6 +367,7 @@
         </form>
       </div>
     </details>
+
   </div>
 </div>
 {% endblock %}

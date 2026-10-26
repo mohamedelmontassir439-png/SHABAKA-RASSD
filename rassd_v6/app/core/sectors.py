@@ -362,7 +362,7 @@ def _accroches(texte: str) -> dict:
 # informatique au profit de l'école ». Audit du 24/10/2026: c'était la
 # première cause d'erreur du classement par mots-clés.
 _BENEFICIAIRE = re.compile(
-    r"(?:au profit d|pour le compte d|pour les besoins d|destine|relevant d|au niveau d"
+    r"\b(?:au profit d|pour le compte d|pour les besoins d|destine|relevant d|au niveau d"
     r"|situe|sis |sise |a la (?:commune|province|prefecture|ville)"
     r"|(?:de l'|de l’|du |de la |des |aux? )(?:institut|ecole|fondation|centre|faculte|universite"
     r"|lycee|college|hopital|direction|agence|office|ministere|commune|province|prefecture"

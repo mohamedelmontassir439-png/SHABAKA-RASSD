@@ -37,6 +37,8 @@ REPORTS = [{
     "motif_ar": "تعليق بوابة الصفقات العمومية احتياطيًّا (ثغرات PHP)، وإعادة تشغيلها يوم 26/10/2026.",
     "dates": {"21/10/2026": "27/10/2026", "22/10/2026": "28/10/2026", "23/10/2026": "29/10/2026",
               "26/10/2026": "30/10/2026", "27/10/2026": "30/10/2026"},
+    # Remise en service: le bandeau cesse de dire « suspendu ».
+    "remis_le": date(2026, 10, 26),
     # Le bandeau du site reste affiché jusqu'à la dernière nouvelle date.
     "bandeau_jusqu_au": date(2026, 10, 30),
     # Seuls les avis connus avant la remise en service: un avis publié
@@ -54,7 +56,8 @@ def _empreinte(objet: str) -> str:
 def report_actif(aujourdhui: date = None):
     """Le report à annoncer sur le site, s'il y en a un en cours."""
     aujourdhui = aujourdhui or date.today()
-    return next((r for r in REPORTS if aujourdhui <= r["bandeau_jusqu_au"]), None)
+    r = next((r for r in REPORTS if aujourdhui <= r["bandeau_jusqu_au"]), None)
+    return dict(r, repris=aujourdhui >= r["remis_le"]) if r else None
 
 
 def appliquer(report: dict = None) -> dict:

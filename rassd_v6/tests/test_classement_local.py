@@ -28,10 +28,10 @@ class TestPrecision:
                 sures += 1
                 justes_sures += p == code
         n = len(test)
-        assert justes / n >= 0.57
+        assert justes / n >= 0.60
         assert justes / n >= mots_cles / n + 0.15
         assert sures / n >= 0.75, "le modèle doit trancher la plupart des avis"
-        assert justes_sures / sures >= 0.63
+        assert justes_sures / sures >= 0.66
 
 
 class TestSens:

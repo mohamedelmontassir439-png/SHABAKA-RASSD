@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Mes alertes — Maroc Entrepreneuriat{% endblock %}
+{% block title %}Alertes et profil — Maroc Entrepreneuriat{% endblock %}
 {% block body %}
 <style>
 .set-wrap { max-width: 740px; margin: 0 auto; padding: 48px 24px 80px; }
@@ -36,8 +36,9 @@
 .danger-row:last-child { border-bottom: none; }
 .danger-row-title { font-weight: 700; font-size:var(--f4); color: var(--text1); margin-bottom: 4px; }
 .danger-row-desc { font-size:var(--f2); color: var(--text3); line-height: 1.5; max-width: 440px; }
-.danger-form { display: flex; gap: 8px; align-items: center; }
-.danger-form input { width: 160px; }
+.danger-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.danger-form input { width: 160px; max-width: 100%; }
+@media (max-width: 560px) { .danger-row { flex-direction: column; align-items: stretch; } }
 </style>
 
 <div class="set-wrap">
@@ -109,11 +110,11 @@
       {% if all_regions %}
       <div class="field">
         <label>{{ tr('set_filter_regions') }}</label>
-        <div class="sector-chips" style="max-height:190px; overflow-y:auto;">
+        <div class="sector-chips">
           {% for reg in all_regions %}
           <label class="sector-chip">
             <input type="checkbox" name="notif_regions_sel" value="{{ reg }}" {% if reg in my_regions %}checked{% endif %}>
-            <span>{{ reg[:26] }}</span>
+            <span>{{ nom_region(reg, lang) }}</span>
           </label>
           {% endfor %}
         </div>

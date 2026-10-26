@@ -9,11 +9,15 @@ en Python pur, entraîné au démarrage en moins d'une seconde.
 Mesure sur des intitulés que le modèle n'a pas vus (validation croisée en
 cinq parts, mêmes 3 984 exemples):
 
-- mots-clés (app/core/sectors.py) : 40 % de bons secteurs ;
-- ce modèle, tous avis confondus : 62 % ; famille (travaux, fournitures,
-  services) juste dans 85 % des cas ;
-- ce modèle quand il est sûr de lui (confiance ≥ 0,7, soit 86 % des
-  avis) : 69 %, contre 43 % aux mots-clés sur ces mêmes avis.
+- mots-clés (app/core/sectors.py) : 41 % de bons secteurs ;
+- ce modèle, tous avis confondus : 65 % ; famille (travaux, fournitures,
+  services) juste dans 86 % des cas ;
+- ce modèle quand il est sûr de lui (confiance ≥ 0,7, soit 85 % des
+  avis) : 72 %, contre 44 % aux mots-clés sur ces mêmes avis.
+
+(Mesure refaite le 26/10/2026 après correction de la coupure du
+bénéficiaire dans app/core/sectors.py, qui ne s'appliquait jamais: un
+caractère de contrôle avait pris la place de « \b » dans le motif.)
 
 Sous 0,7 les mots-clés font aussi bien ou mieux: on les garde. Les erreurs
 qui restent tombent presque toutes entre secteurs voisins — études BTP et

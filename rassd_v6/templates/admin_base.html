@@ -247,11 +247,16 @@ tbody tr:hover td{background:var(--surface2)}
   </div>
 
   <div class="rail-groupe">
-    <div class="rail-titre">Abonnés</div>
+    <div class="rail-titre">Membres</div>
     {{ lien('/admin/members', ico('personne', 17), 'Membres') }}
     {{ lien('/admin/payments', ico('argent', 17), 'Paiements') }}
     {{ lien('/admin/recap', ico('courriel', 17), 'Récap du jour') }}
-    {{ lien('/admin/financement', ico('argent', 17), 'Demandes de financement') }}
+  </div>
+
+  <div class="rail-groupe">
+    <div class="rail-titre">Services aux membres</div>
+    {{ lien('/admin/financement', ico('immeuble', 17), 'Cautions et financement') }}
+    {{ lien('/admin/sous-traitance', ico('echange', 17), 'Sous-traitance') }}
   </div>
 
   <div class="rail-groupe">
@@ -259,14 +264,9 @@ tbody tr:hover td{background:var(--surface2)}
     {{ lien('/admin/campagne', ico('drapeau', 17), 'Campagne') }}
     {{ lien('/admin/prospection/plan', ico('presse', 17), "Plan d'appel") }}
     {{ lien('/admin/prospection', ico('telephone', 17), "File d'appel") }}
-    {{ lien('/admin/companies', ico('immeuble', 17), 'Entreprises') }}
+    {{ lien('/admin/companies', ico('globe', 17), 'Entreprises') }}
     {{ lien('/admin/annuaires', ico('carnet', 17), 'Annuaires') }}
     {{ lien('/admin/prospects', ico('cible', 17), 'Prospects') }}
-  </div>
-
-  <div class="rail-groupe">
-    <div class="rail-titre">Place de marché</div>
-    {{ lien('/admin/sous-traitance', ico('echange', 17), 'Sous-traitance') }}
   </div>
 
   <div class="rail-pied">

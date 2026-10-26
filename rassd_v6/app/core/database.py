@@ -16,6 +16,10 @@ def get_db() -> sqlite3.Connection:
     db.execute("PRAGMA foreign_keys=ON")
     db.execute("PRAGMA synchronous=NORMAL")
     db.execute("PRAGMA cache_size=-32000")  # 32MB cache
+    # « Taroudannt », « Agadir Ida Ou Tanane », « Maroc, Tiznit » → Souss-Massa
+    # (app/core/regions.py): les filtres par région passent par elle.
+    from app.core.regions import region_de
+    db.create_function("region_officielle", 1, region_de, deterministic=True)
     return db
 
 # ── Schema SQLite ─────────────────────────────────────────

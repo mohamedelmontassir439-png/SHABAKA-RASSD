@@ -163,7 +163,9 @@ class TestAccueil:
     def test_laccueil_ne_montre_que_les_marches_du_membre(self, membre, db):
         _marche(db, "a_sien", "T101", "ACCUEIL MARCHE DE MON METIER")
         _marche(db, "a_autre", "S901", "ACCUEIL MARCHE D UN AUTRE METIER")
-        page = membre.get("/").text
+        r = membre.get("/")
+        assert r.status_code == 302 and r.headers["location"] == "/dashboard",             "un membre connecté retrouve son espace, pas la page de vente"
+        page = membre.get("/dashboard").text
         assert "ACCUEIL MARCHE DE MON METIER" in page
         assert "ACCUEIL MARCHE D UN AUTRE METIER" not in page
 
@@ -174,7 +176,7 @@ class TestAccueil:
         autres listes — c'est l'intérêt de passer par le même filtre plutôt
         que d'en écrire un second qui en déciderait autrement."""
         _marche(db, "a_vide", "T101", "ACCUEIL MARCHE QUELCONQUE")
-        assert "ACCUEIL MARCHE QUELCONQUE" in sans_secteur.get("/").text
+        assert "ACCUEIL MARCHE QUELCONQUE" in sans_secteur.get("/dashboard").text
 
     def test_le_visiteur_anonyme_ne_voit_toujours_aucun_marche(self, client, db):
         _marche(db, "a_anon", "T101", "ACCUEIL MARCHE RESERVE")

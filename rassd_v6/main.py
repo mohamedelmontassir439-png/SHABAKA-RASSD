@@ -994,9 +994,17 @@ def _client_parti(exc: Exception) -> bool:
     une ressource fermée. Ce n'est pas un bug, il n'y a rien à corriger, et
     l'inscrire au journal des erreurs finit par déclencher la supervision
     pour du trafic parfaitement normal — robots inclus.
+
+    Uvicorn lève `ClientDisconnected`, que Starlette enveloppe dans un
+    `ExceptionGroup`: on regarde dans le groupe. Relevé du 26/10/2026: toutes
+    les « erreurs » des 7 derniers jours étaient de cette sorte.
     """
+    if isinstance(exc, BaseExceptionGroup):
+        return all(_client_parti(e) for e in exc.exceptions)
+    if exc.__context__ is not None and exc.__context__ is not exc and _client_parti(exc.__context__):
+        return True
     nom = type(exc).__name__
-    if nom in ("ClientDisconnect", "ClosedResourceError", "BrokenResourceError",
+    if nom in ("ClientDisconnect", "ClientDisconnected", "ClosedResourceError", "BrokenResourceError",
                "EndOfStream", "ConnectionResetError", "BrokenPipeError"):
         return True
     texte = str(exc).lower()
@@ -1071,6 +1079,9 @@ templates.env.globals["issue_procedure"] = issue_procedure
 templates.env.globals["cartes_conditions"] = lambda texte, tid="ao_": cartes(conditions_avis(texte), portail=(tid or "").startswith("ao_"))
 templates.env.globals["contact_avis"] = contact_detaille
 templates.env.globals["chiffres_avis"] = chiffres_lecture
+from app.core.regions import NOMS as REGIONS_OFFICIELLES, est_officielle as est_region, region_de
+from app.core.regions import nom as _nom_region
+templates.env.globals["nom_region"] = _nom_region
 from app.services.reports_officiels import report_actif as _report_actif
 templates.env.globals["report_actif"] = _report_actif
 from app.services.intelligence import slug_acheteur as _slug_acheteur
@@ -1233,6 +1244,12 @@ def _is_admin(req: Request) -> bool:
 # ══════════════════════════════════════════════════════════
 @app.get("/", response_class=HTMLResponse)
 async def home(req: Request):
+    # Un membre connecté qui clique « Accueil » ou ouvre le site retrouve son
+    # espace, pas la page de vente (« Essai gratuit 7 jours ») et son menu à part.
+    # Un membre qui n'a pas encore confirmé son adresse garde l'accueil public.
+    _m = get_member(req)
+    if _m and email_ok(_m):
+        return RedirectResponse("/dashboard", 302)
     db = get_db()
     stats   = get_stats()
     # Le détail des marchés (objet, acheteur...) est réservé aux membres dont
@@ -1288,8 +1305,7 @@ async def tenders_page(req: Request, q:str="", s:str="", r:str="", t:str="",
     db = get_db(); per = 25; page = max(1, page)
     # Les bons de commande sont une procédure distincte, gérée sur sa propre
     # page (/bons-de-commande) — jamais mélangés ici, quel que soit le filtre.
-    regions = [row[0] for row in db.execute(
-        "SELECT DISTINCT region FROM tenders WHERE region!='' AND statut='actif' AND type_procedure!='bon_commande' ORDER BY region LIMIT 60").fetchall()]
+    regions = REGIONS_OFFICIELLES
     where, params = ["statut='actif'", "type_procedure!='bon_commande'"], []
     # Le membre ne voit que ses secteurs. Un filtre demandé en dehors d'eux
     # est ignoré: l'adresse ne doit pas ouvrir ce que la page n'offre pas.
@@ -1298,7 +1314,7 @@ async def tenders_page(req: Request, q:str="", s:str="", r:str="", t:str="",
         s = ""
     filtre_recherche(q, where, params)
     if s: where.append("secteur=?");    params.append(s)
-    if r: where.append("region=?");     params.append(r)
+    if r: where.append("region_officielle(region)=?" if est_region(r) else "region=?"); params.append(r)
     # Le filtre porte sur la nature de l'acheteur, pas sur la provenance de
     # l'avis: « Public » et « Prive » melangeaient les deux.
     if t in ("public", "semi_public", "prive"):
@@ -1361,15 +1377,14 @@ async def bons_commande_page(req: Request, q:str="", s:str="", r:str="",
     if not has_access(m0):
         return RedirectResponse("/tarifs?locked=1", 302)
     db = get_db(); per = 25; page = max(1, page)
-    regions = [row[0] for row in db.execute(
-        "SELECT DISTINCT region FROM tenders WHERE region!='' AND statut='actif' AND type_procedure='bon_commande' ORDER BY region LIMIT 60").fetchall()]
+    regions = REGIONS_OFFICIELLES
     where, params = ["statut='actif'", "type_procedure='bon_commande'"], []
     siens = restreindre_aux_secteurs(m0, where, params)
     if siens and s not in siens:
         s = ""
     filtre_recherche(q, where, params)
     if s: where.append("secteur=?"); params.append(s)
-    if r: where.append("region=?");  params.append(r)
+    if r: where.append("region_officielle(region)=?" if est_region(r) else "region=?"); params.append(r)
     filtre_echeance(e, where, params)
     wh    = " AND ".join(where)
     order = "scraped_at DESC" if sort == "recent" else f"{DATE_LIMITE_ISO} ASC"
@@ -2832,7 +2847,33 @@ async def dashboard(req: Request):
     db.close()
     return render(req,"dashboard.html",{
         "favs":favs,"notifs":notifs,"recs":recs,"stats":stats,
-        "sector_dist":sector_dist,"trend":trend})
+        "sector_dist":sector_dist,"trend":trend, "a_faire": _a_faire(member)})
+
+
+def _a_faire(member: dict, horizon: int = 14) -> list:
+    """Ce qui attend le membre: les échéances de ses offres en cours (visite,
+    caution, dépôt) et les pièces de son dossier qui expirent. Le tableau de
+    bord le montre d'abord — c'est la raison d'y revenir chaque matin."""
+    from app.services import coffre, suivi
+    taches = []
+    try:
+        for etape, lignes in suivi.tableau(member["id"]).items():
+            if etape not in suivi.ACTIVES:
+                continue
+            for l in lignes:
+                e = l.get("prochaine")
+                if e and e["reste"] <= horizon:
+                    taches.append({"type": "suivi", "cle": e["cle"], "reste": e["reste"],
+                                   "jour": e["jour"].strftime("%d/%m"), "objet": l.get("objet") or "",
+                                   "lien": f"/tenders/{l['tender_id']}"})
+        for code, piece in coffre.pieces(member["id"]).items():
+            if piece["statut"] in ("bientot", "expire") and code in coffre.TYPES:
+                taches.append({"type": "coffre", "cle": code, "reste": piece["reste"],
+                               "fr": coffre.TYPES[code][0], "ar": coffre.TYPES[code][1],
+                               "lien": "/coffre"})
+    except Exception as e:
+        logger.warning(f"[a_faire] {e}")
+    return sorted(taches, key=lambda t: t["reste"])[:6]
 
 @app.get("/tarifs", response_class=HTMLResponse)
 async def tarifs(req: Request): return render(req,"tarifs.html",{})
@@ -3062,13 +3103,15 @@ async def settings_get(req: Request):
     ms = clean_secteurs(json.loads(member.get("secteurs","[]") or "[]"))
     db2 = get_db()
     referral_count = db2.execute("SELECT COUNT(*) FROM members WHERE referred_by=?", (member["id"],)).fetchone()[0]
-    all_regions = [r[0] for r in db2.execute(
-        "SELECT DISTINCT region FROM tenders WHERE region!='' AND statut='actif' ORDER BY region LIMIT 80").fetchall()]
+    all_regions = REGIONS_OFFICIELLES
     db2.close()
     try:
         my_regions = json.loads(member.get("notif_regions","[]") or "[]")
     except json.JSONDecodeError:
         my_regions = []
+    # Une ancienne sélection (« Taroudannt ») est montrée cochée sous sa
+    # région; l'enregistrement suivant la remplace par la région.
+    my_regions = sorted({r if est_region(r) else region_de(r) for r in my_regions} - {""})
     try:
         my_types = json.loads(member.get("notif_types","[]") or "[]")
     except json.JSONDecodeError:
@@ -3439,8 +3482,17 @@ async def admin_panel(req: Request):
            GROUP BY m.id ORDER BY n DESC LIMIT 5""").fetchall()]
     recent_errors = [dict(r) for r in db.execute(
         "SELECT * FROM error_log ORDER BY created_at DESC LIMIT 10").fetchall()]
+    # Sans message, le type de l'exception: la dernière ligne « XxxError: … »
+    # de la trace (la trace est tronquée, sa dernière ligne n'est souvent
+    # qu'un chemin de fichier).
+    for e in recent_errors:
+        if not (e.get("message") or "").strip():
+            lignes = re.findall(r"^\s*\|?\s*([A-Za-z_.]*(?:Error|Exception|Disconnected|Group)\b.*)$",
+                                e.get("traceback") or "", re.M)
+            e["message"] = lignes[-1].strip() if lignes else "Exception sans message"
     errors_7j = db.execute(
         "SELECT COUNT(*) FROM error_log WHERE created_at>=datetime('now','-7 days')").fetchone()[0]
+    a_traiter = _admin_a_traiter(db)
     db.close()
     csrf_tok = get_csrf_token(req) or secrets.token_urlsafe(24)
     resp = templates.TemplateResponse("admin.html",{
@@ -3451,10 +3503,52 @@ async def admin_panel(req: Request):
         "member_growth":member_growth,"plan_dist":plan_dist,
         "mrr_estimate":mrr_estimate,"total_active_members":total_active_members,
         "referral_top":referral_top,"recent_errors":recent_errors,"errors_7j":errors_7j,
-        "csrf_token":csrf_tok})
+        "a_traiter":a_traiter,"csrf_token":csrf_tok})
     if not req.cookies.get("_csrf"):
         resp.set_cookie("_csrf", csrf_tok, max_age=86400*30, httponly=True, samesite="lax", secure=COOKIE_SECURE)
     return resp
+
+
+def _admin_a_traiter(db) -> list:
+    """Ce qui attend une action de l'administrateur, avec le lien pour la faire.
+
+    Le tableau de bord n'alignait que des compteurs: il fallait ouvrir chaque
+    page pour savoir s'il y avait quelque chose à faire. Seules les lignes non
+    nulles sont rendues; sans rien, la carte le dit.
+    """
+    def n(sql, *p):
+        try:
+            return db.execute(sql, p).fetchone()[0] or 0
+        except Exception:
+            return 0
+    aujourdhui = datetime.now().strftime("%Y-%m-%d")
+    dans_7 = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")
+    dans_3 = (datetime.now() + timedelta(days=3)).strftime("%Y-%m-%d")
+    # Dernière exécution de chaque source: en échec, ou rien depuis 12 heures.
+    sources_ko = n("""SELECT COUNT(*) FROM (
+                        SELECT source, status, MAX(started_at) d FROM scraper_runs GROUP BY source)
+                      WHERE status!='SUCCESS' OR d < datetime('now','-12 hours')""")
+    lignes = [
+        ("financement", n("SELECT COUNT(*) FROM demandes_financement WHERE statut='nouvelle'"),
+         "demande(s) de caution ou de financement à rappeler", "/admin/financement", "urgent"),
+        ("recap", n("""SELECT COUNT(*) FROM recap_envois
+                       WHERE jour=? AND COALESCE(envoye_at,'')='' AND nombre>0""", aujourdhui),
+         "récap(s) du jour prêt(s), à envoyer sur WhatsApp", "/admin/recap", "urgent"),
+        ("renouvellement", n("""SELECT COUNT(*) FROM members WHERE actif=1
+                                AND subscription_status='ACTIVE' AND substr(subscription_end,1,10) BETWEEN ? AND ?""",
+                             aujourdhui, dans_7),
+         "abonnement(s) qui expirent dans les 7 jours — appeler pour renouveler", "/admin/members", "attention"),
+        ("essai", n("""SELECT COUNT(*) FROM members WHERE actif=1 AND subscription_status='TRIAL'
+                       AND substr(trial_ends,1,10) BETWEEN ? AND ?""", aujourdhui, dans_3),
+         "essai(s) gratuit(s) qui finissent dans les 3 jours", "/admin/members", "attention"),
+        ("sources", sources_ko, "source(s) en échec ou muette(s) depuis 12 h", "/admin/sources", "urgent"),
+        ("signalements", n("SELECT COUNT(*) FROM subcontract_reports WHERE created_at>=datetime('now','-30 days')"),
+         "signalement(s) sur la sous-traitance (30 jours)", "/admin/sous-traitance", "attention"),
+        ("classement", n("""SELECT COUNT(*) FROM tenders WHERE statut='actif'
+                            AND COALESCE(secteur_ia,'')=''"""),
+         "marché(s) ouvert(s) encore classé(s) par mots-clés", "/admin/classement", "info"),
+    ]
+    return [{"cle": c, "n": v, "texte": t, "lien": l, "ton": ton} for c, v, t, l, ton in lignes if v]
 
 
 # La liste vivait ici et ne servait qu'à la page des prospects. Elle est

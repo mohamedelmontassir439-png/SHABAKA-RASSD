@@ -33,13 +33,21 @@
 .ref-row { display: flex; justify-content: space-between; font-size:var(--f2); padding: 8px 0; border-bottom: 1px solid var(--line); }
 .ref-row:last-child { border-bottom: none; }
 
-.sectors-grid { display: flex; flex-wrap: wrap; gap: 8px; }
-.sector-tag { display: inline-flex; align-items: center; gap: 8px; padding: 6px 13px; background: var(--surface2); border: 1px solid var(--line); font-size:var(--f2); border-radius:var(--rp); }
+.sectors-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 6px 18px; }
+.sector-tag { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--trait); font-size:var(--f2); }
 .sector-tag span { color: var(--t2); }
-.sector-tag b { color: var(--navy); font-weight: 700; }
+.sector-tag b { color: var(--navy); font-weight: 700; font-variant-numeric: tabular-nums; }
 
 .run-status { font-size:var(--f1); font-weight: 700; }
 
+.todo { display: flex; flex-direction: column; }
+.todo-l { display: grid; grid-template-columns: minmax(0, 56px) minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 11px 20px; border-top: 1px solid var(--trait); color: var(--t1); font-size: var(--f3); text-decoration: none; }
+.todo-l:hover { background: var(--surface2); }
+.todo-l b { font-size: var(--f5); text-align: end; }
+.todo-l i { font-style: normal; color: var(--t3); }
+.todo-urgent b { color: var(--red); }
+.todo-attention b { color: var(--amberd); }
+.todo-info b { color: var(--t3); }
 @media (max-width: 1100px) { .stats-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } .grid2 { grid-template-columns:minmax(0,1fr); } }
 {% endblock %}
 {% block contenu %}
@@ -51,6 +59,20 @@
       <div class="stat-l">{{ l }}</div>
     </div>
     {% endfor %}
+  </div>
+
+  <div class="card">
+    <div class="card-h"><span class="card-ht">À traiter</span>
+      <span class="badge {{ 'b-r' if a_traiter|selectattr('ton','equalto','urgent')|list else 'b-grn' }}">{{ a_traiter|length }}</span></div>
+    {% if a_traiter %}
+    <div class="todo">
+      {% for t in a_traiter %}
+      <a class="todo-l todo-{{ t.ton }}" href="{{ t.lien }}"><b class="num">{{ t.n }}</b><span>{{ t.texte }}</span><i aria-hidden="true">→</i></a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="card-b" style="color:var(--t3); font-size:var(--f2);">Rien en attente : demandes, récaps, renouvellements et sources sont à jour.</div>
+    {% endif %}
   </div>
 
   <div class="card">
@@ -210,8 +232,8 @@
           {% for e in recent_errors %}
           <tr>
             <td style="font-family:var(--mono); font-size:var(--f1);">{{ e.method }} {{ e.path[:30] }}</td>
-            <td style="color:var(--red); font-size:var(--f1);">{{ e.message[:60] }}</td>
-            <td style="color:var(--t3); white-space:nowrap;">{{ e.created_at[:16] }}</td>
+            <td style="color:var(--red); font-size:var(--f1);">{{ e.message[:80] }}</td>
+            <td style="color:var(--t3); white-space:nowrap;" class="num">{{ e.created_at[8:10] }}/{{ e.created_at[5:7] }} {{ e.created_at[11:16] }}</td>
           </tr>
           {% endfor %}
         </table></div>
@@ -220,23 +242,22 @@
         {% endif %}
       </div>
 
-      <div class="card">
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:20px">
         <div class="card-h"><span class="card-ht">Répartition par secteur</span></div>
         <div class="card-b">
           <div class="sectors-grid">
             {% for s in sectors %}
             <div class="sector-tag">
-              <span>{{ get_label(s.secteur)[:24] }}</span>
+              <span>{{ get_label(s.secteur) }}</span>
               <b>{{ s.cnt }}</b>
             </div>
             {% endfor %}
           </div>
         </div>
       </div>
-
-    </div>
-  </div>
-</div>
 
 
 <script>
