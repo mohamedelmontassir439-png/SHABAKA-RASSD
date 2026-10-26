@@ -45,10 +45,17 @@
 .gd-faq details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); padding: 14px 18px; margin-bottom: 8px; }
 .gd-faq summary { cursor: pointer; font-weight: 700; color: var(--text1); font-size:var(--f3); }
 .gd-faq p { color: var(--text2); font-size:var(--f3); line-height: 1.7; margin: 10px 0 0; }
+.gd-voies { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.gd-table { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); margin-top: 14px; }
+.gd-table table { width: 100%; border-collapse: collapse; font-size:var(--f3); }
+.gd-table th { text-align: start; color: var(--text3); font-weight: 700; font-size:var(--f2); padding: 10px 16px; border-bottom: 1px solid var(--line); }
+.gd-table td { padding: 10px 16px; border-top: 1px solid var(--line); color: var(--text1); }
+.gd-table td.num { font-variant-numeric: tabular-nums; color: var(--text3); }
+.gd-table a { font-family: var(--mono); color: var(--amberd); }
 .gd-note { color: var(--text3); font-size:var(--f2); margin-top: 26px; line-height: 1.6; }
 .gd-cta { margin-top: 30px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 24px; text-align: center; }
 @media (max-width: 760px) {
-  .gd-prerequis { grid-template-columns: minmax(0, 1fr); }
+  .gd-prerequis, .gd-voies { grid-template-columns: minmax(0, 1fr); }
   .gd-etape { grid-template-columns: minmax(0, 1fr); }
 }
 @media print { .gd-cta, header, footer, nav { display: none !important; } .gd-etape { break-inside: avoid; } }
@@ -121,6 +128,29 @@
     <b>{{ tr('gd_calendrier_t') }}</b>
     <ul>{% for i in range(1, 5) %}<li>{{ tr('gd_cal' ~ i) }}</li>{% endfor %}</ul>
   </div>
+
+  <h2 class="gd-titre">{{ tr('gd_hors_t') }}</h2>
+  <p class="gd-sous">{{ tr('gd_hors_d') }}</p>
+  <div class="gd-voies">
+    {% for i in range(1, 4) %}
+    <div class="gd-pre"><b>{{ tr('gd_voie' ~ i ~ '_t') }}</b><p>{{ tr('gd_voie' ~ i ~ '_d') }}</p></div>
+    {% endfor %}
+  </div>
+  {% if plateformes %}
+  <div class="gd-table">
+    <table>
+      <thead><tr><th>{{ tr('gd_reg_acheteur') }}</th><th>{{ tr('gd_reg_plateforme') }}</th><th>{{ tr('gd_reg_vus') }}</th></tr></thead>
+      <tbody>
+      {% for p in plateformes %}
+      <tr><td dir="auto">{{ p.nom }}</td>
+          <td><a href="{{ p.url }}" target="_blank" rel="noopener">{{ p.hote }}</a>{% if p.hote.endswith(portail_hote) %} · {{ tr('gd_reg_portail') }}{% endif %}</td>
+          <td class="num">{{ p.vus }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="gd-note">{{ tr('gd_reg_note') }}</p>
+  {% endif %}
 
   <h2 class="gd-titre">{{ tr('gd_faq_t') }}</h2>
   <div class="gd-faq">

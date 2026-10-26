@@ -5201,8 +5201,19 @@ def _secteurs_publics() -> list:
 
 @app.get("/guide/depot-electronique", response_class=HTMLResponse)
 async def guide_depot(req: Request):
-    """Le guide public du dépôt électronique sur marchespublics.gov.ma."""
-    return render(req, "guide_depot.html", {})
+    """Le guide public du dépôt électronique sur marchespublics.gov.ma.
+
+    Il dit aussi où déposent les acheteurs hors portail: le registre appris
+    des dossiers lus (app/services/lien_depot.py).
+    """
+    from app.services import lien_depot
+    try:
+        plateformes = sorted(lien_depot.registre().values(),
+                             key=lambda r: (r["hote"].endswith(lien_depot.PORTAIL), -r["vus"], r["nom"]))
+    except Exception:
+        plateformes = []
+    return render(req, "guide_depot.html", {"plateformes": plateformes,
+                                            "portail_hote": lien_depot.PORTAIL})
 
 
 @app.get("/marches-publics", response_class=HTMLResponse)

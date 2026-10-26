@@ -14,13 +14,22 @@ du 25/10/2026: aucun lien sur 24 fiches). Deux recherches le retrouvent:
    analyse_dossier.py) et on retient les adresses web écrites près de
    « dépôt », « soumission », « remise des offres » ou « plateforme ».
 
+3. **par l'acheteur.** Une entité dépose presque toujours sur la même
+   plateforme: Madaëf sur safakat.cdg.ma, la CGI ou l'Institut Pasteur sur
+   le portail national. Chaque lien lu dans un dossier enrichit un registre
+   acheteur → plateforme; un avis du même acheteur dont le dossier ne dit
+   rien reçoit ce lien, avec l'extrait du dossier précédent qui le prouve.
+
 Ce qui est trouvé est dit avec sa provenance: « confirmé par la référence
-sur le portail » ou « lu dans le dossier ». Rien n'est deviné.
+sur le portail », « lu dans le dossier » ou « plateforme indiquée par cet
+acheteur dans ses consultations précédentes ». Rien n'est deviné.
 """
 import logging
 import re
 import unicodedata
+from collections import Counter, defaultdict
 from datetime import datetime
+from urllib.parse import urlparse
 
 from app.core.conditions import conditions_avis
 from app.core.database import get_db
@@ -112,6 +121,84 @@ def dans_le_dossier(texte: str) -> list:
     return trouvees[:3]
 
 
+# ─── 3. Par l'acheteur ────────────────────────────────────────────────────
+
+_SANS_SENS = {"societe", "ste", "sa", "sarl", "la", "le", "les", "de", "du", "des", "et", "d", "l",
+              "s", "a", "au", "aux"}
+# Une plateforme n'est attribuée à un acheteur que si elle est la sienne dans
+# au moins deux dossiers sur trois.
+PART_MIN = 2 / 3
+
+
+def cle_acheteur(nom: str) -> str:
+    nu = _nu(nom)
+    nu = re.sub(r"^autres organismes particuliers\s*/\s*", "", nu)
+    nu = re.sub(r"\([^)]*\)", " ", nu)
+    return " ".join(m for m in re.findall(r"[a-z0-9]+", nu) if m not in _SANS_SENS)
+
+
+def hote(url: str) -> str:
+    h = urlparse(url if "://" in url else "https://" + url).hostname or ""
+    return h[4:] if h.startswith("www.") else h
+
+
+def registre() -> dict:
+    """{clé acheteur: {nom, hote, url, vus, total, extrait}} appris des dossiers lus."""
+    db = get_db()
+    try:
+        lignes = [dict(r) for r in db.execute(
+            """SELECT acheteur, lien_depot, lien_depot_extrait FROM tenders
+               WHERE lien_depot_origine='dossier' AND COALESCE(lien_depot,'')!=''
+               ORDER BY scraped_at DESC""").fetchall()]
+    finally:
+        db.close()
+    par = defaultdict(list)
+    for l in lignes:
+        cle = cle_acheteur(l["acheteur"] or "")
+        if cle and hote(l["lien_depot"]):
+            par[cle].append(l)
+    reg = {}
+    for cle, vus in par.items():
+        compte = Counter(hote(l["lien_depot"]) for l in vus)
+        h, n = compte.most_common(1)[0]
+        if n / len(vus) < PART_MIN:
+            continue
+        exemple = next(l for l in vus if hote(l["lien_depot"]) == h)
+        reg[cle] = {"nom": exemple["acheteur"], "hote": h, "url": "https://" + h,
+                    "vus": n, "total": len(vus), "extrait": exemple["lien_depot_extrait"] or ""}
+    return reg
+
+
+def par_acheteur(t: dict, reg: dict):
+    return reg.get(cle_acheteur(t.get("acheteur") or ""))
+
+
+def completer_par_acheteur(reg: dict = None) -> int:
+    """Donne la plateforme de l'acheteur aux avis cherchés sans succès."""
+    reg = registre() if reg is None else reg
+    if not reg:
+        return 0
+    db = get_db()
+    try:
+        avis = [dict(r) for r in db.execute(
+            """SELECT id, acheteur FROM tenders
+               WHERE source='global-marches' AND statut='actif' AND COALESCE(lien_depot,'')=''
+                 AND COALESCE(lien_depot_cherche,'')!='' AND description LIKE '%dépôt électronique%'
+            """).fetchall()]
+        n = 0
+        for t in avis:
+            r = par_acheteur(t, reg)
+            if r:
+                db.execute("""UPDATE tenders SET lien_depot=?, lien_depot_origine='acheteur',
+                                 lien_depot_extrait=? WHERE id=?""",
+                           (r["url"], r["extrait"][:300], t["id"]))
+                n += 1
+        db.commit()
+    finally:
+        db.close()
+    return n
+
+
 # ─── La passe ────────────────────────────────────────────────────────────
 
 def rapprocher(limite: int = 40, lire_dao: bool = True, recuperer=None) -> dict:
@@ -127,7 +214,7 @@ def rapprocher(limite: int = 40, lire_dao: bool = True, recuperer=None) -> dict:
     finally:
         db.close()
     if not avis:
-        return {"lus": 0, "portail": 0, "dossier": 0}
+        return {"lus": 0, "portail": 0, "dossier": 0, "acheteur": completer_par_acheteur()}
     index = index_portail()
     if recuperer is None and lire_dao:
         from app.services.pieces import recuperer
@@ -161,5 +248,7 @@ def rapprocher(limite: int = 40, lire_dao: bool = True, recuperer=None) -> dict:
         finally:
             db.close()
         bilan["lus"] += 1
+    # Ce que les dossiers n'ont pas dit, l'acheteur l'a peut-être dit ailleurs.
+    bilan["acheteur"] = completer_par_acheteur()
     logger.info(f"[lien_depot] {bilan}")
     return bilan
