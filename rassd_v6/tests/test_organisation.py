@@ -49,3 +49,14 @@ class TestATraiter:
         assert "À traiter" in page
         assert "demande(s) de caution ou de financement à rappeler" in page
         assert 'href="/admin/financement"' in page
+
+    def test_une_passe_d_annuaire_ancienne_n_est_pas_une_panne(self, admin, db):
+        db.execute("""INSERT INTO scraper_runs(source,status,records_found,records_saved,duplicates,errors,
+                      duration_ms,message,started_at,finished_at)
+                      VALUES('annuaire-charika-enrichir','SUCCESS',1,1,0,0,1,'','2026-10-01 10:00','2026-10-01 10:01')""")
+        db.execute("""INSERT INTO scraper_runs(source,status,records_found,records_saved,duplicates,errors,
+                      duration_ms,message,started_at,finished_at)
+                      VALUES('marchespublics','FAILED',0,0,0,1,1,'','2026-10-01 10:00','2026-10-01 10:01')""")
+        db.commit()
+        page = admin.get("/admin").text
+        assert '<b class="num">1</b><span>source(s) en échec' in page
