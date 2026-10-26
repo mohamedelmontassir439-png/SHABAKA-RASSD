@@ -142,8 +142,28 @@ def hote(url: str) -> str:
     return h[4:] if h.startswith("www.") else h
 
 
+def cle_parent(nom: str) -> str:
+    """« Marsa Maroc / Direction de l'exploitation au port de Nador » → Marsa Maroc."""
+    nu = re.sub(r"^autres organismes particuliers\s*/\s*", "", _nu(nom))
+    return cle_acheteur(nu.split("/")[0]) if "/" in nu else ""
+
+
+def _hotes_tronques(hotes: Counter) -> dict:
+    """Une adresse coupée à la lecture du PDF (« chats.marsamaroc.co.ma ») est
+    rendue à sa forme entière (« achats.marsamaroc.co.ma ») quand celle-ci
+    est vue au moins aussi souvent."""
+    return {h: max((g for g in hotes if g != h and g.endswith(h) and hotes[g] >= hotes[h]),
+                   key=lambda g: hotes[g])
+            for h in hotes
+            if any(g != h and g.endswith(h) and hotes[g] >= hotes[h] for g in hotes)}
+
+
 def registre() -> dict:
-    """{clé acheteur: {nom, hote, url, vus, total, extrait}} appris des dossiers lus."""
+    """{clé acheteur: {nom, hote, url, vus, total, extrait}} appris des dossiers lus.
+
+    Une direction hérite de la plateforme de sa société (« Marsa Maroc /
+    … ») sous la clé de celle-ci.
+    """
     db = get_db()
     try:
         lignes = [dict(r) for r in db.execute(
@@ -152,25 +172,34 @@ def registre() -> dict:
                ORDER BY scraped_at DESC""").fetchall()]
     finally:
         db.close()
+    corrige = _hotes_tronques(Counter(hote(l["lien_depot"]) for l in lignes))
     par = defaultdict(list)
     for l in lignes:
-        cle = cle_acheteur(l["acheteur"] or "")
-        if cle and hote(l["lien_depot"]):
+        h = hote(l["lien_depot"])
+        if not h:
+            continue
+        l["hote"] = corrige.get(h, h)
+        for cle in {cle_acheteur(l["acheteur"] or ""), cle_parent(l["acheteur"] or "")} - {""}:
             par[cle].append(l)
     reg = {}
     for cle, vus in par.items():
-        compte = Counter(hote(l["lien_depot"]) for l in vus)
+        compte = Counter(l["hote"] for l in vus)
         h, n = compte.most_common(1)[0]
         if n / len(vus) < PART_MIN:
             continue
-        exemple = next(l for l in vus if hote(l["lien_depot"]) == h)
-        reg[cle] = {"nom": exemple["acheteur"], "hote": h, "url": "https://" + h,
+        exemple = next(l for l in vus if l["hote"] == h)
+        nom = exemple["acheteur"] or ""
+        societe = cle != cle_acheteur(nom)
+        if societe:
+            nom = re.sub(r"(?i)^autres organismes particuliers\s*/\s*", "", nom).split("/")[0].strip()
+        reg[cle] = {"nom": nom, "hote": h, "url": "https://" + h, "societe": societe,
                     "vus": n, "total": len(vus), "extrait": exemple["lien_depot_extrait"] or ""}
     return reg
 
 
 def par_acheteur(t: dict, reg: dict):
-    return reg.get(cle_acheteur(t.get("acheteur") or ""))
+    nom = t.get("acheteur") or ""
+    return reg.get(cle_acheteur(nom)) or (reg.get(cle_parent(nom)) if cle_parent(nom) else None)
 
 
 def completer_par_acheteur(reg: dict = None) -> int:
@@ -185,6 +214,15 @@ def completer_par_acheteur(reg: dict = None) -> int:
                WHERE source='global-marches' AND statut='actif' AND COALESCE(lien_depot,'')=''
                  AND COALESCE(lien_depot_cherche,'')!='' AND description LIKE '%dépôt électronique%'
             """).fetchall()]
+        # Les liens coupés à la lecture d'un dossier retrouvent leur forme entière.
+        lus = db.execute("""SELECT id, lien_depot FROM tenders
+                            WHERE lien_depot_origine='dossier' AND COALESCE(lien_depot,'')!=''""").fetchall()
+        corrige = _hotes_tronques(Counter(hote(l["lien_depot"]) for l in lus))
+        for l in lus:
+            h = hote(l["lien_depot"])
+            if h in corrige:
+                db.execute("UPDATE tenders SET lien_depot=? WHERE id=?",
+                           (l["lien_depot"].replace(h, corrige[h], 1), l["id"]))
         n = 0
         for t in avis:
             r = par_acheteur(t, reg)

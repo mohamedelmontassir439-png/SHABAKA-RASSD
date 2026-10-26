@@ -5208,7 +5208,11 @@ async def guide_depot(req: Request):
     """
     from app.services import lien_depot
     try:
-        plateformes = sorted(lien_depot.registre().values(),
+        reg = lien_depot.registre()
+        # Une direction n'est listée que si sa société ne dit pas déjà la même chose.
+        visibles = [r for r in reg.values() if r["societe"] or not (
+            (reg.get(lien_depot.cle_parent(r["nom"])) or {}).get("hote") == r["hote"])]
+        plateformes = sorted(visibles,
                              key=lambda r: (r["hote"].endswith(lien_depot.PORTAIL), -r["vus"], r["nom"]))
     except Exception:
         plateformes = []

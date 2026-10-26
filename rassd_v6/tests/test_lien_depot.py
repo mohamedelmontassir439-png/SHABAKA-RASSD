@@ -97,3 +97,27 @@ class TestAcheteur:
         _lu(db, "gm_1", "Madaëf", "https://safakat.cdg.ma")
         html = client.get("/guide/depot-electronique").text
         assert "safakat.cdg.ma" in html and "Madaëf" in html
+
+    def test_adresse_coupee_rendue_entiere(self, db):
+        _lu(db, "gm_1", "Marsa Maroc / Direction des achats", "https://achats.marsamaroc.co.ma")
+        _lu(db, "gm_2", "Marsa Maroc / Port de Nador", "https://achats.marsamaroc.co.ma/x")
+        _lu(db, "gm_3", "Marsa Maroc / Marsa Maroc Safi", "https://chats.marsamaroc.co.ma")
+        reg = L.registre()
+        assert reg[L.cle_acheteur("Marsa Maroc / Marsa Maroc Safi")]["hote"] == "achats.marsamaroc.co.ma"
+        assert reg[L.cle_acheteur("Marsa Maroc")]["vus"] == 3
+        L.completer_par_acheteur(reg)
+        assert db.execute("SELECT lien_depot FROM tenders WHERE id='gm_3'").fetchone()[0] == \
+            "https://achats.marsamaroc.co.ma"
+
+    def test_une_direction_herite_de_sa_societe(self, db):
+        _lu(db, "gm_1", "Marsa Maroc / Direction des achats", "https://achats.marsamaroc.co.ma")
+        _lu(db, "gm_2", "Marsa Maroc / Port d'Agadir", "")
+        assert L.completer_par_acheteur() == 1
+        assert db.execute("SELECT lien_depot FROM tenders WHERE id='gm_2'").fetchone()[0] == \
+            "https://achats.marsamaroc.co.ma"
+
+    def test_le_guide_liste_la_societe_une_fois(self, client, db):
+        _lu(db, "gm_1", "Marsa Maroc / Direction des achats", "https://achats.marsamaroc.co.ma")
+        _lu(db, "gm_2", "Marsa Maroc / Port de Nador", "https://achats.marsamaroc.co.ma")
+        html = client.get("/guide/depot-electronique?lang=fr").text
+        assert html.count(">achats.marsamaroc.co.ma<") == 1
