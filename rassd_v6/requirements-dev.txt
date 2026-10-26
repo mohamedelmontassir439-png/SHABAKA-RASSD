@@ -1,0 +1,7 @@
+# Dépendances de test uniquement — volontairement séparées de
+# requirements.txt pour ne pas alourdir l'image déployée sur Railway.
+#   py -m pip install -r requirements-dev.txt
+#   py -m pytest
+-r requirements.txt
+pytest>=8.0
+httpx>=0.27
