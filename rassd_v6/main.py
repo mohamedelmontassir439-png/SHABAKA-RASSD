@@ -17,7 +17,7 @@ from app.core.config   import cfg
 from app.core.database import get_db, init_db
 from app.core.security import (hash_pw, verify_pw, make_token, make_session_token,
                                 get_member, has_access, email_ok, validate_email,
-                                validate_password, days_left,
+                                validate_password, days_left, duree_txt,
                                 get_csrf_token, verify_csrf, subscription_state)
 from app.core.sectors import get_label, classify
 from app.core.objets import sans_repetition
@@ -1136,6 +1136,8 @@ def render(req: Request, tpl: str, ctx: dict = None, status_code: int = 200):
         "plans":        cfg.PLANS,
         "dl":           dl_bound,
         "days_left":    dl_bound,
+        "duree":        lambda heures: duree_txt(heures, lang),
+        "essai_duree":  cfg.essai(lang),
         "source_label": src_bound,
         "now":          datetime.now(),
         "lang":         lang,
@@ -2935,7 +2937,8 @@ async def register_post(req: Request,
         sects       = clean_secteurs(secteurs_sel)
         now         = datetime.now()
         trial_start = now.strftime("%Y-%m-%d")
-        trial_ends  = (now + timedelta(days=cfg.TRIAL_DAYS)).strftime("%Y-%m-%d")
+        # À l'heure près: un essai de 24 heures arrondi au jour en durerait 48.
+        trial_ends  = (now + timedelta(hours=cfg.TRIAL_HOURS)).isoformat(timespec="seconds")
         created_at  = now.isoformat()
         session_tok = make_session_token()
         my_ref_code = secrets.token_urlsafe(5).upper().replace("_","A").replace("-","B")[:7]
@@ -3554,7 +3557,7 @@ def _admin_a_traiter(db) -> list:
          "abonnement(s) qui expirent dans les 7 jours — appeler pour renouveler", "/admin/members", "attention"),
         ("essai", n("""SELECT COUNT(*) FROM members WHERE actif=1 AND subscription_status='TRIAL'
                        AND substr(trial_ends,1,10) BETWEEN ? AND ?""", aujourdhui, dans_3),
-         "essai(s) gratuit(s) qui finissent dans les 3 jours", "/admin/members", "attention"),
+         "essai(s) gratuit(s) en cours ou qui finissent bientôt — appeler avant la fin", "/admin/members", "attention"),
         ("sources", sources_ko, "source(s) en échec ou muette(s) depuis 12 h", "/admin/sources", "urgent"),
         ("signalements", n("SELECT COUNT(*) FROM subcontract_reports WHERE created_at>=datetime('now','-30 days')"),
          "signalement(s) sur la sous-traitance (30 jours)", "/admin/sous-traitance", "attention"),
@@ -4284,20 +4287,20 @@ def _script_appel(entreprise: dict, ouverts: int, marches: list) -> list:
         ("L'offre — seulement après sa réponse",
          f"C'est exactement ce qu'on fait : chaque matin, les marchés de "
          f"votre secteur et de votre région, par WhatsApp et par email. "
-         f"{cfg.TRIAL_DAYS} jours gratuits, sans carte bancaire, et vous "
+         f"Essai gratuit de {cfg.essai()}, sans carte bancaire, et vous "
          f"arrêtez quand vous voulez."),
         ("Clôture — obtenez le WhatsApp, pas un « rappelez-moi »",
          "Je vous envoie le lien sur WhatsApp là, maintenant, pendant qu'on "
-         "se parle — c'est quoi votre numéro ? … Je vous rappelle jeudi "
+         "se parle — c'est quoi votre numéro ? … Je vous rappelle demain "
          "pour savoir si ça vous a servi."),
         ("« Envoyez-moi un email »",
          "Bien sûr. Mais l'email se perd : je vous mets aussi le lien sur "
          "WhatsApp, vous l'ouvrez en dix secondes. C'est quel numéro ?"),
         ("« C'est combien ? »",
-         f"On en parle dans {cfg.TRIAL_DAYS} jours, quand vous aurez vu si "
+         f"On en parle dans {cfg.essai()}, quand vous aurez vu si "
          f"ça vous sert. Si ça ne vous rapporte rien, ça ne vaut rien."),
         ("« J'ai déjà quelqu'un qui me les cherche »",
-         "Tant mieux. Gardez-le, et prenez les 7 jours en parallèle : si on "
+         "Tant mieux. Gardez-le, et prenez l'essai en parallèle : si on "
          "sort un marché qu'il n'a pas vu, vous le saurez tout de suite."),
         ("« Ça ne m'intéresse pas »",
          "Très bien, je vous retire de la liste, vous ne serez plus appelé. "
@@ -4382,7 +4385,7 @@ async def admin_prospection_fiche(req: Request, cid: int):
             f"{' à ' + entreprise['city'] if entreprise.get('city') else ''}"
             + (f", dont : {exemple}." if exemple else ".") +
             f"\n\nVoici votre lien personnel pour les consulter gratuitement pendant "
-            f"{cfg.TRIAL_DAYS} jours et recevoir les demandes de sous-traitance de votre "
+            f"{cfg.essai()} et recevoir les demandes de sous-traitance de votre "
             f"secteur :\n{lien}\n\nSi vous ne souhaitez plus être contacté, dites-le nous "
             f"et nous retirons vos coordonnées.")
     return templates.TemplateResponse("admin_prospection_fiche.html", {
@@ -4601,7 +4604,7 @@ async def invitation_post(req: Request, token: str, email: str = Form(""),
          inv.get("legal_name", "")[:200], hash_pw(pw), secteurs,
          json.dumps([inv["city"]] if inv.get("city") else []), "free",
          maintenant.isoformat(), maintenant.strftime("%Y-%m-%d"),
-         (maintenant + timedelta(days=cfg.TRIAL_DAYS)).strftime("%Y-%m-%d"),
+         (maintenant + timedelta(hours=cfg.TRIAL_HOURS)).isoformat(timespec="seconds"),
          "TRIAL", session_tok,
          secrets.token_urlsafe(5).upper().replace("_", "A").replace("-", "B")[:7], 0,
          0, email_token, (maintenant + timedelta(days=7)).isoformat()))
@@ -4610,7 +4613,7 @@ async def invitation_post(req: Request, token: str, email: str = Form(""),
                      trial_start,trial_end,created_at,updated_at)
                   VALUES(?,?,?,?,?,?,?,?,?)""",
                (mid, "trial", 0, "MAD", "TRIAL", maintenant.strftime("%Y-%m-%d"),
-                (maintenant + timedelta(days=cfg.TRIAL_DAYS)).strftime("%Y-%m-%d"),
+                (maintenant + timedelta(hours=cfg.TRIAL_HOURS)).isoformat(timespec="seconds"),
                 maintenant.isoformat(), maintenant.isoformat()))
     # Le profil de sous-traitance démarre déjà rempli: métier, ville et
     # raison sociale viennent de la fiche collectée.

@@ -99,6 +99,36 @@ def _parse_day(value: str):
         except ValueError:
             return None
 
+def fin_essai(value: str):
+    """Instant de fin d'un essai.
+
+    Les essais s'écrivent désormais à l'heure près (« 2026-10-27T14:05:00 »):
+    un essai de 24 heures arrondi au jour durerait jusqu'à 48 heures. Une
+    date seule, laissée par les anciens essais, vaut jusqu'à la fin du jour.
+    """
+    if not value:
+        return None
+    texte = str(value)
+    try:
+        if len(texte) > 10:
+            return datetime.fromisoformat(texte).replace(tzinfo=None)
+        return datetime.strptime(texte[:10], "%Y-%m-%d") + timedelta(days=1)
+    except ValueError:
+        return None
+
+def duree_txt(heures: int, lang: str = "fr") -> str:
+    """« 24 heures », « 5 heures », « 7 jours » — en heures sous deux jours."""
+    heures = max(0, int(heures))
+    if heures < 48:
+        n, un, deux, peu, beaucoup, fr = heures, "ساعة واحدة", "ساعتان", "ساعات", "ساعة", "heure"
+    else:
+        n, un, deux, peu, beaucoup, fr = heures // 24, "يوم واحد", "يومان", "أيام", "يومًا", "jour"
+    if lang == "ar":
+        if n == 1: return un
+        if n == 2: return deux
+        return f"{n} {peu if 3 <= n <= 10 else beaucoup}"
+    return f"{n} {fr}{'s' if n > 1 else ''}"
+
 def subscription_state(member: Optional[dict]) -> dict:
     """État d'abonnement consolidé d'un membre.
 
@@ -108,7 +138,7 @@ def subscription_state(member: Optional[dict]) -> dict:
     activation manuelle sans échéance renseignée: on n'expire pas le membre
     sur une donnée manquante.
     """
-    empty = {"status": "NONE", "is_active": False, "days_left": 0,
+    empty = {"status": "NONE", "is_active": False, "days_left": 0, "heures_restantes": 0,
              "plan": "free", "end_date": "", "in_trial": False}
     if not member:
         return empty
@@ -118,27 +148,32 @@ def subscription_state(member: Optional[dict]) -> dict:
     if plan in PAID_PLANS:
         end = _parse_day(member.get("subscription_end", ""))
         if end is None or end >= today:
+            reste = (end - today).days if end else 0
             return {"status": "ACTIVE", "is_active": True,
-                    "days_left": (end - today).days if end else 0,
+                    "days_left": reste, "heures_restantes": reste * 24,
                     "plan": plan, "end_date": member.get("subscription_end", "") or "",
                     "in_trial": False}
-        return {"status": "EXPIRED", "is_active": False, "days_left": 0,
+        return {"status": "EXPIRED", "is_active": False, "days_left": 0, "heures_restantes": 0,
                 "plan": plan, "end_date": member.get("subscription_end", "") or "",
                 "in_trial": False}
 
     if member.get("subscription_status") == "TRIAL":
-        trial_end = _parse_day(member.get("trial_ends", ""))
-        if trial_end and trial_end >= today:
+        fin = fin_essai(member.get("trial_ends", ""))
+        maintenant = datetime.now()
+        if fin and fin > maintenant:
+            secondes = (fin - maintenant).total_seconds()
             return {"status": "TRIAL", "is_active": True,
-                    "days_left": (trial_end - today).days,
+                    "days_left": int(secondes // 86400),
+                    # Arrondi au-dessus: « 1 heure » tant qu'il reste une minute.
+                    "heures_restantes": max(1, -int(-secondes // 3600)),
                     "plan": plan, "end_date": member.get("trial_ends", "") or "",
                     "in_trial": True}
-        return {"status": "EXPIRED", "is_active": False, "days_left": 0,
+        return {"status": "EXPIRED", "is_active": False, "days_left": 0, "heures_restantes": 0,
                 "plan": plan, "end_date": member.get("trial_ends", "") or "",
                 "in_trial": False}
 
     return {"status": member.get("subscription_status") or "NONE", "is_active": False,
-            "days_left": 0, "plan": plan, "end_date": "", "in_trial": False}
+            "days_left": 0, "heures_restantes": 0, "plan": plan, "end_date": "", "in_trial": False}
 
 def has_access(member: Optional[dict]) -> bool:
     """Accès aux données réelles: essai gratuit en cours OU abonnement payant

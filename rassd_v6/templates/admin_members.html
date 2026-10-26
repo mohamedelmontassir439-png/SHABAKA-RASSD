@@ -86,7 +86,7 @@ details.del summary::-webkit-details-marker{display:none}
           {% set st = m.subscription_status or '—' %}
           <span class="badge {% if st=='ACTIVE' %}b-grn{% elif st=='TRIAL' %}b-g{% else %}b-gray{% endif %}">{{ st }}</span>
           {% if m.subscription_end %}<div class="muted">→ {{ m.subscription_end }}</div>
-          {% elif st=='TRIAL' and m.trial_ends %}<div class="muted">→ {{ m.trial_ends }}</div>{% endif %}
+          {% elif st=='TRIAL' and m.trial_ends %}<div class="muted">→ {{ m.trial_ends[:16]|replace('T', ' ') }}</div>{% endif %}
           {% if not m.actif %}<div><span class="badge b-r">bloqué</span></div>{% endif %}
         </td>
         <td>

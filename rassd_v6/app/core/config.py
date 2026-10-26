@@ -89,6 +89,11 @@ class Settings:
     COMPANY_ADDRESS: str = os.getenv("COMPANY_ADDRESS", "")
     CONTACT_EMAIL:   str = os.getenv("CONTACT_EMAIL", "contact@marocentrepreneuriat.com")
 
+    def essai(self, lang: str = "fr") -> str:
+        """La durée de l'essai telle qu'on l'écrit: « 24 heures », « 24 ساعة »."""
+        from app.core.security import duree_txt
+        return duree_txt(self.TRIAL_HOURS, lang)
+
     @property
     def TELEPHONE_AFFICHE(self) -> str:
         """Le numero tel qu'on le lit: +212 6 21 72 88 13."""
@@ -118,8 +123,9 @@ class Settings:
     RECAP_PREP_HOUR: int = int(os.getenv("RECAP_PREP_HOUR", "21"))
     # Heure d'envoi du bilan quotidien de supervision (heure du serveur).
     DAILY_REPORT_HOUR: int = int(os.getenv("DAILY_REPORT_HOUR", "8"))
-    # Essai gratuit (jours) accordé à chaque nouvelle inscription
-    TRIAL_DAYS: int = int(os.getenv("TRIAL_DAYS", "7"))
+    # Essai gratuit accordé à chaque nouvelle inscription, en heures (24 = un
+    # jour), compté à l'heure près depuis l'inscription.
+    TRIAL_HOURS: int = int(os.getenv("TRIAL_HOURS", "24"))
     # Plans (paiement encaissé hors plateforme puis enregistré par l'admin)
     PLANS: dict = field(default_factory=lambda: {
         # Le drapeau `telegram` a disparu avec le canal: plus rien ne le

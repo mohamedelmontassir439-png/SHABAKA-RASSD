@@ -465,7 +465,7 @@ html[dir="rtl"] .section-label::before { order: 2; }
     <div class="sub-banner {{ 'sub-banner-warn' if sub.status=='EXPIRED' else '' }}">
       <span class="sub-banner-txt">
         {% if sub.status == 'TRIAL' %}
-          {{ tr('trial_banner', n=sub.days_left) }}
+          {{ tr('trial_banner', n=duree(sub.heures_restantes)) }}
         {% else %}
           {{ tr('trial_over_banner') }}
         {% endif %}

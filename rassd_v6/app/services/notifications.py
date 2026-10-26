@@ -4,7 +4,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from app.core.config   import cfg
 from app.core.database import get_db
-from app.core.security import days_left, has_access
+from app.core.security import days_left, fin_essai, has_access
 from app.core.acheteurs import lisible as acheteur_lisible
 from app.core.sectors   import get_label
 
@@ -847,9 +847,14 @@ def dispatch_pending(heures: int = 48, limite: int = 400) -> int:
 
 # ── Accompagnement de l'essai gratuit ─────────────────────
 
-# Jour depuis l'inscription → (étape, clés de texte). Un membre reçoit au
-# plus une étape par passage, et jamais deux fois la même (members.trial_seq).
-SEQUENCE_ESSAI = ((0, 1, "j0"), (2, 2, "j2"), (5, 3, "j5"), (7, 4, "j7"))
+# Part de l'essai écoulée → (étape, clés de texte): bienvenue dès
+# l'inscription, les marchés trouvés au premier huitième (3 h sur 24 h), le
+# rappel au dernier quart (6 h avant la fin), le bilan à la fin. En part et non
+# en jours, pour suivre la durée de l'essai quelle qu'elle soit — et finir
+# correctement les essais de 7 jours ouverts avant le passage à 24 heures.
+# Un membre reçoit au plus une étape par passage, et jamais deux fois la même
+# (members.trial_seq).
+SEQUENCE_ESSAI = ((0, 1, "j0"), (1 / 8, 2, "j2"), (3 / 4, 3, "j5"), (1, 4, "j7"))
 
 
 def _enveloppe_email(titre: str, texte: str, lien: str, libelle_bouton: str) -> str:
@@ -884,7 +889,7 @@ def _marches_du_membre(db, membre: dict) -> int:
 
 
 def send_trial_sequence(now=None) -> int:
-    """Accompagne chaque membre pendant son essai: 4 emails en 7 jours.
+    """Accompagne chaque membre pendant son essai: 4 emails, du début à la fin.
 
     Idempotent: trial_seq retient la dernière étape envoyée, donc un
     redémarrage ou un double passage ne renvoie rien. Une adresse non
@@ -898,16 +903,22 @@ def send_trial_sequence(now=None) -> int:
             """SELECT * FROM members WHERE actif=1 AND notif_email=1
                AND email_verified=1 AND trial_start!=''""").fetchall()]
         for membre in membres:
+            fin = fin_essai(membre.get("trial_ends", ""))
             try:
-                debut = datetime.strptime(membre["trial_start"][:10], "%Y-%m-%d")
+                debut = datetime.fromisoformat(membre.get("created_at") or "").replace(tzinfo=None)
             except (ValueError, TypeError):
+                try:
+                    debut = datetime.strptime(membre["trial_start"][:10], "%Y-%m-%d")
+                except (ValueError, TypeError):
+                    continue
+            if not fin or fin <= debut:
                 continue
-            jours = (now - debut).days
+            part = (now - debut) / (fin - debut)
             etape_faite = membre.get("trial_seq") or 0
 
             cible = None
-            for jour_min, etape, cle in SEQUENCE_ESSAI:
-                if jours >= jour_min and etape > etape_faite:
+            for part_min, etape, cle in SEQUENCE_ESSAI:
+                if part >= part_min and etape > etape_faite:
                     cible = (etape, cle)
             if not cible:
                 continue

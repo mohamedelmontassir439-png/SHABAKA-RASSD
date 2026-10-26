@@ -13,14 +13,15 @@ import app.services.notifications as notif
 from app.services import scraper as sc
 
 
-def _membre(db, email="essai@example.com", jours_depuis=0, **kw):
-    debut = (date.today() - timedelta(days=jours_depuis)).strftime("%Y-%m-%d")
+def _membre(db, email="essai@example.com", heures_depuis=0, **kw):
+    """Un essai de 24 heures ouvert il y a `heures_depuis` heures."""
+    debut = datetime.now() - timedelta(hours=heures_depuis, minutes=1)
     champs = dict(nom="Ahmed", email=email, plan="free", subscription_status="TRIAL",
-                  trial_start=debut,
-                  trial_ends=(date.today() + timedelta(days=7 - jours_depuis)).strftime("%Y-%m-%d"),
+                  trial_start=debut.strftime("%Y-%m-%d"),
+                  trial_ends=(debut + timedelta(hours=24)).isoformat(timespec="seconds"),
                   notif_email=1, notif_tg=0, notif_wa=0, notif_digest=0, actif=1,
                   secteurs='["T101"]', email_verified=1, trial_seq=0,
-                  created_at=f"{debut}T09:00:00")
+                  created_at=debut.isoformat(timespec="seconds"))
     champs.update(kw)
     cols = ",".join(champs)
     db.execute(f"INSERT INTO members({cols}) VALUES({','.join('?' * len(champs))})",
@@ -39,18 +40,18 @@ def envois(monkeypatch):
 
 class TestSequenceEssai:
     def test_bienvenue_le_jour_de_l_inscription(self, db, envois):
-        _membre(db, jours_depuis=0)
+        _membre(db, heures_depuis=0)
         assert notif.send_trial_sequence() == 1
         assert "2 minutes" in envois[0][1] or "secteurs" in envois[0][2]
 
     def test_une_seule_etape_par_passage(self, db, envois):
-        _membre(db, jours_depuis=0)
+        _membre(db, heures_depuis=0)
         notif.send_trial_sequence()
         assert notif.send_trial_sequence() == 0, "aucune relance le même jour"
         assert len(envois) == 1
 
-    def test_etape_j5_pour_un_essai_de_cinq_jours(self, db, envois):
-        mid = _membre(db, jours_depuis=5)
+    def test_rappel_dans_les_dernieres_heures(self, db, envois):
+        mid = _membre(db, heures_depuis=19)
         notif.send_trial_sequence()
         # Le membre saute directement à l'étape utile: on ne lui envoie pas
         # trois emails de rattrapage d'un coup.
@@ -62,10 +63,23 @@ class TestSequenceEssai:
         assert notif.send_trial_sequence() == 0 and envois == []
 
     def test_abonne_payant_ignore_la_relance_finale(self, db, envois):
-        mid = _membre(db, jours_depuis=7, subscription_status="ACTIVE")
+        mid = _membre(db, heures_depuis=24, subscription_status="ACTIVE")
         notif.send_trial_sequence()
         assert envois == [], "on ne relance pas un membre qui paie déjà"
         assert db.execute("SELECT trial_seq FROM members WHERE id=?", (mid,)).fetchone()[0] == 4
+
+    def test_fin_d_essai_au_bout_de_24_heures(self, db, envois):
+        mid = _membre(db, heures_depuis=24, trial_seq=3)
+        assert notif.send_trial_sequence() == 1
+        assert "terminé" in envois[0][1]
+        assert db.execute("SELECT trial_seq FROM members WHERE id=?", (mid,)).fetchone()[0] == 4
+
+    def test_un_ancien_essai_de_sept_jours_va_a_son_terme(self, db, envois):
+        # Ouvert avant le passage à 24 heures: fin écrite au jour près.
+        debut = date.today() - timedelta(days=3)
+        _membre(db, trial_start=debut.isoformat(), created_at=f"{debut}T09:00:00",
+                trial_ends=(debut + timedelta(days=7)).isoformat(), trial_seq=2)
+        assert notif.send_trial_sequence() == 0, "pas de rappel de fin au milieu d'un essai de 7 jours"
 
     def test_echec_d_envoi_non_marque_comme_fait(self, db, monkeypatch):
         mid = _membre(db)

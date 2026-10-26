@@ -134,7 +134,7 @@ def message_whatsapp(entreprise: dict, lien: str = "") -> str:
             (m.get("acheteur") or "")[:42],
             f"limite {m['date_limite']}" if m.get("date_limite") else ""] if x)
         lignes.append(f"• {objet}" + (f"\n  {detail}" if detail else ""))
-    lignes += ["", f"Votre lien personnel, {cfg.TRIAL_DAYS} jours gratuits, sans carte :",
+    lignes += ["", f"Votre lien personnel, essai gratuit de {cfg.essai()}, sans carte :",
                lien or f"{cfg.SITE_URL}", "",
                "Si vous ne souhaitez plus être contacté, répondez STOP et nous "
                "retirons vos coordonnées."]
@@ -190,7 +190,7 @@ def message_email(entreprise: dict, lien: str = "") -> tuple:
        background:#f2662d;color:#fff;border-radius:9px;text-decoration:none;
        font-weight:700;font-size:15px">Voir les {total} marchés</a></p>
   <p style="font-size:13px;color:#8a7a6a;text-align:center;line-height:1.6;margin:0 0 20px">
-    {cfg.TRIAL_DAYS} jours gratuits, sans carte bancaire.</p>
+    Essai gratuit de {cfg.essai()}, sans carte bancaire.</p>
   <p style="font-size:11.5px;color:#b7a896;line-height:1.6;border-top:1px solid #e8dcc5;
             padding-top:14px;margin:0">
     Vous recevez ce message parce que votre entreprise figure dans un annuaire

@@ -1,5 +1,5 @@
 """Essai gratuit et abonnements — machine à états."""
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 import pytest
 
@@ -83,8 +83,9 @@ class TestInscriptionAccordeUnEssai:
             "SELECT plan, subscription_status, trial_start, trial_ends FROM members WHERE email=?",
             ("essai@example.com",)).fetchone()
         assert row["subscription_status"] == "TRIAL"
-        expected = (date.today() + timedelta(days=cfg.TRIAL_DAYS)).strftime("%Y-%m-%d")
-        assert row["trial_ends"] == expected
+        # À l'heure près: 24 heures après l'inscription, pas « demain » entier.
+        fin = datetime.fromisoformat(row["trial_ends"])
+        assert abs((fin - datetime.now()).total_seconds() - cfg.TRIAL_HOURS * 3600) < 120
         assert row["trial_start"] == date.today().strftime("%Y-%m-%d")
 
         sub = db.execute("SELECT plan_id, status FROM subscriptions WHERE member_id="
@@ -101,3 +102,33 @@ class TestInscriptionAccordeUnEssai:
         confirmer_email("acces@example.com")
         r = client.get("/tenders", follow_redirects=False)
         assert r.status_code == 200, "pendant l'essai, les marchés doivent être accessibles"
+
+
+class TestEssaiDe24Heures:
+    """L'essai se compte à l'heure près, pas au jour près."""
+
+    def _essai(self, fin):
+        return {"plan": "free", "subscription_status": "TRIAL", "trial_ends": fin}
+
+    def test_actif_jusqu_a_l_heure_dite(self):
+        fin = (datetime.now() + timedelta(hours=5, minutes=30)).isoformat(timespec="seconds")
+        etat = subscription_state(self._essai(fin))
+        assert etat["status"] == "TRIAL" and etat["heures_restantes"] == 6
+
+    def test_termine_meme_si_le_jour_n_est_pas_fini(self):
+        fin = (datetime.now() - timedelta(minutes=1)).isoformat(timespec="seconds")
+        assert subscription_state(self._essai(fin))["status"] == "EXPIRED"
+
+    def test_un_ancien_essai_au_jour_pres_dure_jusqu_au_soir(self):
+        etat = subscription_state(self._essai(date.today().isoformat()))
+        assert etat["status"] == "TRIAL"
+
+    def test_la_duree_s_ecrit_dans_les_deux_langues(self):
+        from app.core.security import duree_txt
+        assert duree_txt(24, "fr") == "24 heures" and duree_txt(24, "ar") == "24 ساعة"
+        assert duree_txt(1, "fr") == "1 heure" and duree_txt(5, "ar") == "5 ساعات"
+        assert duree_txt(168, "fr") == "7 jours" and duree_txt(168, "ar") == "7 أيام"
+
+    def test_l_accueil_annonce_24_heures(self, client):
+        page = client.get("/").text
+        assert "Essai gratuit 24 heures" in page and "7 jours" not in page

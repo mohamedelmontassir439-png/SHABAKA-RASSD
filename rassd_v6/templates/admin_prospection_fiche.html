@@ -181,7 +181,7 @@ textarea{min-height:92px;resize:vertical}
       {% if c.city %}ف{{ c.city }}{% endif %}. عندك دقيقتين نقول ليك علاش؟<br><br>
       {% if marches %}<b>الصفقة :</b> {{ marches[0].objet[:90] }}{% if marches[0].date_limite %} — كتسالي {{ marches[0].date_limite }}{% endif %}. واش كنتي عارف بيها؟<br><br>{% endif %}
       <b>السؤال :</b> كيفاش كتلقى الصفقات دابا؟ وشحال ديال الوقت كياخد ليك فالسيمانة؟<br><br>
-      <b>الاقتراح :</b> جرب 7 أيام بالمجان، بلا كارطة بنكية. نحلو الحساب دابا مع بعض؟
+      <b>الاقتراح :</b> جرب {{ cfg.essai('ar') }} بالمجان، بلا كارطة بنكية. نحلو الحساب دابا مع بعض؟
     </div>
     <p class="meta" style="margin-top:8px">Ne promettez jamais de gagner un marché. Si la personne demande à ne plus être appelée, choisissez « Ne plus contacter » ci-dessous.</p>
   </div>

@@ -67,9 +67,9 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
   <p class="pricing-intro reveal">{{ tr('pr_intro') }}</p>
   {% if not member or (sub and not sub.is_active) %}
   <div class="pricing-trial reveal">
-    <span class="pricing-trial-badge">{{ tr('trial_badge', n=cfg.TRIAL_DAYS) }}</span>
-    <span class="pricing-trial-txt">{{ tr('trial_note_full', n=cfg.TRIAL_DAYS) }} · {{ tr('trial_note_nocard') }}</span>
-    {% if not member %}<a href="/register" class="btn btn-accent btn-sm">{{ tr('trial_cta', n=cfg.TRIAL_DAYS) }}</a>{% endif %}
+    <span class="pricing-trial-badge">{{ tr('trial_badge', n=essai_duree) }}</span>
+    <span class="pricing-trial-txt">{{ tr('trial_note_full', n=essai_duree) }} · {{ tr('trial_note_nocard') }}</span>
+    {% if not member %}<a href="/register" class="btn btn-accent btn-sm">{{ tr('trial_cta', n=essai_duree) }}</a>{% endif %}
   </div>
   {% endif %}
 </section>

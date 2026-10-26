@@ -336,7 +336,7 @@
         <div class="account-value">
           {% if sub.status == 'TRIAL' %}
             {{ tr('sub_status_trial') }}
-            <span class="account-pill account-pill-trial">{{ tr('sub_days_left', n=sub.days_left) }}</span>
+            <span class="account-pill account-pill-trial">{{ tr('trial_reste', n=duree(sub.heures_restantes)) }}</span>
           {% elif sub.status == 'ACTIVE' %}
             {{ cfg.PLANS.get(sub.plan, {}).get('name', '—') }}
             <span class="account-pill account-pill-ok">{{ tr('sub_status_active') }}</span>

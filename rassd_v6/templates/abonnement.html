@@ -47,7 +47,7 @@ table.ab-t tr:last-child td { border-bottom: none; }
           {% endif %}
         </div>
         <div class="plan-sub">
-          {% if sub.status == 'TRIAL' %}{{ tr('trial_banner', n=sub.days_left) }}
+          {% if sub.status == 'TRIAL' %}{{ tr('trial_banner', n=duree(sub.heures_restantes)) }}
           {% elif sub.status == 'ACTIVE' %}{% if sub.end_date %}{{ tr('sub_expires_on', d=sub.end_date) }}{% else %}Abonnement actif.{% endif %}
           {% else %}{{ tr('trial_over_banner') }}{% endif %}
         </div>
@@ -66,12 +66,12 @@ table.ab-t tr:last-child td { border-bottom: none; }
       </div>
       <div class="ab-cell">
         <div class="ab-cell-l">{{ 'Fin d\'essai' if sub.in_trial else 'Échéance' }}</div>
-        <div class="ab-cell-v">{{ sub.end_date or '—' }}</div>
+        <div class="ab-cell-v">{{ sub.end_date[:16]|replace('T', ' à ') if sub.end_date else '—' }}</div>
       </div>
       <div class="ab-cell">
-        <div class="ab-cell-l">Jours restants</div>
+        <div class="ab-cell-l">Temps restant</div>
         <div class="ab-cell-v" style="color: {% if sub.is_active %}var(--grn){% else %}var(--red){% endif %};">
-          {{ sub.days_left if sub.is_active else 0 }}
+          {{ duree(sub.heures_restantes) if sub.is_active else '—' }}
         </div>
       </div>
     </div>

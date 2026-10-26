@@ -96,7 +96,7 @@
     <a href="/tenders/{{ t.id }}" class="btn btn-primary btn-lg">Ouvrir la fiche →</a>
     {% else %}
     <h2>Ne manquez plus un marché{% if f.secteur %} en {{ f.secteur }}{% endif %}</h2>
-    <p>Recevez chaque matin les appels d'offres de votre secteur et de votre ville, avec l'acheteur, les conditions et le lien officiel. Essai gratuit de {{ cfg.TRIAL_DAYS }} jours, sans carte bancaire.</p>
+    <p>Recevez chaque matin les appels d'offres de votre secteur et de votre ville, avec l'acheteur, les conditions et le lien officiel. Essai gratuit de {{ cfg.essai('fr') }}, sans carte bancaire.</p>
     <a href="/register?src=seo" class="btn btn-primary btn-lg">Voir la fiche complète gratuitement →</a>
     {% endif %}
   </div>

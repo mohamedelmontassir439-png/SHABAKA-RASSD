@@ -359,10 +359,10 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
     <p class="hero-dek">{{ tr('hero_sub_wa') if cfg.WA_ENABLED else tr('hero_sub') }}</p>
     <div class="hero-actions">
       <div class="hero-cta">
-        <a href="/register" class="btn btn-accent btn-xl">{{ tr('hero_cta_trial', n=cfg.TRIAL_DAYS) }}</a>
+        <a href="/register" class="btn btn-accent btn-xl">{{ tr('hero_cta_trial', n=essai_duree) }}</a>
         <a href="/tarifs" class="btn btn-outline btn-xl">{{ tr('hero_cta_free') }}</a>
       </div>
-      <div class="hero-trial-note">✓ {{ tr('trial_note_nocard') }} &nbsp;·&nbsp; ✓ {{ tr('trial_note_full', n=cfg.TRIAL_DAYS) }}</div>
+      <div class="hero-trial-note">✓ {{ tr('trial_note_nocard') }} &nbsp;·&nbsp; ✓ {{ tr('trial_note_full', n=essai_duree) }}</div>
     </div>
   </div>
 
@@ -675,8 +675,8 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
 <section class="trial-section">
   <div class="container">
     <div class="trial-card reveal">
-      <div class="trial-badge">{{ tr('trial_badge', n=cfg.TRIAL_DAYS) }}</div>
-      <h2 class="trial-title">{{ tr('trial_title', n=cfg.TRIAL_DAYS)|safe }}</h2>
+      <div class="trial-badge">{{ tr('trial_badge', n=essai_duree) }}</div>
+      <h2 class="trial-title">{{ tr('trial_title', n=essai_duree)|safe }}</h2>
       <p class="trial-sub">{{ tr('trial_sub') }}</p>
       <div class="trial-steps">
         <div class="trial-step">
@@ -686,7 +686,7 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
         </div>
         <div class="trial-step">
           <div class="trial-step-n">2</div>
-          <div class="trial-step-t">{{ tr('trial_step2_t', n=cfg.TRIAL_DAYS) }}</div>
+          <div class="trial-step-t">{{ tr('trial_step2_t', n=essai_duree) }}</div>
           <div class="trial-step-d">{{ tr('trial_step2_d_wa') if cfg.WA_ENABLED else tr('trial_step2_d') }}</div>
         </div>
         <div class="trial-step">
@@ -695,7 +695,7 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
           <div class="trial-step-d">{{ tr('trial_step3_d', price=cfg.PLANS.monthly.price) }}</div>
         </div>
       </div>
-      <a href="/register" class="btn btn-accent btn-xl">{{ tr('trial_cta', n=cfg.TRIAL_DAYS) }}</a>
+      <a href="/register" class="btn btn-accent btn-xl">{{ tr('trial_cta', n=essai_duree) }}</a>
       <div class="trial-note">{{ tr('trial_note_keep') }}</div>
     </div>
   </div>
