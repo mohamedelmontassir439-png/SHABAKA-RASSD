@@ -208,7 +208,7 @@ html[dir="rtl"] .hero-meridiens { transform: scaleX(-1); }
 .stat-sep { width: 1px; height: 44px; background: var(--line); }
 
 /* ── FEATURE GRID ──────────────────────────────── */
-.feat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-top: 44px; }
+.feat-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; margin-top: 44px; }
 .feat-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 28px 24px; transition: all .22s cubic-bezier(.2,.7,.3,1); }
 .feat-card:hover { transform: translateY(-3px); box-shadow: var(--sh2); border-color: var(--line2); }
 .feat-icon { width: 44px; height: 44px; border-radius:var(--r2); display: flex; align-items: center; justify-content: center; font-size:var(--f6); margin-bottom: 16px; }
@@ -321,7 +321,7 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
   .hero-titre { font-size: clamp(28px, 7vw, 42px); }
   .hero-dek { font-size: var(--f3); }
   .pain-grid, .value-grid { grid-template-columns: 1fr; }
-  .feat-grid { grid-template-columns: 1fr 1fr; }
+  .feat-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .proof-card { padding: 32px 24px; }
   .proof-text { font-size:var(--f4); }
   .stats-inner { gap: 0; }
@@ -334,7 +334,7 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
   .latest-row { grid-template-columns: 1fr 24px; gap: 12px; }
   .latest-row > .latest-meta { display: none; }
 }
-@media(max-width: 560px) { .feat-grid { grid-template-columns: 1fr; } }
+@media(max-width: 560px) { .feat-grid { grid-template-columns: minmax(0, 1fr); } }
 </style>
 {% endblock %}
 
@@ -451,12 +451,12 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
         <div class="feat-text">{{ tr('feat4_text') }}</div>
       </div>
       <div class="feat-card reveal reveal-1">
-        <div class="feat-icon" style="background: var(--indigoa); color: var(--ink);">{{ ico('graphique', 26)|safe }}</div>
+        <div class="feat-icon" style="background: var(--indigoa); color: var(--ink);">{{ ico('loupe', 26)|safe }}</div>
         <div class="feat-title">{{ tr('feat5_title') }}</div>
         <div class="feat-text">{{ tr('feat5_text') }}</div>
       </div>
       <div class="feat-card reveal reveal-2">
-        <div class="feat-icon" style="background: var(--indigoa); color: var(--ink2);">{{ ico('favori', 26)|safe }}</div>
+        <div class="feat-icon" style="background: var(--indigoa); color: var(--ink2);">{{ ico('lien', 26)|safe }}</div>
         <div class="feat-title">{{ tr('feat6_title') }}</div>
         <div class="feat-text">{{ tr('feat6_text') }}</div>
       </div>
@@ -466,7 +466,7 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
         <div class="feat-text">{{ tr('feat7_text') }}</div>
       </div>
       <div class="feat-card reveal reveal-4">
-        <div class="feat-icon" style="background: var(--grna); color: var(--grn);">{{ ico('verrou', 26)|safe }}</div>
+        <div class="feat-icon" style="background: var(--grna); color: var(--grn);">{{ ico('coche', 26)|safe }}</div>
         <div class="feat-title">{{ tr('feat8_title') }}</div>
         <div class="feat-text">{{ tr('feat8_text') }}</div>
       </div>
