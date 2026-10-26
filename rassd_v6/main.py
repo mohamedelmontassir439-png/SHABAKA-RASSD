@@ -3509,6 +3509,12 @@ async def admin_panel(req: Request):
     return resp
 
 
+# Les sources de la veille automatique, celles que `scheduler` enregistre à
+# chaque cycle (`_record_run`).
+SOURCES_VEILLE = ("marchespublics", "marchespublics-ao", "bons-de-commande", "bc-results",
+                  "global-marches", "global-marches-results", "gagnants")
+
+
 def _admin_a_traiter(db) -> list:
     """Ce qui attend une action de l'administrateur, avec le lien pour la faire.
 
@@ -3524,13 +3530,18 @@ def _admin_a_traiter(db) -> list:
     aujourdhui = datetime.now().strftime("%Y-%m-%d")
     dans_7 = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")
     dans_3 = (datetime.now() + timedelta(days=3)).strftime("%Y-%m-%d")
-    # Dernière exécution de chaque source de veille: en échec, ou rien depuis
-    # 12 heures. Les passes d'annuaires (« annuaire-… ») se lancent à la
-    # main: leur silence n'est pas une panne.
-    sources_ko = n("""SELECT COUNT(*) FROM (
-                        SELECT source, status, MAX(started_at) d FROM scraper_runs
-                        WHERE source NOT LIKE 'annuaire-%' GROUP BY source)
-                      WHERE status!='SUCCESS' OR d < datetime('now','-12 hours')""")
+    # Dernière exécution de chaque source de la veille automatique: en échec,
+    # ou rien depuis 12 heures. Les collectes lancées à la main (annuaires,
+    # Google Maps) ne sont pas surveillées: leur silence n'est pas une panne.
+    # Une source de la liste qui n'a jamais tourné compte aussi.
+    ph = ",".join("?" * len(SOURCES_VEILLE))
+    derniers = {r["source"]: (r["status"], r["d"]) for r in db.execute(
+        f"""SELECT source, status, MAX(started_at) d FROM scraper_runs
+            WHERE source IN ({ph}) GROUP BY source""", SOURCES_VEILLE).fetchall()}
+    seuil = (datetime.now() - timedelta(hours=12)).isoformat()
+    sources_ko = sum(1 for src in SOURCES_VEILLE
+                     if src not in derniers or derniers[src][0] != "SUCCESS"
+                     or (derniers[src][1] or "").replace(" ", "T") < seuil)
     lignes = [
         ("financement", n("SELECT COUNT(*) FROM demandes_financement WHERE statut='nouvelle'"),
          "demande(s) de caution ou de financement à rappeler", "/admin/financement", "urgent"),
