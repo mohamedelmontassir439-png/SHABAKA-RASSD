@@ -14,13 +14,13 @@ class TestBouton:
     def test_coupe_puis_retablit(self, admin, db):
         mid = _membre(db)
         page = admin.get("/admin/members").text
-        assert "Couper les notifications" in page
+        assert "Couper notifs" in page
         r = admin.post(f"/admin/member/{mid}/notifications",
                        data={"csrf_token": admin.cookies.get("_csrf")}, follow_redirects=False)
         assert r.status_code == 302
         assert db.execute("SELECT notif_suspendues FROM members WHERE id=?", (mid,)).fetchone()[0] == 1
         page = admin.get("/admin/members").text
-        assert "notifs coupées" in page and "Rétablir les notifications" in page
+        assert "notifs coupées" in page and "Rétablir notifs" in page
         admin.post(f"/admin/member/{mid}/notifications",
                    data={"csrf_token": admin.cookies.get("_csrf")}, follow_redirects=False)
         assert db.execute("SELECT notif_suspendues FROM members WHERE id=?", (mid,)).fetchone()[0] == 0
