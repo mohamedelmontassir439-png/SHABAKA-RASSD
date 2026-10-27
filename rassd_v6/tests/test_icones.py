@@ -151,3 +151,12 @@ class TestRenduReel:
         rail = page[page.index('class="rail"'):page.index("</nav>")]
         assert rail.count("<svg") >= 13, "treize destinations, treize icônes"
         assert not EMOJI.search(rail)
+
+
+class TestPhotosAccueil:
+    def test_les_photos_partent_en_webp(self, client):
+        page = client.get("/").text
+        for nom in ("trouver", "comprendre", "deposer", "developper", "partenariat", "essai", "rencontre"):
+            assert f"/static/img/accueil/{nom}.webp" in page
+        r = client.get("/static/img/accueil/essai.webp")
+        assert r.status_code == 200 and r.headers["content-type"] == "image/webp"

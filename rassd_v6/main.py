@@ -11,6 +11,10 @@ from fastapi.responses import (HTMLResponse, RedirectResponse,
                                JSONResponse, StreamingResponse, Response, FileResponse)
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
+import mimetypes
+# L'image du serveur ne connaît pas .webp: les photos de l'accueil partaient
+# en text/plain, que « nosniff » interdit au navigateur de corriger.
+mimetypes.add_type("image/webp", ".webp")
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config   import cfg
