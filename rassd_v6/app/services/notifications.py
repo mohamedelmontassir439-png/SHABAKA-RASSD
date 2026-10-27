@@ -93,9 +93,30 @@ def tg_admin(msg: str):
     if cfg.ADMIN_CHAT_ID:
         tg_send(cfg.ADMIN_CHAT_ID, f"🔔 <b>MAROC ENTREPRENEURIAT</b>\n{msg}")
 
-def email_send(to: str, subject: str, html: str) -> bool:
+def notifications_suspendues(email: str) -> bool:
+    """Vrai si l'administration a coupé les messages de ce membre."""
+    try:
+        db = get_db()
+        try:
+            r = db.execute("""SELECT 1 FROM members WHERE LOWER(email)=?
+                              AND COALESCE(notif_suspendues,0)=1""",
+                           ((email or "").strip().lower(),)).fetchone()
+        finally:
+            db.close()
+        return bool(r)
+    except Exception:
+        return False
+
+
+def email_send(to: str, subject: str, html: str, essentiel: bool = False) -> bool:
+    """Envoie un email. `essentiel` marque ce que le membre a demandé lui-même
+    (réinitialisation du mot de passe, vérification de l'adresse): cela part
+    même quand l'administration a coupé ses notifications."""
     if not to or "@" not in to:
         logger.warning(f"[Email] Adresse invalide: {to}")
+        return False
+    if not essentiel and notifications_suspendues(to):
+        logger.info(f"[Email] {to}: notifications suspendues par l'administration — non envoyé")
         return False
     # Brevo
     if cfg.BREVO_KEY:
@@ -398,7 +419,7 @@ def dispatch_notifications(tenders: list, max_par_membre: int = 40):
             # Un membre dont l'abonnement n'a pas été activé par l'admin ne
             # doit recevoir aucun détail de marché, sur aucun canal — le même
             # principe que le blocage appliqué aux pages du site.
-            if not has_access(member):
+            if not has_access(member) or member.get("notif_suspendues"):
                 continue
             # Ce qui existait avant l'arrivée du membre ne part pas marché
             # par marché: il le découvre par le message de bienvenue et son
@@ -608,6 +629,7 @@ def send_daily_wa_digests(force: bool = False, now=None) -> int:
     try:
         membres = [dict(m) for m in db.execute(
             """SELECT * FROM members WHERE actif=1 AND notif_wa=1 AND whatsapp_verified=1
+                      AND COALESCE(notif_suspendues,0)=0
                AND whatsapp!='' AND (last_wa_digest IS NULL OR last_wa_digest!=?)""",
             (today,)).fetchall()]
         for m in membres:

@@ -3056,7 +3056,7 @@ def envoyer_lien_verification(email: str, token: str, lang: str = "fr"):
         from app.services.notifications import email_send
         loop = asyncio.get_event_loop()
         loop.run_in_executor(None, lambda: email_send(
-            email, tr_("email_verif_subject", lang),
+            email, tr_("email_verif_subject", lang), essentiel=True, html=
             f"""<h2>{tr_("email_verif_h2", lang)}</h2>
             <p>{tr_("email_verif_p", lang)}</p>
             <a href="{lien}" style="display:inline-block;padding:12px 24px;background:#f2662d;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">
@@ -5141,6 +5141,19 @@ async def admin_members(req: Request, q: str = ""):
         resp.set_cookie("_csrf", csrf_tok, max_age=86400*30, httponly=True, samesite="lax", secure=COOKIE_SECURE)
     return resp
 
+@app.post("/admin/member/{mid}/notifications")
+async def admin_member_notifications(req: Request, mid: int, csrf_token: str = Form("")):
+    """Coupe ou rétablit tous les messages automatiques d'un membre: alertes,
+    résumés, rappels, sur tous les canaux. Le compte reste ouvert."""
+    if not _is_admin(req): return JSONResponse({"ok": False}, 401)
+    csrf_guard(req, csrf_token)
+    db = get_db()
+    db.execute("""UPDATE members SET notif_suspendues =
+                  CASE WHEN COALESCE(notif_suspendues,0)=1 THEN 0 ELSE 1 END WHERE id=?""", (mid,))
+    db.commit(); db.close()
+    return RedirectResponse(f"/admin/members#m{mid}", 302)
+
+
 @app.post("/admin/member/{mid}/toggle")
 async def toggle_member(req: Request, mid:int, csrf_token:str=Form("")):
     if not _is_admin(req): return JSONResponse({"ok":False},401)
@@ -5419,7 +5432,7 @@ async def forgot_post(req: Request, email: str = Form(""), csrf_token: str = For
             from app.services.notifications import email_send
             loop = asyncio.get_event_loop()
             loop.run_in_executor(None, lambda: email_send(
-                email, tr_("email_reset_subject",lang),
+                email, tr_("email_reset_subject",lang), essentiel=True, html=
                 f"""<h2>{tr_("email_reset_h2",lang)}</h2>
                 <p>{tr_("email_reset_p",lang)}</p>
                 <a href="{reset_url}" style="display:inline-block;padding:12px 24px;background:#f2662d;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">

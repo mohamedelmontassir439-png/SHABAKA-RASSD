@@ -603,6 +603,9 @@ def migrate_db():
         # members.created_at est en isoformat (séparateur 'T'), et 'T' > ' '
         # en comparaison de chaînes — les deux ne se comparent pas directement.
         "ALTER TABLE members ADD COLUMN alertes_depuis TEXT DEFAULT ''",
+        # Coupure décidée par l'administration: plus aucun message automatique
+        # vers ce membre, quels que soient les réglages qu'il a lui-même choisis.
+        "ALTER TABLE members ADD COLUMN notif_suspendues INTEGER DEFAULT 0",
         # Montant de l'adjudication en nombre. La colonne texte reste la
         # source affichée; celle-ci n'existe que pour filtrer et trier, ce que
         # « 5.916.000,00 » et « 6.720.600.00 » — deux formats présents dans la

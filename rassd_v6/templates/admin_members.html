@@ -39,7 +39,7 @@ details.del summary::-webkit-details-marker{display:none}
       <tr><th>Membre</th><th>Joindre</th><th>Sa veille</th><th>Plan</th><th>Statut</th>
           <th>Paiements</th><th>Inscrit</th><th>Actions</th></tr>
       {% for m in members %}
-      <tr>
+      <tr id="m{{ m.id }}">
         <td>
           <div class="m-name">{{ (m.nom or '—')[:32] }}</div>
           {% if m.company %}<div class="muted">{{ m.company[:32] }}</div>{% endif %}
@@ -88,6 +88,7 @@ details.del summary::-webkit-details-marker{display:none}
           {% if m.subscription_end %}<div class="muted">→ {{ m.subscription_end }}</div>
           {% elif st=='TRIAL' and m.trial_ends %}<div class="muted">→ {{ m.trial_ends[:16]|replace('T', ' ') }}</div>{% endif %}
           {% if not m.actif %}<div><span class="badge b-r">bloqué</span></div>{% endif %}
+          {% if m.notif_suspendues %}<div><span class="badge b-r">notifications coupées</span></div>{% endif %}
         </td>
         <td>
           {% if m.n_payments %}<span class="badge b-grn">{{ m.n_payments }}</span>
@@ -102,6 +103,11 @@ details.del summary::-webkit-details-marker{display:none}
         </td>
         <td>
           <a class="btn btn-l" style="padding:6px 10px;" href="/admin/member/{{ m.id }}/secteurs">Secteurs</a>
+          <form method="post" action="/admin/member/{{ m.id }}/notifications" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="btn btn-l" style="padding:6px 10px;"
+                    title="Alertes, résumés et rappels, par email et WhatsApp — le compte reste ouvert">{{ 'Rétablir les notifications' if m.notif_suspendues else 'Couper les notifications' }}</button>
+          </form>
           <form method="post" action="/admin/member/{{ m.id }}/toggle" style="display:inline;">
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <button type="submit" class="btn btn-l" style="padding:6px 10px;">{{ 'Bloquer' if m.actif else 'Débloquer' }}</button>

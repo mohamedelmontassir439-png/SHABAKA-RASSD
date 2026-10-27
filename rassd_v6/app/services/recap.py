@@ -110,7 +110,8 @@ def membres_a_prevenir(jour: str = "") -> list:
     db = get_db()
     try:
         membres = [dict(m) for m in db.execute(
-            "SELECT * FROM members WHERE actif=1 ORDER BY created_at DESC").fetchall()]
+            """SELECT * FROM members WHERE actif=1 AND COALESCE(notif_suspendues,0)=0
+               ORDER BY created_at DESC""").fetchall()]
     finally:
         db.close()
     sortie = []
@@ -148,7 +149,7 @@ def preparer(jour: str = "", log_fn=None) -> dict:
     stats = {"jour": jour, "membres": 0, "avec_marches": 0, "marches": 0}
     try:
         membres = [dict(m) for m in db.execute(
-            "SELECT * FROM members WHERE actif=1").fetchall()]
+            "SELECT * FROM members WHERE actif=1 AND COALESCE(notif_suspendues,0)=0").fetchall()]
         maintenant = datetime.now().isoformat()
         for membre in membres:
             trouves = marches_du_jour(membre, jour)
