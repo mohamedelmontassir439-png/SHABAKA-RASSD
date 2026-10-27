@@ -272,14 +272,18 @@ def _lister_cartes(session, jours: int, log_fn, pages_max: int = 20) -> list:
     lignes, vues = [], set()
     for numero in range(1, pages_max + 1):
         trouvees = 0
-        for carte in _cartes(soup):
+        cartes = _cartes(soup)
+        for carte in cartes:
             fiche = parse_carte(carte)
             if fiche and fiche["ref"] not in vues:
                 vues.add(fiche["ref"])
                 lignes.append(fiche)
                 trouvees += 1
         log_fn(f"  page {numero}: {trouvees} consultation(s)")
-        if trouvees < 500:
+        # On s'arrête sur une page incomplète du portail, pas sur une page
+        # dont on a écarté un doublon: le 27/10/2026, « 499 » sur une page
+        # pleine arrêtait la lecture à la moitié des 4 880 consultations.
+        if len(cartes) < 500:
             break
         time.sleep(DELAI)
         soup = _postback(session, soup, CIBLE_SUIVANTE_CARTES, url=URL_ACTION)

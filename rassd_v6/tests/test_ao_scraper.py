@@ -247,3 +247,27 @@ class TestCartes:
         lots = []
         reste = ao.run(set(), lambda *_: None, par_lot=lambda l: lots.append(len(l)))
         assert lots == [50, 50] and len(reste) == 20
+
+
+class TestPagination:
+    def test_un_doublon_n_arrete_pas_la_lecture(self, monkeypatch):
+        from app.services import ao_scraper as ao
+        from bs4 import BeautifulSoup
+        def page(debut):
+            refs = list(range(debut, debut + 500))
+            refs[-1] = refs[0]          # un doublon dans une page pleine
+            html = "".join(f'<div class="contentColumn" onclick="x?refConsultation={r}&orgAcronyme=a"></div>' for r in refs)
+            return BeautifulSoup(html, "html.parser")
+        pages = [page(1000), page(2000), BeautifulSoup('<div class="contentColumn" onclick="refConsultation=9&orgAcronyme=a"></div>', "html.parser")]
+        class S:
+            def get(self, *a, **k):
+                class R:
+                    text = "<html></html>"
+                    def raise_for_status(self): pass
+                return R()
+        appels = iter([pages[0], pages[0], pages[1], pages[2]])
+        monkeypatch.setattr(ao, "_postback", lambda *a, **k: next(appels))
+        monkeypatch.setattr(ao, "DELAI", 0)
+        monkeypatch.setattr(ao, "parse_carte", lambda c: {"ref": ao._reference_et_organisme(c.get("onclick"))[0]})
+        lignes = ao._lister_cartes(S(), 3, lambda *_: None)
+        assert len(lignes) == 499 + 499 + 1
