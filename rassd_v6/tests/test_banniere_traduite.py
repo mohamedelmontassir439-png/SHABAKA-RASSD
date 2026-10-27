@@ -93,7 +93,8 @@ class TestAucuneImageDansLaCouverture:
         """
         regle = re.search(r"\.hero \{[^}]*\}", client.get("/").text).group(0)
         adresses = re.findall(r"url\(([^)]+)\)", regle)
-        assert adresses, "aucun motif dans le fond"
+        # La photo de l'équipe est une balise <img> chargée à part; le fond
+        # CSS, lui, n'appelle plus aucune image depuis le 27/10/2026.
         for url in adresses:
             assert url.startswith("data:image/svg+xml"), url[:60]
 
@@ -158,18 +159,15 @@ class TestFriseEtApercu:
     anonyme, un grand cadre vide qui disait seulement ce qu'il n'aurait pas.
     """
 
-    def test_la_frise_ferme_la_couverture(self):
+    def test_la_photo_de_couverture_reste_nette(self):
+        """Depuis le 27/10/2026 la photo de l'équipe porte la couverture:
+        ni frise, ni rosaces, ni trame par-dessus, et un médaillon ajouré."""
         regle = _regle(".hero")
-        assert "fond_frise" in regle
-        assert "repeat-x" in regle, "une frise se répète en largeur, pas en hauteur"
-        assert "bottom" in regle, "elle ferme le bas de la section"
-
-    def test_la_frise_est_la_couche_du_dessus(self):
-        """Posée plus bas, la lueur et la vignette la délavent, et elle ne
-        ferme plus rien — c'est pourtant tout son office."""
-        regle = _regle(".hero")
-        couches = regle[regle.index("background:"):]
-        assert couches.index("fond_frise") < couches.index("radial-gradient")
+        for motif in ("fond_frise", "fond_rosace", "fond_trame"):
+            assert motif not in regle
+        page = open(os.path.join(RACINE, "templates", "landing.html"), encoding="utf-8").read()
+        assert 'class="hero-photo"' in page and "hero-meridiens" not in page
+        assert "circle:first-of-type { fill: transparent; }" in page
 
     def test_aucun_marche_nest_montre_au_visiteur_anonyme(self, client):
         """Le détail d'un marché est réservé aux membres activés. L'aperçu

@@ -30,40 +30,15 @@
    un fond clair, criait sur celui-ci. */
 .hero { position: relative; overflow: hidden; isolation: isolate;
   container-type: inline-size; padding: clamp(56px, 6.8vw, 100px) 0;
+  /* La photo de l'équipe porte le fond: plus de frise, de rosaces ni de
+     trame par-dessus — elle se lit nette (choix du 27/10/2026). */
   background:
-    /* La frise en tête de pile: elle doit rester nette. Posée plus bas, la
-       lueur et la vignette l'auraient délavée, et elle n'aurait plus fermé
-       la section — c'est pourtant tout son office. */
-    {{ fond_frise(132, 38, 0.46) }} left bottom / 132px 38px repeat-x,
-    /* Puis, dans l'ordre où le navigateur les empile, du dessus vers le bas.
-       La lueur vient en premier: elle baigne les motifs au lieu de les
-       laisser quadriller la marque. La vignette, elle, passe sous les
-       rosaces — posée au-dessus, elle aurait éteint les angles qu'elles
-       occupent, et c'est précisément là qu'on veut les voir. */
-    radial-gradient(112% 96% at 74% 50%, rgba(255,133,82,.34) 0%, rgba(242,102,45,.13) 34%, transparent 62%),
-    linear-gradient(to bottom, transparent 54%, rgba(242,102,45,.16) 71%, rgba(242,102,45,.03) 82%, transparent 92%),
-    radial-gradient(76% 62% at 6% 2%, rgba(255,133,82,.12) 0%, transparent 58%),
-    /* Deux rosaces d'angle, débordant du cadre: entières, elles feraient
-       deux médaillons concurrents de la marque. Toutes deux du côté du
-       texte — posée en bas à droite, la seconde venait se superposer au
-       globe, et deux cercles ornés l'un sur l'autre ne se lisent plus. */
-    {{ fond_rosace(560, 0.18) }} -150px -175px / 560px 560px no-repeat,
-    {{ fond_rosace(620, 0.12) }} -195px calc(100% + 165px) / 620px 620px no-repeat,
-    /* La trame: un khatam à chaque nœud du zellige, et son lacis. */
-    {{ fond_trame(132, 0.115) }} 0 0 / 132px 132px repeat,
+    radial-gradient(112% 96% at 74% 50%, rgba(255,133,82,.26) 0%, rgba(242,102,45,.1) 34%, transparent 62%),
     radial-gradient(130% 120% at 50% 50%, transparent 52%, rgba(10,7,5,.55) 100%),
     linear-gradient(156deg, #32200f 0%, #1d1410 44%, #110c09 100%); }
 
-/* Les méridiens: le signe de la marque, repris en très grand et très pâle.
-   Décoratif au sens strict — aucun texte, aucun rôle, et le lecteur d'écran
-   passe à côté. */
 /* L'équipe en fond, éteinte sous la teinte de la marque, comme l'appel final. */
-.hero-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 35%; opacity: .2; mix-blend-mode: luminosity; pointer-events: none; }
-.hero-meridiens { position: absolute; inset: 0; width: 100%; height: 100%;
-  pointer-events: none; z-index: 0; opacity: .5; }
-.hero-meridiens ellipse { fill: none; stroke: #ff8552; stroke-opacity: .22;
-  stroke-width: 1; vector-effect: non-scaling-stroke; }
-.hero-meridiens ellipse:nth-child(even) { stroke-opacity: .13; }
+.hero-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 35%; opacity: .3; mix-blend-mode: luminosity; pointer-events: none; }
 .hero-grid { position: relative; z-index: 1; max-width: 1280px; margin: 0 auto;
   display: grid; grid-template-columns: minmax(0, 620px); align-items: center; }
 .hero-eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size:var(--f2); font-weight: 700; color: var(--ink2); letter-spacing: .07em; text-transform: uppercase; margin-bottom: 24px; background: rgba(242,102,45,.14); border: 1px solid rgba(242,102,45,.32); padding: 7px 14px; border-radius:var(--rp); }
@@ -114,11 +89,13 @@
    dans le flux. L'anneau poussait alors le médaillon contre le bord droit,
    et la lueur tournait à vide ailleurs. */
 .hero-marque > svg:not(.hero-anneau) { position: relative; z-index: 1;
-  width: min(100%, 372px); height: auto;
-  filter: drop-shadow(0 22px 54px rgba(0,0,0,.55)); }
+  width: min(100%, 372px); height: auto; }
+/* Le disque du médaillon s'efface: la photo se voit à travers, seuls le
+   cercle, le globe et le nom restent tracés. */
+.hero-marque > svg:not(.hero-anneau) > circle:first-of-type { fill: transparent; }
 .hero-marque::before { content: ""; position: absolute; inset: -26%;
   border-radius: 50%; z-index: 0;
-  background: radial-gradient(circle, rgba(255,160,110,.55) 0%, rgba(242,102,45,.26) 38%, transparent 68%);
+  background: radial-gradient(circle, rgba(255,160,110,.22) 0%, rgba(242,102,45,.1) 38%, transparent 68%);
   filter: blur(26px); }
 /* Un anneau qui tourne lentement: il dit la veille continue, et il est la
    seule chose qui bouge sur la page. */
@@ -138,8 +115,7 @@
    entière, puis on remet son contenu à l'endroit — seul le fond est miroité,
    et la composition retrouve le même équilibre dans les deux sens. */
 html[dir="rtl"] .hero { transform: scaleX(-1); }
-html[dir="rtl"] .hero-inner,
-html[dir="rtl"] .hero-meridiens { transform: scaleX(-1); }
+html[dir="rtl"] .hero-inner { transform: scaleX(-1); }
 /* Le titre n'est plus gravé dans l'image: la bannière a été nettoyée de ses
    lettres et le texte revient en HTML, à la place exacte qu'il occupait.
    C'est ce qui lui rend la traduction — une image ne se traduit pas.
@@ -358,12 +334,6 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
      l'anneau sont décoratifs; la marque, elle, est le médaillon de la
      plateforme, le même tracé qu'en en-tête de document. #}
   <img class="hero-photo" src="/static/img/accueil/equipe.webp" alt="" width="1920" height="1080" fetchpriority="high" decoding="async">
-  <svg class="hero-meridiens" viewBox="0 0 1200 600" preserveAspectRatio="none" aria-hidden="true">
-    <ellipse cx="600" cy="300" rx="760" ry="250"/>
-    <ellipse cx="600" cy="300" rx="760" ry="430"/>
-    <ellipse cx="600" cy="300" rx="520" ry="520"/>
-    <ellipse cx="600" cy="300" rx="260" ry="520"/>
-  </svg>
   <div class="hero-inner">
   <div class="hero-texte">
     <p class="hero-sur">{{ tr('hero_eyebrow') }}</p>
