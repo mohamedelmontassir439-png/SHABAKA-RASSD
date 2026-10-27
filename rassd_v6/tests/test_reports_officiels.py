@@ -43,7 +43,7 @@ def test_autres_sources_et_avis_recents_intacts(db):
 
 
 def test_bandeau():
-    assert R.report_actif(date(2026, 10, 25)) and not R.report_actif(date(2026, 10, 31))
+    assert R.report_actif(date(2026, 10, 25)) and not R.report_actif(date(2026, 10, 27))
     assert not R.report_actif(date(2026, 10, 25))["repris"]
     assert R.report_actif(date(2026, 10, 26))["repris"], "le bandeau annonce la réouverture"
 

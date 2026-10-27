@@ -188,9 +188,11 @@ html[dir="rtl"] .sel { background-position: left 14px center; padding-right: 14p
    ══════════════════════════════════════════════════════ */
 .app-shell { display: flex; align-items: stretch; min-height: 100vh; }
 
-.sidebar { width: var(--sidebar-w); flex-shrink: 0; background: var(--ink3); background-image: var(--zellige); background-size: 84px 84px; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+/* Un seul fond, uni, du haut au bas du rail: le motif ne se voyait que là où
+   la liste dépassait l'écran, et coupait le rail en deux teintes. */
+.sidebar { width: var(--sidebar-w); flex-shrink: 0; background: var(--ink3); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
 .sidebar::-webkit-scrollbar { width: 5px; }
-.sidebar-inner { position: relative; background: linear-gradient(180deg, var(--ink3) 0%, rgba(6,22,17,.97) 100%); display: flex; flex-direction: column; flex: 1; min-height: 100%; }
+.sidebar-inner { position: relative; background: var(--ink3); display: flex; flex-direction: column; flex: 1; min-height: 100%; }
 
 .sidebar-brand { display: flex; align-items: center; gap: 12px; padding: 26px 22px; border-bottom: 1px solid rgba(255,255,255,.08); }
 .brand-text { min-width: 0; }

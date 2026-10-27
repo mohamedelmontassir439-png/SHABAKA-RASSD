@@ -40,7 +40,9 @@ REPORTS = [{
     # Remise en service: le bandeau cesse de dire « suspendu ».
     "remis_le": date(2026, 10, 26),
     # Le bandeau du site reste affiché jusqu'à la dernière nouvelle date.
-    "bandeau_jusqu_au": date(2026, 10, 30),
+    # Retiré le 27/10/2026, le portail ayant repris: les nouvelles dates
+    # restent appliquées aux avis et signalées sur leur fiche.
+    "bandeau_jusqu_au": date(2026, 10, 26),
     # Seuls les avis connus avant la remise en service: un avis publié
     # ensuite porte déjà ses vraies dates.
     "collectes_avant": "2026-10-26",
