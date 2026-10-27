@@ -20,7 +20,7 @@ class TestBouton:
         assert r.status_code == 302
         assert db.execute("SELECT notif_suspendues FROM members WHERE id=?", (mid,)).fetchone()[0] == 1
         page = admin.get("/admin/members").text
-        assert "notifications coupées" in page and "Rétablir les notifications" in page
+        assert "notifs coupées" in page and "Rétablir les notifications" in page
         admin.post(f"/admin/member/{mid}/notifications",
                    data={"csrf_token": admin.cookies.get("_csrf")}, follow_redirects=False)
         assert db.execute("SELECT notif_suspendues FROM members WHERE id=?", (mid,)).fetchone()[0] == 0
