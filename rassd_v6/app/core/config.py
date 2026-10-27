@@ -126,6 +126,9 @@ class Settings:
     # Essai gratuit accordé à chaque nouvelle inscription, en heures (24 = un
     # jour), compté à l'heure près depuis l'inscription.
     TRIAL_HOURS: int = int(os.getenv("TRIAL_HOURS", "24"))
+    # Secteurs qu'un membre choisit lui-même à l'inscription. Au-delà, ou pour
+    # en changer, il écrit sur WhatsApp et l'administration s'en charge.
+    MAX_SECTEURS: int = int(os.getenv("MAX_SECTEURS", "3"))
     # Plans (paiement encaissé hors plateforme puis enregistré par l'admin)
     PLANS: dict = field(default_factory=lambda: {
         # Le drapeau `telegram` a disparu avec le canal: plus rien ne le

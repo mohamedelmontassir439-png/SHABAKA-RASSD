@@ -15,8 +15,12 @@
 
 .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: var(--r3); overflow: hidden; margin: 32px 0; }
 .info-cell { background: var(--surface); padding: 20px 24px; }
+/* Une case seule sur sa ligne prend toute la largeur: pas de trou à côté. */
+.info-grid > .info-cell:last-child:nth-child(odd) { grid-column: 1 / -1; }
 .info-label { font-size:var(--f1); font-weight: 700; color: var(--amberd); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 8px; }
 /* La note sous le montant: il faut qu'elle se lise, et qu'elle ne crie pas. */
+.montant-caution { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); }
+.montant-caution .info-label { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .info-note { font-size:var(--f1); color: var(--text3); line-height: 1.5; margin-top: 6px; max-width: 34em; }
 /* ── Conditions de l'avis ────────────────────────────── */
 .cond { margin: 0 0 8px; }
@@ -169,6 +173,9 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
       </div>
       {% endif %}
 
+      {% set cases = cartes_conditions(t.description, t.id) %}
+      {% set ns_caution = namespace(c=none) %}
+      {% for cle, valeur, aide, exige in cases %}{% if cle == 'cond_caution' %}{% set ns_caution.c = (valeur, exige) %}{% endif %}{% endfor %}
       <div class="info-grid">
         <div class="info-cell">
           <div class="info-label">{{ tr('detail_buyer') }}</div>
@@ -191,6 +198,19 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
           <div class="info-label">{{ tr('detail_amount') }}</div>
           <div class="info-value" style="color: var(--grn);">{{ t.montant or '—' }}</div>
           {% if t.montant %}<div class="info-note">{{ tr('detail_amount_note') }}</div>{% endif %}
+          {# La caution juste sous le montant: les deux chiffres se lisent
+             ensemble, l'un découle de l'autre. #}
+          {% if ns_caution.c %}
+          {% set cv = ns_caution.c[0] %}
+          <div class="montant-caution">
+            <div class="info-label">
+              <span>{{ tr('cond_caution') }}</span>
+              {% if ns_caution.c[1] %}<span class="cond-badge">{{ tr('cond_exige') }}</span>{% endif %}
+            </div>
+            <div class="info-value" dir="{{ 'auto' if cv not in ('aucune', 'par_lot') else 'rtl' if lang == 'ar' else 'ltr' }}">{{ tr('cond_v_' ~ cv) if cv in ('aucune', 'par_lot') else cv }}</div>
+            {% if cv not in ('aucune', 'par_lot') %}<div class="info-note">{{ tr('cond_caution_aide') }}</div>{% endif %}
+          </div>
+          {% endif %}
         </div>
         {% else %}
         {# Un bon de commande ne publie pas d'estimation: la quantité commandée
@@ -208,10 +228,6 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
           <div class="info-value">{{ t.nature[:80] }}</div>
         </div>
         {% endif %}
-        <div class="info-cell">
-          <div class="info-label">{{ tr('detail_views') }}</div>
-          <div class="info-value">{{ (t.views or 0) }}</div>
-        </div>
       </div>
 
       {# L'offre du membre pour ce marché: suivie ou non, son étape, ses
@@ -255,7 +271,10 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
          lieu des plis… Ce qu'une entreprise cherchait en ouvrant le dossier
          entier. Rien ne s'affiche pour un bon de commande ou une source
          privée, dont la description n'a pas ces champs. #}
-      {% set cases = cartes_conditions(t.description, t.id) %}
+      {# La caution est déjà sous le montant quand la case du montant s'affiche. #}
+      {% if ns_caution.c and (t.montant or not t.quantite) %}
+      {% set cases = cases|rejectattr(0, 'equalto', 'cond_caution')|list %}
+      {% endif %}
       {% if cases %}
       {% set mots = ('oui', 'non', 'aucune', 'aucun', 'electronique', 'gratuit', 'par_lot') %}
       <section class="cond" aria-labelledby="cond-titre">

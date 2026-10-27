@@ -131,4 +131,4 @@ class TestEssaiDe24Heures:
 
     def test_l_accueil_annonce_24_heures(self, client):
         page = client.get("/").text
-        assert "Essai gratuit 24 heures" in page and "7 jours" not in page
+        assert "Essai gratuit 24 heures" in page and "Essai gratuit 7 jours" not in page

@@ -61,6 +61,17 @@ class TestExtractionPortail:
         assert sc.parse_page(html, "1")["region"] == ""
 
 
+def _date_passee() -> str:
+    """Hier, sauf si hier tombe dans un report officiel (app/services/
+    reports_officiels.py): le marché y serait repoussé, pas clos."""
+    from app.services.reports_officiels import REPORTS
+    jour = date.today() - timedelta(days=1)
+    reportees = {d for r in REPORTS for d in r["dates"]}
+    while jour.strftime("%d/%m/%Y") in reportees:
+        jour -= timedelta(days=1)
+    return jour.strftime("%d/%m/%Y")
+
+
 class TestCloture:
     def _marche(self, db, tid, limite, statut="actif"):
         db.execute("""INSERT INTO tenders(id,objet,secteur,statut,scraped_at,date_limite,
@@ -70,7 +81,7 @@ class TestCloture:
         db.commit()
 
     def test_les_marches_depasses_sont_clotures(self, db):
-        hier = (date.today() - timedelta(days=1)).strftime("%d/%m/%Y")
+        hier = _date_passee()
         demain = (date.today() + timedelta(days=1)).strftime("%d/%m/%Y")
         self._marche(db, "t_passe", hier)
         self._marche(db, "t_ouvert", demain)
@@ -85,7 +96,7 @@ class TestCloture:
     def test_gros_volume_cloture_en_une_fois(self, db):
         # Plus de 999 identifiants: un IN (...) unique dépasserait la limite
         # de paramètres de SQLite et ne clôturerait rien du tout.
-        hier = (date.today() - timedelta(days=1)).strftime("%d/%m/%Y")
+        hier = _date_passee()
         for i in range(1200):
             self._marche(db, f"t_{i}", hier)
         expires, actifs = main.expire_tenders()
@@ -97,7 +108,7 @@ class TestCloture:
         assert expires == 0 and actifs == 1
 
     def test_un_marche_deja_clos_n_est_pas_recompte(self, db):
-        hier = (date.today() - timedelta(days=1)).strftime("%d/%m/%Y")
+        hier = _date_passee()
         self._marche(db, "t_deja", hier, statut="expire")
         assert main.expire_tenders()[0] == 0
 

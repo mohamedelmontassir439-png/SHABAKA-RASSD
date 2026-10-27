@@ -52,8 +52,8 @@ def _regle(selecteur):
 
 class TestLeTexteEstDuTexte:
     @pytest.mark.parametrize("langue,extrait", [
-        ("fr", "La veille qui trouve"),
-        ("ar", "الرصد الذي يجد"),
+        ("fr", "Trouvez, comprenez et remportez"),
+        ("ar", "اعثر على صفقات المغرب"),
     ])
     def test_l_accroche_est_rendue_dans_la_langue_demandee(self, client, langue, extrait):
         page = client.get(f"/?lang={langue}").text

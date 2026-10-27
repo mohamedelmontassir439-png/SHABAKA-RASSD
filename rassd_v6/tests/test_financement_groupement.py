@@ -109,3 +109,17 @@ class TestGroupement:
         client.cookies.set("_session", "jeton-grp-1")
         page = client.get("/groupements/modele?tender=ao_7").text
         assert "CONVENTION DE GROUPEMENT" in page and "9/2026" in page and "Route de Taza" in page
+
+
+class TestFicheMontantCaution:
+    def test_caution_sous_le_montant_et_plus_de_compteur_de_vues(self, client, db):
+        _membre(db, 1, "jeton-fin-1", "a@x.ma", "SIMAC"); _marche(db)
+        db.execute("UPDATE tenders SET montant='1 200 000,00 MAD', views=57 WHERE id='ao_7'"); db.commit()
+        client.cookies.set("_session", "jeton-fin-1")
+        page = client.get("/tenders/ao_7").text
+        montant = page.index("1 200 000,00 MAD")
+        caution = page.index('class="montant-caution"')
+        assert montant < caution < page.index("20 000,00 MAD")
+        # Une seule fois: elle a quitté l'encadré des conditions.
+        assert page.count("Caution provisoire</span>") == 1
+        assert "Consultations" not in page and ">57<" not in page

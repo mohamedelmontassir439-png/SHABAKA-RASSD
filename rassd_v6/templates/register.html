@@ -16,6 +16,8 @@
 .sector-chip { display: inline-flex; align-items: center; gap: 6px; padding: 8px 13px; background: var(--surface2); border: 1.5px solid transparent; cursor: pointer; font-size:var(--f2); color: var(--text2); transition: all .15s; user-select: none; border-radius: var(--r2); }
 .sector-chip:hover { border-color: var(--line2); }
 .sector-chip input { display: none; }
+.reg-compte { font-size:var(--f2); font-weight: 700; color: var(--navy); margin: -4px 0 14px; }
+.sector-chip:has(input:disabled) { opacity: .45; cursor: not-allowed; }
 .sector-chip:has(input:checked) { border-color: var(--navy); color: var(--navy); background: rgba(20,40,80,.06); font-weight: 600; }
 .sector-chip-code { font-family: var(--mono); font-size:var(--f1); opacity: .65; letter-spacing: .05em; }
 .reg-hint { font-size:var(--f3); color: var(--text3); margin-bottom: 20px; margin-top: 6px; }
@@ -50,7 +52,8 @@
 
       <div>
         <div class="field"><label>{{ tr('reg_sectors_label') }}</label></div>
-        <p class="reg-hint">{{ tr('reg_sectors_hint') }}</p>
+        <p class="reg-hint">{{ tr('reg_sectors_hint', n=cfg.MAX_SECTEURS) }}</p>
+        <p class="reg-compte" id="reg-compte" aria-live="polite">{{ tr('reg_sectors_compte', k=0, n=cfg.MAX_SECTEURS) }}</p>
         {% for group_name, group_sectors in sector_groups.items() %}
         <div class="sector-group">
           <div class="sector-group-title">{{ group_name }}</div>
@@ -69,6 +72,22 @@
 
       <button type="submit" class="btn btn-primary btn-full btn-lg">{{ tr('reg_submit') }}</button>
     </form>
+    <script>
+    // Au plus {{ cfg.MAX_SECTEURS }} secteurs: une fois atteints, les autres cases se figent.
+    (function () {
+      var max = {{ cfg.MAX_SECTEURS }}, modele = {{ tr('reg_sectors_compte', k='__K__', n=cfg.MAX_SECTEURS)|tojson }};
+      var cases = document.querySelectorAll('input[name="secteurs_sel"]');
+      var compte = document.getElementById('reg-compte');
+      function maj() {
+        var k = 0;
+        cases.forEach(function (c) { if (c.checked) k++; });
+        cases.forEach(function (c) { c.disabled = !c.checked && k >= max; });
+        compte.textContent = modele.replace('__K__', k);
+      }
+      cases.forEach(function (c) { c.addEventListener('change', maj); });
+      maj();
+    })();
+    </script>
   </div>
 
   <div class="reg-foot">

@@ -143,7 +143,7 @@ class TestLesAppelsSontValides:
 class TestRenduReel:
     def test_la_page_daccueil_sert_des_traces(self, client):
         page = client.get("/").text
-        assert page.count('stroke="currentColor"') >= 9, "les huit cartes et le canal"
+        assert page.count('stroke="currentColor"') >= 5, "les quatre étapes des services et le canal"
         assert not EMOJI.search(page), "un emoji est passé jusqu'à la page"
 
     def test_le_rail_de_ladministration_aussi(self, admin):

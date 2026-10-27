@@ -208,12 +208,6 @@ html[dir="rtl"] .hero-meridiens { transform: scaleX(-1); }
 .stat-sep { width: 1px; height: 44px; background: var(--line); }
 
 /* ── FEATURE GRID ──────────────────────────────── */
-.feat-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; margin-top: 44px; }
-.feat-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 28px 24px; transition: all .22s cubic-bezier(.2,.7,.3,1); }
-.feat-card:hover { transform: translateY(-3px); box-shadow: var(--sh2); border-color: var(--line2); }
-.feat-icon { width: 44px; height: 44px; border-radius:var(--r2); display: flex; align-items: center; justify-content: center; font-size:var(--f6); margin-bottom: 16px; }
-.feat-title { font-weight: 700; font-size:var(--f4); color: var(--text1); margin-bottom: 8px; line-height: 1.3; }
-.feat-text { font-size:var(--f3); color: var(--text3); line-height: 1.6; }
 
 /* ── SOUS-TRAITANCE SPOTLIGHT ──────────────────── */
 .st-spot { padding: 96px 0; background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
@@ -246,14 +240,18 @@ html[dir="rtl"] .hero-meridiens { transform: scaleX(-1); }
    decoupe, elle debordait de la page entiere. Mesure sur le site en ligne:
    1530 px de contenu pour 1440 de fenetre, soit une barre de defilement
    horizontale sur chaque page, dans les deux langues. */
-.value { padding: 96px 0; background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); position: relative; overflow: hidden; }
-.value-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-top: 44px; }
-.value-item { padding: 32px; border: 1px solid var(--line); border-radius: var(--r3); background: var(--bg); }
-.value-num { font-size:var(--f2); font-weight: 700; color: var(--ink); letter-spacing: .07em; text-transform: uppercase; margin-bottom: 16px; }
-.value-title { font-family: var(--serif); font-weight: 700; font-size:var(--f6); color: var(--text1); margin-bottom: 16px; line-height: 1.3; }
-.value-title em { font-style: italic; color: var(--ink); font-weight: 600; }
-.value-text { font-size:var(--f4); color: var(--text3); line-height: 1.75; margin-bottom: 16px; }
-.value-result { font-size:var(--f2); font-weight: 700; color: var(--grn); padding-top: 16px; border-top: 1px solid var(--line); }
+.svc { padding: 96px 0; background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.svc-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; margin-top: 44px; }
+.svc-etape { display: flex; flex-direction: column; padding: 28px 24px; border: 1px solid var(--line); border-radius: var(--r3); background: var(--bg); }
+.svc-tete { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.svc-ico { width: 46px; height: 46px; border-radius: var(--r2); display: flex; align-items: center; justify-content: center; background: var(--indigoa); color: var(--ink); }
+.svc-num { font-family: var(--mono); font-size: var(--f2); font-weight: 700; color: var(--text3); letter-spacing: .06em; }
+.svc-titre { font-family: var(--serif); font-weight: 700; font-size: var(--f7); color: var(--text1); line-height: 1.15; margin: 0 0 6px; }
+.svc-but { font-size: var(--f3); color: var(--text3); line-height: 1.5; margin: 0 0 18px; }
+.svc-liste { list-style: none; margin: 0; padding: 18px 0 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 16px; }
+.svc-liste b { display: block; font-size: var(--f3); color: var(--text1); line-height: 1.35; margin-bottom: 4px; }
+.svc-liste span { display: block; font-size: var(--f2); color: var(--text3); line-height: 1.6; }
+@media(max-width: 1100px) { .svc-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
 
 /* ── LATEST TENDERS ───────────────────────────── */
 .latest { padding: 96px 0; }
@@ -320,8 +318,8 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
   .hero-marque > svg:not(.hero-anneau) { width: min(78%, 268px); }
   .hero-titre { font-size: clamp(28px, 7vw, 42px); }
   .hero-dek { font-size: var(--f3); }
-  .pain-grid, .value-grid { grid-template-columns: 1fr; }
-  .feat-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .pain-grid { grid-template-columns: 1fr; }
+  .svc { padding: 64px 0; }
   .proof-card { padding: 32px 24px; }
   .proof-text { font-size:var(--f4); }
   .stats-inner { gap: 0; }
@@ -334,7 +332,7 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
   .latest-row { grid-template-columns: 1fr 24px; gap: 12px; }
   .latest-row > .latest-meta { display: none; }
 }
-@media(max-width: 560px) { .feat-grid { grid-template-columns: minmax(0, 1fr); } }
+@media(max-width: 640px) { .svc-grid { grid-template-columns: minmax(0, 1fr); } .svc-etape { padding: 24px 20px; } }
 </style>
 {% endblock %}
 
@@ -424,56 +422,6 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
   </div>
 </div>
 
-<!-- FEATURE GRID -->
-<section class="section">
-  <div class="container">
-    <div class="section-label reveal">{{ tr('feat_label') }}</div>
-    <div class="section-title reveal" style="max-width: 720px;">{{ tr('feat_title')|safe }}</div>
-    <div class="feat-grid">
-      <div class="feat-card reveal reveal-1">
-        <div class="feat-icon" style="background: var(--indigoa); color: var(--ink);">{{ ico('veille', 26)|safe }}</div>
-        <div class="feat-title">{{ tr('feat1_title') }}</div>
-        <div class="feat-text">{{ tr('feat1_text') }}</div>
-      </div>
-      <div class="feat-card reveal reveal-2">
-        <div class="feat-icon" style="background: var(--indigoa); color: var(--ink2);">{{ ico('etiquette', 26)|safe }}</div>
-        <div class="feat-title">{{ tr('feat2_title') }}</div>
-        <div class="feat-text">{{ tr('feat2_text') }}</div>
-      </div>
-      <div class="feat-card reveal reveal-3">
-        <div class="feat-icon" style="background: var(--purplea); color: var(--purple);">{{ ico('cloche', 26)|safe }}</div>
-        <div class="feat-title">{{ tr('feat3_title') }}</div>
-        <div class="feat-text">{{ tr('feat3_text_wa') if cfg.WA_ENABLED else tr('feat3_text') }}</div>
-      </div>
-      <div class="feat-card reveal reveal-4">
-        <div class="feat-icon" style="background: var(--grna); color: var(--grn);">{{ ico('dossiers', 26)|safe }}</div>
-        <div class="feat-title">{{ tr('feat4_title') }}</div>
-        <div class="feat-text">{{ tr('feat4_text') }}</div>
-      </div>
-      <div class="feat-card reveal reveal-1">
-        <div class="feat-icon" style="background: var(--indigoa); color: var(--ink);">{{ ico('loupe', 26)|safe }}</div>
-        <div class="feat-title">{{ tr('feat5_title') }}</div>
-        <div class="feat-text">{{ tr('feat5_text') }}</div>
-      </div>
-      <div class="feat-card reveal reveal-2">
-        <div class="feat-icon" style="background: var(--indigoa); color: var(--ink2);">{{ ico('lien', 26)|safe }}</div>
-        <div class="feat-title">{{ tr('feat6_title') }}</div>
-        <div class="feat-text">{{ tr('feat6_text') }}</div>
-      </div>
-      <div class="feat-card reveal reveal-3">
-        <div class="feat-icon" style="background: var(--purplea); color: var(--purple);">{{ ico('trophee', 26)|safe }}</div>
-        <div class="feat-title">{{ tr('feat7_title') }}</div>
-        <div class="feat-text">{{ tr('feat7_text') }}</div>
-      </div>
-      <div class="feat-card reveal reveal-4">
-        <div class="feat-icon" style="background: var(--grna); color: var(--grn);">{{ ico('coche', 26)|safe }}</div>
-        <div class="feat-title">{{ tr('feat8_title') }}</div>
-        <div class="feat-text">{{ tr('feat8_text') }}</div>
-      </div>
-    </div>
-  </div>
-</section>
-
 <!-- PAIN -->
 <section class="pain">
   <div class="container">
@@ -500,37 +448,36 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
   </div>
 </section>
 
-<!-- VALUE -->
-<section class="value">
-  <div class="blob blob-purple" style="width:360px; height:360px; top:20%; inset-inline-end:-120px;"></div>
+
+<!-- SERVICES -->
+{# Toute la plateforme, rangée dans l'ordre où une entreprise vit un marché:
+   le trouver, le comprendre, déposer, se développer. La numérotation dit
+   cet ordre — c'est une suite, pas un décor. #}
+<section class="svc" id="services">
   <div class="container">
-    <div class="section-label reveal">{{ tr('value_label') }}</div>
-    <div class="section-title reveal" style="max-width: 720px;">{{ tr('value_title')|safe }}</div>
-    <div class="value-grid">
-      <div class="value-item reveal reveal-1">
-        <div class="value-num">{{ tr('value1_num') }}</div>
-        <div class="value-title">{{ tr('value1_title')|safe }}</div>
-        <div class="value-text">{{ tr('value1_text') }}</div>
-        <div class="value-result">{{ tr('value1_result') }}</div>
-      </div>
-      <div class="value-item reveal reveal-2">
-        <div class="value-num">{{ tr('value2_num') }}</div>
-        <div class="value-title">{{ tr('value2_title')|safe }}</div>
-        <div class="value-text">{{ tr('value2_text') }}</div>
-        <div class="value-result">{{ tr('value2_result') }}</div>
-      </div>
-      <div class="value-item reveal reveal-1">
-        <div class="value-num">{{ tr('value3_num') }}</div>
-        <div class="value-title">{{ tr('value3_title')|safe }}</div>
-        <div class="value-text">{{ tr('value3_text') }}</div>
-        <div class="value-result">{{ tr('value3_result') }}</div>
-      </div>
-      <div class="value-item reveal reveal-2">
-        <div class="value-num">{{ tr('value4_num') }}</div>
-        <div class="value-title">{{ tr('value4_title')|safe }}</div>
-        <div class="value-text">{{ tr('value4_text') }}</div>
-        <div class="value-result">{{ tr('value4_result') }}</div>
-      </div>
+    <div class="section-label reveal">{{ tr('svc_label') }}</div>
+    <h2 class="section-title reveal" style="max-width: 760px;">{{ tr('svc_title')|safe }}</h2>
+    <p class="section-sub reveal">{{ tr('svc_sub') }}</p>
+    {% set etapes = [('1', 'loupe', ['svc1a', 'svc1b', 'svc1c', 'svc1d']),
+                     ('2', 'dossiers', ['svc2a', 'svc2b', 'svc2c', 'svc2d']),
+                     ('3', 'coche', ['svc3a', 'svc3b', 'svc3c', 'svc3d']),
+                     ('4', 'trophee', ['svc4a', 'svc4b', 'svc4c'])] %}
+    <div class="svc-grid">
+      {% for n, icone, services in etapes %}
+      <article class="svc-etape reveal reveal-{{ n }}">
+        <div class="svc-tete">
+          <span class="svc-ico">{{ ico(icone, 24)|safe }}</span>
+          <span class="svc-num" dir="ltr">{{ n }} / 4</span>
+        </div>
+        <h3 class="svc-titre">{{ tr('svc' ~ n ~ '_t') }}</h3>
+        <p class="svc-but">{{ tr('svc' ~ n ~ '_but') }}</p>
+        <ul class="svc-liste">
+          {% for k in services %}
+          <li><b>{{ tr(k ~ '_t') }}</b><span>{{ tr(k ~ '_d_wa') if (k == 'svc1d' and cfg.WA_ENABLED) else tr(k ~ '_d') }}</span></li>
+          {% endfor %}
+        </ul>
+      </article>
+      {% endfor %}
     </div>
   </div>
 </section>
@@ -666,6 +613,10 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
       <div class="faq-acc-item reveal reveal-4">
         <button class="faq-acc-q" type="button">{{ tr('pr_faq4_q') }}<span class="faq-acc-icon">+</span></button>
         <div class="faq-acc-a"><div class="faq-acc-a-inner">{{ tr('pr_faq4_a') }}</div></div>
+      </div>
+      <div class="faq-acc-item reveal reveal-4">
+        <button class="faq-acc-q" type="button">{{ tr('faq5_q') }}<span class="faq-acc-icon">+</span></button>
+        <div class="faq-acc-a"><div class="faq-acc-a-inner">{{ tr('faq5_a') }}</div></div>
       </div>
     </div>
   </div>

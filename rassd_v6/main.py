@@ -2926,6 +2926,10 @@ async def register_post(req: Request,
     elif not telephone_marocain(phone): err = tr_("err_phone_invalide", lang)
     elif not societe_valide(company): err = tr_("err_company_requis", lang)
     elif not clean_secteurs(secteurs_sel): err = tr_("err_secteur_requis", lang)
+    # Trois secteurs au plus: le formulaire bloque la quatrième case, mais
+    # une requête envoyée à la main ne passe pas par lui.
+    elif len(clean_secteurs(secteurs_sel)) > cfg.MAX_SECTEURS:
+        err = tr_("err_secteurs_max", lang, n=cfg.MAX_SECTEURS)
     else:
         ok, msg = validate_password(pw, lang)
         if not ok: err = msg
