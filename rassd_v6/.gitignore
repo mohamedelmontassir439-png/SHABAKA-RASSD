@@ -70,3 +70,8 @@ coverage.xml
 dist/
 build/
 *.egg-info/
+
+# Relais local: configuration (jeton) et données du poste, jamais publiées
+relais/config.json
+relais/attente/
+relais/*.log*

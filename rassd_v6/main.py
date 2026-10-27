@@ -256,6 +256,42 @@ def _record_run(source: str, status: str, found: int = 0, saved: int = 0,
     except Exception as e:
         logger.error(f"[scraper_runs] {e}")
 
+# ── Relais local ─────────────────────────────────────────────────────────
+# Depuis le 20/10/2026 le portail des marchés publics refuse toute connexion
+# venue de l'étranger, serveur compris. Un poste au Maroc collecte à sa place
+# (relais/relais_portail.py) et dépose ici ce qu'il trouve. Le serveur
+# enregistre et alerte comme s'il avait collecté lui-même.
+MESSAGE_RELAIS = "relais local"
+RELAIS_DELAI_MIN = 45   # au-delà sans dépôt, le serveur reprend la main
+
+
+class _RelaisActif(Exception):
+    """Le relais livre: le serveur ne tente pas le portail ce cycle-ci."""
+
+
+def _jeton_relais() -> str:
+    return make_token("relais-portail", cfg.ADMIN_PASS)
+
+
+def _relais_ok(req: Request) -> bool:
+    import hmac
+    return hmac.compare_digest(req.headers.get("X-Relais-Jeton", ""), _jeton_relais())
+
+
+def _relais_actif() -> str:
+    """Date du dernier dépôt du relais s'il est récent, sinon ""."""
+    try:
+        db = get_db()
+        d = db.execute("""SELECT MAX(started_at) FROM scraper_runs
+                          WHERE source IN ('marchespublics','marchespublics-ao') AND message=?""",
+                       (MESSAGE_RELAIS,)).fetchone()[0] or ""
+        db.close()
+    except Exception:
+        return ""
+    limite = (datetime.now() - timedelta(minutes=RELAIS_DELAI_MIN)).isoformat()
+    return d if d >= limite else ""
+
+
 async def do_scrape():
     if State.running: return
     State.running = True
@@ -272,7 +308,13 @@ async def do_scrape():
         State.log(f"  {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
         State.log("═" * 48)
         _t = datetime.now()
+        relais_actif = _relais_actif()
+        if relais_actif:
+            State.log("  Portail: collecte assurée par le relais local "
+                      f"(dernier dépôt {relais_actif[:16]}) — le serveur ne s'y connecte pas")
         try:
+            if relais_actif:
+                raise _RelaisActif()
             from app.services.scraper import run
             db    = get_db()
             known = {r[0] for r in db.execute("SELECT id FROM tenders").fetchall()}
@@ -283,6 +325,8 @@ async def do_scrape():
             State.saved += saved
             State.log(f"✅ marchespublics.gov.ma: {saved} nouveaux")
             _record_run("marchespublics", "SUCCESS", len(results), saved, started=_t)
+        except _RelaisActif:
+            pass
         except Exception as e:
             State.log(f"❌ marchespublics: {e}")
             logger.error(f"[scraper] {e}", exc_info=True)
@@ -293,6 +337,8 @@ async def do_scrape():
         # marchés d'un montant significatif, avec leur estimation en dirhams.
         _t = datetime.now()
         try:
+            if relais_actif:
+                raise _RelaisActif()
             State.log("─" * 48)
             State.log("  Appels d'offres — marchespublics.gov.ma")
             from app.services.ao_scraper import run as ao_run
@@ -319,6 +365,8 @@ async def do_scrape():
             State.saved += saved_ao
             State.log(f"✅ Appels d'offres: {saved_ao} nouveaux")
             _record_run("marchespublics-ao", "SUCCESS", len(ao_results), saved_ao, started=_t)
+        except _RelaisActif:
+            pass
         except Exception as e:
             State.log(f"❌ Appels d'offres: {e}")
             logger.error(f"[ao_scraper] {e}", exc_info=True)
@@ -4731,6 +4779,84 @@ async def admin_import_archive(req: Request, pages: int = 40):
     enregistres = _save_tenders(marches, [])
     logger.info(f"[import-archive] {enregistres} marché(s) importé(s) sur {len(marches)} trouvés")
     return JSONResponse({"ok": True, "trouves": len(marches), "enregistres": enregistres})
+
+
+@app.get("/api/relais/etat")
+async def relais_etat(req: Request):
+    """Ce que le relais doit savoir pour reprendre où il s'est arrêté.
+
+    Le plus haut bon de commande connu et ceux qui le précèdent de près —
+    c'est de là que le relais repart, si bien qu'une coupure de courant ou
+    de connexion ne fait rien perdre; les appels d'offres déjà en base; et
+    le nombre de pages à relire, porté à 40 après une interruption.
+    """
+    if not _relais_ok(req):
+        return JSONResponse({"ok": False}, 401)
+    from app.services.scraper import RATTRAPAGE_MAX
+    db = get_db()
+    bdc = [int(r[0][4:]) for r in db.execute("SELECT id FROM tenders WHERE id LIKE 'bdc_%'")
+           if r[0][4:].isdigit()]
+    ao = [r[0] for r in db.execute("SELECT id FROM tenders WHERE id LIKE 'ao_%'")]
+    dernier_ao = db.execute("""SELECT MAX(started_at) FROM scraper_runs
+                               WHERE source='marchespublics-ao' AND status='SUCCESS'""").fetchone()[0] or ""
+    db.close()
+    plus_haut = max(bdc) if bdc else 0
+    pages = 40 if (not dernier_ao or
+                   dernier_ao < (datetime.now() - timedelta(hours=3)).isoformat()) else 3
+    return JSONResponse({"ok": True, "bdc_max": plus_haut,
+                         "bdc_connus": [n for n in bdc if n >= plus_haut - RATTRAPAGE_MAX - 100],
+                         "ao_connus": ao, "pages_ao": pages,
+                         "dernier_ao": dernier_ao[:16]})
+
+
+@app.post("/api/relais/depot")
+async def relais_depot(req: Request):
+    """Reçoit une collecte du relais, l'enregistre et alerte les membres."""
+    if not _relais_ok(req):
+        return JSONResponse({"ok": False}, 401)
+    try:
+        corps = await req.json()
+    except Exception:
+        return JSONResponse({"ok": False, "erreur": "JSON illisible"}, 400)
+    source = corps.get("source")
+    prefixe = {"marchespublics": "bdc_", "marchespublics-ao": "ao_"}.get(source)
+    if not prefixe:
+        return JSONResponse({"ok": False, "erreur": "source inconnue"}, 400)
+    marches = []
+    for t in corps.get("marches") or []:
+        if not isinstance(t, dict):
+            continue
+        tid, objet, url = str(t.get("id", "")), str(t.get("objet", "")), str(t.get("url", ""))
+        if not (tid.startswith(prefixe) and objet and url.startswith("https://www.marchespublics.gov.ma")):
+            continue
+        t = {k: (v if isinstance(v, (str, int, float)) else "") for k, v in t.items()}
+        t.update(source="marchespublics", statut="actif",
+                 scraped_at=str(t.get("scraped_at") or datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                 acheteur=str(t.get("acheteur", "")))
+        marches.append(t)
+    try:
+        debut = datetime.fromisoformat(str(corps.get("debut", "")))
+    except ValueError:
+        debut = datetime.now()
+    loop = asyncio.get_event_loop()
+    if source == "marchespublics-ao" and marches:
+        await loop.run_in_executor(None, lambda: classer_ia(marches))
+    nouveaux = []
+    enregistres = _save_tenders(marches, nouveaux)
+    _record_run(source, "SUCCESS", len(marches), enregistres, started=debut,
+                errors=int(corps.get("erreurs") or 0), message=MESSAGE_RELAIS)
+    State.log(f"✅ Relais local · {source}: {enregistres} nouveau(x) sur {len(marches)}")
+    if nouveaux:
+        await loop.run_in_executor(None, lambda: dispatch_notifications(nouveaux))
+    return JSONResponse({"ok": True, "recus": len(marches), "enregistres": enregistres})
+
+
+@app.get("/admin/relais/jeton")
+async def admin_relais_jeton(req: Request):
+    """Le jeton à recopier dans la configuration du relais."""
+    if not _is_admin(req):
+        return JSONResponse({"ok": False}, 401)
+    return JSONResponse({"ok": True, "jeton": _jeton_relais()})
 
 
 @app.get("/admin/reparer-fiches")
