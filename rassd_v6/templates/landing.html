@@ -57,6 +57,8 @@
 /* Les méridiens: le signe de la marque, repris en très grand et très pâle.
    Décoratif au sens strict — aucun texte, aucun rôle, et le lecteur d'écran
    passe à côté. */
+/* L'équipe en fond, éteinte sous la teinte de la marque, comme l'appel final. */
+.hero-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 35%; opacity: .2; mix-blend-mode: luminosity; pointer-events: none; }
 .hero-meridiens { position: absolute; inset: 0; width: 100%; height: 100%;
   pointer-events: none; z-index: 0; opacity: .5; }
 .hero-meridiens ellipse { fill: none; stroke: #ff8552; stroke-opacity: .22;
@@ -355,6 +357,7 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
      charger, rien qui s'arrête au milieu de la section. Les méridiens et
      l'anneau sont décoratifs; la marque, elle, est le médaillon de la
      plateforme, le même tracé qu'en en-tête de document. #}
+  <img class="hero-photo" src="/static/img/accueil/equipe.webp" alt="" width="1920" height="1080" fetchpriority="high" decoding="async">
   <svg class="hero-meridiens" viewBox="0 0 1200 600" preserveAspectRatio="none" aria-hidden="true">
     <ellipse cx="600" cy="300" rx="760" ry="250"/>
     <ellipse cx="600" cy="300" rx="760" ry="430"/>

@@ -156,7 +156,7 @@ class TestRenduReel:
 class TestPhotosAccueil:
     def test_les_photos_partent_en_webp(self, client):
         page = client.get("/").text
-        for nom in ("trouver", "comprendre", "deposer", "developper", "partenariat", "essai", "rencontre"):
+        for nom in ("equipe", "trouver", "comprendre", "deposer", "developper", "partenariat", "essai", "rencontre"):
             assert f"/static/img/accueil/{nom}.webp" in page
         r = client.get("/static/img/accueil/essai.webp")
         assert r.status_code == 200 and r.headers["content-type"] == "image/webp"
