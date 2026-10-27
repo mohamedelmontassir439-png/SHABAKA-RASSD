@@ -11,7 +11,7 @@
 {# L'icône suit la marque: écrite en dur, elle est restée à l'ancienne
      étoile pendant que tout le reste changeait. #}
 <link rel="icon" type="image/svg+xml" href="{{ favicon() }}">
-<meta name="theme-color" content="#f6f5f0">
+<meta name="theme-color" content="#f8f1e1">
 <meta name="csrf-token" content="{{ csrf_token }}">
 <link rel="manifest" href="/manifest.json">
 <link rel="apple-touch-icon" href="/icon-192.svg">
@@ -37,43 +37,43 @@
   /* Trois rayons: le cadre, la pastille, la pilule. */
   --r1: 6px; --r2: 10px; --r3: 14px; --rp: 999px;
 
-  --bg:      #f6f5f0;
+  --bg:      #f8f1e1;
   --surface: #ffffff;
-  --surface2:#ecebe3;
-  --ink:     #0f5c47;
-  --ink2:    #1b7a5e;
-  --ink3:    #0b231c;
-  --gold:    #b8863b;
-  --gold2:   #d4a65a;
-  --goldd:   #8e6424;
-  --golda:   rgba(184,134,59,.15);
-  --goldb:   rgba(184,134,59,.08);
-  --terra:   #8e6424;
-  --terraa:  rgba(142,100,36,.13);
-  --indigo:  #0f5c47;
-  --indigoa: rgba(15,92,71,.10);
-  --purple:  #0a4535;
-  --purplea: rgba(10,69,53,.12);
-  --text1:   #14201b;
-  --text2:   #33413a;
-  --text3:   #68756e;
-  --text4:   #a3aca6;
-  --line:    #e2e1d8;
-  --line2:   #cdcbbd;
-  --grn:     #1f8a57;
-  --grna:    rgba(31,138,87,.12);
-  --red:     #c2412d;
-  --reda:    rgba(194,65,45,.11);
+  --surface2:#f1e6cf;
+  --ink:     #f2662d;
+  --ink2:    #ff8552;
+  --ink3:    #1e1611;
+  --gold:    #f2662d;
+  --gold2:   #ff8552;
+  --goldd:   #c94e1f;
+  --golda:   rgba(242,102,45,.15);
+  --goldb:   rgba(242,102,45,.08);
+  --terra:   #c94e1f;
+  --terraa:  rgba(201,78,31,.13);
+  --indigo:  #f2662d;
+  --indigoa: rgba(242,102,45,.14);
+  --purple:  #c94e1f;
+  --purplea: rgba(201,78,31,.13);
+  --text1:   #2b211b;
+  --text2:   #4a3b32;
+  --text3:   #8a7a6a;
+  --text4:   #b7a896;
+  --line:    #e8dcc5;
+  --line2:   #d9c7a8;
+  --grn:     #2f9e5b;
+  --grna:    rgba(47,158,91,.12);
+  --red:     #d6493f;
+  --reda:    rgba(214,73,63,.12);
   --blue:    var(--indigo);
   --bluea:   var(--indigoa);
-  --grad:    linear-gradient(100deg, #d9ae66, #b8863b 55%, #8e6424);
+  --grad:    linear-gradient(100deg, #f2662d, #ff9a56 55%, #c94e1f);
   --serif:   'Libre Caslon Text', 'Amiri', Georgia, serif;
   --sans:    'Manrope', system-ui, -apple-system, sans-serif;
   --mono:    'JetBrains Mono', monospace;
   --r:  7px; --r2: 10px; --r3: 15px; --r4: 22px;
-  --sh:  0 1px 2px rgba(20,32,27,.06), 0 1px 3px rgba(20,32,27,.05);
-  --sh2: 0 14px 32px rgba(20,32,27,.10), 0 3px 10px rgba(184,134,59,.06);
-  --sh3: 0 28px 64px rgba(20,32,27,.16), 0 8px 26px rgba(184,134,59,.08);
+  --sh:  0 1px 2px rgba(43,33,27,.06), 0 1px 3px rgba(43,33,27,.05);
+  --sh2: 0 14px 32px rgba(43,33,27,.10), 0 3px 10px rgba(242,102,45,.06);
+  --sh3: 0 28px 64px rgba(43,33,27,.16), 0 8px 26px rgba(242,102,45,.08);
   --shg: 0 1px 0 rgba(255,255,255,.6) inset, 0 0 0 1px rgba(255,255,255,.3) inset;
   --zellige: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='84'%3E%3Cg fill='none' stroke='%23f2662d' stroke-opacity='.16' stroke-width='1'%3E%3Cpath d='M42 2 80 42 42 82 4 42Z'/%3E%3Cpath d='M42 18 66 42 42 66 18 42Z'/%3E%3Cpath d='M42 2V82M4 42H80'/%3E%3C/g%3E%3C/svg%3E");
   --noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='matrix' values='0 0 0 0 0.16 0 0 0 0 0.13 0 0 0 0 0.1 0 0 0 0.035 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
@@ -81,7 +81,7 @@
   --amber:  var(--gold); --amber2: var(--gold2); --amberd: var(--goldd);
   --ambera: var(--golda);--amberb: var(--goldb);
 }
-.grad-text { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 20px rgba(184,134,59,.25)); }
+.grad-text { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 20px rgba(242,102,45,.25)); }
 * , *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 body { background: var(--noise), var(--bg); background-size: 180px 180px, auto; color: var(--text2); font-family: var(--sans); font-weight: 400; font-size:var(--f4); line-height: 1.6; min-height: 100vh; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; overflow-x: hidden; }
@@ -95,8 +95,8 @@ h1,h2,h3,h4 { color: var(--text1); font-weight: 700; letter-spacing: -.02em; tex
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 20px; font-family: var(--sans); font-size:var(--f3); font-weight: 600; cursor: pointer; border: 1px solid transparent; transition: all .18s cubic-bezier(.2,.7,.3,1); white-space: nowrap; background: transparent; color: var(--text1); border-radius: var(--r2); line-height: 1.2; }
 .btn-primary { background: var(--ink); color: #fff; border-color: var(--ink); }
 .btn-primary:hover { background: var(--ink2); box-shadow: var(--sh2); transform: translateY(-1px); }
-.btn-accent { background: linear-gradient(100deg, #d9ae66, #b8863b 55%, #9c7130); color: #14100a; border-color: #9c7130; font-weight: 700; box-shadow: 0 1px 0 rgba(255,255,255,.22) inset; }
-.btn-accent:hover { box-shadow: 0 12px 28px rgba(184,134,59,.38), 0 1px 0 rgba(255,255,255,.22) inset; transform: translateY(-1px); }
+.btn-accent { background: linear-gradient(100deg, var(--indigo), var(--purple)); color: #fff; border-color: var(--purple); font-weight: 700; box-shadow: 0 1px 0 rgba(255,255,255,.22) inset; }
+.btn-accent:hover { box-shadow: 0 12px 28px rgba(242,102,45,.38), 0 1px 0 rgba(255,255,255,.22) inset; transform: translateY(-1px); }
 .btn-outline { border-color: var(--line2); color: var(--text1); background: var(--surface); }
 .btn-outline:hover { border-color: var(--ink); color: var(--ink); }
 .btn-ghost { color: var(--text3); }
@@ -134,7 +134,7 @@ html[dir="rtl"] .sel { background-position: left 14px center; padding-right: 14p
 .card-hover:hover { border-color: var(--line2); box-shadow: var(--sh2), var(--shg); transform: translateY(-3px); }
 
 .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font-size:var(--f1); font-weight: 600; white-space: nowrap; border-radius:var(--rp); }
-.badge-navy { background: var(--indigoa); color: var(--ink); border: 1px solid rgba(184,134,59,.28); }
+.badge-navy { background: var(--indigoa); color: var(--ink); border: 1px solid rgba(242,102,45,.28); }
 .badge-gold { background: var(--golda); color: var(--goldd); border: 1px solid rgba(201,144,63,.32); }
 .badge-grn  { background: var(--grna); color: var(--grn); border: 1px solid rgba(28,140,98,.25); }
 .badge-red  { background: var(--reda); color: var(--red); border: 1px solid rgba(200,67,63,.25); }
@@ -168,8 +168,8 @@ html[dir="rtl"] .sel { background-position: left 14px center; padding-right: 14p
 /* ── Decorative motifs (visual delight) ────────────────── */
 .blob { position: absolute; border-radius: 50%; filter: blur(70px); pointer-events: none; z-index: 0; }
 .blob-gold { background: radial-gradient(circle, rgba(201,144,63,.28), transparent 70%); }
-.blob-indigo { background: radial-gradient(circle, rgba(184,134,59,.24), transparent 70%); }
-.blob-purple { background: radial-gradient(circle, rgba(142,100,36,.2), transparent 70%); }
+.blob-indigo { background: radial-gradient(circle, rgba(242,102,45,.24), transparent 70%); }
+.blob-purple { background: radial-gradient(circle, rgba(201,78,31,.2), transparent 70%); }
 .reveal { opacity: 0; transform: translateY(24px); transition: opacity .7s cubic-bezier(.2,.7,.2,1), transform .7s cubic-bezier(.2,.7,.2,1); }
 .reveal.in { opacity: 1; transform: translateY(0); }
 .reveal-1 { transition-delay: .05s; } .reveal-2 { transition-delay: .12s; } .reveal-3 { transition-delay: .19s; } .reveal-4 { transition-delay: .26s; }
@@ -186,7 +186,7 @@ html[dir="rtl"] .sel { background-position: left 14px center; padding-right: 14p
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
 
 /* ── Nav ─────────────────────────────────────────────── */
-.nav { position: sticky; top: 0; z-index: 200; background: rgba(246,245,240,.86); backdrop-filter: saturate(180%) blur(14px); -webkit-backdrop-filter: saturate(180%) blur(14px); border-bottom: 1px solid var(--line); height: 68px; display: flex; align-items: center; padding: 0 32px; }
+.nav { position: sticky; top: 0; z-index: 200; background: rgba(248,241,225,.86); backdrop-filter: saturate(180%) blur(14px); -webkit-backdrop-filter: saturate(180%) blur(14px); border-bottom: 1px solid var(--line); height: 68px; display: flex; align-items: center; padding: 0 32px; }
 .nav-logo-wrap { display: flex; align-items: center; gap: 11px; margin-inline-end: 40px; flex-shrink: 0; }
 /* La marque est desormais une forme, pas deux lettres: le degrade applique
    au texte n'a plus d'objet, seul l'alignement compte. */
@@ -217,7 +217,7 @@ html[dir="rtl"] .nav-links {
    leur largeur et c'est le conteneur qui defile si la place manque. */
 .nav-link { position: relative; padding: 10px 14px; font-size:var(--f3); font-weight: 600; color: var(--text3); transition: color .15s; white-space: nowrap; border-radius: var(--r); flex-shrink: 0; }
 .nav-link:hover { color: var(--text1); background: var(--surface2); }
-.nav-link.active { color: var(--ink); background: rgba(184,134,59,.1); }
+.nav-link.active { color: var(--ink); background: rgba(242,102,45,.1); }
 /* L'identite et la deconnexion ne se compriment jamais: ce sont les deux
    seuls elements de la barre dont un membre a besoin a coup sur. */
 .nav-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
@@ -349,7 +349,7 @@ html[dir="rtl"] .section-label::before { order: 2; }
    rejoint la barre de navigation. #}
 <nav class="nav">
   <a href="/" class="nav-logo-wrap">
-    <span class="nav-logo" aria-label="Maroc Entrepreneuriat">{{ logo(42, couleur_texte="#14201b") | safe }}</span>
+    <span class="nav-logo" aria-label="Maroc Entrepreneuriat">{{ logo(42, couleur_texte="#2b211b") | safe }}</span>
   </a>
   <div class="nav-links">
     <a href="/" class="nav-link {% if request.url.path == '/' %}active{% endif %}">{{ tr('nav_home') }}</a>
@@ -396,7 +396,7 @@ html[dir="rtl"] .section-label::before { order: 2; }
       <div class="footer-grid">
         <div class="footer-brand">
           <div class="footer-brand-row">
-            <span class="footer-logo">{{ logo(40, couleur_texte="#f6f5f0") | safe }}</span>
+            <span class="footer-logo">{{ logo(40, couleur_texte="#f8f1e1") | safe }}</span>
           </div>
           <div class="footer-desc">{{ tr('footer_desc') }}</div>
           <div class="footer-contact">

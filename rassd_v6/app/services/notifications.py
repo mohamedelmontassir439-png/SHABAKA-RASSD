@@ -177,19 +177,19 @@ def build_email(t: dict, nom: str = "") -> str:
 *{{box-sizing:border-box;margin:0;padding:0}}
 body{{background:#f6f7fb;font-family:Arial,Helvetica,sans-serif;padding:20px}}
 .wrap{{max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e3e7ef;border-radius:12px;overflow:hidden}}
-.hdr{{padding:24px 32px;background:#0b231c;border-bottom:1px solid #e3e7ef}}
+.hdr{{padding:24px 32px;background:#1e1611;border-bottom:1px solid #e3e7ef}}
 .logo{{font-size:20px;font-weight:800;color:#ffffff}}
-.logo em{{font-style:normal;color:#b8863b}}
+.logo em{{font-style:normal;color:#f2662d}}
 .body{{padding:32px}}
 .title{{font-size:17px;font-weight:700;color:#101828;line-height:1.5;margin-bottom:20px}}
 table{{width:100%;border-collapse:collapse;margin-bottom:24px}}
 td{{padding:10px 0;border-bottom:1px solid #e3e7ef;vertical-align:top;font-size:13px}}
 .lbl{{color:#98a1b3;letter-spacing:.5px;text-transform:uppercase;width:110px;font-size:11px}}
-.val{{color:#3b4457}}.val-g{{color:#8e6424;font-weight:700}}.val-r{{color:#d64545;font-weight:700}}
-.cta{{display:inline-block;margin:6px 6px 0 0;padding:12px 22px;background:#b8863b;color:#0b231c;border-radius:8px;font-weight:700;text-decoration:none;font-size:13px}}
-.cta2{{display:inline-block;margin:6px 6px 0 0;padding:12px 22px;border:1px solid #0b231c;color:#0b231c;border-radius:8px;font-weight:700;text-decoration:none;font-size:13px}}
+.val{{color:#3b4457}}.val-g{{color:#c94e1f;font-weight:700}}.val-r{{color:#d64545;font-weight:700}}
+.cta{{display:inline-block;margin:6px 6px 0 0;padding:12px 22px;background:#f2662d;color:#1e1611;border-radius:8px;font-weight:700;text-decoration:none;font-size:13px}}
+.cta2{{display:inline-block;margin:6px 6px 0 0;padding:12px 22px;border:1px solid #1e1611;color:#1e1611;border-radius:8px;font-weight:700;text-decoration:none;font-size:13px}}
 .ftr{{padding:20px 32px;background:#f6f7fb;border-top:1px solid #e3e7ef;text-align:center}}
-.dl-badge{{display:inline-block;padding:6px 14px;background:rgba(184,134,59,.12);border:1px solid rgba(184,134,59,.3);border-radius:99px;font-size:12px;color:#8e6424;margin-bottom:20px;margin-inline-end:8px}}
+.dl-badge{{display:inline-block;padding:6px 14px;background:rgba(242,102,45,.12);border:1px solid rgba(242,102,45,.3);border-radius:99px;font-size:12px;color:#c94e1f;margin-bottom:20px;margin-inline-end:8px}}
 .priv-badge{{display:inline-block;padding:6px 14px;background:rgba(59,68,87,.08);border:1px solid rgba(59,68,87,.25);border-radius:99px;font-size:12px;color:#3b4457;font-weight:700;margin-bottom:20px}}
 </style></head>
 <body><div class="wrap">
@@ -219,7 +219,7 @@ def build_digest_email(tenders: list, nom: str = "") -> str:
 <tr><td style="padding:14px 0;border-bottom:1px solid #e3e7ef;">
   <div style="font-size:14px;font-weight:700;color:#101828;margin-bottom:4px">{"🔒 Privé · " if t.get("type_offre")=="Privé" else ""}{t["objet"][:140]}</div>
   <div style="font-size:12px;color:#6b7488">{acheteur_lisible(t.get("acheteur",""))[:80]} · {get_label(t.get("secteur",""))} · ⏰ {t.get("date_limite","—")}</div>
-  <a href="{site}/tenders/{t["id"]}" style="font-size:12px;color:#8e6424;font-weight:700;text-decoration:none">Voir le {libelle_type(t)} ↗</a>
+  <a href="{site}/tenders/{t["id"]}" style="font-size:12px;color:#c94e1f;font-weight:700;text-decoration:none">Voir le {libelle_type(t)} ↗</a>
 </td></tr>''' for t in tenders)
     return f"""<!DOCTYPE html>
 <html lang="fr"><head><meta charset="UTF-8">
@@ -227,9 +227,9 @@ def build_digest_email(tenders: list, nom: str = "") -> str:
 *{{box-sizing:border-box;margin:0;padding:0}}
 body{{background:#f6f7fb;font-family:Arial,Helvetica,sans-serif;padding:20px}}
 .wrap{{max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e3e7ef;border-radius:12px;overflow:hidden}}
-.hdr{{padding:24px 32px;background:#0b231c;border-bottom:1px solid #e3e7ef}}
+.hdr{{padding:24px 32px;background:#1e1611;border-bottom:1px solid #e3e7ef}}
 .logo{{font-size:20px;font-weight:800;color:#ffffff}}
-.logo em{{font-style:normal;color:#b8863b}}
+.logo em{{font-style:normal;color:#f2662d}}
 .body{{padding:32px}}
 table{{width:100%;border-collapse:collapse}}
 .ftr{{padding:20px 32px;background:#f6f7fb;border-top:1px solid #e3e7ef;text-align:center}}
@@ -718,10 +718,10 @@ def send_renewal_reminders(now=None) -> int:
                          f"d'échéance du {fin.strftime('%d/%m/%Y')}.")
             html = f"""
             <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:auto">
-              <h2 style="color:#0b231c;font-size:20px;margin:0 0 12px">{titre}</h2>
+              <h2 style="color:#1e1611;font-size:20px;margin:0 0 12px">{titre}</h2>
               <p style="color:#4a4a4a;font-size:15px;line-height:1.7;margin:0 0 20px">{corps}</p>
               <a href="{cfg.SITE_URL}/mon-abonnement" style="display:inline-block;padding:12px 24px;
-                 background:#b8863b;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">
+                 background:#f2662d;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">
                  Renouveler mon abonnement</a>
               <p style="color:#98a1b3;font-size:11px;margin-top:24px">
                 MAROC ENTREPRENEURIAT · <a href="{cfg.SITE_URL}/settings" style="color:#6b7488">Gérer mes alertes</a></p>
@@ -863,9 +863,9 @@ def _enveloppe_email(titre: str, texte: str, lien: str, libelle_bouton: str) -> 
     return f"""
     <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:auto">
       {logo_email(170)}
-      <h2 style="color:#0b231c;font-size:20px;margin:0 0 12px">{titre}</h2>
+      <h2 style="color:#1e1611;font-size:20px;margin:0 0 12px">{titre}</h2>
       <p style="color:#4a4a4a;font-size:15px;line-height:1.7;margin:0 0 20px">{texte}</p>
-      <a href="{lien}" style="display:inline-block;padding:12px 24px;background:#b8863b;
+      <a href="{lien}" style="display:inline-block;padding:12px 24px;background:#f2662d;
          color:#fff;border-radius:8px;text-decoration:none;font-weight:600">{libelle_bouton}</a>
       <p style="color:#98a1b3;font-size:11px;margin-top:24px">
         MAROC ENTREPRENEURIAT · <a href="{cfg.SITE_URL}" style="color:#6b7488">marocentrepreneuriat.com</a>

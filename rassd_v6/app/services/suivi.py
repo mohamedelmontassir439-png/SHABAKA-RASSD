@@ -190,19 +190,19 @@ def envoyer_rappels(aujourdhui: date = None) -> int:
     for mid, liste in par_membre.items():
         s0 = liste[0]["suivi"]
         lignes = "".join(
-            f'<div style="border:1px solid #e2e1d8;border-radius:10px;padding:12px 14px;margin-bottom:8px;'
-            f'background:#fff"><div style="font-weight:700;color:#8e6424">{LIBELLES[d["echeance"]["cle"]]} — '
+            f'<div style="border:1px solid #e8dcc5;border-radius:10px;padding:12px 14px;margin-bottom:8px;'
+            f'background:#fff"><div style="font-weight:700;color:#c94e1f">{LIBELLES[d["echeance"]["cle"]]} — '
             f'{d["echeance"]["jour"].strftime("%d/%m/%Y")}'
             f'{" (aujourd&#39;hui)" if d["echeance"]["reste"] == 0 else ""}</div>'
-            f'<div style="color:#14201b;margin-top:4px">{(d["suivi"]["objet"] or "")[:160]}</div></div>'
+            f'<div style="color:#2b211b;margin-top:4px">{(d["suivi"]["objet"] or "")[:160]}</div></div>'
             for d in liste)
         sujet = f"{LIBELLES[liste[0]['echeance']['cle']]} : {liste[0]['echeance']['jour'].strftime('%d/%m')}" + (
             f" (+{len(liste) - 1})" if len(liste) > 1 else "")
         corps = (f'<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:22px;'
-                 f'background:#f6f5f0"><p style="font-size:15px;color:#33413a">Bonjour {s0["membre"] or ""}, '
+                 f'background:#f8f1e1"><p style="font-size:15px;color:#4a3b32">Bonjour {s0["membre"] or ""}, '
                  f'voici les échéances des offres que vous préparez :</p>{lignes}'
                  f'<p style="text-align:center;margin:20px 0"><a href="{cfg.SITE_URL}/suivi" '
-                 f'style="background:#b8863b;color:#fff;padding:12px 22px;border-radius:9px;'
+                 f'style="background:#f2662d;color:#fff;padding:12px 22px;border-radius:9px;'
                  f'text-decoration:none;font-weight:700">Mon suivi des offres</a></p></div>')
         if email_send(s0["email"], sujet, corps):
             envoyes += 1

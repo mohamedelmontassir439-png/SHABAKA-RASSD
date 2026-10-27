@@ -139,7 +139,7 @@
     ctx.beginPath();
     ctx.moveTo(bx + r, by); ctx.arcTo(bx + l, by, bx + l, by + h, r); ctx.arcTo(bx + l, by + h, bx, by + h, r);
     ctx.arcTo(bx, by + h, bx, by, r); ctx.arcTo(bx, by, bx + l, by, r); ctx.closePath();
-    ctx.fillStyle = "rgba(8,26,21,.78)"; ctx.fill();
+    ctx.fillStyle = "rgba(24,14,9,.78)"; ctx.fill();
     ctx.strokeStyle = rgba(ORANGE, 0.7); ctx.stroke();
     ctx.fillStyle = rgba(ORANGE, 1);
     var px = rtl ? bx + l - pad - 3 : bx + pad + 3;
@@ -161,7 +161,7 @@
 
     // Un voile sombre sous le territoire, pour qu'il se détache de la photo.
     traceContour();
-    ctx.fillStyle = "rgba(6,20,16,.42)"; ctx.fill();
+    ctx.fillStyle = "rgba(18,10,6,.42)"; ctx.fill();
 
     // Le radar ne balaie que le territoire: ses cercles et sa traîne sont
     // découpés au contour, sans quoi le bord de la toile se voyait en arêtes droites.

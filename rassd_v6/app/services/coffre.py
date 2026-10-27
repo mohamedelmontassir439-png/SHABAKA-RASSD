@@ -303,7 +303,7 @@ def envoyer_rappels(aujourdhui: date = None) -> int:
         sujet = f"{libelle} : {quand}"
         corps = (
             f'<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;padding:22px;'
-            f'background:#f6f5f0;color:#14201b">'
+            f'background:#f8f1e1;color:#2b211b">'
             f'<p style="font-size:15px">Bonjour {p.get("nom") or ""},</p>'
             f'<p style="font-size:15px;line-height:1.6">Votre <b>{libelle}</b> '
             f'{"expire le " + p["expire_le"] if p["reste"] >= 0 else "a expiré le " + p["expire_le"]}. '
@@ -311,7 +311,7 @@ def envoyer_rappels(aujourdhui: date = None) -> int:
             f'<p style="font-size:15px;line-height:1.6">Demandez la nouvelle dès maintenant, puis '
             f'déposez-la dans votre coffre : les marchés que vous suivez seront revérifiés.</p>'
             f'<p style="text-align:center;margin:22px 0"><a href="{cfg.SITE_URL}/coffre" '
-            f'style="background:#b8863b;color:#fff;padding:12px 22px;border-radius:9px;'
+            f'style="background:#f2662d;color:#fff;padding:12px 22px;border-radius:9px;'
             f'text-decoration:none;font-weight:700">Ouvrir mon coffre</a></p></div>')
         if email_send(p["email"], sujet, corps):
             marquer_rappel(p["id"], p["seuil"])

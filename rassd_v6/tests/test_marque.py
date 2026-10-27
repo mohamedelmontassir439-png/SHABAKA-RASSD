@@ -175,7 +175,7 @@ class TestCouleurs:
         """Deux laitons proches font jurer la marque contre ses boutons:
         celui du signe est celui des pages (--gold)."""
         import os
-        assert marque.OR == "#b8863b"
+        assert marque.OR == "#f2662d"
         racine = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         for f in ("base.html", "base_public.html"):
             page = open(os.path.join(racine, "templates", f), encoding="utf-8").read()

@@ -265,13 +265,13 @@ let sse = null;
 async function launch() {
   const btn = document.getElementById('btn'), trm = document.getElementById('trm'), st = document.getElementById('st');
   btn.disabled = true; btn.textContent = '⏳ En cours…';
-  st.textContent = '● EN COURS'; st.style.color = '#b8863b';
+  st.textContent = '● EN COURS'; st.style.color = '#f2662d';
   trm.innerHTML = '<div class="log-hdr">═══ Lancement de la veille ═══</div>';
   const r = await fetch('/admin/scrape', { credentials: 'include' });
   const d = await r.json();
   if (!d.ok) {
     trm.innerHTML += `<div class="log-err">❌ ${d.msg || 'Erreur: non autorisé'}</div>`;
-    trm.innerHTML += `<div class="log-n">→ <a href="/admin/scrape" style="color:#b8863b" target="_blank">Cliquez ici pour lancer manuellement</a></div>`;
+    trm.innerHTML += `<div class="log-n">→ <a href="/admin/scrape" style="color:#f2662d" target="_blank">Cliquez ici pour lancer manuellement</a></div>`;
     btn.disabled = false; btn.textContent = '▶ Actualiser'; return;
   }
   if (sse) sse.close();

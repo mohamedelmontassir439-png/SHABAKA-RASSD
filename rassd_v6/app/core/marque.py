@@ -23,13 +23,13 @@ rayons dans le rapport exact de deux carrés croisés, cos 45° / cos 22,5°.
 import math
 
 # Teintes de la plateforme, identiques à celles des pages (--gold, --ink).
-OR = "#b8863b"          # laiton — l'accent, les filets, le métal du signe
-OR_CLAIR = "#e8c47f"    # laiton clair — les reflets
-TERRE = "#8e6424"       # laiton sombre — les ombres du métal
-EMERAUDE = "#0f5c47"    # émeraude — la pierre du signe, les actions
-ENCRE = "#0a1f19"       # encre verte, presque noire
-BRUN = "#0f2e25"        # fond profond du médaillon
-CREME = "#f6f3ea"
+OR = "#f2662d"          # orange vif — l'accent, les filets, le métal du signe
+OR_CLAIR = "#ff8c4a"    # orange clair — les reflets
+TERRE = "#c94e1f"       # orange sombre — les ombres du métal
+EMERAUDE = "#3a1e12"    # brun profond — la pierre du signe
+ENCRE = "#17120f"       # presque noir, chaud
+BRUN = "#3a1e12"        # brun profond du médaillon
+CREME = "#f6efe6"
 
 
 def _etoile_marocaine(cx: float = 50, cy: float = 50, rayon: float = 44) -> str:
@@ -79,7 +79,7 @@ def _signe(cle: str, petit: bool = False) -> str:
     return (
         f'<defs>'
         f'<radialGradient id="em{cle}" cx="50%" cy="34%" r="72%">'
-        f'<stop offset="0%" stop-color="#1f8466"/><stop offset="100%" stop-color="#0a3a2d"/>'
+        f'<stop offset="0%" stop-color="#c4702f"/><stop offset="100%" stop-color="#3a1e12"/>'
         f'</radialGradient>'
         f'<linearGradient id="la{cle}" x1="0" y1="0" x2="0" y2="1">'
         f'<stop offset="0%" stop-color="{OR_CLAIR}"/><stop offset="55%" stop-color="{OR}"/>'
@@ -95,7 +95,7 @@ def _signe(cle: str, petit: bool = False) -> str:
         + ("" if petit else
            # L'étoile du drapeau au seuil de la porte, gravée dans le métal.
            f'<g transform="translate(45.4,51.6) scale(.092)">'
-           f'<polygon points="{_etoile_marocaine()}" fill="none" stroke="#0a3a2d" '
+           f'<polygon points="{_etoile_marocaine()}" fill="none" stroke="#3a1e12" '
            f'stroke-width="9"/></g>')
     )
 
@@ -149,7 +149,7 @@ def medaillon(taille: int = 160, fond: str = BRUN) -> str:
  style="flex:none">
 <defs>
   <radialGradient id="mfond" cx="50%" cy="38%" r="70%">
-    <stop offset="0%" stop-color="#14402f"/><stop offset="100%" stop-color="{ENCRE}"/>
+    <stop offset="0%" stop-color="#4a2214"/><stop offset="100%" stop-color="{ENCRE}"/>
   </radialGradient>
 </defs>
 <circle cx="150" cy="150" r="146" fill="url(#mfond)"/>
@@ -218,7 +218,7 @@ def entete_document(hauteur: int = 52) -> str:
         f'<div style="display:flex;flex-direction:column;gap:7px">'
         f'{logo(hauteur, couleur_texte=ENCRE, baseline=True)}'
         f'<div style="font-family:Arial,Helvetica,sans-serif;'
-        f'font-size:{hauteur * 0.185:.1f}px;color:#4a5650;line-height:1.5">'
+        f'font-size:{hauteur * 0.185:.1f}px;color:#5a4a3e;line-height:1.5">'
         f'Veille des marchés publics, semi-publics et privés au Maroc</div>'
         f'</div>'
     )

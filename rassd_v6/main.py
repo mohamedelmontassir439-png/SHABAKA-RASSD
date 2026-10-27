@@ -1033,10 +1033,10 @@ def _server_error_html() -> str:
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#f6f7fb;color:#3b4457;font-family:'Manrope',system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px}
-.num{font-weight:800;font-size:96px;color:#b8863b;line-height:.85}
-h1{font-weight:800;font-size:28px;color:#14201b;margin:16px 0}
-p{font-size:16px;color:#68756e;margin-bottom:32px}
-a{display:inline-flex;align-items:center;justify-content:center;padding:13px 26px;background:#0b231c;color:#fff;font-weight:600;font-size:14px;border-radius:10px;text-decoration:none}
+.num{font-weight:800;font-size:96px;color:#f2662d;line-height:.85}
+h1{font-weight:800;font-size:28px;color:#2b211b;margin:16px 0}
+p{font-size:16px;color:#8a7a6a;margin-bottom:32px}
+a{display:inline-flex;align-items:center;justify-content:center;padding:13px 26px;background:#1e1611;color:#fff;font-weight:600;font-size:14px;border-radius:10px;text-decoration:none}
 </style></head><body><div>
 <div class="num">500</div>
 <h1>Une erreur est survenue</h1>
@@ -2682,9 +2682,9 @@ async def subtraitance_offre(req: Request, pid: str):
         loop.run_in_executor(None, lambda: email_send(
             auteur["email"], f"Nouvelle offre pour « {post['titre'][:50]} »",
             f"""<div style="font-family:Arial,sans-serif;max-width:560px;margin:auto">
-              <h2 style="font-size:19px;color:#0b231c">Vous avez reçu une offre</h2>
+              <h2 style="font-size:19px;color:#1e1611">Vous avez reçu une offre</h2>
               <p style="font-size:15px;color:#4a4a4a">{(m0.get('company') or m0.get('nom') or '')} a répondu à votre annonce.</p>
-              <a href="{lien}" style="display:inline-block;padding:12px 24px;background:#b8863b;
+              <a href="{lien}" style="display:inline-block;padding:12px 24px;background:#f2662d;
                  color:#fff;border-radius:8px;text-decoration:none;font-weight:600">Comparer les offres</a>
             </div>"""))
     return RedirectResponse(f"/sous-traitance/{pid}?offre=ok", 302)
@@ -3059,7 +3059,7 @@ def envoyer_lien_verification(email: str, token: str, lang: str = "fr"):
             email, tr_("email_verif_subject", lang),
             f"""<h2>{tr_("email_verif_h2", lang)}</h2>
             <p>{tr_("email_verif_p", lang)}</p>
-            <a href="{lien}" style="display:inline-block;padding:12px 24px;background:#b8863b;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">
+            <a href="{lien}" style="display:inline-block;padding:12px 24px;background:#f2662d;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">
               {tr_("email_verif_btn", lang)}
             </a>
             <p style="color:#666;font-size:12px;margin-top:16px">{tr_("email_verif_expiry", lang)}</p>"""))
@@ -5422,7 +5422,7 @@ async def forgot_post(req: Request, email: str = Form(""), csrf_token: str = For
                 email, tr_("email_reset_subject",lang),
                 f"""<h2>{tr_("email_reset_h2",lang)}</h2>
                 <p>{tr_("email_reset_p",lang)}</p>
-                <a href="{reset_url}" style="display:inline-block;padding:12px 24px;background:#b8863b;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">
+                <a href="{reset_url}" style="display:inline-block;padding:12px 24px;background:#f2662d;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">
                   {tr_("email_reset_btn",lang)}
                 </a>
                 <p style="color:#666;font-size:12px;margin-top:16px">{tr_("email_reset_expiry",lang)}</p>"""))
@@ -5689,8 +5689,8 @@ async def manifest():
         "description": "Veille des marchés publics, semi-publics et privés au Maroc",
         "start_url": "/dashboard",
         "display": "standalone",
-        "background_color": "#f6f5f0",
-        "theme_color": "#f6f5f0",
+        "background_color": "#f8f1e1",
+        "theme_color": "#f8f1e1",
         "lang": "fr",
         "icons": [
             {"src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any"},
