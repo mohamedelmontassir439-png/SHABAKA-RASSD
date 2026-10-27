@@ -26,6 +26,8 @@ HOME_URL = "https://www.marchespublics.gov.ma"
 # tout scan suivant). 8s + 12 workers ramène le pire cas de ~80min à ~3min.
 REQUEST_TIMEOUT  = 8
 SCRAPER_WORKERS  = 12
+# Nombre maximal d'identifiants repris d'un coup après une coupure du portail.
+RATTRAPAGE_MAX   = 4000
 
 UA = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0 Safari/537.36",
@@ -167,6 +169,11 @@ def find_max_id(s, log_fn=print) -> int:
         log_fn("Listing inaccessible — recherche binaire pour trouver max ID...")
         return _find_max_binary(s, 360000, 400000, log_fn)
 
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+        # Le portail ne répond pas du tout: inutile de lancer ensuite des
+        # centaines de requêtes qui expireront une à une (huit minutes par
+        # cycle le 27/10/2026). On s'arrête là, et la collecte est notée en échec.
+        raise ConnectionError(f"portail injoignable: {str(e)[:200]}") from e
     except Exception as e:
         log_fn(f"find_max_id error: {e} — fallback 370000")
         return 370000
@@ -356,7 +363,12 @@ def run(known_ids: set, log_fn=print) -> list:
         max_id = db_max
         log_fn(f"Max ID DB plus récent: #{max_id}")
 
-    start_id = max(max_id - 50, 310000)
+    # Rattrapage: après une coupure, les avis publiés entre le dernier connu
+    # et le plus récent seraient sautés si l'on ne repartait que du plus
+    # récent. On repart du dernier connu, dans la limite de RATTRAPAGE_MAX
+    # identifiants — au-delà, les plus anciens sont le plus souvent clos.
+    depart = min(db_max, max_id) if db_max else max_id
+    start_id = max(depart - 50, max_id - RATTRAPAGE_MAX, 310000)
     end_id   = max_id + 200
     scan_ids = [str(i) for i in range(start_id, end_id+1)
                 if f"bdc_{i}" not in known_ids]

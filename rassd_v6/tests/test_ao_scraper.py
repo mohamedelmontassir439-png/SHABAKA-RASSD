@@ -174,3 +174,34 @@ class TestPortailInjoignable:
         monkeypatch.setattr(scraper, "_fetch_one",
                             lambda s, tid: (None, "timeout") if tid.endswith("7") else (None, None))
         assert scraper.run(set(), lambda *_: None) == []
+
+
+class TestRattrapage:
+    """Après une coupure, la collecte reprend où elle s'était arrêtée."""
+
+    def _plage(self, monkeypatch, connus, max_portail):
+        from app.services import scraper
+        vus = []
+        monkeypatch.setattr(scraper, "find_max_id", lambda s, log: max_portail)
+        monkeypatch.setattr(scraper, "_fetch_one", lambda s, tid: (vus.append(int(tid)), (None, None))[1])
+        scraper.run({f"bdc_{i}" for i in connus}, lambda *_: None)
+        return min(vus), max(vus)
+
+    def test_les_avis_publies_pendant_la_coupure_sont_repris(self, monkeypatch):
+        bas, haut = self._plage(monkeypatch, [398574], 399500)
+        assert bas <= 398575 and haut >= 399500
+
+    def test_le_rattrapage_est_borne(self, monkeypatch):
+        from app.services import scraper
+        bas, haut = self._plage(monkeypatch, [380000], 399500)
+        assert bas == 399500 - scraper.RATTRAPAGE_MAX
+
+    def test_portail_muet_arret_immediat(self, monkeypatch):
+        import pytest, requests
+        from app.services import scraper
+        class S:
+            def get(self, *a, **k): raise requests.exceptions.ConnectTimeout("timed out")
+        appels = []
+        monkeypatch.setattr(scraper, "_fetch_one", lambda s, tid: appels.append(tid))
+        with pytest.raises(ConnectionError):
+            scraper.find_max_id(S(), lambda *_: None)

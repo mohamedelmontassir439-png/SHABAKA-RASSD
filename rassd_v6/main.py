@@ -299,7 +299,18 @@ async def do_scrape():
             db     = get_db()
             known_ao = {r[0] for r in db.execute("SELECT id FROM tenders").fetchall()}
             db.close()
-            ao_results = await loop.run_in_executor(None, lambda: ao_run(known_ao, State.log))
+            # Après une coupure, on relit l'archive entière des consultations
+            # ouvertes, pas seulement les trois premières pages: sinon les
+            # appels d'offres publiés pendant la coupure ne reviendraient pas.
+            db = get_db()
+            dernier_ok = db.execute("""SELECT MAX(started_at) FROM scraper_runs
+                                       WHERE source='marchespublics-ao' AND status='SUCCESS'""").fetchone()[0] or ""
+            db.close()
+            pages_ao = 3
+            if dernier_ok and dernier_ok < (datetime.now() - timedelta(hours=3)).isoformat():
+                pages_ao = 40
+                State.log(f"  Rattrapage: dernière collecte réussie le {dernier_ok[:16]} — lecture de {pages_ao} pages")
+            ao_results = await loop.run_in_executor(None, lambda: ao_run(known_ao, State.log, pages=pages_ao))
             # Le secteur est lu par le sens avant l'enregistrement: les alertes
             # partent sur ce secteur-là (app/services/classement_ia.py).
             await loop.run_in_executor(None, lambda: classer_ia(ao_results))
