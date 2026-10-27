@@ -1275,8 +1275,11 @@ async def home(req: Request):
             f"ORDER BY scraped_at DESC LIMIT 9", params).fetchall()]
     sectors = [dict(r) for r in db.execute(
         "SELECT secteur,COUNT(*) cnt FROM tenders WHERE statut='actif' GROUP BY secteur ORDER BY cnt DESC LIMIT 12").fetchall()]
+    from app.core.regions import carte
+    carte_regions = carte(db, get_lang(req))
     db.close()
-    return render(req, "landing.html", {"stats":stats,"recent":recent,"sectors":sectors})
+    return render(req, "landing.html", {"stats":stats,"recent":recent,"sectors":sectors,
+                                        "carte_regions":carte_regions})
 
 # La date limite est stockee telle que la source l'ecrit: « 30/09/2026 » le
 # plus souvent, « 2026-09-30 » parfois. Pour la comparer en SQL il faut la

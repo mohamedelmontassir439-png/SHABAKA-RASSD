@@ -99,30 +99,40 @@ class TestAucuneImageDansLaCouverture:
             assert url.startswith("data:image/svg+xml"), url[:60]
 
 
-class TestLaMarqueEstConservee:
-    def test_le_medaillon_est_rendu_dans_la_couverture(self, client):
+class TestLaCarteDeLaVeille:
+    """Depuis le 27/10/2026 la couverture montre la veille en direct: le
+    Maroc en points, balayé par un radar, chaque région avec le nombre réel
+    de ses marchés ouverts. Le médaillon reste la marque partout ailleurs."""
+
+    def test_la_carte_porte_les_douze_regions_et_leurs_chiffres(self, client, db):
+        import json, html
+        db.execute("""INSERT INTO tenders(id,objet,secteur,statut,scraped_at,region)
+                      VALUES('c1','x','T101','actif','2026-10-27','Agadir Ida Ou Tanane'),
+                            ('c2','y','T101','actif','2026-10-27','Taroudannt'),
+                            ('c3','z','T101','expire','2026-10-27','Agadir')""")
+        db.commit()
         page = client.get("/").text
-        bloc = page[page.index('class="hero-marque"'):]
-        bloc = bloc[:bloc.index("</section>")]
-        for morceau in ("Maroc", "Entrepreneuriat", "COUVERTURE NATIONALE"):
-            assert morceau in bloc, morceau
+        m = re.search(r"data-regions='([^']*)'", page)
+        regions = json.loads(html.unescape(m.group(1)))
+        assert len(regions) == 12
+        souss = next(r for r in regions if r["nom"] == "Souss-Massa")
+        assert souss["n"] == 2, "les marchés clos ne comptent pas"
+        assert all(-17.5 < r["lon"] < -1 and 20 < r["lat"] < 36.5 for r in regions)
 
-    def test_c_est_le_trace_commun_et_non_une_copie(self):
-        """Une marque redessinée dans un gabarit cesse de suivre les autres."""
-        assert "medaillon(" in _gabarit()
+    def test_le_script_est_servi_et_appele(self, client):
+        assert '<script src="/static/js/carte-veille.js" defer></script>' in client.get("/").text
+        r = client.get("/static/js/carte-veille.js")
+        assert r.status_code == 200 and "prefers-reduced-motion" in r.text
 
-    def test_la_mention_tient_dans_le_cercle(self):
-        """Mesurée dans le navigateur: à 12 px avec 4 d'interlettrage elle
-        faisait 236 unités pour une corde de 165 à cette hauteur — elle
-        traversait le cercle des deux côtés, et cela ne se voyait qu'en grand."""
-        from app.core import marque
-        m = re.search(r'letter-spacing="([\d.]+)"[^>]*font-size="([\d.]+)"',
-                      marque.medaillon(300), re.S)
-        assert m, "mention introuvable"
-        interlettrage, corps = float(m.group(1)), float(m.group(2))
-        # 20 glyphes; largeur moyenne mesurée à 0,667 du corps en Arial.
-        largeur = 20 * corps * 0.667 + 19 * interlettrage
-        assert largeur < 160, f"mention large de {largeur:.0f} pour une corde de 165"
+    def test_les_noms_suivent_la_langue(self, client):
+        import json, html
+        page = client.get("/?lang=ar").text
+        regions = json.loads(html.unescape(re.search(r"data-regions='([^']*)'", page).group(1)))
+        assert "سوس ماسة" in [r["nom"] for r in regions]
+
+    def test_le_contour_comprend_les_provinces_du_sud(self):
+        js = open(os.path.join(RACINE, "static", "js", "carte-veille.js"), encoding="utf-8").read()
+        assert "[-17.05, 20.85]" in js and "[-15.95, 23.70]" in js, "Lagouira et Dakhla dans le contour"
 
 
 class TestLaMiseEnPageTientDansLesDeuxSens:
@@ -134,12 +144,6 @@ class TestLaMiseEnPageTientDansLesDeuxSens:
         regle = _regle(".hero-texte")
         for fige in ("margin-left:", "margin-right:", "position: absolute", "left:"):
             assert fige not in regle, f"{fige} fige un côté"
-
-    def test_l_anneau_ne_reprend_pas_sa_place_dans_le_flux(self):
-        """« .hero-marque svg » l'emportait en spécificité sur « .hero-anneau »:
-        l'anneau redevenait un élément du flux et poussait le médaillon contre
-        le bord droit."""
-        assert ".hero-marque > svg:not(.hero-anneau)" in _gabarit()
 
     def test_sous_900_px_la_marque_passe_sous_la_parole(self):
         petit = re.search(r"@media\(max-width: 900px\) \{.*?\n\}", _gabarit(), re.S).group(0)
@@ -167,7 +171,6 @@ class TestFriseEtApercu:
             assert motif not in regle
         page = open(os.path.join(RACINE, "templates", "landing.html"), encoding="utf-8").read()
         assert 'class="hero-photo"' in page and "hero-meridiens" not in page
-        assert "circle:first-of-type { fill: transparent; }" in page
 
     def test_aucun_marche_nest_montre_au_visiteur_anonyme(self, client):
         """Le détail d'un marché est réservé aux membres activés. L'aperçu

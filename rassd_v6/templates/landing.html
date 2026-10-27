@@ -84,32 +84,19 @@
    ailleurs: en-tête de document, image de partage, icône de l'onglet. */
 .hero-marque { position: relative; display: flex; align-items: center;
   justify-content: center; }
-/* « :not(.hero-anneau) » n'est pas une coquetterie: « .hero-marque svg »
-   l'emportait en spécificité sur « .hero-anneau » et lui rendait sa place
-   dans le flux. L'anneau poussait alors le médaillon contre le bord droit,
-   et la lueur tournait à vide ailleurs. */
-.hero-marque > svg:not(.hero-anneau) { position: relative; z-index: 1;
-  width: min(100%, 372px); height: auto; }
-/* Le disque du médaillon s'efface: la photo se voit à travers, seuls le
-   cercle, le globe et le nom restent tracés. */
-.hero-marque > svg:not(.hero-anneau) > circle:first-of-type { fill: transparent; }
-.hero-marque::before { content: ""; position: absolute; inset: -26%;
+.hero-marque::before { content: ""; position: absolute; inset: -6%;
   border-radius: 50%; z-index: 0;
-  background: radial-gradient(circle, rgba(255,160,110,.22) 0%, rgba(242,102,45,.1) 38%, transparent 68%);
-  filter: blur(26px); }
-/* Un anneau qui tourne lentement: il dit la veille continue, et il est la
-   seule chose qui bouge sur la page. */
-/* Carré et centré sur le médaillon, pas étiré sur la colonne: « inset: -7 % »
-   en faisait une ellipse large, dont les tirets, grossis avec elle,
-   ressemblaient à des éclats semés autour de la marque. */
-.hero-anneau { position: absolute; inset: 0; margin: auto; height: 112%;
-  aspect-ratio: 1; width: auto; z-index: 0;
-  animation: hero-tour 72s linear infinite; }
-.hero-anneau circle { fill: none; stroke: #ff8552; stroke-opacity: .34;
-  stroke-dasharray: 1.2 5.6; stroke-width: 1.2;
-  vector-effect: non-scaling-stroke; }
-@keyframes hero-tour { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .hero-anneau { animation: none; } }
+  background: radial-gradient(circle, rgba(255,160,110,.16) 0%, rgba(242,102,45,.06) 40%, transparent 70%);
+  filter: blur(24px); }
+.carte-veille { position: relative; z-index: 1; margin: 0; width: min(100%, 520px); }
+.carte-veille canvas { display: block; width: 100%; aspect-ratio: 1 / 1.02; }
+.carte-legende { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 10px;
+  margin-top: 6px; font-size: var(--f2); color: rgba(255,240,228,.78); }
+.carte-legende b { color: #ff9a6b; font-weight: 700; font-variant-numeric: tabular-nums; }
+.carte-pouls { width: 8px; height: 8px; border-radius: 50%; background: #ff8552;
+  box-shadow: 0 0 0 0 rgba(255,133,82,.6); animation: carte-pouls 2s ease-out infinite; }
+@keyframes carte-pouls { to { box-shadow: 0 0 0 10px rgba(255,133,82,0); } }
+@media (prefers-reduced-motion: reduce) { .carte-pouls { animation: none; } }
 /* La grille se retourne en arabe, le fond non: la lueur restait derrière le
    texte et la rosace du bas venait croiser le globe. On retourne la section
    entière, puis on remet son contenu à l'endroit — seul le fond est miroité,
@@ -304,7 +291,7 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
   /* Une colonne, la marque sous la parole: elle illustre, elle n'annonce pas. */
   .hero-inner { grid-template-columns: minmax(0, 1fr); gap: 36px; }
   .hero-marque { order: 2; }
-  .hero-marque > svg:not(.hero-anneau) { width: min(78%, 268px); }
+  .carte-veille { width: min(100%, 380px); }
   .hero-titre { font-size: clamp(28px, 7vw, 42px); }
   .hero-dek { font-size: var(--f3); }
   .pain-grid { grid-template-columns: 1fr; }
@@ -348,12 +335,21 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
     </div>
   </div>
 
+  {# La veille en direct: le Maroc en points balayé par un radar, chaque
+     région allumée avec le nombre réel de ses marchés ouverts
+     (static/js/carte-veille.js). #}
   <div class="hero-marque">
-    <svg class="hero-anneau" viewBox="0 0 100 100" aria-hidden="true">
-      <circle cx="50" cy="50" r="49"/>
-    </svg>
-    {{ medaillon(384)|safe }}
+    <figure class="carte-veille" data-regions='{{ carte_regions|tojson }}'
+            data-libelle="{{ tr('latest_sector_open', n='{n}') }}">
+      <canvas role="img" aria-label="{{ tr('carte_aria', n=stats.tenders) }}"></canvas>
+      <figcaption class="carte-legende">
+        <span class="carte-pouls" aria-hidden="true"></span>
+        <span>{{ tr('carte_legende') }}</span>
+        <b>{{ tr('latest_sector_open', n=stats.tenders) }}</b>
+      </figcaption>
+    </figure>
   </div>
+<script src="/static/js/carte-veille.js" defer></script>
   </div>
 </section>
 

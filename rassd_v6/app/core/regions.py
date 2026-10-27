@@ -95,3 +95,35 @@ def nom(region: str, lang: str = "fr") -> str:
 
 def est_officielle(valeur: str) -> bool:
     return valeur in _AR
+
+
+# Chef-lieu de chaque région (longitude, latitude): là où la carte de
+# l'accueil la fait s'allumer.
+CHEFS_LIEUX = {
+    "Tanger-Tétouan-Al Hoceïma": (-5.81, 35.76),
+    "L'Oriental": (-1.91, 34.68),
+    "Fès-Meknès": (-5.00, 34.03),
+    "Rabat-Salé-Kénitra": (-6.84, 34.02),
+    "Béni Mellal-Khénifra": (-6.35, 32.34),
+    "Casablanca-Settat": (-7.59, 33.57),
+    "Marrakech-Safi": (-7.99, 31.63),
+    "Drâa-Tafilalet": (-4.42, 31.93),
+    "Souss-Massa": (-9.60, 30.42),
+    "Guelmim-Oued Noun": (-10.06, 28.99),
+    "Laâyoune-Sakia El Hamra": (-13.20, 27.15),
+    "Dakhla-Oued Ed-Dahab": (-15.93, 23.70),
+}
+
+
+def carte(db, lang: str = "fr") -> list:
+    """Les marchés ouverts de chaque région, pour la carte de l'accueil.
+
+    Compté sur les lieux tels que les avis les écrivent, ramenés aux douze
+    régions; un lieu qu'on ne sait pas situer n'est compté nulle part."""
+    compte = {n: 0 for n in NOMS}
+    for ligne in db.execute("SELECT region, COUNT(*) FROM tenders WHERE statut='actif' GROUP BY region"):
+        r = region_de(ligne[0] or "")
+        if r in compte:
+            compte[r] += ligne[1]
+    return [{"nom": nom(r, lang), "n": compte[r], "lon": CHEFS_LIEUX[r][0], "lat": CHEFS_LIEUX[r][1]}
+            for r in NOMS]
