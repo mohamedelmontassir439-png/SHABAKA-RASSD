@@ -11,13 +11,13 @@
 {# L'icône suit la marque: écrite en dur, elle est restée à l'ancienne
      étoile pendant que tout le reste changeait. #}
 <link rel="icon" type="image/svg+xml" href="{{ favicon() }}">
-<meta name="theme-color" content="#f8f1e1">
+<meta name="theme-color" content="#f6f5f0">
 <meta name="csrf-token" content="{{ csrf_token }}">
 <link rel="manifest" href="/manifest.json">
 <link rel="apple-touch-icon" href="/icon-192.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=Amiri:wght@400;700&family=Tajawal:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Manrope:wght@400;500;600;700;800&family=Amiri:wght@400;700&family=Tajawal:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
   /* Échelle typographique, identique à celle de l'administration. Avant,
@@ -37,45 +37,45 @@
   /* Trois rayons: le cadre, la pastille, la pilule. */
   --r1: 6px; --r2: 10px; --r3: 14px; --rp: 999px;
 
-  --bg:      #f8f1e1;
+  --bg:      #f6f5f0;
   --surface: #ffffff;
-  --surface2:#f1e6cf;
-  --ink:     #f2662d;
-  --ink2:    #ff8552;
-  --ink3:    #1e1611;
-  --gold:    #f2662d;
-  --gold2:   #ff8552;
-  --goldd:   #c94e1f;
-  --golda:   rgba(242,102,45,.15);
-  --goldb:   rgba(242,102,45,.08);
-  --terra:   #c94e1f;
-  --terraa:  rgba(201,78,31,.13);
-  --indigo:  #f2662d;
-  --indigoa: rgba(242,102,45,.14);
-  --text1:   #2b211b;
-  --text2:   #4a3b32;
-  --text3:   #8a7a6a;
-  --text4:   #b7a896;
-  --line:    #e8dcc5;
-  --line2:   #d9c7a8;
-  --grn:     #2f9e5b;
-  --grna:    rgba(47,158,91,.12);
-  --red:     #d6493f;
-  --reda:    rgba(214,73,63,.12);
+  --surface2:#ecebe3;
+  --ink:     #0f5c47;
+  --ink2:    #1b7a5e;
+  --ink3:    #0b231c;
+  --gold:    #b8863b;
+  --gold2:   #d4a65a;
+  --goldd:   #8e6424;
+  --golda:   rgba(184,134,59,.15);
+  --goldb:   rgba(184,134,59,.08);
+  --terra:   #8e6424;
+  --terraa:  rgba(142,100,36,.13);
+  --indigo:  #0f5c47;
+  --indigoa: rgba(15,92,71,.10);
+  --text1:   #14201b;
+  --text2:   #33413a;
+  --text3:   #68756e;
+  --text4:   #a3aca6;
+  --line:    #e2e1d8;
+  --line2:   #cdcbbd;
+  --grn:     #1f8a57;
+  --grna:    rgba(31,138,87,.12);
+  --red:     #c2412d;
+  --reda:    rgba(194,65,45,.11);
   --blue:    var(--indigo);
   --bluea:   var(--indigoa);
-  --purple:  #c94e1f;
-  --purplea: rgba(201,78,31,.13);
-  --orange:  #f2662d;
-  --orangea: rgba(242,102,45,.14);
-  --grad:    linear-gradient(100deg, #f2662d, #ff9a56 55%, #c94e1f);
-  --serif:   'Fredoka', 'Amiri', Georgia, serif;
-  --sans:    'Inter', system-ui, -apple-system, sans-serif;
+  --purple:  #0a4535;
+  --purplea: rgba(10,69,53,.12);
+  --orange:  #b8863b;
+  --orangea: rgba(184,134,59,.14);
+  --grad:    linear-gradient(100deg, #d9ae66, #b8863b 55%, #8e6424);
+  --serif:   'Libre Caslon Text', 'Amiri', Georgia, serif;
+  --sans:    'Manrope', system-ui, -apple-system, sans-serif;
   --mono:    'JetBrains Mono', monospace;
   --r:  7px; --r2: 10px; --r3: 15px; --r4: 22px;
-  --sh:  0 1px 2px rgba(43,33,27,.06), 0 1px 3px rgba(43,33,27,.05);
-  --sh2: 0 14px 32px rgba(43,33,27,.10), 0 3px 10px rgba(242,102,45,.06);
-  --sh3: 0 28px 64px rgba(43,33,27,.16), 0 8px 26px rgba(242,102,45,.08);
+  --sh:  0 1px 2px rgba(20,32,27,.06), 0 1px 3px rgba(20,32,27,.05);
+  --sh2: 0 14px 32px rgba(20,32,27,.10), 0 3px 10px rgba(184,134,59,.06);
+  --sh3: 0 28px 64px rgba(20,32,27,.16), 0 8px 26px rgba(184,134,59,.08);
   --shg: 0 1px 0 rgba(255,255,255,.6) inset, 0 0 0 1px rgba(255,255,255,.3) inset;
   --sidebar-w: 272px;
   --zellige: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='84' height='84'%3E%3Cg fill='none' stroke='%23f2662d' stroke-opacity='.16' stroke-width='1'%3E%3Cpath d='M42 2 80 42 42 82 4 42Z'/%3E%3Cpath d='M42 18 66 42 42 66 18 42Z'/%3E%3Cpath d='M42 2V82M4 42H80'/%3E%3C/g%3E%3C/svg%3E");
@@ -90,7 +90,7 @@
   --ambera: var(--golda);
   --amberb: var(--goldb);
 }
-.grad-text { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 20px rgba(242,102,45,.25)); }
+.grad-text { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 20px rgba(184,134,59,.25)); }
 * , *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 body { background: var(--noise), var(--bg); background-size: 180px 180px, auto; color: var(--text2); font-family: var(--sans); font-weight: 400; font-size:var(--f4); line-height: 1.6; min-height: 100vh; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
@@ -105,8 +105,8 @@ svg { display: block; }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 20px; font-family: var(--sans); font-size:var(--f3); font-weight: 600; cursor: pointer; border: 1px solid transparent; transition: all .18s cubic-bezier(.2,.7,.3,1); white-space: nowrap; background: transparent; color: var(--text1); border-radius: var(--r2); line-height: 1.2; }
 .btn-primary { background: var(--ink); color: #fff; border-color: var(--ink); }
 .btn-primary:hover { background: var(--ink2); box-shadow: var(--sh2); transform: translateY(-1px); }
-.btn-accent { background: linear-gradient(100deg, var(--indigo), var(--purple)); color: #fff; border-color: var(--purple); font-weight: 700; box-shadow: 0 1px 0 rgba(255,255,255,.22) inset; }
-.btn-accent:hover { box-shadow: 0 12px 28px rgba(242,102,45,.38), 0 1px 0 rgba(255,255,255,.22) inset; transform: translateY(-1px); }
+.btn-accent { background: linear-gradient(100deg, #d9ae66, #b8863b 55%, #9c7130); color: #14100a; border-color: #9c7130; font-weight: 700; box-shadow: 0 1px 0 rgba(255,255,255,.22) inset; }
+.btn-accent:hover { box-shadow: 0 12px 28px rgba(184,134,59,.38), 0 1px 0 rgba(255,255,255,.22) inset; transform: translateY(-1px); }
 .btn-outline { border-color: var(--line2); color: var(--text1); background: var(--surface); }
 .btn-outline:hover { border-color: var(--ink); color: var(--ink); }
 .btn-ghost { color: var(--text3); }
@@ -146,15 +146,15 @@ html[dir="rtl"] .sel { background-position: left 14px center; padding-right: 14p
 .card-hover:hover { border-color: var(--line2); box-shadow: var(--sh2), var(--shg); transform: translateY(-3px); }
 
 .badge { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font-size:var(--f1); font-weight: 600; white-space: nowrap; border-radius:var(--rp); }
-.badge-navy { background: var(--indigoa); color: var(--ink); border: 1px solid rgba(242,102,45,.28); }
+.badge-navy { background: var(--indigoa); color: var(--ink); border: 1px solid rgba(184,134,59,.28); }
 .badge-gold { background: var(--golda); color: var(--goldd); border: 1px solid rgba(201,144,63,.32); }
 .badge-grn  { background: var(--grna); color: var(--grn); border: 1px solid rgba(28,140,98,.25); }
 .badge-red  { background: var(--reda); color: var(--red); border: 1px solid rgba(200,67,63,.25); }
 .badge-blue { background: var(--indigoa); color: var(--indigo); border: 1px solid rgba(61,90,149,.28); }
 .badge-gray { background: var(--surface2); color: var(--text3); border: 1px solid var(--line); }
-.badge-terra{ background: var(--terraa); color: var(--terra); border: 1px solid rgba(201,78,31,.28); }
+.badge-terra{ background: var(--terraa); color: var(--terra); border: 1px solid rgba(142,100,36,.28); }
 
-.sub-banner { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin: 16px 32px 0; padding: 13px 18px; border-radius: var(--r2); background: var(--golda); border: 1px solid rgba(242,102,45,.3); }
+.sub-banner { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin: 16px 32px 0; padding: 13px 18px; border-radius: var(--r2); background: var(--golda); border: 1px solid rgba(184,134,59,.3); }
 .sub-banner-txt { flex: 1; font-size:var(--f3); font-weight: 600; color: var(--goldd); min-width: 200px; }
 .sub-banner-warn { background: var(--reda); border-color: rgba(200,67,63,.3); }
 .sub-banner-warn .sub-banner-txt { color: var(--red); }
@@ -190,7 +190,7 @@ html[dir="rtl"] .sel { background-position: left 14px center; padding-right: 14p
 
 .sidebar { width: var(--sidebar-w); flex-shrink: 0; background: var(--ink3); background-image: var(--zellige); background-size: 84px 84px; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
 .sidebar::-webkit-scrollbar { width: 5px; }
-.sidebar-inner { position: relative; background: linear-gradient(180deg, var(--ink3) 0%, rgba(7,13,26,.96) 100%); display: flex; flex-direction: column; flex: 1; min-height: 100%; }
+.sidebar-inner { position: relative; background: linear-gradient(180deg, var(--ink3) 0%, rgba(6,22,17,.97) 100%); display: flex; flex-direction: column; flex: 1; min-height: 100%; }
 
 .sidebar-brand { display: flex; align-items: center; gap: 12px; padding: 26px 22px; border-bottom: 1px solid rgba(255,255,255,.08); }
 .brand-text { min-width: 0; }
@@ -202,12 +202,12 @@ html[dir="rtl"] .sel { background-position: left 14px center; padding-right: 14p
 .side-link { display: flex; align-items: center; gap: 13px; padding: 9px 14px; border-radius: var(--r2); font-size:var(--f3); font-weight: 600; color: rgba(255,255,255,.62); transition: all .15s; position: relative; }
 .side-link svg { width: 19px; height: 19px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .side-link:hover { color: #fff; background: rgba(255,255,255,.06); }
-.side-link.active { color: #fff; background: linear-gradient(90deg, rgba(242,102,45,.28), rgba(201,78,31,.06)); }
-.side-link.active svg { stroke: var(--indigo); }
+.side-link.active { color: #fff; background: linear-gradient(90deg, rgba(184,134,59,.28), rgba(142,100,36,.06)); }
+.side-link.active svg { stroke: var(--gold2); }
 .side-link-badge { margin-inline-start: auto; background: var(--indigo); color: #fff; font-size:var(--f1); font-weight: 800; padding: 1px 7px; border-radius:var(--rp); }
 .sidebar-sep { height: 1px; background: rgba(255,255,255,.08); margin: 8px 16px; }
 
-.sidebar-upsell { margin: 8px 16px 4px; padding: 18px 16px; border-radius: var(--r3); background: linear-gradient(160deg, rgba(242,102,45,.24), rgba(201,78,31,.06)); border: 1px solid rgba(242,102,45,.3); text-align: center; }
+.sidebar-upsell { margin: 8px 16px 4px; padding: 18px 16px; border-radius: var(--r3); background: linear-gradient(160deg, rgba(184,134,59,.24), rgba(142,100,36,.06)); border: 1px solid rgba(184,134,59,.3); text-align: center; }
 .upsell-icon { font-size:var(--f7); margin-bottom: 8px; }
 .upsell-title { font-weight: 700; font-size:var(--f3); color: #fff; margin-bottom: 5px; }
 .upsell-text { font-size:var(--f1); color: rgba(255,255,255,.55); line-height: 1.5; margin-bottom: 12px; }
@@ -310,7 +310,7 @@ html[dir="rtl"] .section-label::before { order: 2; }
     <div class="sidebar-inner">
       <a href="/" class="sidebar-brand">
         <div class="brand-text">
-          <div class="brand-name">{{ logo(38, couleur_texte="#f8f1e1") | safe }}</div>
+          <div class="brand-name">{{ logo(38, couleur_texte="#f6f5f0") | safe }}</div>
           <div class="brand-tagline">{{ tr('brand_tagline') }}</div>
         </div>
       </a>

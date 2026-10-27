@@ -162,36 +162,36 @@ def message_email(entreprise: dict, lien: str = "") -> tuple:
             m.get("region") or "",
             f"limite&nbsp;: {m['date_limite']}" if m.get("date_limite") else ""] if x)
         cartes.append(
-            f'<div style="border:1px solid #e8dcc5;border-radius:10px;padding:14px 16px;'
+            f'<div style="border:1px solid #e2e1d8;border-radius:10px;padding:14px 16px;'
             f'margin-bottom:10px;background:#fff">'
-            f'<div style="font-size:15px;font-weight:600;color:#2b211b;line-height:1.45">'
+            f'<div style="font-size:15px;font-weight:600;color:#14201b;line-height:1.45">'
             f'{(m["objet"] or "")[:150]}</div>'
-            f'<div style="font-size:13px;color:#8a7a6a;margin-top:6px">{bas}</div></div>')
+            f'<div style="font-size:13px;color:#68756e;margin-top:6px">{bas}</div></div>')
 
     corps = f"""
 <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:auto;
-            background:#f8f1e1;padding:26px 22px">
+            background:#f6f5f0;padding:26px 22px">
   <div style="text-align:center;padding:2px 0 20px">
-    <div style="height:2px;width:44px;background:#f2662d;margin:0 auto 13px"></div>
+    <div style="height:2px;width:44px;background:#b8863b;margin:0 auto 13px"></div>
     <div style="font-family:Georgia,serif;font-weight:700;font-size:17px;
-                letter-spacing:6.4px;color:#2b211b">MAROC</div>
+                letter-spacing:6.4px;color:#14201b">MAROC</div>
     <div style="font-family:Georgia,serif;font-weight:700;font-size:17px;
-                letter-spacing:1.1px;color:#2b211b">ENTREPRENEURIAT</div>
-    <div style="height:2px;width:44px;background:#f2662d;margin:13px auto 0"></div>
+                letter-spacing:1.1px;color:#14201b">ENTREPRENEURIAT</div>
+    <div style="height:2px;width:44px;background:#b8863b;margin:13px auto 0"></div>
   </div>
-  <p style="font-size:15px;color:#4a3b32;line-height:1.7;margin:0 0 4px">
+  <p style="font-size:15px;color:#33413a;line-height:1.7;margin:0 0 4px">
     Bonjour{' ' + societe if societe else ''},</p>
-  <p style="font-size:15px;color:#4a3b32;line-height:1.7;margin:0 0 18px">
+  <p style="font-size:15px;color:#33413a;line-height:1.7;margin:0 0 18px">
     Il y a actuellement <b>{_accroche(entreprise, total)}</b>
     En voici {len(marches)}&nbsp;:</p>
   {''.join(cartes)}
   <p style="text-align:center;margin:24px 0 8px">
     <a href="{lien or cfg.SITE_URL}" style="display:inline-block;padding:13px 26px;
-       background:#f2662d;color:#fff;border-radius:9px;text-decoration:none;
+       background:#b8863b;color:#fff;border-radius:9px;text-decoration:none;
        font-weight:700;font-size:15px">Voir les {total} marchés</a></p>
-  <p style="font-size:13px;color:#8a7a6a;text-align:center;line-height:1.6;margin:0 0 20px">
+  <p style="font-size:13px;color:#68756e;text-align:center;line-height:1.6;margin:0 0 20px">
     Essai gratuit de {cfg.essai()}, sans carte bancaire.</p>
-  <p style="font-size:11.5px;color:#b7a896;line-height:1.6;border-top:1px solid #e8dcc5;
+  <p style="font-size:11.5px;color:#a3aca6;line-height:1.6;border-top:1px solid #e2e1d8;
             padding-top:14px;margin:0">
     Vous recevez ce message parce que votre entreprise figure dans un annuaire
     professionnel public. Répondez « STOP » et nous retirons vos coordonnées —

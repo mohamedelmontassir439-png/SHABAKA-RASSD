@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-"""L'identité visuelle: un globe de méridiens dans un médaillon cerclé.
+"""L'identité visuelle: un khatam d'émeraude cerclé de laiton, une porte au centre.
 
-Le signe dit ce que fait la plateforme — une couverture nationale, une
-veille qui embrasse le territoire. L'étoile sous le nom est celle du
-le khatam, motif du zellige marocain.
+Le khatam est l'étoile à huit branches du zellige; la porte, l'arc
+outrepassé des médinas. L'étoile sous le nom est celle du drapeau marocain.
 
 Ces tests ne jugent pas du goût: ils tiennent ce qui casse sans qu'on le
-voie. Un globe tracé au jugé devient une pelote; un nom trop large sort du
-médaillon; un SVG dans un email disparaît chez Gmail.
+voie. Un khatam tracé au jugé se tord; un nom trop large sort du médaillon;
+un SVG dans un email disparaît chez Gmail.
 """
+import math
 import re
 
 import pytest
@@ -16,42 +16,36 @@ import pytest
 from app.core import marque
 
 
-class TestGlobe:
-    def test_la_sphere_porte_meridiens_et_paralleles(self):
-        """Tracés, pas dessinés: trois méridiens, quatre parallèles."""
+def _sommets(svg):
+    pts = re.findall(r'<polygon points="([^"]+)"', svg)[0].split()
+    return [tuple(map(float, p.split(","))) for p in pts]
+
+
+class TestKhatam:
+    def test_seize_sommets_sur_deux_rayons(self):
+        """Deux carrés croisés: huit pointes, huit creux, chacun sur son cercle."""
+        pts = _sommets(marque.etoile(64))
+        assert len(pts) == 16
+        rayons = sorted({round(math.hypot(x - 50, y - 50), 1) for x, y in pts})
+        assert len(rayons) == 2, rayons
+
+    def test_le_rapport_est_celui_de_deux_carres(self):
+        """cos 45° / cos 22,5° = 0,7654: autrement l'étoile s'arrondit ou se hérisse."""
+        pts = _sommets(marque.etoile(64))
+        r = sorted({round(math.hypot(x - 50, y - 50), 3) for x, y in pts})
+        assert abs(r[0] / r[1] - math.cos(math.pi / 4) / math.cos(math.pi / 8)) < 0.002
+
+    def test_une_pointe_regarde_le_haut(self):
+        haut = min(_sommets(marque.etoile(64)), key=lambda p: p[1])
+        assert abs(haut[0] - 50) < 0.1
+
+    def test_la_porte_est_au_centre(self):
+        assert marque._PORTE in marque.etoile(64)
+
+    def test_emeraude_et_laiton(self):
         svg = marque.etoile(64)
-        assert len(re.findall(r"<ellipse", svg)) >= 7, svg[:200]
-
-    def test_les_meridiens_retrecissent_vers_le_centre(self):
-        """Des demi-largeurs égales donneraient des cercles concentriques,
-        pas une sphère.
-
-        L'expression ne suppose rien de ce qui précède « cx »: elle cherchait
-        « <ellipse cx », et le jour où les méridiens ont reçu une classe elle
-        n'a plus rien trouvé — or une liste vide est décroissante et sans
-        doublon, si bien que le test passait sans rien vérifier.
-        """
-        svg = marque.etoile(64)
-        rx = [float(v) for v in
-              re.findall(r'<ellipse[^>]*? cx="50" cy="50" rx="([\d.]+)"', svg)]
-        assert len(rx) == 3, f"trois méridiens attendus, {len(rx)} trouvés"
-        assert rx == sorted(rx, reverse=True) and len(set(rx)) == len(rx)
-
-    def test_aucun_point_blanc_ne_se_pose_sur_la_sphere(self):
-        """Il y en avait un, en haut à droite, censé figurer un reflet. À la
-        taille où la marque se regarde vraiment, il ne se lisait pas comme un
-        reflet mais comme une poussière sur l'écran."""
-        assert 'fill="#fff"' not in marque.etoile(64)
-
-    def test_le_relief_vient_du_degrade_et_du_voile(self):
-        """C'est ce qui creuse la sphère depuis que le point a disparu: sans
-        eux il ne resterait qu'un disque cerclé."""
-        svg = marque.etoile(64)
-        assert "radialGradient" in svg
-        assert svg.count("<ellipse") >= 7
-
-    def test_le_globe_repose_sur_un_arc(self):
-        assert "<path d=" in marque.etoile(64)
+        assert "radialGradient" in svg and "linearGradient" in svg
+        assert marque.OR in svg and marque.OR_CLAIR in svg
 
     def test_les_degrades_ne_se_confondent_pas_entre_deux_marques(self):
         """Deux marques sur la même page partageraient leurs identifiants, et
@@ -62,14 +56,14 @@ class TestGlobe:
 
 
 class TestPetitesTailles:
-    def test_sous_vingt_quatre_pixels_le_globe_se_simplifie(self):
-        """Les méridiens s'y referment en une tache: on garde la sphère nue."""
-        assert "<ellipse" not in marque.etoile(18)
-        assert "<ellipse" in marque.etoile(40)
+    def test_sous_vingt_quatre_pixels_le_signe_se_simplifie(self):
+        """Le filet intérieur et l'étoile du seuil s'y fondraient en une tache."""
+        assert marque.etoile(18).count("<polygon") == 1
+        assert marque.etoile(40).count("<polygon") == 3
 
     def test_la_marque_reste_lisible_meme_reduite(self):
         petit = marque.etoile(16)
-        assert "<circle" in petit and marque.OR in petit
+        assert marque._PORTE in petit and marque.OR in petit
 
     def test_la_marque_ne_peut_pas_etre_ecrasee(self):
         """Dans une barre chargée, « svg { max-width: 100% } » la réduisait
@@ -131,14 +125,14 @@ class TestMedaillon:
         corps = [float(v) for v in re.findall(r'font-size="(\d+)"', marque.medaillon(240))]
         assert corps and max(corps) <= 26
 
-    def test_l_arc_ne_traverse_pas_le_nom(self):
-        """Le globe descendait trop: son arc coupait « Maroc » en deux."""
+    def test_le_signe_ne_touche_pas_le_nom(self):
+        """Le signe finit à y=142 (34 + 100 × 1,08); l'œil de « Maroc »
+        commence vers 184."""
         svg = marque.medaillon(240)
         y_nom = min(float(v) for v in re.findall(r'<text x="150" y="(\d+)"', svg))
         echelle = float(re.search(r"scale\(([\d.]+)\)", svg).group(1))
         dy = float(re.search(r"translate\(\d+,(\d+)\)", svg).group(1))
-        y_arc = dy + (50 + 30 * 1.16) * echelle
-        assert y_arc < y_nom - 10, f"arc={y_arc}, nom={y_nom}"
+        assert dy + 100 * echelle < y_nom - 30
 
 
 class TestEmails:
@@ -177,9 +171,15 @@ class TestUsages:
 
 
 class TestCouleurs:
-    def test_un_seul_orange_sur_la_plateforme(self):
-        """Deux oranges proches font jurer la marque contre ses boutons."""
-        assert marque.OR == "#f2662d"
+    def test_un_seul_laiton_sur_la_plateforme(self):
+        """Deux laitons proches font jurer la marque contre ses boutons:
+        celui du signe est celui des pages (--gold)."""
+        import os
+        assert marque.OR == "#b8863b"
+        racine = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        for f in ("base.html", "base_public.html"):
+            page = open(os.path.join(racine, "templates", f), encoding="utf-8").read()
+            assert re.search(r"--gold:\s*" + marque.OR, page), f
 
     def test_les_teintes_sont_declarees_une_fois(self):
         for nom in ("OR", "ENCRE", "CREME", "BRUN"):
@@ -211,72 +211,11 @@ class TestIconeDuNavigateur:
         page = client.get("/").text
         assert 'rel="icon"' in page
         # Le globe porte des ellipses; l'ancienne étoile, un seul chemin.
-        assert "ellipse" in page[page.index('rel="icon"'):page.index('rel="icon"') + 3000]
+        assert "%3Cpolygon" in page[page.index('rel="icon"'):page.index('rel="icon"') + 6000]
 
     def test_l_icone_de_l_application_suit_aussi(self, client):
         svg = client.get("/icon-192.svg").text
-        assert "<ellipse" in svg and marque.OR in svg
-
-
-class TestRotation:
-    """Le globe tourne, et il tourne comme une sphère.
-
-    Un globe qui pivote sur lui-même à l'écran n'est pas un globe qui
-    tourne: c'est un dessin qui pivote. Ce sont les méridiens qui
-    s'amincissent jusqu'au trait en passant de profil, pendant que les
-    parallèles, invariants sous une rotation d'axe vertical, ne bougent pas.
-    """
-
-    def test_les_meridiens_portent_le_mouvement(self):
-        svg = marque.medaillon(300)
-        classes = re.findall(r'<ellipse class="([^"]+)" cx="50" cy="50"', svg)
-        assert len(classes) == 3 and len(set(classes)) == 3, classes
-
-    def test_les_trois_sont_dephases(self):
-        """Sans décalage, ils s'amincissent ensemble: la sphère bat au lieu
-        de tourner."""
-        style = re.search(r"<style>(.*?)</style>", marque.medaillon(300), re.S).group(1)
-        retards = set(re.findall(r"animation-delay:(-[\d.]+s)", style))
-        assert len(retards) == 2, f"deux retards attendus, {retards}"
-
-    def test_le_meridien_de_profil_reste_un_trait(self):
-        """`rx: 0` n'est pas une ellipse plate: c'est une ellipse qui ne se
-        dessine pas. Le méridien disparaîtrait au lieu de s'amincir."""
-        style = re.search(r"<style>(.*?)</style>", marque.medaillon(300), re.S).group(1)
-        valeurs = [float(v) for v in re.findall(r"rx:([\d.]+)px", style)]
-        assert valeurs and min(valeurs) > 0, f"minimum {min(valeurs) if valeurs else '—'}"
-
-    def test_le_mouvement_suit_le_cosinus(self):
-        """Interpolé au plus simple, le méridien ralentit au moment où il
-        passe de profil — là où il devrait aller le plus vite."""
-        style = re.search(r"<style>(.*?)</style>", marque.medaillon(300), re.S).group(1)
-        v = [float(x) for x in re.findall(r"rx:([\d.]+)px", style)]
-        milieu = len(v) // 2
-        assert v[0] == max(v) and v[milieu] == min(v)
-        # Le pas s'accélère vers le profil: dernier écart > premier écart.
-        assert (v[milieu - 1] - v[milieu]) > (v[0] - v[1])
-
-    def test_deux_marques_sur_une_page_ne_se_commandent_pas(self):
-        """Le style d'un SVG n'est pas isolé: il s'applique à la page."""
-        a = set(re.findall(r"@keyframes (\w+)", marque.etoile(64)))
-        b = set(re.findall(r"@keyframes (\w+)", marque.etoile(40)))
-        assert a and b and not (a & b)
-
-    def test_le_mouvement_se_tait_quand_on_le_demande(self):
-        assert "prefers-reduced-motion" in marque.medaillon(300)
-
-    def test_licone_de_longlet_ne_porte_aucun_mouvement(self):
-        """Elle est recopiée dans l'en-tête de chaque page: une feuille de
-        style y pèserait pour rien, et rien ne l'y regarde tourner."""
-        assert "keyframes" not in marque.favicon_data_uri()
-        assert "<style>" not in marque.etoile(32, anime=False)
-
-    def test_les_paralleles_ne_bougent_pas(self):
-        """Ils sont invariants sous une rotation d'axe vertical; les animer
-        trahirait la sphère."""
-        svg = marque.medaillon(300)
-        animes = re.findall(r'<ellipse class="mg[^"]*"', svg)
-        assert len(animes) == 3, "seuls les trois méridiens doivent être animés"
+        assert marque._PORTE in svg and marque.OR in svg
 
 
 class TestMotifsDuZellige:

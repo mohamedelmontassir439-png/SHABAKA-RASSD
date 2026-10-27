@@ -218,13 +218,13 @@ def notifier_nouvelle_annonce(post: dict) -> int:
     for m in membres_a_prevenir(post):
         corps = f"""
         <div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:auto">
-          <h2 style="color:#1e1611;font-size:19px;margin:0 0 10px">Nouvelle demande de sous-traitance</h2>
+          <h2 style="color:#0b231c;font-size:19px;margin:0 0 10px">Nouvelle demande de sous-traitance</h2>
           <p style="color:#4a4a4a;font-size:15px;line-height:1.7;margin:0 0 6px"><b>{titre}</b></p>
           <p style="color:#4a4a4a;font-size:14px;margin:0 0 18px">
             {metier}{' · ' + lieu if lieu else ''}
             {'· Budget indicatif : ' + post['budget'] if post.get('budget') else ''}
           </p>
-          <a href="{lien}" style="display:inline-block;padding:12px 24px;background:#f2662d;
+          <a href="{lien}" style="display:inline-block;padding:12px 24px;background:#b8863b;
              color:#fff;border-radius:8px;text-decoration:none;font-weight:600">Proposer une offre</a>
           <p style="color:#98a1b3;font-size:11px;margin-top:22px">
             MAROC ENTREPRENEURIAT · <a href="{cfg.SITE_URL}/settings" style="color:#6b7488">Gérer mes alertes</a></p>

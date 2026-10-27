@@ -1,134 +1,35 @@
 # -*- coding: utf-8 -*-
 """Identité visuelle: un seul endroit d'où sort la marque.
 
-Le signe est un globe de méridiens, posé sur un arc, dans un médaillon
-cerclé. Il dit ce que fait la plateforme — une couverture nationale, une
-veille qui embrasse tout le territoire — là où l'étoile précédente disait
-l'orientation. L'étoile sous le nom est celle du drapeau marocain, un
-zellige marocain et de l'ancien pavillon chérifien.
+Le signe est un khatam — l'étoile à huit branches du zellige, faite de deux
+carrés croisés — taillé dans l'émeraude et cerclé de laiton. En son centre,
+une porte: l'arc outrepassé des médinas, celui de Bab Boujloud ou de Bab
+Mansour. La plateforme ouvre aux entreprises la porte des marchés; le signe
+le dit sans un mot, et il se lit comme marocain au premier regard.
+
+Émeraude et laiton (27/10/2026) plutôt que l'orange d'avant: le vert du
+drapeau et des institutions, le métal des lanternes et des heurtoirs. Deux
+teintes qui disent la confiance et le soin — ce qu'on attend de qui vous
+apporte des marchés publics.
 
 Tout est tracé en SVG: le trait reste net du favicon de seize pixels à
 l'en-tête imprimé en A4, le fichier pèse quelques kilo-octets et s'insère
 sans requête supplémentaire. Les emails font exception, traités plus bas:
 Gmail supprime le SVG et bloque les images par défaut.
 
-Le globe est construit, pas dessiné à la main: les méridiens sont des
-ellipses de demi-largeur décroissante, les parallèles des ellipses de
-demi-hauteur décroissante. Posés au jugé, ils donnent une pelote; calculés,
-ils donnent une sphère.
+Le khatam est construit, pas dessiné: ses seize sommets alternent deux
+rayons dans le rapport exact de deux carrés croisés, cos 45° / cos 22,5°.
 """
 import math
 
-# Teintes de la plateforme.
-# Un seul orange sur toute la plateforme. La référence tire vers #e8621f,
-# à l'œil indiscernable de celui des pages; en garder deux aurait fait
-# jurer la marque contre ses propres boutons.
-OR = "#f2662d"          # orange vif — l'accent, identique à --terre
-OR_CLAIR = "#ff8c4a"    # orange clair — les reflets
-TERRE = "#c94e1f"
-ENCRE = "#17120f"       # presque noir, chaud
-BRUN = "#3a1e12"        # brun profond du médaillon
-CREME = "#f6efe6"
-
-
-def _rotation(r: float, cle: str, duree: int = 21) -> str:
-    """Le mouvement des méridiens, décrit une fois pour les trois.
-
-    Un globe ne tourne pas en pivotant sur l'écran: ses méridiens
-    s'amincissent jusqu'au trait quand ils passent de profil, puis
-    s'élargissent. On anime donc `rx`, et rien d'autre — les parallèles,
-    eux, sont invariants sous une rotation d'axe vertical, et les faire
-    bouger trahirait la sphère.
-
-    Les étapes suivent |cos θ| plutôt qu'une interpolation facile: avec un
-    `ease-in-out`, le méridien ralentit au moment où il passe de profil,
-    là où il devrait aller le plus vite, et le globe se met à respirer au
-    lieu de tourner.
-
-    Le style est écrit dans le SVG, non dans la feuille de la page: la
-    marque est servie seule — favicon, en-tête de document, image de
-    partage — et doit emporter son mouvement avec elle. Les classes portent
-    la clé pour la même raison que les dégradés: deux marques sur une page
-    ne doivent pas se commander l'une l'autre.
-
-    Sans prise en charge de l'animation des propriétés géométriques, les
-    attributs `rx` écrits sur les ellipses tiennent: on retrouve le globe
-    immobile et bien composé d'avant.
-    """
-    pas = 12  # un demi-tour: au-delà, le méridien repasse par où il était
-    etapes = "".join(
-        # Un plancher, car `rx=0` n'est pas une ellipse plate: c'est une
-        # ellipse qui ne se dessine pas. Le méridien disparaîtrait au lieu
-        # de se réduire au trait qu'il doit être, vu de profil.
-        f"{i * 100 / pas:.4g}%{{rx:{max(0.04, abs(r * math.cos(math.pi * i / pas))):.2f}px}}"
-        for i in range(pas + 1))
-    return (
-        f"<style>"
-        f"@keyframes tg{cle}{{{etapes}}}"
-        f".mg{cle}{{animation:tg{cle} {duree}s linear infinite}}"
-        f".mg{cle}b{{animation-delay:-{duree / 3:.1f}s}}"
-        f".mg{cle}c{{animation-delay:-{2 * duree / 3:.1f}s}}"
-        f"@media(prefers-reduced-motion:reduce){{.mg{cle}{{animation:none}}}}"
-        f"</style>")
-
-
-def _globe(rayon: float = 30.0, centre: float = 50.0, cle: str = "g",
-           anime: bool = True) -> str:
-    """La sphère: dégradé, méridiens, parallèles, reflet, liseré.
-
-    Les identifiants sont suffixés pour qu'on puisse poser deux marques sur
-    la même page sans que leurs dégradés se confondent.
-
-    `anime` est faux là où le mouvement n'a pas de sens et pèse: le favicon,
-    recopié dans l'en-tête de chaque page, et les documents imprimés.
-    """
-    c, r = centre, rayon
-    classes = (f"mg{cle}", f"mg{cle} mg{cle}b", f"mg{cle} mg{cle}c")
-    meridiens = "".join(
-        f'<ellipse class="{classes[i] if anime else ""}" cx="{c}" cy="{c}" '
-        f'rx="{r * f:.2f}" ry="{r}" '
-        f'fill="none" stroke="{OR}" stroke-width="{0.9 if f else 1.1}" '
-        f'opacity="{0.52 + 0.30 * (1 - f):.2f}"/>'
-        for i, f in enumerate((0.80, 0.52, 0.22)))
-    paralleles = "".join(
-        f'<ellipse cx="{c}" cy="{c + r * d:.2f}" rx="{r * math.sqrt(1 - d * d):.2f}" '
-        f'ry="{r * 0.17:.2f}" fill="none" stroke="{OR}" stroke-width="0.8" '
-        f'opacity="{0.46 - 0.10 * abs(d):.2f}"/>'
-        for d in (-0.55, -0.22, 0.14, 0.48))
-    return (
-        (_rotation(r, cle) if anime else "")
-        + f'<defs>'
-        f'<radialGradient id="sph{cle}" cx="36%" cy="28%" r="78%">'
-        f'<stop offset="0%" stop-color="#c4702f"/>'
-        f'<stop offset="44%" stop-color="#6b3317"/>'
-        f'<stop offset="100%" stop-color="#1c100a"/>'
-        f'</radialGradient>'
-        f'<radialGradient id="ref{cle}" cx="50%" cy="50%" r="50%">'
-        f'<stop offset="0%" stop-color="#ffffff" stop-opacity=".55"/>'
-        f'<stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>'
-        f'</radialGradient>'
-        f'<clipPath id="clp{cle}"><circle cx="{c}" cy="{c}" r="{r}"/></clipPath>'
-        f'</defs>'
-        f'<circle cx="{c}" cy="{c}" r="{r}" fill="url(#sph{cle})"/>'
-        f'<g clip-path="url(#clp{cle})">{meridiens}{paralleles}'
-        f'<ellipse cx="{c - r * 0.34:.2f}" cy="{c - r * 0.42:.2f}" '
-        f'rx="{r * 0.30:.2f}" ry="{r * 0.22:.2f}" fill="url(#ref{cle})"/></g>'
-        f'<circle cx="{c}" cy="{c}" r="{r}" fill="none" stroke="{OR}" '
-        f'stroke-width="1" opacity=".85"/>'
-        # Pas de point de lumière. Il y en avait un, blanc, posé en haut à
-        # droite du liseré: à distance il ne se lisait pas comme un reflet
-        # mais comme une poussière sur l'écran. Le dégradé et le voile du
-        # quart supérieur gauche suffisent à creuser la sphère.
-    )
-
-
-def _socle(centre: float = 50.0, rayon: float = 30.0) -> str:
-    """L'arc sur lequel le globe repose."""
-    c, r = centre, rayon
-    y = c + r * 1.16
-    return (f'<path d="M {c - r * 1.12:.1f} {y:.1f} Q {c} {y + r * 0.26:.1f} '
-            f'{c + r * 1.12:.1f} {y:.1f}" fill="none" stroke="{OR}" '
-            f'stroke-width="1.6" stroke-linecap="round" opacity=".92"/>')
+# Teintes de la plateforme, identiques à celles des pages (--gold, --ink).
+OR = "#b8863b"          # laiton — l'accent, les filets, le métal du signe
+OR_CLAIR = "#e8c47f"    # laiton clair — les reflets
+TERRE = "#8e6424"       # laiton sombre — les ombres du métal
+EMERAUDE = "#0f5c47"    # émeraude — la pierre du signe, les actions
+ENCRE = "#0a1f19"       # encre verte, presque noire
+BRUN = "#0f2e25"        # fond profond du médaillon
+CREME = "#f6f3ea"
 
 
 def _etoile_marocaine(cx: float = 50, cy: float = 50, rayon: float = 44) -> str:
@@ -159,22 +60,61 @@ def sceau(taille: int = 14, couleur: str = OR) -> str:
             f'stroke="{couleur}" stroke-width="7" stroke-linejoin="miter"/></svg>')
 
 
+# L'arc outrepassé: un cercle de 11,6 centré en (50, 43), prolongé sous son
+# diamètre puis posé sur deux jambages droits. Les jambages partent du
+# cercle même — (40,2 ; 49,2) est à 11,6 du centre —, sans quoi l'arc se
+# casserait à la naissance des piliers.
+_PORTE = "M 40.2 70 L 40.2 49.2 A 11.6 11.6 0 1 1 59.8 49.2 L 59.8 70 Z"
+
+
+def _signe(cle: str, petit: bool = False) -> str:
+    """Le khatam d'émeraude, son filet de laiton et la porte, dans 100 × 100.
+
+    En petit (favicon, rail replié), le filet intérieur et l'étoile du seuil
+    se fondraient en une tache: on ne garde que l'étoile, son liseré et la
+    porte, qui restent lisibles à seize pixels.
+    """
+    exterieur = _etoile_khatam(50, 50, 47, 8, 2)
+    interieur = _etoile_khatam(50, 50, 40.5, 8, 2)
+    return (
+        f'<defs>'
+        f'<radialGradient id="em{cle}" cx="50%" cy="34%" r="72%">'
+        f'<stop offset="0%" stop-color="#1f8466"/><stop offset="100%" stop-color="#0a3a2d"/>'
+        f'</radialGradient>'
+        f'<linearGradient id="la{cle}" x1="0" y1="0" x2="0" y2="1">'
+        f'<stop offset="0%" stop-color="{OR_CLAIR}"/><stop offset="55%" stop-color="{OR}"/>'
+        f'<stop offset="100%" stop-color="{TERRE}"/>'
+        f'</linearGradient>'
+        f'</defs>'
+        f'<polygon points="{exterieur}" fill="url(#em{cle})" stroke="url(#la{cle})" '
+        f'stroke-width="{3.4 if petit else 2.6}" stroke-linejoin="miter"/>'
+        + ("" if petit else
+           f'<polygon points="{interieur}" fill="none" stroke="url(#la{cle})" '
+           f'stroke-width=".9" opacity=".75"/>')
+        + f'<path d="{_PORTE}" fill="url(#la{cle})"/>'
+        + ("" if petit else
+           # L'étoile du drapeau au seuil de la porte, gravée dans le métal.
+           f'<g transform="translate(45.4,51.6) scale(.092)">'
+           f'<polygon points="{_etoile_marocaine()}" fill="none" stroke="#0a3a2d" '
+           f'stroke-width="9"/></g>')
+    )
+
+
 def etoile(taille: int = 40, couleur: str = OR, fond: str = "none",
            anime: bool = True) -> str:
-    """La marque seule: le globe dans son médaillon.
+    """La marque seule: le khatam et sa porte.
 
     Pour le favicon, l'icône de l'application et le rail d'administration.
-    Sous vingt-quatre pixels les méridiens se referment en une tache: on ne
-    garde alors que la sphère et son liseré, qui restent reconnaissables.
+    `couleur` et `anime` restent pour les appelants: le signe a ses teintes
+    propres et ne bouge pas.
     """
     petit = taille < 24
     fond_rond = (f'<circle cx="50" cy="50" r="49" fill="{fond}"/>'
                  f'<circle cx="50" cy="50" r="47" fill="none" stroke="{OR}" '
                  f'stroke-width="1.6" opacity=".9"/>') if fond != "none" else ""
     cle = f"{taille}"
-    corps = (f'<circle cx="50" cy="50" r="30" fill="#2a160d"/>'
-             f'<circle cx="50" cy="50" r="30" fill="none" stroke="{couleur}" '
-             f'stroke-width="3"/>') if petit else _globe(30, 50, cle, anime) + _socle()
+    corps = (f'<g transform="translate(9,9) scale(.82)">{_signe(cle, petit)}</g>'
+             if fond != "none" else _signe(cle, petit))
     return (
         # flex:none et la largeur minimale protègent la marque: dans une barre
         # chargée, « svg { max-width: 100% } » la laissait se réduire à rien.
@@ -186,11 +126,11 @@ def etoile(taille: int = 40, couleur: str = OR, fond: str = "none",
 
 
 def medaillon(taille: int = 160, fond: str = BRUN) -> str:
-    """Le médaillon complet: globe, nom, étoile marocaine, mention.
+    """Le médaillon complet: le signe, le nom, l'étoile marocaine, la mention.
 
-    Mise en page calculée, pas ajustée à l'œil: le globe est centré à
-    (150, 105) avec un rayon de 45, si bien que son arc tombe à y=157 — sous
-    la sphère et au-dessus du nom, qu'il traversait auparavant. À 26 px,
+    Mise en page calculée, pas ajustée à l'œil: le signe occupe de y=34 à
+    y=142, bien au-dessus du nom (« Maroc » a sa ligne de base à 203 et son
+    œil commence vers 184). À 26 px,
     « Entrepreneuriat » mesure environ 218 px; la corde du cercle à cette
     hauteur en fait 240. Il tient, de justesse, et c'est pourquoi le corps
     ne doit pas remonter.
@@ -209,16 +149,16 @@ def medaillon(taille: int = 160, fond: str = BRUN) -> str:
  style="flex:none">
 <defs>
   <radialGradient id="mfond" cx="50%" cy="38%" r="70%">
-    <stop offset="0%" stop-color="#4a2214"/><stop offset="100%" stop-color="{ENCRE}"/>
+    <stop offset="0%" stop-color="#14402f"/><stop offset="100%" stop-color="{ENCRE}"/>
   </radialGradient>
 </defs>
 <circle cx="150" cy="150" r="146" fill="url(#mfond)"/>
 <circle cx="150" cy="150" r="143" fill="none" stroke="{OR}" stroke-width="2.4" opacity=".92"/>
-<g transform="translate(75,30) scale(1.5)">{_globe(30, 50, "med")}{_socle()}</g>
+<g transform="translate(96,34) scale(1.08)">{_signe("med")}</g>
 <text x="150" y="203" text-anchor="middle" fill="{CREME}"
-      font-family="Georgia,'Times New Roman',serif" font-weight="700" font-size="26">Maroc</text>
+      font-family="'Libre Caslon Text',Georgia,'Times New Roman',serif" font-weight="700" font-size="26">Maroc</text>
 <text x="150" y="231" text-anchor="middle" fill="{OR}"
-      font-family="Georgia,'Times New Roman',serif" font-weight="700" font-size="26">Entrepreneuriat</text>
+      font-family="'Libre Caslon Text',Georgia,'Times New Roman',serif" font-weight="700" font-style="italic" font-size="26">Entrepreneuriat</text>
 <g transform="translate(143,241) scale(.14)">
   <polygon points="{_etoile_marocaine()}" fill="none" stroke="{OR}" stroke-width="7"/>
 </g>
@@ -229,7 +169,7 @@ def medaillon(taille: int = 160, fond: str = BRUN) -> str:
 
 
 def _mot(taille: float, couleur: str, texte: str, espace: float = 0) -> str:
-    return (f'<div style="font-family:Georgia,\'Times New Roman\',serif;'
+    return (f'<div style="font-family:\'Libre Caslon Text\',Georgia,\'Times New Roman\',serif;'
             f'font-weight:700;font-size:{taille:.1f}px;'
             f'letter-spacing:{espace:.2f}px;color:{couleur};'
             f'line-height:1.02;white-space:nowrap">{texte}</div>')
@@ -278,7 +218,7 @@ def entete_document(hauteur: int = 52) -> str:
         f'<div style="display:flex;flex-direction:column;gap:7px">'
         f'{logo(hauteur, couleur_texte=ENCRE, baseline=True)}'
         f'<div style="font-family:Arial,Helvetica,sans-serif;'
-        f'font-size:{hauteur * 0.185:.1f}px;color:#5a4a3e;line-height:1.5">'
+        f'font-size:{hauteur * 0.185:.1f}px;color:#4a5650;line-height:1.5">'
         f'Veille des marchés publics, semi-publics et privés au Maroc</div>'
         f'</div>'
     )

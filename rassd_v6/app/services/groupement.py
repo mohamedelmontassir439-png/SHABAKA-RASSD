@@ -100,11 +100,11 @@ def proposer(de: dict, a_id: int, t: dict, message: str) -> tuple:
         from app.services.notifications import email_send
         email_send(dest["email"], f"Proposition de groupement : {(t.get('objet') or '')[:70]}",
                    f'<div style="font-family:Arial,sans-serif;max-width:580px;margin:auto;padding:20px;'
-                   f'background:#f8f1e1"><p><b>{de.get("company") or de.get("nom")}</b> vous propose de '
+                   f'background:#f6f5f0"><p><b>{de.get("company") or de.get("nom")}</b> vous propose de '
                    f'répondre ensemble, en groupement, au marché :</p><p><b>{(t.get("objet") or "")[:200]}</b></p>'
                    f'<p style="white-space:pre-wrap">{(message or "")[:1500]}</p>'
                    f'<p>Vos coordonnées ne lui sont communiquées que si vous acceptez.</p>'
-                   f'<p style="text-align:center"><a href="{cfg.SITE_URL}/groupements" style="background:#f2662d;'
+                   f'<p style="text-align:center"><a href="{cfg.SITE_URL}/groupements" style="background:#b8863b;'
                    f'color:#fff;padding:11px 20px;border-radius:9px;text-decoration:none;font-weight:700">'
                    f'Répondre</a></p></div>')
     except Exception as e:

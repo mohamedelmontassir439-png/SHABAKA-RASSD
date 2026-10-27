@@ -22,21 +22,21 @@
 <title>{% block titre %}Administration{% endblock %} — Maroc Entrepreneuriat</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Text:ital,wght@0,400;0,700;1,400&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{
   /* Teintes de la plateforme. Les noms disent la fonction, pas la couleur:
      l'ancien jeu appelait « navy » un orange, ce qui égarait toute retouche.
      Les anciens noms restent en alias plus bas, le temps que les pages les
      abandonnent. */
-  --fond:#f8f1e1; --surface:#ffffff; --surface2:#f1e6cf;
-  --trait:#e8dcc5; --trait2:#d9c7a8;
-  --encre:#1e1611;
-  --terre:#f2662d; --terre-f:#c94e1f; --terre-p:rgba(242,102,45,.14);
-  --t1:#2b211b; --t2:#4a3b32; --t3:#8a7a6a; --t4:#b7a896;
+  --fond:#f6f5f0; --surface:#ffffff; --surface2:#ecebe3;
+  --trait:#e2e1d8; --trait2:#cdcbbd;
+  --encre:#0b231c;
+  --terre:#b8863b; --terre-f:#8e6424; --terre-p:rgba(184,134,59,.14);
+  --t1:#14201b; --t2:#33413a; --t3:#68756e; --t4:#a3aca6;
   --vert:#2f9e5b; --rouge:#d6493f; --bleu:#3d7a7a;
-  --serif:'Fredoka',Georgia,serif;
-  --sans:'Inter',system-ui,-apple-system,sans-serif;
+  --serif:'Libre Caslon Text',Georgia,serif;
+  --sans:'Manrope',system-ui,-apple-system,sans-serif;
   --mono:'JetBrains Mono',ui-monospace,monospace;
 
   /* Échelle typographique. Avant, trente-six tailles coexistaient sur la
@@ -105,7 +105,7 @@ a{color:inherit;text-decoration:none}
    seconde barre verticale. `clip` coupe sans rien de tout cela. */
 .corps{margin-inline-start:var(--rail);min-height:100vh;display:flex;
   flex-direction:column;max-width:100%;overflow-x:clip}
-.entete{position:sticky;top:0;z-index:50;background:rgba(248,241,225,.92);
+.entete{position:sticky;top:0;z-index:50;background:rgba(246,245,240,.92);
   backdrop-filter:blur(8px);border-bottom:1px solid var(--trait);
   padding:18px 32px;display:flex;align-items:flex-end;justify-content:space-between;
   gap:18px;flex-wrap:wrap}
@@ -122,7 +122,7 @@ a{color:inherit;text-decoration:none}
   color:var(--t1);border-radius:var(--r);transition:border-color .15s,filter .15s;
   font-family:inherit;line-height:1.3}
 .btn:hover{border-color:var(--terre)}
-.btn-p{background:linear-gradient(180deg,#ff8552,var(--terre));color:#fff;
+.btn-p{background:linear-gradient(180deg,#d4a65a,var(--terre));color:#fff;
   border-color:var(--terre);font-weight:700}
 .btn-p:hover{filter:brightness(1.06)}
 .btn-d{background:rgba(214,73,63,.1);border-color:rgba(214,73,63,.34);color:var(--rouge);
@@ -233,7 +233,7 @@ tbody tr:hover td{background:var(--surface2)}
      khatim se lit à cette taille et dit la même chose; l'adresse de la page
      et le titre disent déjà où l'on est. #}
   <a class="rail-tete" href="/admin" aria-label="Maroc Entrepreneuriat — administration">
-    {{ etoile(34, '#f2662d')|safe }}
+    {{ etoile(34, '#b8863b')|safe }}
     <span class="rail-meta">admin{% if cfg %} · v{{ cfg.APP_VERSION }}{% endif %}</span>
   </a>
 

@@ -113,9 +113,9 @@ def _correspondances(nouveaux: list) -> dict:
 def _ligne(r: dict) -> str:
     gagnant = r.get("adjudicataire") or "—"
     montant = r.get("montant") or ""
-    return (f'<div style="border:1px solid #e8dcc5;border-radius:10px;padding:12px 14px;'
-            f'margin-bottom:8px;background:#fff"><div style="font-weight:600;color:#2b211b">'
-            f'{(r.get("objet") or "")[:160]}</div><div style="font-size:13px;color:#8a7a6a;'
+    return (f'<div style="border:1px solid #e2e1d8;border-radius:10px;padding:12px 14px;'
+            f'margin-bottom:8px;background:#fff"><div style="font-weight:600;color:#14201b">'
+            f'{(r.get("objet") or "")[:160]}</div><div style="font-size:13px;color:#68756e;'
             f'margin-top:5px">{(r.get("acheteur") or "")[:80]} · <b>{gagnant[:80]}</b>'
             f'{" · " + montant if montant else ""}</div></div>')
 
@@ -129,18 +129,18 @@ def notifier(nouveaux: list) -> int:
             continue
         blocs = []
         if c["suivis"]:
-            blocs.append('<h3 style="font-size:16px;color:#2b211b">Résultat d\'un marché que vous suiviez</h3>'
+            blocs.append('<h3 style="font-size:16px;color:#14201b">Résultat d\'un marché que vous suiviez</h3>'
                          + "".join(_ligne(r) for r in c["suivis"][:10]))
         if c["concurrents"]:
-            blocs.append('<h3 style="font-size:16px;color:#2b211b">Vos concurrents ont remporté</h3>'
+            blocs.append('<h3 style="font-size:16px;color:#14201b">Vos concurrents ont remporté</h3>'
                          + "".join(_ligne(r) for r in c["concurrents"][:10]))
         sujet = ("Résultat d'un marché que vous suiviez" if c["suivis"]
                  else f"{len(c['concurrents'])} marché(s) remporté(s) par vos concurrents")
         corps = (f'<div style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:22px;'
-                 f'background:#f8f1e1"><p style="font-size:15px;color:#4a3b32">Bonjour {c["nom"] or ""},</p>'
+                 f'background:#f6f5f0"><p style="font-size:15px;color:#33413a">Bonjour {c["nom"] or ""},</p>'
                  + "".join(blocs) +
                  f'<p style="text-align:center;margin:20px 0"><a href="{cfg.SITE_URL}/intelligence" '
-                 f'style="background:#f2662d;color:#fff;padding:12px 22px;border-radius:9px;'
+                 f'style="background:#b8863b;color:#fff;padding:12px 22px;border-radius:9px;'
                  f'text-decoration:none;font-weight:700">Voir l\'analyse</a></p></div>')
         if email_send(c["email"], sujet, corps):
             envoyes += 1
