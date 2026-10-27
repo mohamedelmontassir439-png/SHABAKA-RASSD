@@ -98,3 +98,30 @@ class TestLeServeurSeRetire:
                    (main.MESSAGE_RELAIS, vieux, vieux))
         db.commit()
         assert main._relais_actif() == ""
+
+
+class TestFichesACompleter:
+    def _ao(self, db, tid, desc):
+        db.execute("""INSERT INTO tenders(id,objet,secteur,statut,scraped_at,url,description)
+                      VALUES(?,?,?,?,?,?,?)""",
+                   (tid, "x", "S903", "actif", "2026-10-27 10:00:00",
+                    f"https://www.marchespublics.gov.ma/?refConsultation={tid[3:]}", desc))
+        db.commit()
+
+    def test_liste_puis_complete(self, client, db):
+        self._ao(db, "ao_1031130", "Référence : 60/2026 Objet : x")
+        self._ao(db, "ao_1031131", "Date et heure limite de remise des plis : 30/10/2026 10:00 Référence : 1")
+        e = client.get("/api/relais/a-completer", headers=_jeton()).json()
+        assert [f["id"] for f in e["fiches"]] == ["ao_1031130"] and e["reste"] == 1
+        desc = "Date et heure limite de remise des plis : 30/10/2026 10:00 Caution provisoire : 20 000,00 MAD Référence : 60/2026"
+        r = client.post("/api/relais/fiches", headers=_jeton(), json={"fiches": [
+            {"id": "ao_1031130", "description": desc, "montant": "1 214 040,00 MAD"},
+            {"id": "bdc_1", "description": desc}]})
+        assert r.json()["corriges"] == 1
+        ligne = db.execute("SELECT description, montant FROM tenders WHERE id='ao_1031130'").fetchone()
+        assert ligne[0] == desc and ligne[1] == "1 214 040,00 MAD"
+        assert client.get("/api/relais/a-completer", headers=_jeton()).json()["reste"] == 0
+
+    def test_sans_jeton_rien(self, client):
+        assert client.get("/api/relais/a-completer").status_code == 401
+        assert client.post("/api/relais/fiches", json={}).status_code == 401

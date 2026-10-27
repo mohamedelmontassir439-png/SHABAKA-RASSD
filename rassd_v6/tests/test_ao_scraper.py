@@ -271,3 +271,37 @@ class TestPagination:
         monkeypatch.setattr(ao, "parse_carte", lambda c: {"ref": ao._reference_et_organisme(c.get("onclick"))[0]})
         lignes = ao._lister_cartes(S(), 3, lambda *_: None)
         assert len(lignes) == 499 + 499 + 1
+
+
+# Présentation du portail depuis le 26/10/2026 (extrait de l'avis 1031130):
+# la caution et l'heure limite précèdent « Référence », qui porte un deux-points.
+FICHE_2026 = """<html><body><div>Aller au menu Consultations > Détails
+<div>Objet : la refonte du portail Intranet, à Rabat.</div>
+<div>Date et heure limite de remise des plis : Ven 30 Oct 2026 10:00</div>
+<div class="line"><div>Caution provisoire : </div><div><span>20 000,00 MAD </span></div></div>
+<div>Acheteur public : MEF / MEF - MINISTERE DE L'ECONOMIE, ET DES FINANCES</div>
+<div>Référence : 60/2026/MEF/AC/INF</div><div>Type d'annonce : Annonce de consultation</div>
+<div>Procédure : Appel d'offres ouvert | Sur offre de prix</div>
+<div>Estimation (en Dhs TTC) * : 1 214 040,00 @@@@</div>
+<div>Réservé à la TPE et PME installées au Maroc, jeunes entreprises innovantes, Coopératives et auto-entrepreneurs * : Non @@@@</div>
+<div>Considérations environnementales * : Ce marché comporte-t-il des considérations environnementales ?</div>
+<div>Domaines d'activité : Fournitures / Logiciels</div>
+<div>Qualifications : - Agréments : - Echantillons/prospectus : - Réunion : - Visites des lieux : - Variante : Non</div>
+<div>Vous ne pouvez pas signer un document</div></body></html>"""
+
+
+class TestFiche2026:
+    def test_caution_et_heure_limite_gardees(self):
+        from app.core.conditions import conditions_avis
+        fiche = ao.parse_fiche(FICHE_2026)
+        c = conditions_avis(fiche["description"])
+        assert c["caution"] == "20 000,00 MAD"
+        assert c["limite"] == "30/10/2026 10:00"
+        assert c["reference"] == "60/2026/MEF/AC/INF"
+        assert fiche["montant"] == "1 214 040,00 MAD"
+
+    def test_aucun_agrement_lu_dans_les_echantillons(self):
+        from app.core.conditions import conditions_avis
+        c = conditions_avis(ao.parse_fiche(FICHE_2026)["description"])
+        assert "agrements" not in c and "echantillons" not in c
+        assert c["reserve"].lower().startswith("non")

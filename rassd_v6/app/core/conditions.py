@@ -37,6 +37,7 @@ _ETIQUETTES = (
     ("lieu",          r"Lieu d'exécution"),
     ("estimation",    r"Estimation \(en Dhs TTC\)\s*\*?"),
     ("reserve",       r"Réservé à la TPE et PME[^:]{0,140}?\*?"),
+    (None,            r"Considérations environnementales\s*\*?"),
     ("domaines",      r"Domaines d'activité"),
     ("retrait",       r"Adresse de retrait des dossiers"),
     ("depot",         r"Adresse de dépôt des offres"),
@@ -45,7 +46,8 @@ _ETIQUETTES = (
     ("caution",       r"Caution provisoire"),
     ("qualifications", r"Qualifications"),
     ("agrements",     r"Agréments"),
-    ("echantillons",  r"Prospectus, notices ou autres documents"),
+    # « Echantillons/prospectus » depuis le 26/10/2026.
+    ("echantillons",  r"Prospectus, notices ou autres documents|Echantillons/prospectus"),
     ("reunion",       r"Réunion"),
     ("visite",        r"Visites des lieux"),
     ("variante",      r"Variante"),
@@ -65,7 +67,8 @@ _FIN = re.compile(r"champsvide|Vous ne pouvez pas|Jeton de signature|Certificat 
 # « Référence » est la seule étiquette sans deux-points sur la page
 # (« Référence 81/2026/DR9 Objet : … »). On la reconnaît au numéro qui la
 # suit, pour ne pas couper sur le mot employé dans un objet.
-_SANS_DEUX_POINTS = {"reference": r"(?=\s+\S*\d)"}
+# Depuis le 26/10/2026 elle en porte un (« Référence : 60/2026/… »).
+_SANS_DEUX_POINTS = {"reference": r"(?=\s*:?\s+\S*\d)"}
 
 _MOTIF = re.compile("|".join(
     f"(?P<e{i}>{motif})" + _SANS_DEUX_POINTS.get(cle, r"\s*:")

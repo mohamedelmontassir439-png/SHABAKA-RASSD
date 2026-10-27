@@ -168,13 +168,28 @@ def parse_fiche(html: str) -> dict:
     # suffisait à faire passer un marché d'assainissement pour de la menuiserie.
     # L'heure limite précède « Référence »: on la reprend avant de couper,
     # sinon la fiche ne connaît que le jour — et un pli se refuse à la minute.
-    limite = re.search(r"Date et heure limite de remise des plis\s*:\s*"
-                       r"(\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2})", txt)
+    # Depuis le 26/10/2026 la caution provisoire précède elle aussi
+    # « Référence », et l'heure limite s'écrit « Ven 30 Oct 2026 10:00 »:
+    # la coupe faisait dire « aucune caution » à des avis qui en exigent une.
     depart = txt.find("Référence")
+    tete = txt[:depart] if depart > 0 else ""
+    limite = ""
+    m = re.search(r"Date et heure limite de remise des plis\s*:\s*"
+                  r"(\d{2}/\d{2}/\d{4}\s+\d{2}:\d{2})", txt)
+    if m:
+        limite = m.group(1)
+    else:
+        m = re.search(r"Date et heure limite de remise des plis\s*:\s*(?:[A-Za-zé]{3,4}\.?\s+)?"
+                      r"(\d{1,2}\s+[A-Za-zéûÉ]{3,5}\.?\s+\d{4})\s+(\d{2}:\d{2})", txt)
+        if m and _date_carte(m.group(1)):
+            limite = f"{_date_carte(m.group(1))} {m.group(2)}"
+    caution = re.search(r"Caution provisoire\s*:\s*(.{1,80}?)\s*(?:Acheteur public|$)", tete)
     if depart > 0:
         txt = txt[depart:]
+    if caution and "Caution provisoire" not in txt:
+        txt = f"Caution provisoire : {caution.group(1)} {txt}"
     if limite and "Date et heure limite" not in txt:
-        txt = f"Date et heure limite de remise des plis : {limite.group(1)} {txt}"
+        txt = f"Date et heure limite de remise des plis : {limite} {txt}"
 
     montant = ""
     m = re.search(r"Estimation\s*\(en Dhs[^)]*\)\s*\*?\s*:\s*([\d\s.,]+)", txt)

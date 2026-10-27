@@ -4851,6 +4851,57 @@ async def relais_depot(req: Request):
     return JSONResponse({"ok": True, "recus": len(marches), "enregistres": enregistres})
 
 
+# Les avis lus entre le 26/10/2026 et la correction de parse_fiche ont perdu
+# la caution provisoire et l'heure limite, que la nouvelle présentation du
+# portail place avant « Référence ». Une fiche relue commence par l'heure
+# limite: c'est ce qui la sort de la liste.
+_A_COMPLETER = """FROM tenders WHERE id LIKE 'ao_%' AND statut='actif'
+                  AND scraped_at >= '2026-10-26'
+                  AND description NOT LIKE 'Date et heure limite%'"""
+
+
+@app.get("/api/relais/a-completer")
+async def relais_a_completer(req: Request, limite: int = 200):
+    """Les appels d'offres dont la fiche est à relire sur le portail."""
+    if not _relais_ok(req):
+        return JSONResponse({"ok": False}, 401)
+    db = get_db()
+    lignes = db.execute(f"SELECT id, url {_A_COMPLETER} ORDER BY date_limite LIMIT ?",
+                        (max(1, min(limite, 500)),)).fetchall()
+    reste = db.execute(f"SELECT COUNT(*) {_A_COMPLETER}").fetchone()[0]
+    db.close()
+    return JSONResponse({"ok": True, "reste": reste,
+                         "fiches": [{"id": r["id"], "url": r["url"]} for r in lignes]})
+
+
+@app.post("/api/relais/fiches")
+async def relais_fiches(req: Request):
+    """Remplace la description (et le montant manquant) des fiches relues."""
+    if not _relais_ok(req):
+        return JSONResponse({"ok": False}, 401)
+    try:
+        corps = await req.json()
+    except Exception:
+        return JSONResponse({"ok": False, "erreur": "JSON illisible"}, 400)
+    db = get_db()
+    corriges = 0
+    for f in corps.get("fiches") or []:
+        if not isinstance(f, dict):
+            continue
+        tid, desc = str(f.get("id", "")), str(f.get("description", ""))
+        if not (tid.startswith("ao_") and desc.startswith("Date et heure limite")):
+            continue
+        corriges += db.execute(
+            """UPDATE tenders SET description=?,
+                      montant=CASE WHEN COALESCE(montant,'')='' THEN ? ELSE montant END,
+                      updated_at=? WHERE id=?""",
+            (desc[:3000], str(f.get("montant", ""))[:80],
+             datetime.now().strftime("%Y-%m-%d %H:%M:%S"), tid)).rowcount
+    db.commit(); db.close()
+    State.log(f"✅ Relais local · {corriges} fiche(s) complétée(s)")
+    return JSONResponse({"ok": True, "corriges": corriges})
+
+
 @app.get("/admin/relais/jeton")
 async def admin_relais_jeton(req: Request):
     """Le jeton à recopier dans la configuration du relais."""

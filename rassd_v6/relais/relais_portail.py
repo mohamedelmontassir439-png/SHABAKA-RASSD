@@ -169,6 +169,50 @@ def cycle(c: dict):
         log(f"  ⚠ erreur appels d'offres: {e!r}")
 
 
+def completer_fiches(c: dict, maximum: int = 200):
+    """Relit sur le portail les fiches que le site signale incomplètes."""
+    from app.services import ao_scraper
+    try:
+        r = requests.get(f"{c['site']}/api/relais/a-completer", params={"limite": maximum},
+                         headers=entetes(c), timeout=60)
+        r.raise_for_status()
+        a_faire = r.json()
+    except Exception as e:
+        log(f"  ⚠ liste des fiches à compléter illisible: {str(e)[:160]}")
+        return
+    if not a_faire.get("fiches"):
+        return
+    log(f"  Fiches à compléter: {a_faire['reste']} (lot de {len(a_faire['fiches'])})")
+    session, lot = ao_scraper.make_session(), []
+
+    def livrer():
+        try:
+            rep = requests.post(f"{c['site']}/api/relais/fiches", json={"fiches": lot},
+                                headers=entetes(c), timeout=120)
+            log(f"  ↑ fiches complétées: {rep.json().get('corriges')} sur {len(lot)}")
+        except Exception as e:
+            log(f"  ⚠ fiches non livrées: {str(e)[:160]}")
+        lot.clear()
+
+    for f in a_faire["fiches"]:
+        if not f.get("url", "").startswith("https://www.marchespublics.gov.ma"):
+            continue
+        try:
+            rep = session.get(f["url"], timeout=45)
+            fiche = ao_scraper.parse_fiche(rep.text) if rep.status_code == 200 else {}
+        except Exception as e:
+            log(f"  ⚠ portail injoignable (fiches): {str(e)[:120]}")
+            break
+        if fiche.get("description", "").startswith("Date et heure limite"):
+            lot.append({"id": f["id"], "description": fiche["description"],
+                        "montant": fiche.get("montant", "")})
+        if len(lot) >= 50:
+            livrer()
+        time.sleep(ao_scraper.DELAI)
+    if lot:
+        livrer()
+
+
 def main():
     try:
         verrou = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -183,6 +227,7 @@ def main():
         t0 = time.time()
         try:
             cycle(c)
+            completer_fiches(c)
         except Exception as e:
             log(f"⚠ cycle interrompu: {e!r}")
         # Le rattrapage forcé ne vaut que pour le premier cycle; ensuite c'est
