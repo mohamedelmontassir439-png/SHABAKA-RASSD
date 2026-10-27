@@ -4866,7 +4866,10 @@ async def relais_a_completer(req: Request, limite: int = 200):
     if not _relais_ok(req):
         return JSONResponse({"ok": False}, 401)
     db = get_db()
-    lignes = db.execute(f"SELECT id, url {_A_COMPLETER} ORDER BY date_limite LIMIT ?",
+    # Les plus proches de leur date limite d'abord (jj/mm/aaaa: on trie
+    # sur aaaammjj, pas sur le texte).
+    lignes = db.execute(f"""SELECT id, url {_A_COMPLETER} ORDER BY substr(date_limite,7,4)
+                            || substr(date_limite,4,2) || substr(date_limite,1,2) LIMIT ?""",
                         (max(1, min(limite, 500)),)).fetchall()
     reste = db.execute(f"SELECT COUNT(*) {_A_COMPLETER}").fetchone()[0]
     db.close()
