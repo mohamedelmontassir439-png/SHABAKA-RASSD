@@ -15,7 +15,7 @@ Stratégie en deux temps, pour ne pas marteler le portail:
 import logging
 import re
 import time
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
 from bs4 import BeautifulSoup as BS
 
@@ -30,6 +30,22 @@ RACINE = "https://www.marchespublics.gov.ma"
 URL_RECHERCHE = f"{RACINE}/index.php?page=entreprise.EntrepriseAdvancedSearch&AllCons"
 CIBLE_TAILLE_PAGE = "ctl0$CONTENU_PAGE$resultSearch$listePageSizeTop"
 CIBLE_PAGE_SUIVANTE = "ctl0$CONTENU_PAGE$resultSearch$PagerTop$ctl3"
+# Depuis sa remise en service (26/10/2026), le portail présente les
+# consultations en cartes et non plus en tableau, triées par date limite. La
+# recherche avancée « en cours » filtre par date de mise en ligne: on ne
+# demande que ce qui a paru depuis quelques jours, au lieu de parcourir les
+# cent mille consultations de la liste complète.
+URL_EN_COURS = f"{RACINE}/index.php?page=entreprise.EntrepriseAdvancedSearch&AllCons&EnCours&searchAnnCons"
+# Le formulaire de cette page poste vers une autre adresse que la sienne:
+# poster sur URL_EN_COURS renvoie le formulaire vide, sans rien chercher.
+URL_ACTION = f"{RACINE}/index.php?page=entreprise.EntrepriseAdvancedSearch&searchAnnCons"
+CHAMP = "ctl0$CONTENU_PAGE$AdvancedSearch$"
+CIBLE_LANCER = CHAMP + "lancerRecherche"
+CIBLE_SUIVANTE_CARTES = "ctl0$CONTENU_PAGE$resultSearch$PagerTop$ctl2"
+_MOIS = {"jan": 1, "janv": 1, "feb": 2, "fev": 2, "fév": 2, "févr": 2, "mar": 3, "mars": 3,
+         "apr": 4, "avr": 4, "may": 5, "mai": 5, "jun": 6, "juin": 6, "jul": 7, "juil": 7,
+         "aug": 8, "aou": 8, "aoû": 8, "août": 8, "sep": 9, "sept": 9, "oct": 10,
+         "nov": 11, "dec": 12, "déc": 12}
 DELAI = 1.2  # secondes entre deux requêtes: rythme volontairement lent
 
 
@@ -57,15 +73,17 @@ def _champs_formulaire(soup) -> dict:
     return data
 
 
-def _postback(session, soup, cible: str, valeur: str = "", parametre: str = ""):
+def _postback(session, soup, cible: str, valeur: str = "", parametre: str = "",
+              url: str = "", champs: dict = None):
     """Déclenche une action PRADO (changer la taille de page, page suivante)."""
+    url = url or URL_RECHERCHE
     data = _champs_formulaire(soup)
+    data.update(champs or {})
     if valeur:
         data[cible] = valeur
     data["PRADO_POSTBACK_TARGET"] = cible
     data["PRADO_POSTBACK_PARAMETER"] = parametre
-    r = session.post(URL_RECHERCHE, data=data, timeout=90,
-                     headers={"Referer": URL_RECHERCHE})
+    r = session.post(url, data=data, timeout=90, headers={"Referer": url})
     r.raise_for_status()
     return BS(r.text, "html.parser")
 
@@ -172,6 +190,102 @@ def parse_fiche(html: str) -> dict:
             "description": txt[:3000]}
 
 
+def _date_carte(texte: str) -> str:
+    """« Mar 29 Dec 2026 10:30 » → « 29/12/2026 »."""
+    m = re.search(r"(\d{1,2})\s+([A-Za-zéûÉ]{3,5})\.?\s+(\d{4})", texte or "")
+    if not m:
+        return _extract_date(texte)
+    mois = _MOIS.get(m.group(2).lower())
+    if not mois:
+        return ""
+    try:
+        return date(int(m.group(3)), mois, int(m.group(1))).strftime("%d/%m/%Y")
+    except ValueError:
+        return ""
+
+
+def parse_carte(carte) -> dict:
+    """Une carte de résultats (présentation du 26/10/2026) → les champs du marché."""
+    ref, org = _reference_et_organisme(carte.get("onclick", ""))
+    if not ref:
+        return {}
+    # La partie masquée (« Détail ») répète l'objet en entier: on l'écarte.
+    for cache in carte.find_all("div", style=re.compile(r"display:\s*none")):
+        cache.decompose()
+    texte = _texte(carte)
+    procedure = ""
+    vertical = carte.find("span", class_="verticalText")
+    if vertical:
+        titre = vertical.find("span", title=True)
+        procedure = (titre.get("title") if titre else _texte(vertical)).strip()
+    reference = ""
+    m = carte.find("span", id=re.compile(r"_referencem$"))
+    if m:
+        reference = _texte(m)
+    objet = ""
+    bloc = carte.find("div", class_="p-objet")
+    if bloc:
+        objet = re.sub(r"^\s*Objet\s*:\s*", "", _texte(bloc)).strip(" .…-")
+    acheteur = ""
+    m = re.search(r"Acheteur public\s*:\s*(.+?)\s+Date limite", texte)
+    if m:
+        acheteur = m.group(1).strip(" .…")
+    limite = ""
+    m = re.search(r"Date limite de remise des plis\s+(.{6,30}?)\s+(?:Lieu d|$)", texte)
+    if m:
+        limite = _date_carte(m.group(1))
+    lieu = ""
+    m = re.search(r"Lieu d'exécution\s+(.+)$", texte)
+    if m:
+        lieu = _lieu(m.group(1))
+    categorie = ""
+    m = re.search(r"\b(Travaux|Fournitures|Services)\b", texte)
+    if m:
+        categorie = m.group(1)
+    return {
+        "ref": ref, "org": org, "reference": reference[:80],
+        "objet": objet[:400], "acheteur": acheteur[:200], "region": lieu[:100],
+        "date_limite": limite, "procedure": procedure[:80], "categorie": categorie,
+        "date_publication": "",
+    }
+
+
+def _cartes(soup) -> list:
+    return [d for d in soup.find_all("div", class_="contentColumn")
+            if "refConsultation" in (d.get("onclick") or "")]
+
+
+def _lister_cartes(session, jours: int, log_fn, pages_max: int = 20) -> list:
+    """Les consultations en cours mises en ligne depuis `jours` jours."""
+    r = session.get(URL_EN_COURS, timeout=60)
+    r.raise_for_status()
+    soup = BS(r.text, "html.parser")
+    depuis = (date.today() - timedelta(days=jours)).strftime("%d/%m/%Y")
+    champs = {CHAMP + "dateMiseEnLigneCalculeStart": depuis,
+              CHAMP + "dateMiseEnLigneCalculeEnd": date.today().strftime("%d/%m/%Y"),
+              CIBLE_LANCER: "Lancer la recherche"}
+    soup = _postback(session, soup, CIBLE_LANCER, url=URL_ACTION, champs=champs)
+    soup = _postback(session, soup, CIBLE_TAILLE_PAGE, "500", url=URL_ACTION)
+    total = soup.find(id=re.compile(r"resultSearch_nombreElement$"))
+    log_fn(f"  consultations en cours mises en ligne depuis le {depuis}: "
+           f"{_texte(total) if total else '?'}")
+    lignes, vues = [], set()
+    for numero in range(1, pages_max + 1):
+        trouvees = 0
+        for carte in _cartes(soup):
+            fiche = parse_carte(carte)
+            if fiche and fiche["ref"] not in vues:
+                vues.add(fiche["ref"])
+                lignes.append(fiche)
+                trouvees += 1
+        log_fn(f"  page {numero}: {trouvees} consultation(s)")
+        if trouvees < 500:
+            break
+        time.sleep(DELAI)
+        soup = _postback(session, soup, CIBLE_SUIVANTE_CARTES, url=URL_ACTION)
+    return lignes
+
+
 def _lister(session, pages: int, log_fn) -> list:
     """Parcourt les pages de résultats et renvoie les lignes analysées."""
     r = session.get(URL_RECHERCHE, timeout=60)
@@ -203,12 +317,22 @@ def _lister(session, pages: int, log_fn) -> list:
     return lignes
 
 
-def run(known_ids: set, log_fn=print, pages: int = 3) -> list:
-    """Collecte les appels d'offres ouverts; ne renvoie que les nouveaux."""
+def run(known_ids: set, log_fn=print, pages: int = 3, par_lot=None, taille_lot: int = 50) -> list:
+    """Collecte les appels d'offres ouverts; ne renvoie que les nouveaux.
+
+    `pages` garde son sens d'origine pour l'ancienne présentation; pour la
+    nouvelle, il dit sur combien de jours de mise en ligne regarder en
+    arrière: 3 en temps normal, 40 pour rattraper une interruption.
+    """
     session = make_session()
     marches = []
     try:
-        lignes = _lister(session, pages, log_fn)
+        lignes = _lister_cartes(session, max(3, pages), log_fn)
+        if not lignes:
+            # Ancienne présentation en tableau, si le portail y revenait.
+            lignes = _lister(session, pages, log_fn)
+        if not lignes:
+            raise ConnectionError("aucune consultation lisible sur le portail")
     except Exception as e:
         log_fn(f"  ⚠ liste des appels d'offres indisponible: {str(e)[:100]}")
         # Une liste qu'on n'a pas pu lire n'est pas une liste vide: l'erreur
@@ -257,5 +381,10 @@ def run(known_ids: set, log_fn=print, pages: int = 3) -> list:
             # de commande: les deux pages du site restent distinctes.
             "type_procedure": "marche",
         })
+        # Rattrapage long: chaque fiche coûte une requête. On livre par lots
+        # pour qu'une coupure en cours de route ne fasse pas tout reperdre.
+        if par_lot and len(marches) >= taille_lot:
+            par_lot(marches)
+            marches = []
     log_fn(f"  {len(marches)} nouvel(aux) appel(s) d'offres")
     return marches

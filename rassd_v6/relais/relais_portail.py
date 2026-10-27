@@ -15,7 +15,7 @@ Rien ne se perd:
 - après une interruption, le site lui demande de relire 40 pages d'appels
   d'offres au lieu de 3.
 
-Lancement: py relais\\relais_portail.py   (une fois: --une-fois)
+Lancement: py relais\\relais_portail.py   (une fois: --une-fois; rattrapage: --jours=40)
 Configuration: relais\\config.json  {"site": "...", "jeton": "..."}
 Journal: relais\\relais.log
 """
@@ -38,6 +38,9 @@ sys.path.insert(0, RACINE)
 ATTENTE = os.path.join(ICI, "attente")
 INTERVALLE = 10 * 60          # un cycle toutes les dix minutes
 PORT_VERROU = 47613           # un seul relais à la fois sur le poste
+# « --jours=40 » force un rattrapage des appels d'offres sur 40 jours de mise
+# en ligne, au premier lancement par exemple.
+JOURS_FORCES = next((int(a.split("=", 1)[1]) for a in sys.argv if a.startswith("--jours=")), 0)
 
 os.makedirs(ATTENTE, exist_ok=True)
 journal = logging.getLogger("relais")
@@ -157,7 +160,8 @@ def cycle(c: dict):
     debut = datetime.now()
     try:
         ao = ao_scraper.run(set(etat["ao_connus"]) | deja, lambda m: log("  " + m),
-                            pages=int(etat.get("pages_ao") or 3))
+                            pages=JOURS_FORCES or int(etat.get("pages_ao") or 3),
+                            par_lot=lambda lot: deposer(c, "marchespublics-ao", list(lot), debut))
         deposer(c, "marchespublics-ao", ao, debut)
     except ConnectionError as e:
         log(f"  ⚠ portail injoignable (appels d'offres): {str(e)[:160]}")
@@ -181,6 +185,10 @@ def main():
             cycle(c)
         except Exception as e:
             log(f"⚠ cycle interrompu: {e!r}")
+        # Le rattrapage forcé ne vaut que pour le premier cycle; ensuite c'est
+        # le site qui dit s'il faut relire plus loin (après une coupure).
+        global JOURS_FORCES
+        JOURS_FORCES = 0
         if une_fois:
             break
         # Attente découpée: après une mise en veille, le cycle repart dès le réveil.

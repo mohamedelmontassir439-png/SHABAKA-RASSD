@@ -156,6 +156,7 @@ class TestPortailInjoignable:
         from app.services import ao_scraper
         def panne(*a, **k):
             raise TimeoutError("connect timeout")
+        monkeypatch.setattr(ao_scraper, "_lister_cartes", panne)
         monkeypatch.setattr(ao_scraper, "_lister", panne)
         with pytest.raises(ConnectionError):
             ao_scraper.run(set(), lambda *_: None)
@@ -205,3 +206,44 @@ class TestRattrapage:
         monkeypatch.setattr(scraper, "_fetch_one", lambda s, tid: appels.append(tid))
         with pytest.raises(ConnectionError):
             scraper.find_max_id(S(), lambda *_: None)
+
+
+class TestCartes:
+    """La présentation en cartes du portail rouvert le 26/10/2026."""
+
+    def _carte(self):
+        import os
+        from bs4 import BeautifulSoup
+        chemin = os.path.join(os.path.dirname(__file__), "fixtures_carte_ao.html")
+        soup = BeautifulSoup(open(chemin, encoding="utf-8").read(), "html.parser")
+        return soup.find("div", class_="contentColumn")
+
+    def test_une_carte_donne_tous_les_champs(self):
+        from app.services import ao_scraper as ao
+        f = ao.parse_carte(self._carte())
+        assert f["ref"] == "1043336" and f["org"] == "g8e"
+        assert f["reference"] == "239/2026"
+        assert f["objet"].startswith("CONSTRUCTION DE LA ROUTE RELIANT CENTRE ZAOUIAT AHANSAL")
+        assert f["acheteur"].startswith("AGENCE REGIONALE D'EXECUTION DES PROJETS")
+        assert f["date_limite"] == "29/12/2026"
+        assert f["region"].lower() == "azilal"
+        assert f["procedure"] == "Appel d'offres ouvert"
+
+    def test_les_dates_en_lettres(self):
+        from app.services import ao_scraper as ao
+        assert ao._date_carte("Mar 29 Dec 2026 10:30") == "29/12/2026"
+        assert ao._date_carte("Jeu 05 févr. 2027") == "05/02/2027"
+        assert ao._date_carte("rien") == ""
+
+    def test_livraison_par_lots(self, monkeypatch):
+        from app.services import ao_scraper as ao
+        lignes = [{"ref": str(i), "org": "x", "objet": f"Objet {i}", "acheteur": "A", "region": "",
+                   "date_publication": "", "date_limite": "", "categorie": ""} for i in range(120)]
+        monkeypatch.setattr(ao, "_lister_cartes", lambda *a, **k: lignes)
+        monkeypatch.setattr(ao, "DELAI", 0)
+        class S:
+            def get(self, *a, **k): raise OSError("hors ligne")
+        monkeypatch.setattr(ao, "make_session", lambda: S())
+        lots = []
+        reste = ao.run(set(), lambda *_: None, par_lot=lambda l: lots.append(len(l)))
+        assert lots == [50, 50] and len(reste) == 20
