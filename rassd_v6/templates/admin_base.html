@@ -198,6 +198,10 @@ tbody tr:hover td{background:var(--surface2)}
   .entete,.page{padding-inline:18px}
 }
 {% block style %}{% endblock %}
+/* Téléphone: la même échelle resserrée que l'espace membre. */
+@media(max-width: 640px) {
+  :root { --f4: 14.5px; --f5: 16px; --f6: 17.5px; --f7: 21px; --f8: 25px; --f9: 32px; --fg: 44px; }
+}
 </style>
 </head>
 <body>

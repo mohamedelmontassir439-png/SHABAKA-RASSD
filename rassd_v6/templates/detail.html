@@ -126,10 +126,29 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
 .alert-card-title span { color: var(--amberd); }
 .alert-card-text { font-size:var(--f3); color: var(--text3); line-height: 1.6; margin-bottom: 16px; }
 
+.source-mobile { display: none; }
+
 @media (max-width: 900px) {
   .detail-grid { grid-template-columns: 1fr; gap: 28px; }
   .sticky-box { position: relative; top: 0; }
   .info-grid { grid-template-columns: 1fr; }
+  .source-mobile { display: flex; margin: -12px 0 28px; padding: 13px 20px; }
+  .action-card .source-lien { display: none; }
+}
+@media (max-width: 640px) {
+  .detail-back { margin-bottom: 16px; }
+  .detail-eyebrow { margin-bottom: 12px; }
+  .detail-title { font-size: var(--f6); line-height: 1.3; margin-bottom: 16px; }
+  .deadline-banner { padding: 11px 14px; margin-bottom: 18px; }
+  .info-grid { margin: 18px 0; }
+  .info-cell { padding: 13px 16px; }
+  .info-label { margin-bottom: 4px; }
+  .info-value { font-size: var(--f5); }
+  .source-mobile { margin: -6px 0 22px; }
+  .desc-section { margin-top: 28px; padding-top: 20px; }
+  .related-section { margin-top: 32px; padding-top: 24px; }
+  .related-row { padding: 14px; }
+  .action-card { padding: 16px; }
 }
 </style>
 
@@ -229,6 +248,14 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
         </div>
         {% endif %}
       </div>
+
+      {# Sur téléphone la colonne d'actions tombe tout en bas de la page: le
+         lien vers l'avis officiel se place ici, sous la nature de la prestation. #}
+      {% if t.source == 'marchespublics' %}
+      <a href="/tenders/{{ t.id }}/source" target="_blank" class="btn btn-primary btn-full source-mobile">{{ tr('detail_source') }}</a>
+      {% elif t.dao_url %}
+      <a href="/tenders/{{ t.id }}/dao" class="btn btn-primary btn-full source-mobile">{{ tr('detail_dao') }}</a>
+      {% endif %}
 
       {# L'offre du membre pour ce marché: suivie ou non, son étape, ses
          notes, et les échéances que l'avis fixe (app/services/suivi.py). #}
@@ -548,9 +575,9 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
     <div class="sticky-box">
       <div class="action-card">
         {% if t.source == 'marchespublics' %}
-        <a href="/tenders/{{ t.id }}/source" target="_blank" class="btn btn-primary btn-full" style="margin-bottom: 8px;">{{ tr('detail_source') }}</a>
+        <a href="/tenders/{{ t.id }}/source" target="_blank" class="btn btn-primary btn-full source-lien" style="margin-bottom: 8px;">{{ tr('detail_source') }}</a>
         {% elif t.dao_url %}
-        <a href="/tenders/{{ t.id }}/dao" class="btn btn-primary btn-full" style="margin-bottom: 8px;">{{ tr('detail_dao') }}</a>
+        <a href="/tenders/{{ t.id }}/dao" class="btn btn-primary btn-full source-lien" style="margin-bottom: 8px;">{{ tr('detail_dao') }}</a>
         {% if request.query_params.get('dao') == 'indisponible' %}<div style="font-size:var(--f1);color:var(--red);margin-bottom:8px">{{ tr('detail_dao_indispo') }}</div>{% endif %}
         {% endif %}
         {% if member %}

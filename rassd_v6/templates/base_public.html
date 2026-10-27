@@ -337,6 +337,10 @@ html[dir="rtl"] .section-label::before { order: 2; }
   a[href]:after { content: none !important; }
 }
 @page { size: A4; margin: 14mm 12mm; }
+/* Téléphone: la même échelle resserrée que l'espace membre. */
+@media(max-width: 640px) {
+  :root { --f4: 14.5px; --f5: 16px; --f6: 17.5px; --f7: 21px; --f8: 25px; --f9: 32px; --fg: 44px; }
+}
 </style>
 {% block head %}{% endblock %}
 </head>

@@ -300,6 +300,23 @@ html[dir="rtl"] .section-label::before { order: 2; }
   .grid-2 { grid-template-columns: 1fr; }
   .app-footer { flex-direction: column; text-align: center; }
 }
+/* Téléphone: une échelle resserrée — les tailles pensées pour un écran de
+   bureau faisaient d'un titre de marché une demi-page. L'en-tête tient en
+   deux lignes: la marque avec la déconnexion à sa droite, puis les icônes. */
+@media(max-width: 640px) {
+  :root { --f4: 14.5px; --f5: 16px; --f6: 17.5px; --f7: 21px; --f8: 25px; --f9: 32px; --fg: 44px; }
+  .sidebar-brand { padding: 12px 16px; }
+  .sidebar-brand svg { height: 30px; width: auto; }
+  .sidebar-nav { padding: 6px 10px; }
+  .side-link { padding: 8px 10px; }
+  .sidebar-foot { position: absolute; top: 10px; inset-inline-end: 10px; padding: 0; border-top: none; }
+  .side-exit { padding: 8px; }
+  .side-exit span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .app-topbar { padding: 8px 16px; gap: 10px; }
+  .page { padding: 18px 16px; }
+  .page-narrow { padding: 24px 16px; }
+  .section { padding: 44px 0; }
+}
 </style>
 <style>.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}</style>
 {% block head %}{% endblock %}

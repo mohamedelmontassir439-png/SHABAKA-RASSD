@@ -78,10 +78,13 @@ class TestEchelleCoherente:
         """Deux pas de même valeur, ou inversés, et la hiérarchie ne tient plus."""
         with open(os.path.join(GABARITS, "base_public.html"), encoding="utf-8") as f:
             contenu = f.read()
-        valeurs = [float(v) for _, v in sorted(
-            re.findall(r"(--f(\d)):\s*([\d.]+)px", contenu.replace("--f", "--f"))
-            and re.findall(r"--f(\d):\s*([\d.]+)px", contenu))]
-        assert valeurs == sorted(valeurs) and len(set(valeurs)) == len(valeurs)
+        # Chaque déclaration de :root est une échelle — celle du bureau, puis
+        # celle, resserrée, du téléphone: chacune doit monter par pas.
+        blocs = re.findall(r":root\s*\{([^}]*)\}", contenu)
+        assert len(blocs) >= 2, "l'échelle du téléphone a disparu"
+        for bloc in blocs:
+            valeurs = [float(v) for _, v in sorted(re.findall(r"--f(\d):\s*([\d.]+)px", bloc))]
+            assert valeurs == sorted(valeurs) and len(set(valeurs)) == len(valeurs), valeurs
 
     def test_les_trois_coquilles_portent_la_meme_echelle(self):
         """Une échelle qui diffère entre l'admin et le public, c'est deux
