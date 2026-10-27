@@ -73,7 +73,8 @@
 
 /* ── Essai gratuit ─────────────────────────────────────── */
 .trial-section { padding: 80px 0; background: var(--surface2); border-block: 1px solid var(--line); }
-.trial-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); box-shadow: var(--sh2), var(--shg); padding: 48px 40px; text-align: center; max-width: 900px; margin: 0 auto; }
+.trial-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); box-shadow: var(--sh2), var(--shg); padding: 0 40px 48px; text-align: center; max-width: 900px; margin: 0 auto; overflow: hidden; }
+.trial-photo { display: block; height: auto; width: calc(100% + 80px); max-width: none; margin: 0 -40px 36px; aspect-ratio: 21 / 8; object-fit: cover; object-position: center 45%; }
 .trial-badge { display: inline-flex; align-items: center; gap: 8px; padding: 8px 18px; border-radius:var(--rp); background: var(--golda); border: 1px solid rgba(242,102,45,.3); color: var(--goldd); font-size:var(--f2); font-weight: 700; letter-spacing: .02em; margin-bottom: 20px; }
 .trial-title { font-family: var(--serif); font-weight: 700; font-size: clamp(26px, 4vw, 40px); line-height: 1.15; color: var(--text1); letter-spacing: -.01em; }
 .trial-title em { font-style: italic; color: var(--ink); font-weight: 600; }
@@ -86,7 +87,8 @@
 .trial-note { margin-top: 16px; font-size:var(--f2); color: var(--text4); }
 @media (max-width: 860px) {
   .trial-steps { grid-template-columns: 1fr; gap: 14px; }
-  .trial-card { padding: 34px 22px; }
+  .trial-card { padding: 0 22px 34px; }
+  .trial-photo { width: calc(100% + 44px); margin: 0 -22px 28px; aspect-ratio: 16 / 9; }
   .trial-section { padding: 56px 0; }
 }
 .hero-cta .btn-outline { background: transparent; border-color: rgba(255,255,255,.3); color: #fff; }
@@ -216,6 +218,7 @@ html[dir="rtl"] .hero-meridiens { transform: scaleX(-1); }
 .st-spot-list li { display: flex; align-items: flex-start; gap: 10px; font-size:var(--f4); color: var(--text2); line-height: 1.5; }
 .st-spot-list li::before { content: "✓"; color: var(--grn); font-weight: 700; flex-shrink: 0; }
 .st-spot-cards { display: flex; flex-direction: column; gap: 14px; }
+.st-spot-photo { display: block; height: auto; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; object-position: center 55%; border-radius: var(--r3); box-shadow: var(--sh), var(--shg); }
 .st-spot-card { background: var(--bg); border: 1px solid var(--line); border-radius: var(--r3); padding: 22px 24px; box-shadow: var(--sh), var(--shg); }
 .st-spot-card-title { font-weight: 600; font-size:var(--f4); color: var(--text1); margin: 12px 0 6px; }
 .st-spot-card-meta { font-size:var(--f2); color: var(--text3); }
@@ -242,7 +245,12 @@ html[dir="rtl"] .hero-meridiens { transform: scaleX(-1); }
    horizontale sur chaque page, dans les deux langues. */
 .svc { padding: 96px 0; background: var(--surface); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .svc-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; margin-top: 44px; }
-.svc-etape { display: flex; flex-direction: column; padding: 28px 24px; border: 1px solid var(--line); border-radius: var(--r3); background: var(--bg); }
+.svc-etape { display: flex; flex-direction: column; padding: 0 24px 28px; border: 1px solid var(--line); border-radius: var(--r3); background: var(--bg); overflow: hidden; }
+/* La photo occupe le haut de la carte, bord à bord; l'icône vient la chevaucher. */
+.svc-photo { display: block; height: auto; width: calc(100% + 48px); max-width: none; margin: 0 -24px; aspect-ratio: 4 / 3; object-fit: cover; }
+.svc-etape .svc-tete { margin-top: -23px; position: relative; }
+.svc-etape .svc-ico { box-shadow: 0 0 0 4px var(--bg); background: var(--surface); }
+.svc-etape .svc-num { align-self: flex-end; }
 .svc-tete { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
 .svc-ico { width: 46px; height: 46px; border-radius: var(--r2); display: flex; align-items: center; justify-content: center; background: var(--indigoa); color: var(--ink); }
 .svc-num { font-family: var(--mono); font-size: var(--f2); font-weight: 700; color: var(--text3); letter-spacing: .06em; }
@@ -301,6 +309,9 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
 .final-cta { position: relative; overflow: hidden; padding: 108px 24px; text-align: center; background: linear-gradient(160deg, var(--ink3) 0%, var(--ink) 100%); }
 .final-cta::before { content: ""; position: absolute; inset: 0; background-image: var(--zellige); background-size: 84px 84px; opacity: .45; mask-image: radial-gradient(ellipse at center, rgba(0,0,0,.9) 0%, transparent 68%); -webkit-mask-image: radial-gradient(ellipse at center, rgba(0,0,0,.9) 0%, transparent 68%); pointer-events: none; }
 .final-cta-content { position: relative; max-width: 720px; margin: 0 auto; }
+/* La réunion en fond, éteinte sous le dégradé de la marque: on la devine sans
+   qu'elle dispute la lecture au titre. */
+.final-cta-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: .2; mix-blend-mode: luminosity; }
 .final-cta-eyebrow { display: inline-flex; align-items: center; gap: 8px; padding: 7px 16px; background: rgba(242,102,45,.14); border: 1px solid rgba(242,102,45,.32); font-size:var(--f2); font-weight: 700; color: var(--ink2); letter-spacing: .05em; text-transform: uppercase; margin-bottom: 24px; border-radius:var(--rp); }
 .final-cta-title { font-family: var(--serif); font-weight: 700; font-size: clamp(32px, 5vw, 48px); line-height: 1.12; letter-spacing: -.01em; color: #fff; margin-bottom: 20px; }
 .final-cta-title em { font-style: normal; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; font-weight: 700; }
@@ -458,13 +469,14 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
     <div class="section-label reveal">{{ tr('svc_label') }}</div>
     <h2 class="section-title reveal" style="max-width: 760px;">{{ tr('svc_title')|safe }}</h2>
     <p class="section-sub reveal">{{ tr('svc_sub') }}</p>
-    {% set etapes = [('1', 'loupe', ['svc1a', 'svc1b', 'svc1c', 'svc1d']),
-                     ('2', 'dossiers', ['svc2a', 'svc2b', 'svc2c', 'svc2d']),
-                     ('3', 'coche', ['svc3a', 'svc3b', 'svc3c', 'svc3d']),
-                     ('4', 'trophee', ['svc4a', 'svc4b', 'svc4c'])] %}
+    {% set etapes = [('1', 'loupe', 'trouver', ['svc1a', 'svc1b', 'svc1c', 'svc1d']),
+                     ('2', 'dossiers', 'comprendre', ['svc2a', 'svc2b', 'svc2c', 'svc2d']),
+                     ('3', 'coche', 'deposer', ['svc3a', 'svc3b', 'svc3c', 'svc3d']),
+                     ('4', 'trophee', 'developper', ['svc4a', 'svc4b', 'svc4c'])] %}
     <div class="svc-grid">
-      {% for n, icone, services in etapes %}
+      {% for n, icone, photo, services in etapes %}
       <article class="svc-etape reveal reveal-{{ n }}">
+        <img class="svc-photo" src="/static/img/accueil/{{ photo }}.webp" alt="" width="760" height="570" loading="lazy" decoding="async">
         <div class="svc-tete">
           <span class="svc-ico">{{ ico(icone, 24)|safe }}</span>
           <span class="svc-num" dir="ltr">{{ n }} / 4</span>
@@ -497,6 +509,7 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
       <a href="{{ '/sous-traitance' if member else '/tarifs' }}" class="btn btn-accent btn-lg">{{ tr('st_spot_cta') }}</a>
     </div>
     <div class="st-spot-cards reveal reveal-2">
+      <img class="st-spot-photo" src="/static/img/accueil/partenariat.webp" alt="" width="960" height="720" loading="lazy" decoding="async">
       <div class="st-spot-card">
         <span class="badge badge-blue">{{ tr('st_type_demande') }}</span>
         <div class="st-spot-card-title">{{ tr('st_spot_example1') }}</div>
@@ -626,6 +639,7 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
 <section class="trial-section">
   <div class="container">
     <div class="trial-card reveal">
+      <img class="trial-photo" src="/static/img/accueil/essai.webp" alt="" width="1400" height="787" loading="lazy" decoding="async">
       <div class="trial-badge">{{ tr('trial_badge', n=essai_duree) }}</div>
       <h2 class="trial-title">{{ tr('trial_title', n=essai_duree)|safe }}</h2>
       <p class="trial-sub">{{ tr('trial_sub') }}</p>
@@ -654,6 +668,7 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
 
 <!-- FINAL CTA -->
 <section class="final-cta">
+  <img class="final-cta-photo" src="/static/img/accueil/rencontre.webp" alt="" width="1920" height="1080" loading="lazy" decoding="async">
   <div class="final-cta-content reveal">
     <div class="final-cta-eyebrow">{{ tr('finalcta_eyebrow') }}</div>
     <h2 class="final-cta-title">{{ tr('finalcta_title')|safe }}</h2>
