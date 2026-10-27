@@ -211,7 +211,9 @@ def run(known_ids: set, log_fn=print, pages: int = 3) -> list:
         lignes = _lister(session, pages, log_fn)
     except Exception as e:
         log_fn(f"  ⚠ liste des appels d'offres indisponible: {str(e)[:100]}")
-        return []
+        # Une liste qu'on n'a pas pu lire n'est pas une liste vide: l'erreur
+        # remonte pour que la collecte soit notée en échec, pas en succès à zéro.
+        raise ConnectionError(f"liste des appels d'offres indisponible: {str(e)[:160]}") from e
 
     log_fn(f"  {len(lignes)} consultation(s) listée(s)")
     for ligne in lignes:

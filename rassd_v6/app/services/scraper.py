@@ -371,6 +371,7 @@ def run(known_ids: set, log_fn=print) -> list:
 
     errors = 0
     done   = 0
+    premiere_erreur = ""
     with concurrent.futures.ThreadPoolExecutor(max_workers=SCRAPER_WORKERS) as pool:
         future_to_tid = {
             pool.submit(_fetch_one, sessions[i % SCRAPER_WORKERS], tid): tid
@@ -382,6 +383,7 @@ def run(known_ids: set, log_fn=print) -> list:
             done += 1
             if err:
                 errors += 1
+                premiere_erreur = premiere_erreur or str(err)
                 if errors <= 5:
                     log_fn(f"⚠ #{tid}: {err}")
             elif t:
@@ -391,4 +393,11 @@ def run(known_ids: set, log_fn=print) -> list:
                 log_fn(f"… {done}/{len(scan_ids)} traités ({errors} erreurs)")
 
     log_fn(f"═══ {len(results)} nouveaux │ {errors} erreurs ═══")
+    # Toutes les requêtes en échec, ce n'est pas « rien de nouveau »: c'est un
+    # portail injoignable. Le 27/10/2026 la collecte a tourné ainsi des heures,
+    # notée SUCCESS à zéro, sans qu'aucune alerte ne parte. L'exception la
+    # fait noter FAILED, et l'administration la voit dans « À traiter ».
+    if scan_ids and errors == len(scan_ids):
+        raise ConnectionError(f"portail injoignable: {errors}/{len(scan_ids)} requêtes en échec — "
+                              f"{premiere_erreur[:160]}")
     return results

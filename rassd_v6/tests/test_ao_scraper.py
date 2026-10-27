@@ -140,4 +140,37 @@ class TestCollecte:
         class Session:
             def get(self, *a, **kw): raise OSError("connexion refusée")
         monkeypatch.setattr(ao, "make_session", lambda: Session())
-        assert ao.run(set(), log_fn=lambda m: None, pages=1) == []
+        # L'erreur remonte pour être notée FAILED; do_scrape l'attrape source
+        # par source, si bien que les autres collectes continuent.
+        import pytest
+        with pytest.raises(ConnectionError):
+            ao.run(set(), log_fn=lambda m: None, pages=1)
+
+
+class TestPortailInjoignable:
+    """Le 27/10/2026 la collecte a tourné des heures sans joindre le portail,
+    notée SUCCESS à zéro: l'échec doit se voir."""
+
+    def test_la_liste_illisible_est_une_erreur(self, monkeypatch):
+        import pytest
+        from app.services import ao_scraper
+        def panne(*a, **k):
+            raise TimeoutError("connect timeout")
+        monkeypatch.setattr(ao_scraper, "_lister", panne)
+        with pytest.raises(ConnectionError):
+            ao_scraper.run(set(), lambda *_: None)
+
+    def test_toutes_les_fiches_en_echec_est_une_erreur(self, monkeypatch):
+        import pytest
+        from app.services import scraper
+        monkeypatch.setattr(scraper, "find_max_id", lambda s, log: 400000)
+        monkeypatch.setattr(scraper, "_fetch_one", lambda s, tid: (None, "connect timeout"))
+        with pytest.raises(ConnectionError, match="portail injoignable"):
+            scraper.run(set(), lambda *_: None)
+
+    def test_quelques_echecs_ne_font_pas_une_panne(self, monkeypatch):
+        from app.services import scraper
+        monkeypatch.setattr(scraper, "find_max_id", lambda s, log: 400000)
+        monkeypatch.setattr(scraper, "_fetch_one",
+                            lambda s, tid: (None, "timeout") if tid.endswith("7") else (None, None))
+        assert scraper.run(set(), lambda *_: None) == []

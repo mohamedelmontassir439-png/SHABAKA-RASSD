@@ -4712,8 +4712,11 @@ async def admin_import_archive(req: Request, pages: int = 40):
     connus = {r[0] for r in db.execute("SELECT id FROM tenders").fetchall()}
     db.close()
     loop = asyncio.get_event_loop()
-    marches = await loop.run_in_executor(
-        None, lambda: ao_run(connus, logger.info, pages=pages))
+    try:
+        marches = await loop.run_in_executor(
+            None, lambda: ao_run(connus, logger.info, pages=pages))
+    except ConnectionError as e:
+        return JSONResponse({"ok": False, "erreur": str(e)}, 502)
     enregistres = _save_tenders(marches, [])
     logger.info(f"[import-archive] {enregistres} marché(s) importé(s) sur {len(marches)} trouvés")
     return JSONResponse({"ok": True, "trouves": len(marches), "enregistres": enregistres})
