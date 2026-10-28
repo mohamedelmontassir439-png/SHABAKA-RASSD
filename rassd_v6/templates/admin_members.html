@@ -24,6 +24,7 @@ table.membres .badge{padding:1px 6px;font-size:var(--f1)}
 .actions svg{width:11px;height:11px}
 .actions form{display:block}
 .lien-contact{white-space:nowrap}
+.activite{margin-top:5px;padding-top:5px;border-top:1px dashed var(--line);color:var(--t3);white-space:nowrap}
 .actions details{position:relative}
 .actions .del-box{position:absolute;inset-inline-end:0;top:100%;width:300px;z-index:5;background:var(--surface);box-shadow:0 10px 28px rgba(0,0,0,.12)}
 
@@ -52,8 +53,8 @@ details.del summary::-webkit-details-marker{display:none}
 
     {% if members %}
     <div class="tableau-cadre"><table class="membres">
-      <tr><th>Membre</th><th>Joindre</th><th>Sa veille</th><th>Plan</th><th>Statut</th>
-          <th>Activité</th><th>Actions</th></tr>
+      <tr><th>Membre</th><th>Joindre</th><th>Sa veille</th><th>Plan</th><th>Statut et activité</th>
+          <th>Actions</th></tr>
       {% for m in members %}
       <tr id="m{{ m.id }}">
         <td>
@@ -105,14 +106,14 @@ details.del summary::-webkit-details-marker{display:none}
           {% elif st=='TRIAL' and m.trial_ends %}<div class="muted">→ {{ m.trial_ends[:16]|replace('T', ' ') }}</div>{% endif %}
           {% if not m.actif %}<div><span class="badge b-r">bloqué</span></div>{% endif %}
           {% if m.notif_suspendues %}<div><span class="badge b-r">notifs coupées</span></div>{% endif %}
-        </td>
-        <td style="color:var(--t3);white-space:nowrap;">
+          <div class="activite">
           {% if m.n_payments %}<div><span class="badge b-grn">{{ m.n_payments }} paiement(s)</span> {{ m.total_paid|round(0)|int }} MAD</div>
           {% else %}<div class="muted">aucun paiement</div>{% endif %}
           inscrit {{ m.created_at[:10] }}
           {# La dernière visite dit si l'abonnement sert encore. Un membre qui
              ne revient pas se désabonnera, et on le saura trop tard. #}
           <div class="muted">{{ ('vu ' ~ m.last_login[:10]) if m.last_login else 'jamais revenu' }}</div>
+          </div>
         </td>
         <td><div class="actions">
           <a class="btn btn-l" href="/admin/member/{{ m.id }}/secteurs">Secteurs</a>
