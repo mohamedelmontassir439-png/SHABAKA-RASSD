@@ -1434,11 +1434,12 @@ async def tenders_page(req: Request, q:str="", s:str="", r:str="", t:str="",
         "elig": "1" if elig and mes_qualifs else "", "a_des_qualifs": bool(mes_qualifs)})
 
 @app.get("/bons-de-commande", response_class=HTMLResponse)
-async def bons_commande_page(req: Request, q:str="", s:str="", r:str="",
+async def bons_commande_page(req: Request, q:str="", s:str="", r:str="", t:str="",
                               e:str="", page:int=1, sort:str="recent"):
-    # Page dédiée et totalement séparée des marchés classiques — les bons de
-    # commande sont une procédure d'achat public simplifiée (voir bc_intro),
-    # sans équivalent privé, donc pas de filtre Public/Privé ici.
+    # Page dédiée et totalement séparée des marchés classiques. Le filtre
+    # Public / Semi-public / Privé porte, comme sur /tenders, sur la nature de
+    # l'acheteur: un établissement public (ONEE, OCP, université…) passe
+    # aussi des bons de commande.
     m0 = get_member(req)
     if not m0:
         return RedirectResponse("/login?next=/bons-de-commande", 302)
@@ -1453,6 +1454,10 @@ async def bons_commande_page(req: Request, q:str="", s:str="", r:str="",
     filtre_recherche(q, where, params)
     if s: where.append("secteur=?"); params.append(s)
     if r: where.append("region_officielle(region)=?" if est_region(r) else "region=?"); params.append(r)
+    if t in ("public", "semi_public", "prive"):
+        where.append("organisme=?"); params.append(t)
+    else:
+        t = ""
     filtre_echeance(e, where, params)
     wh    = " AND ".join(where)
     order = "scraped_at DESC" if sort == "recent" else f"{DATE_LIMITE_ISO} ASC"
@@ -1473,7 +1478,7 @@ async def bons_commande_page(req: Request, q:str="", s:str="", r:str="",
     pages = max(1,(total+per-1)//per)
     return render(req, "bons_commande.html", {
         "tenders":rows,"total":total,"page":page,"pages":pages,
-        "q":q,"sf":s,"rf":r,"ef":e,"sort":sort,"favs":favs,"regions":regions,
+        "q":q,"sf":s,"rf":r,"tf":t,"ef":e,"sort":sort,"favs":favs,"regions":regions,
         "secteurs_dispo":secteurs_dispo,"my_secteurs":my_secteurs})
 
 @app.get("/tenders/{tid}", response_class=HTMLResponse)
