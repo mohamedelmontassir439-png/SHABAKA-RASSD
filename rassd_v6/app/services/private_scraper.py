@@ -229,7 +229,41 @@ def run(known_ids: set, log_fn=print) -> list:
         log_fn(f"✓ {t['id']} │ {t['secteur'][:16]:16} │ {t['objet'][:45]}")
 
     _bilan(log_fn, "Marchés privés", len(results), trouves, analyses)
+    deja = known_ids | {t["id"] for t in results}
+    for nom, motif in ORGANISMES_SUIVIS:
+        results += _organisme_suivi(s, nom, motif, deja, log_fn)
     return results
+
+
+# Entreprises dont la source range les appels d'offres sous « Public » — que
+# la collecte des marchés privés ne lit pas — et qui ne publient pas sur le
+# portail national. Leur propre site (iam.ma) refuse les programmes derrière
+# une vérification Cloudflare: on les lit chez l'agrégateur.
+ORGANISMES_SUIVIS = (
+    ("maroc telecom", re.compile(r"maroc\s*t[ée]l[ée]com|\bIAM\b|itissalat", re.I)),
+)
+
+
+def _organisme_suivi(s: requests.Session, nom: str, motif, deja: set, log_fn) -> list:
+    """Les appels d'offres d'une entreprise suivie, par recherche ciblée."""
+    params = [(k, nom if k == "MOT_CLE_1" else ("Public" if k == "CAT_OFFRE" else v))
+              for k, v in SEARCH_PARAMS]
+    try:
+        r = s.get(BASE + "/listresultatao", params=params, timeout=30)
+        r.raise_for_status()
+    except Exception as e:
+        log_fn(f"⚠ {nom}: recherche impossible — {e}")
+        return []
+    sortie = []
+    for row_m in ROW_RE.finditer(r.text):
+        t = _parse_row(row_m.group(1))
+        # Le mot-clé porte aussi sur l'objet: seul l'acheteur compte.
+        if not t or not motif.search(t["acheteur"]) or t["id"] in deja:
+            continue
+        sortie.append(t)
+        log_fn(f"✓ {t['id']} │ {nom} │ {t['objet'][:45]}")
+    log_fn(f"  {nom}: {len(sortie)} nouvel(aux) appel(s) d'offres")
+    return sortie
 
 
 # ══════════════════════════════════════════════════════════
