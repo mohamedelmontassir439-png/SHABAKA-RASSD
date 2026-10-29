@@ -1525,6 +1525,12 @@ async def tender_detail(req: Request, tid: str):
     if not t:
         db.close()
         return HTMLResponse("Marché introuvable", 404)
+    # Avis de Global Marchés dont la fiche n'est pas encore lue: on la lit
+    # maintenant, pour l'afficher ici plutôt que de renvoyer sur leur site.
+    if t["source"] == "global-marches" and not (dict(t).get("fiche_json") or ""):
+        from app.services.fiches_privees import lire_maintenant
+        if await asyncio.get_event_loop().run_in_executor(None, lambda: lire_maintenant(dict(t))):
+            t = db.execute("SELECT * FROM tenders WHERE id=?", (tid,)).fetchone()
     # Hors de ses secteurs, la fiche n'est pas accessible non plus: sans
     # cela, la restriction des listes ne tiendrait qu'à l'affichage, et une
     # adresse devinée ou un vieux lien ouvrirait tout. Seule exception, un
@@ -1565,8 +1571,10 @@ async def tender_detail(req: Request, tid: str):
     from app.services.coffre import pour_marche
     from app.services import eligibilite, groupement, intelligence, reports_officiels, suivi
     dossier_admin = pour_marche(m0["id"], dict(t)) if m0 else []
+    from app.services.fiches_privees import avis_complet
     return render(req, "detail.html", {
         "t": dict(t), "related": related, "is_fav": is_fav, "dossier_admin": dossier_admin,
+        "avis_complet": avis_complet(dict(t).get("fiche_json") or ""),
         "mon_suivi": suivi.pour_marche(m0["id"], tid),
         "echeances": suivi.echeances(dict(t)),
         "etapes_suivi": suivi.ETAPES,

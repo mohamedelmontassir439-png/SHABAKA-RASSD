@@ -163,3 +163,36 @@ class TestBonDeCommandeParticulier:
         db.commit()
         assert F.enrichir(session=FausseSession(self._fiche()), pause=0) == 1
         assert "Le Matin" in db.execute("SELECT description FROM tenders WHERE id='po_1'").fetchone()[0]
+
+
+class TestAvisDansLaPlateforme:
+    """L'avis Global Marchés s'affiche dans la plateforme, champ par champ."""
+
+    def test_avis_complet(self):
+        import json
+        f = F.lire_fiche(TestBonDeCommandeParticulier()._fiche())
+        lignes = dict(F.avis_complet(json.dumps(f)))
+        assert lignes["Référence"] == "37/2026" and lignes["Annonce parue dans"] == "Le Matin"
+        assert lignes["Allotissement"] == "3 Lots"
+        assert F.avis_complet("") == [] and F.avis_complet("pas du json") == []
+
+    def test_lu_a_louverture_puis_affiche(self, client, db, monkeypatch):
+        from tests.test_cloisonnement import _membre
+        _membre(db, secteurs="[]")
+        client.cookies.set("_session", "jeton-cloison-aa")
+        db.execute("""INSERT INTO tenders(id,objet,acheteur,secteur,statut,scraped_at,url,source,
+                      type_procedure,date_limite)
+                      VALUES('po_9','achat de matériel','Autres organismes particuliers /x','S903','actif',
+                      '2026-10-29 10:00:00','https://global-marches.com/share-po/abc','global-marches',
+                      'bon_commande','05/11/2026')""")
+        db.commit()
+        fiche = TestBonDeCommandeParticulier()._fiche()
+
+        class Rep:
+            status_code = 200
+            text = fiche
+        monkeypatch.setattr(F.requests, "get", lambda *a, **k: Rep())
+        page = client.get("/tenders/po_9").text
+        assert 'id="avis-complet"' in page and "Le Matin" in page and "37/2026" in page
+        assert 'href="#avis-complet"' in page
+        assert "global-marches.com/share-po" not in page, "le membre reste dans la plateforme"

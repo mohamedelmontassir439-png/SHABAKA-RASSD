@@ -14,6 +14,7 @@ On lit cette fiche une fois par avis, et on réécrit ses champs avec les
 alors sans rien changer d'autre. Les coordonnées restent réservées aux
 membres: les pages publiques n'existent que pour le portail national.
 """
+import json
 import logging
 import re
 import time
@@ -34,7 +35,7 @@ PAUSE = 1.5
 # national n'est plus supposé quand l'avis ne le nomme pas.
 # v3 (29/10/2026): les bons de commande (/share-po/) sont lus aussi, avec
 # l'allotissement et le journal où l'annonce a paru.
-VERSION = "v3"
+VERSION = "v4"   # v4: les champs bruts sont gardés (fiche_json)
 
 # Les étiquettes de la fiche, dans leur ordre. La valeur court jusqu'à la
 # suivante. « D.réunion » n'a pas de deux-points sur la page.
@@ -152,6 +153,75 @@ def description(acheteur: str, objet: str, f: dict) -> str:
     return " ".join(p)[:3000]
 
 
+# L'avis complet tel qu'on l'affiche dans la plateforme: libellé, clé.
+AVIS_COMPLET = (
+    ("N° d'ordre", "ordre"), ("Référence", "reference"), ("Date et heure limite", "limite"),
+    ("Objet", "objet"), ("Ville d'exécution", "ville"), ("Allotissement", "lots"),
+    ("Adresse de retrait", "retrait"), ("Contact", "contact"),
+    ("Montant de retrait", "montant_retrait"), ("Ouverture des plis", "ouverture"),
+    ("Mode de paiement", "paiement"), ("Dépôt des échantillons", "echantillons"),
+    ("Caution", "caution"), ("Réunion", "reunion"), ("Budget", "budget"),
+    ("Délai d'exécution", "delai"), ("Visite des lieux", "visite"), ("Type", "type"),
+    ("Soumission électronique", "electronique"), ("Observation", "observation"),
+    ("Annonce parue dans", "journal"),
+)
+
+
+def avis_complet(fiche_json: str) -> list:
+    """[(libellé, valeur)] des champs remplis, dans l'ordre de la fiche."""
+    try:
+        f = json.loads(fiche_json or "{}")
+    except ValueError:
+        return []
+    lignes = []
+    for libelle, cle in AVIS_COMPLET:
+        v = (f.get(cle) or "").strip()
+        if not v:
+            continue
+        if cle == "contact":
+            v = _contact(v)
+        if cle == "journal":
+            v = v.title()
+        if cle == "observation" and re.fullmatch(r"[^.]{0,40}image int[ée]gral+e\s*\)?\s*", v, re.I):
+            continue
+        lignes.append((libelle, v))
+    if f.get("organisme"):
+        from app.core.acheteurs import lisible
+        lignes.insert(3, ("Acheteur", lisible(f["organisme"])))
+    return lignes
+
+
+def _garder(db, t: dict, champs: dict, maintenant: str):
+    db.execute("""UPDATE tenders SET description=?, dao_url=?, fiche_lue=?, fiche_json=?
+                  WHERE id=?""",
+               (description(t["acheteur"] or "", t["objet"] or "", champs),
+                champs.get("dao_url", ""), maintenant,
+                json.dumps(champs, ensure_ascii=False), t["id"]))
+
+
+def lire_maintenant(t: dict, timeout: float = 12) -> bool:
+    """Lit la fiche d'un avis à l'ouverture de sa page, quand la collecte ne
+    l'a pas encore fait: le membre voit l'avis complet tout de suite."""
+    url = t.get("url") or ""
+    if t.get("source") != "global-marches" or not re.search(r"/share(-po)?/", url):
+        return False
+    try:
+        r = requests.get(url, timeout=timeout, headers={"User-Agent": UA})
+        champs = lire_fiche(r.text) if r.status_code == 200 else {}
+    except requests.RequestException as e:
+        logger.warning(f"[fiches_privees] {t.get('id')}: {e}")
+        return False
+    if not champs:
+        return False
+    db = get_db()
+    try:
+        _garder(db, t, champs, VERSION + ":" + datetime.now().isoformat(timespec="seconds"))
+        db.commit()
+    finally:
+        db.close()
+    return True
+
+
 def enrichir(limite: int = 60, session=None, pause: float = PAUSE, log_fn=None) -> int:
     """Lit la fiche des avis ouverts de la source privée qui ne l'ont pas été.
 
@@ -187,9 +257,7 @@ def enrichir(limite: int = 60, session=None, pause: float = PAUSE, log_fn=None) 
         db = get_db()
         try:
             if champs:
-                db.execute("UPDATE tenders SET description=?, dao_url=?, fiche_lue=? WHERE id=?",
-                           (description(t["acheteur"] or "", t["objet"] or "", champs),
-                            champs.get("dao_url", ""), maintenant, t["id"]))
+                _garder(db, t, champs, maintenant)
                 lues += 1
             else:
                 db.execute("UPDATE tenders SET fiche_lue=? WHERE id=?", (maintenant, t["id"]))

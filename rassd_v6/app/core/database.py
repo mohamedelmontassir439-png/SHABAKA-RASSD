@@ -536,6 +536,9 @@ def migrate_db():
         "ALTER TABLE tenders ADD COLUMN secteur_ia TEXT DEFAULT ''",
         # Fiche de la source privée lue (app/services/fiches_privees.py)
         "ALTER TABLE tenders ADD COLUMN fiche_lue TEXT DEFAULT ''",
+        # Les champs de la fiche Global Marchés, tels quels, pour afficher
+        # l'avis complet dans la plateforme plutôt que d'y renvoyer.
+        "ALTER TABLE tenders ADD COLUMN fiche_json TEXT DEFAULT ''",
         # Report officiel d'une date limite (app/services/reports_officiels.py)
         "ALTER TABLE tenders ADD COLUMN date_limite_initiale TEXT DEFAULT ''",
         # Lien de dépôt retrouvé (app/services/lien_depot.py)

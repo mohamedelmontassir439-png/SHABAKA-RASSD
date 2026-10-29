@@ -127,6 +127,12 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
 .alert-card-text { font-size:var(--f3); color: var(--text3); line-height: 1.6; margin-bottom: 16px; }
 
 .source-mobile { display: none; }
+.avis-complet { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 22px 24px; margin: 0 0 28px; scroll-margin-top: 90px; }
+.ac-liste { margin-top: 14px; }
+.ac-ligne { display: grid; grid-template-columns: minmax(0, 190px) minmax(0, 1fr); gap: 16px; padding: 9px 0; border-top: 1px solid var(--line); }
+.ac-ligne dt { font-size: var(--f2); font-weight: 700; color: var(--amberd); }
+.ac-ligne dd { margin: 0; font-size: var(--f3); color: var(--text1); overflow-wrap: anywhere; }
+@media (max-width: 640px) { .ac-ligne { grid-template-columns: minmax(0, 1fr); gap: 2px; } .avis-complet { padding: 16px; } }
 
 @media (max-width: 900px) {
   .detail-grid { grid-template-columns: 1fr; gap: 28px; }
@@ -255,8 +261,23 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
       <a href="/tenders/{{ t.id }}/source" target="_blank" class="btn btn-primary btn-full source-mobile">{{ tr('detail_source') }}</a>
       {% elif t.dao_url %}
       <a href="/tenders/{{ t.id }}/dao" class="btn btn-primary btn-full source-mobile">{{ tr('detail_dao') }}</a>
+      {% elif avis_complet %}
+      <a href="#avis-complet" class="btn btn-primary btn-full source-mobile">{{ tr('detail_avis_complet') }}</a>
       {% elif (t.url or '').startswith('https://') %}
       <a href="{{ t.url }}" target="_blank" rel="noopener" class="btn btn-primary btn-full source-mobile">{{ tr('detail_avis_source') }}</a>
+      {% endif %}
+
+      {# L'avis de la source privée, champ par champ, dans la plateforme. #}
+      {% if avis_complet %}
+      <section class="avis-complet" id="avis-complet" aria-labelledby="ac-titre">
+        <h2 class="sv-bloc-titre" id="ac-titre">{{ tr('avis_complet_titre') }}</h2>
+        <div class="sv-bloc-aide">{{ tr('avis_complet_aide') }}</div>
+        <dl class="ac-liste">
+          {% for libelle, valeur in avis_complet %}
+          <div class="ac-ligne"><dt>{{ libelle }}</dt><dd dir="auto">{{ valeur }}</dd></div>
+          {% endfor %}
+        </dl>
+      </section>
       {% endif %}
 
       {# L'offre du membre pour ce marché: suivie ou non, son étape, ses
@@ -581,6 +602,8 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
         {% elif t.dao_url %}
         <a href="/tenders/{{ t.id }}/dao" class="btn btn-primary btn-full source-lien" style="margin-bottom: 8px;">{{ tr('detail_dao') }}</a>
         {% if request.query_params.get('dao') == 'indisponible' %}<div style="font-size:var(--f1);color:var(--red);margin-bottom:8px">{{ tr('detail_dao_indispo') }}</div>{% endif %}
+        {% elif avis_complet %}
+        <a href="#avis-complet" class="btn btn-primary btn-full source-lien" style="margin-bottom: 8px;">{{ tr('detail_avis_complet') }}</a>
         {% elif (t.url or '').startswith('https://') %}
         {# Bon de commande d'un acheteur particulier: ni portail, ni dossier
            à télécharger — l'avis de la source donne la référence et le
