@@ -278,6 +278,31 @@ def _relais_ok(req: Request) -> bool:
     return hmac.compare_digest(req.headers.get("X-Relais-Jeton", ""), _jeton_relais())
 
 
+def _relais_valeur(cle: str, valeur: str = None) -> str:
+    """Petit registre du relais: la demande de collecte venue de l'admin et
+    le moment où le relais l'a prise. Lit la clé, ou l'écrit si `valeur`."""
+    db = get_db()
+    try:
+        db.execute("CREATE TABLE IF NOT EXISTS relais_etat (cle TEXT PRIMARY KEY, valeur TEXT DEFAULT '')")
+        if valeur is not None:
+            db.execute("INSERT OR REPLACE INTO relais_etat(cle, valeur) VALUES(?,?)", (cle, valeur))
+            db.commit()
+            return valeur
+        r = db.execute("SELECT valeur FROM relais_etat WHERE cle=?", (cle,)).fetchone()
+        return r[0] if r else ""
+    finally:
+        db.close()
+
+
+def _relais_dernier_depot() -> str:
+    db = get_db()
+    try:
+        return db.execute("""SELECT MAX(started_at) FROM scraper_runs WHERE message=?""",
+                          (MESSAGE_RELAIS,)).fetchone()[0] or ""
+    finally:
+        db.close()
+
+
 def _relais_actif() -> str:
     """Date du dernier dépôt du relais s'il est récent, sinon ""."""
     try:
@@ -3581,7 +3606,9 @@ async def admin_panel(req: Request):
         "member_growth":member_growth,"plan_dist":plan_dist,
         "mrr_estimate":mrr_estimate,"total_active_members":total_active_members,
         "referral_top":referral_top,"recent_errors":recent_errors,"errors_7j":errors_7j,
-        "a_traiter":a_traiter,"csrf_token":csrf_tok})
+        "a_traiter":a_traiter,"csrf_token":csrf_tok,
+        "relais": {"demande": _relais_valeur("demande"), "prise": _relais_valeur("prise"),
+                   "depot": _relais_dernier_depot()}})
     if not req.cookies.get("_csrf"):
         resp.set_cookie("_csrf", csrf_tok, max_age=86400*30, httponly=True, samesite="lax", secure=COOKIE_SECURE)
     return resp
@@ -4798,6 +4825,11 @@ async def relais_etat(req: Request):
     if not _relais_ok(req):
         return JSONResponse({"ok": False}, 401)
     from app.services.scraper import RATTRAPAGE_MAX
+    # Le relais commence un cycle: la demande de l'admin, s'il y en avait
+    # une, est servie.
+    if _relais_valeur("demande"):
+        _relais_valeur("demande", "")
+        _relais_valeur("prise", datetime.now().isoformat(timespec="seconds"))
     db = get_db()
     bdc = [int(r[0][4:]) for r in db.execute("SELECT id FROM tenders WHERE id LIKE 'bdc_%'")
            if r[0][4:].isdigit()]
@@ -4908,6 +4940,25 @@ async def relais_fiches(req: Request):
     db.commit(); db.close()
     State.log(f"✅ Relais local · {corriges} fiche(s) complétée(s)")
     return JSONResponse({"ok": True, "corriges": corriges})
+
+
+@app.get("/api/relais/demande")
+async def relais_demande(req: Request):
+    """Le relais l'interroge pendant ses pauses: une collecte est-elle demandée?"""
+    if not _relais_ok(req):
+        return JSONResponse({"ok": False}, 401)
+    return JSONResponse({"ok": True, "demande": bool(_relais_valeur("demande"))})
+
+
+@app.post("/admin/relais/collecter")
+async def admin_relais_collecter(req: Request, csrf_token: str = Form("")):
+    """Le bouton « Collecter le portail officiel »: le relais du poste au
+    Maroc lance un cycle dans la demi-minute."""
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    csrf_guard(req, csrf_token)
+    _relais_valeur("demande", datetime.now().isoformat(timespec="seconds"))
+    State.log("▶ Collecte du portail officiel demandée au relais local")
+    return RedirectResponse("/admin?relais=demande#relais", 302)
 
 
 @app.get("/admin/relais/jeton")

@@ -125,3 +125,22 @@ class TestFichesACompleter:
     def test_sans_jeton_rien(self, client):
         assert client.get("/api/relais/a-completer").status_code == 401
         assert client.post("/api/relais/fiches", json={}).status_code == 401
+
+
+class TestBoutonCollecter:
+    def test_le_bouton_depose_une_demande_que_le_relais_voit(self, admin, client, db):
+        admin.get("/admin")
+        r = admin.post("/admin/relais/collecter", data={"csrf_token": admin.cookies.get("_csrf")},
+                       follow_redirects=False)
+        assert r.status_code == 302
+        assert client.get("/api/relais/demande", headers=_jeton()).json()["demande"] is True
+        assert "Demande envoyée" in admin.get("/admin").text
+        # Le relais commence son cycle: la demande est servie.
+        client.get("/api/relais/etat", headers=_jeton())
+        assert client.get("/api/relais/demande", headers=_jeton()).json()["demande"] is False
+        assert "Dernière demande prise" in admin.get("/admin").text
+
+    def test_reserve(self, client):
+        assert client.get("/api/relais/demande").status_code == 401
+        r = client.post("/admin/relais/collecter", data={}, follow_redirects=False)
+        assert "/admin/login" in r.headers.get("location", "")

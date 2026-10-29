@@ -213,6 +213,14 @@ def completer_fiches(c: dict, maximum: int = 200):
         livrer()
 
 
+def collecte_demandee(c: dict) -> bool:
+    try:
+        r = requests.get(f"{c['site']}/api/relais/demande", headers=entetes(c), timeout=20)
+        return r.status_code == 200 and bool(r.json().get("demande"))
+    except Exception:
+        return False
+
+
 def main():
     try:
         verrou = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -236,9 +244,14 @@ def main():
         JOURS_FORCES = 0
         if une_fois:
             break
-        # Attente découpée: après une mise en veille, le cycle repart dès le réveil.
+        # Attente découpée: après une mise en veille, le cycle repart dès le
+        # réveil; et un clic sur « Collecter le portail officiel » dans
+        # l'administration l'interrompt pour lancer un cycle tout de suite.
         while time.time() - t0 < INTERVALLE:
-            time.sleep(15)
+            time.sleep(20)
+            if collecte_demandee(c):
+                log("▶ Collecte demandée depuis l'administration")
+                break
 
 
 if __name__ == "__main__":

@@ -145,6 +145,24 @@
         {% if last_run %}
         <div style="padding: 10px 20px; font-size:var(--f1); color: var(--t3); border-bottom: 1px solid var(--line);">Dernière mise à jour : {{ last_run[:16] }}</div>
         {% endif %}
+        {# Le portail refuse les connexions de l'étranger: c'est le relais du
+           poste au Maroc qui le collecte. Ce bouton lui demande de le faire
+           tout de suite, sans attendre son cycle de dix minutes. #}
+        <form id="relais" method="post" action="/admin/relais/collecter"
+              style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 20px;border-bottom:1px solid var(--line)">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+          <button type="submit" class="btn btn-p">{{ ico('eclair', 15)|safe }} Collecter le portail officiel</button>
+          <span style="font-size:var(--f1);color:var(--t3);line-height:1.5">
+            {% if relais.demande %}
+              <b style="color:var(--amberd)">Demande envoyée à {{ relais.demande[11:16] }}</b> — le relais la prend dans la demi-minute.
+              Sans réponse après deux minutes, le poste est éteint ou le relais arrêté.
+              <a href="/admin#relais" style="color:var(--amberd)">Rafraîchir</a>
+            {% elif relais.prise %}
+              <b style="color:var(--grn)">Dernière demande prise à {{ relais.prise[11:16] }} le {{ relais.prise[8:10] }}/{{ relais.prise[5:7] }}</b>.
+            {% endif %}
+            <span style="display:block">{% if relais.depot %}Dernier dépôt du relais : {{ relais.depot[:16]|replace('T', ' ') }}.{% else %}Le relais n'a encore rien déposé.{% endif %}</span>
+          </span>
+        </form>
         <div class="terminal" id="trm">
           {% for l in logs %}
           <div class="{% if '✓' in l %}log-ok{% elif '❌' in l or '⚠' in l %}log-err{% elif '═' in l or '✅' in l %}log-hdr{% else %}log-n{% endif %}">{{ l }}</div>
