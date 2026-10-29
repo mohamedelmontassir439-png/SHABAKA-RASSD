@@ -713,6 +713,30 @@ def migrate_db():
     except Exception as e:
         logger.warning(f"[migrate] organisme: {e}")
 
+    # Les acheteurs particuliers (auto-entrepreneurs, personnes physiques,
+    # fondations, « Autres organismes particuliers ») étaient classés
+    # publics: on les reclasse avec la règle actuelle.
+    try:
+        from app.core.organismes import categorie
+        lignes = db.execute(
+            """SELECT id, acheteur, type_offre, organisme FROM tenders
+               WHERE LOWER(acheteur) LIKE 'autres organismes particuliers%'
+                  OR LOWER(acheteur) LIKE 'autres societes%'
+                  OR LOWER(acheteur) LIKE '%entrepreneu%'
+                  OR LOWER(acheteur) LIKE '%personne physique%'
+                  OR LOWER(acheteur) LIKE '%fondation%'""").fetchall()
+        changees = 0
+        for ligne in lignes:
+            nouvelle = categorie(ligne["acheteur"], ligne["type_offre"])
+            if nouvelle != ligne["organisme"]:
+                db.execute("UPDATE tenders SET organisme=? WHERE id=?", (nouvelle, ligne["id"]))
+                changees += 1
+        if changees:
+            db.commit()
+            logger.info(f"[migrate] {changees} acheteur(s) particulier(s) reclasse(s)")
+    except Exception as e:
+        logger.warning(f"[migrate] particuliers: {e}")
+
     try:
         db.execute("CREATE INDEX IF NOT EXISTS idx_t_organisme "
                    "ON tenders(statut, organisme)")

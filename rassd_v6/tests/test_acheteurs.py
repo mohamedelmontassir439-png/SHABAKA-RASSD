@@ -83,3 +83,34 @@ class TestAffichage:
     def test_le_filtre_est_disponible_dans_les_gabarits(self):
         import main
         assert "acheteur" in main.templates.env.globals
+
+
+class TestParticuliersGlobalMarches:
+    """Bons de commande des « Autres organismes particuliers »: le nom est
+    après la barre, souvent en minuscules, parfois après une double barre."""
+
+    def test_auto_entrepreneur_lisible(self):
+        assert lisible("Autres organismes particuliers /auto- entrepreneur hafsa ben hakkoun") \
+            == "Auto-entrepreneur Hafsa Ben Hakkoun"
+        assert lisible("Autres organismes particuliers // auto- entrepreneur lamiae haoulani") \
+            == "Auto-entrepreneur Lamiae Haoulani"
+        assert lisible("Autres organismes particuliers /Auto- entrepreneure Bilal Sbaah") \
+            == "Auto-entrepreneure Bilal Sbaah"
+        assert lisible("Autres organismes particuliers / personne physique el jbari wiam") \
+            == "Personne physique El Jbari Wiam"
+
+    def test_etiquette_collee_sans_barre(self):
+        assert lisible("Autres organismes particuliers DIRECTEUR DU CENTRE DE QUALIFICATION") \
+            == "DIRECTEUR DU CENTRE DE QUALIFICATION"
+
+    def test_etiquette_seule(self):
+        from app.core.acheteurs import NOM_NON_PUBLIE
+        assert lisible("Autres organismes particuliers") == NOM_NON_PUBLIE
+
+    def test_nature_de_lacheteur(self):
+        from app.core.organismes import categorie
+        assert categorie("Autres organismes particuliers /auto- entrepreneur hafsa ben hakkoun", "Public") == "prive"
+        assert categorie("Autres societes / fondation de recherche", "Public") == "prive"
+        # L'étiquette seule ne fait pas un acheteur privé: l'agrégateur y range
+        # aussi des services de l'État.
+        assert categorie("Autres organismes particuliers / DISTRICT SANITAIRE TANGER", "Public") == "public"

@@ -97,6 +97,28 @@ def _couper_prefixe_repete(texte: str) -> str:
     return texte
 
 
+# Acheteurs particuliers des bons de commande de Global Marchés: la source
+# écrit « auto- entrepreneur hafsa ben hakkoun », tout en minuscules.
+_PARTICULIER = re.compile(r"^\s*(auto\s*-?\s*entrepreneu(?:se|re|r)|personne\s+physique)\s*(.*)$",
+                          re.IGNORECASE)
+# Sans nom après l'étiquette, la source ne publie pas qui achète.
+NOM_NON_PUBLIE = "Acheteur non précisé par la source"
+
+
+def _particulier(texte: str) -> str:
+    """« auto- entrepreneur hafsa ben hakkoun » -> « Auto-entrepreneur Hafsa Ben Hakkoun »."""
+    m = _PARTICULIER.match(texte)
+    if not m:
+        return texte
+    nature = re.sub(r"\s*-?\s*", "", m.group(1).lower(), count=0)
+    nature = {"autoentrepreneur": "Auto-entrepreneur", "autoentrepreneure": "Auto-entrepreneure",
+              "autoentrepreneuse": "Auto-entrepreneuse"}.get(nature, "Personne physique")
+    nom = m.group(2).strip(" -/")
+    if nom and nom == nom.lower():
+        nom = " ".join(w[:1].upper() + w[1:] for w in nom.split())
+    return f"{nature} {nom}".strip()
+
+
 def lisible(brut: str) -> str:
     """Le nom de l'acheteur, débarrassé de l'étiquette de la source.
 
@@ -105,14 +127,29 @@ def lisible(brut: str) -> str:
     sont gardées, séparées par un tiret.
     """
     texte = re.sub(r"\s+", " ", (brut or "").strip())
+    texte = re.sub(r"\s*/(?:\s*/)+\s*", " / ", texte)   # « particuliers // auto- … »
     if not texte:
         return ""
     if "/" in texte:
         gauche, _, droite = texte.partition("/")
         gauche, droite = gauche.strip(), droite.strip()
         if not droite:
-            return gauche
+            return _sans_etiquette(gauche)
         if _redondant(gauche, droite):
-            return droite
+            return _particulier(droite)
         return f"{gauche} — {droite}"
+    return _sans_etiquette(texte)
+
+
+def _sans_etiquette(texte: str) -> str:
+    """L'étiquette de la source seule, ou collée devant le nom sans barre:
+    « Autres organismes particuliers DIRECTEUR DU CENTRE … »."""
+    nu = _sans_accents(texte).lower()
+    for etiquette in sorted(_ETIQUETTES, key=len, reverse=True):
+        if nu == etiquette:
+            return NOM_NON_PUBLIE if "particulier" in etiquette else texte
+        if nu.startswith(etiquette + " "):
+            reste = texte[len(etiquette):].strip()
+            if reste and _mots(reste):
+                return _particulier(reste)
     return _couper_prefixe_repete(texte)

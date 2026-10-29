@@ -114,6 +114,13 @@ def categorie(acheteur: str, type_offre: str = "") -> str:
     l'avis, qui ne dit rien de la nature de l'acheteur. Une administration
     reconnue reste l'État même si l'agrégateur l'a publiée comme « Privé ».
     """
+    # Un auto-entrepreneur, une personne physique, une fondation: privés,
+    # même publiés par l'agrégateur dans sa rubrique « Public ». L'étiquette
+    # « Autres organismes particuliers » seule ne suffit pas: l'agrégateur y
+    # range aussi des districts sanitaires et des directions régionales.
+    nu = _nu(acheteur)
+    if re.search(r"auto\s*-?\s*entrepreneu|personne physique|\bfondation\b", nu):
+        return PRIVE
     if est_para_public(acheteur):
         return PARA
     if est_etat(acheteur):
