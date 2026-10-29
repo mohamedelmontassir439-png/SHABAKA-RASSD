@@ -135,5 +135,31 @@ class TestPlateforme:
         db.execute("UPDATE tenders SET fiche_lue='2026-10-25T01:00:00'"); db.commit()
         s = FausseSession(FICHE)
         assert F.enrichir(session=s, pause=0) == 1
-        assert db.execute("SELECT fiche_lue FROM tenders").fetchone()[0].startswith("v2:")
+        assert db.execute("SELECT fiche_lue FROM tenders").fetchone()[0].startswith(F.VERSION + ":")
         assert F.enrichir(session=s, pause=0) == 0
+
+
+class TestBonDeCommandeParticulier:
+    """Fiche /share-po/ de Global Marchés (bon de commande du 29/10/2026)."""
+
+    def _fiche(self):
+        import os
+        with open(os.path.join(os.path.dirname(__file__), "fixtures_fiche_bc.html"), encoding="utf-8") as f:
+            return f.read()
+
+    def test_ou_deposer(self):
+        from app.core.conditions import conditions_avis
+        f = F.lire_fiche(self._fiche())
+        assert f["journal"] == "Le matin" and f["limite"] == "05/11/2026 11:30"
+        c = conditions_avis(F.description("Autres organismes particuliers /fondation", "achat", f))
+        assert "Le Matin" in c["depot"] and c["reference"] == "37/2026"
+        assert c["limite"] == "05/11/2026 11:30"
+        assert "observation" not in c, "« voir image intégrale » n'apprend rien au membre"
+
+    def test_les_bons_de_commande_sont_lus(self, db):
+        db.execute("""INSERT INTO tenders(id,objet,acheteur,secteur,statut,scraped_at,url,source,type_procedure)
+                      VALUES('po_1','achat','Autres organismes particuliers /x','S903','actif',
+                      '2026-10-29 10:00:00','https://global-marches.com/share-po/abc','global-marches','bon_commande')""")
+        db.commit()
+        assert F.enrichir(session=FausseSession(self._fiche()), pause=0) == 1
+        assert "Le Matin" in db.execute("SELECT description FROM tenders WHERE id='po_1'").fetchone()[0]

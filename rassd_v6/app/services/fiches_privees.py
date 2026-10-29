@@ -32,7 +32,9 @@ PAUSE = 1.5
 # Version de la lecture, préfixée à fiche_lue: une fiche lue par une
 # version antérieure est relue une fois. v2 (25/10/2026): le portail
 # national n'est plus supposé quand l'avis ne le nomme pas.
-VERSION = "v2"
+# v3 (29/10/2026): les bons de commande (/share-po/) sont lus aussi, avec
+# l'allotissement et le journal où l'annonce a paru.
+VERSION = "v3"
 
 # Les étiquettes de la fiche, dans leur ordre. La valeur court jusqu'à la
 # suivante. « D.réunion » n'a pas de deux-points sur la page.
@@ -40,12 +42,14 @@ _ETIQUETTES = (
     ("ordre", r"N d'ordre\s*:"), ("reference", r"Référence\s*:"),
     ("limite", r"Date/Heure limite\s*:"), ("organisme", r"Organisme\s*:"),
     ("objet", r"Objet\s*:"), ("ville", r"Ville d'exécution\s*:"),
+    ("lots", r"Allotissement\s*:"),
     ("retrait", r"Adresse retrait\s*:"), ("contact", r"Contact\s*:"),
     ("montant_retrait", r"Montant retrait\s*:"), ("ouverture", r"D\.ouvr\.Plis\s*:"),
     ("paiement", r"Mode paiement\s*:"), ("echantillons", r"D\.Dépot\.D'ech\s*:"),
     ("caution", r"Mt caution\s*:"), ("reunion", r"D\.réunion\s*:?"),
     ("budget", r"Budget\s*:"), ("delai", r"Délais D'exécution\s*:"),
     ("visite", r"Visite des lieux\s*:"), ("dao", r"Télécharger D\.A\.O"),
+    ("image", r"Image Intégral+e"),
     ("type", r"Type\s*:"), ("observation", r"Obsérvation\s*:"),
     ("electronique", r"Soumission électronique\s*:"), ("fin", r"Cliquer ici|Support SUPPORT"),
 )
@@ -73,6 +77,10 @@ def lire_fiche(html: str) -> dict:
         valeur = texte[fin:borne].strip(" :-–—")
         if valeur not in _VIDE:
             champs[cle] = valeur[:600]
+    # Le journal où l'annonce a paru: « SUPPORT DU PAGE/COLONNE Le matin 27/04/2019 ».
+    journal = re.search(r"SUPPORT DU PAGE/COLONNE\s+(.+?)\s+\d{1,2}/\d{1,2}/\d{2,4}", texte)
+    if journal and len(journal.group(1)) < 60:
+        champs["journal"] = journal.group(1).strip()
     dao = re.search(r'href="(/downoaldcps/[^"]+)"', html or "")
     if dao:
         champs["dao_url"] = BASE + dao.group(1)
@@ -112,6 +120,13 @@ def description(acheteur: str, objet: str, f: dict) -> str:
     elif f.get("electronique"):
         p.append("Adresse de dépôt des offres : dépôt papier auprès de l'acheteur — "
                  + (f.get("retrait") or "voir l'avis"))
+    elif f.get("journal") and not f.get("retrait"):
+        # Bons de commande d'acheteurs particuliers: la fiche ne donne pas
+        # d'adresse, l'annonce de presse si.
+        p.append("Adresse de dépôt des offres : auprès de l'acheteur, à l'adresse indiquée "
+                 f"dans l'annonce parue dans le journal « {f['journal'].title()} »")
+    if f.get("lots"):
+        p.append(f"Allotissement : {f['lots']}")
     if f.get("ouverture"):
         p.append(f"Lieu d'ouverture des plis : {f['ouverture']}")
     if f.get("montant_retrait"):
@@ -128,7 +143,9 @@ def description(acheteur: str, objet: str, f: dict) -> str:
         p.append(f"Délai d'exécution prévu : {f['delai']}")
     if f.get("type"):
         p.append(f"Type de consultation : {f['type']}")
-    if f.get("observation"):
+    # « plus de détaille ( voir image intégrale ) » renvoie à une image de la
+    # source, pas à l'acheteur: rien à en dire au membre.
+    if f.get("observation") and not re.fullmatch(r"[^.]{0,40}image int[ée]gral+e\s*\)?\s*", f["observation"], re.I):
         p.append(f"Observations de l'acheteur : {f['observation']}")
     if f.get("contact"):
         p.append(f"Contact Administratif : {_contact(f['contact'])}")
@@ -146,7 +163,8 @@ def enrichir(limite: int = 60, session=None, pause: float = PAUSE, log_fn=None) 
         a_lire = [dict(r) for r in db.execute(
             """SELECT id, objet, acheteur, url, description FROM tenders
                WHERE source='global-marches' AND statut='actif'
-                 AND COALESCE(fiche_lue,'') NOT LIKE ? AND url LIKE '%/share/%'
+                 AND COALESCE(fiche_lue,'') NOT LIKE ?
+                 AND (url LIKE '%/share/%' OR url LIKE '%/share-po/%')
                ORDER BY COALESCE(fiche_lue,'') = '' DESC, scraped_at DESC LIMIT ?""",
             (VERSION + ":%", limite)).fetchall()]
     finally:

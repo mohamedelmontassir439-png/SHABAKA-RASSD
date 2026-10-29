@@ -255,6 +255,8 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
       <a href="/tenders/{{ t.id }}/source" target="_blank" class="btn btn-primary btn-full source-mobile">{{ tr('detail_source') }}</a>
       {% elif t.dao_url %}
       <a href="/tenders/{{ t.id }}/dao" class="btn btn-primary btn-full source-mobile">{{ tr('detail_dao') }}</a>
+      {% elif (t.url or '').startswith('https://') %}
+      <a href="{{ t.url }}" target="_blank" rel="noopener" class="btn btn-primary btn-full source-mobile">{{ tr('detail_avis_source') }}</a>
       {% endif %}
 
       {# L'offre du membre pour ce marché: suivie ou non, son étape, ses
@@ -579,6 +581,11 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
         {% elif t.dao_url %}
         <a href="/tenders/{{ t.id }}/dao" class="btn btn-primary btn-full source-lien" style="margin-bottom: 8px;">{{ tr('detail_dao') }}</a>
         {% if request.query_params.get('dao') == 'indisponible' %}<div style="font-size:var(--f1);color:var(--red);margin-bottom:8px">{{ tr('detail_dao_indispo') }}</div>{% endif %}
+        {% elif (t.url or '').startswith('https://') %}
+        {# Bon de commande d'un acheteur particulier: ni portail, ni dossier
+           à télécharger — l'avis de la source donne la référence et le
+           journal où l'annonce a paru. #}
+        <a href="{{ t.url }}" target="_blank" rel="noopener" class="btn btn-primary btn-full source-lien" style="margin-bottom: 8px;">{{ tr('detail_avis_source') }}</a>
         {% endif %}
         {% if member %}
         <button onclick="toggleFav(this,'{{ t.id }}')" id="favbtn" class="btn btn-outline btn-full btn-sm {% if is_fav %}active{% endif %}" data-add="{{ tr('detail_fav_add') }}" data-remove="{{ tr('detail_fav_remove') }}">

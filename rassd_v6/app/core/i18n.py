@@ -1033,6 +1033,7 @@ T = {
     "detail_collapse":    {"fr": "Réduire ▲", "ar": "تصغير ▲"},
     "detail_related":     {"fr": "Marchés similaires", "ar": "صفقات مشابهة"},
     "detail_source":      {"fr": "Source officielle ↗", "ar": "المصدر الرسمي ↗"},
+    "detail_avis_source": {"fr": "Voir l'avis à la source ↗", "ar": "عرض الإعلان في مصدره ↗"},
     "detail_fav_add":     {"fr": "☆ Ajouter aux favoris", "ar": "☆ إضافة للمفضلة"},
     "detail_fav_remove":  {"fr": "★ Retirer des favoris", "ar": "★ إزالة من المفضلة"},
     "detail_alert_signup":{"fr": "M'alerter sur ce secteur", "ar": "تنبيهي حول هذا القطاع"},
