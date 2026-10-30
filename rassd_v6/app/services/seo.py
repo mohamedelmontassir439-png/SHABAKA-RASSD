@@ -36,6 +36,17 @@ from app.core.villes import ville
 SEUIL_VILLE = 5
 SOURCE_PUBLIQUE = "marchespublics"
 PREFIXE = "ao_"
+# Les bons de commande du portail national sont publics au même titre que
+# ses appels d'offres, et on les cherche autant: « bon de commande Agadir
+# fournitures de bureau ». Chaque nature a son adresse.
+NATURES = {
+    "ao_":  {"chemin": "/appel-offres/",    "libelle": "Appel d'offres"},
+    "bdc_": {"chemin": "/bon-de-commande/", "libelle": "Bon de commande"},
+}
+
+
+def prefixe(tid: str) -> str:
+    return next((p for p in NATURES if (tid or "").startswith(p)), "")
 
 
 def slug(texte: str, longueur: int = 70) -> str:
@@ -56,13 +67,13 @@ def slug_secteur(label: str) -> str:
 
 def a_une_page(t) -> bool:
     """Seuls les avis du portail national ont une page publique."""
-    return bool(t) and (t["id"] or "").startswith(PREFIXE) \
-        and (t["source"] or "") == SOURCE_PUBLIQUE
+    return bool(t) and bool(prefixe(t["id"])) and (t["source"] or "") == SOURCE_PUBLIQUE
 
 
 def chemin(t) -> str:
-    """« /appel-offres/1043943-achevement-des-travaux-de-construction… »."""
-    return f"/appel-offres/{t['id'][len(PREFIXE):]}-{slug(t['objet'])}"
+    """« /appel-offres/1043943-achevement-… » ou « /bon-de-commande/400227-achat-… »."""
+    p = prefixe(t["id"])
+    return f"{NATURES[p]['chemin']}{t['id'][len(p):]}-{slug(t['objet'])}"
 
 
 def jour(texte: str):
@@ -72,13 +83,13 @@ def jour(texte: str):
         return None
 
 
-def marche(numero: str):
+def marche(numero: str, p: str = PREFIXE):
     """Le marché derrière une adresse publique, ou None."""
     if not numero.isdigit():
         return None
     db = get_db()
     try:
-        t = db.execute("SELECT * FROM tenders WHERE id=?", (PREFIXE + numero,)).fetchone()
+        t = db.execute("SELECT * FROM tenders WHERE id=?", (p + numero,)).fetchone()
     finally:
         db.close()
     return dict(t) if a_une_page(t) else None
@@ -92,8 +103,11 @@ def fiche(t: dict) -> dict:
     # On dit quelles conditions l'avis pose — c'est ce que l'entreprise veut
     # savoir avant tout —, sans en livrer la valeur.
     exigences = [cle for cle, _, _, exige in cartes(cond) if exige and cle != "cond_limite"]
+    p = prefixe(t.get("id") or "")
     return {
         "t": t, "ouvert": ouvert, "fin": fin,
+        "nature": NATURES.get(p, NATURES[PREFIXE])["libelle"],
+        "bdc": p == "bdc_",
         "jours": (fin - date.today()).days if fin else None,
         "ville": ville(t.get("region") or ""),
         "secteur": get_label(t.get("secteur") or "") or "",
@@ -111,9 +125,10 @@ def voisins(t: dict, limite: int = 6) -> list:
     try:
         lignes = [dict(r) for r in db.execute(
             """SELECT id, objet, region, date_limite, montant, source FROM tenders
-               WHERE statut='actif' AND secteur=? AND id!=? AND source=? AND id LIKE 'ao_%'
+               WHERE statut='actif' AND secteur=? AND id!=? AND source=? AND id LIKE ?
                ORDER BY scraped_at DESC LIMIT ?""",
-            (t.get("secteur") or "", t["id"], SOURCE_PUBLIQUE, limite)).fetchall()]
+            (t.get("secteur") or "", t["id"], SOURCE_PUBLIQUE,
+             (prefixe(t["id"]) or PREFIXE) + "%", limite)).fetchall()]
     finally:
         db.close()
     for v in lignes:
@@ -128,7 +143,7 @@ def marches_ouverts_publics() -> list:
     try:
         lignes = [dict(r) for r in db.execute(
             """SELECT id, objet, source, scraped_at, date_limite FROM tenders
-               WHERE statut='actif' AND source=? AND id LIKE 'ao_%'""",
+               WHERE statut='actif' AND source=? AND (id LIKE 'ao_%' OR id LIKE 'bdc_%')""",
             (SOURCE_PUBLIQUE,)).fetchall()]
     finally:
         db.close()

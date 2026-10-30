@@ -1,8 +1,8 @@
 {% extends "base_public.html" %}
 {% set monolingue = true %}
 {% set t = f.t %}
-{% block title %}{{ t.objet[:1]|upper }}{{ t.objet[1:68] }}{% if f.ville %} — {{ f.ville }}{% endif %} | Appel d'offres{% endblock %}
-{% block description %}Appel d'offres{% if f.ville %} à {{ f.ville }}{% endif %}{% if f.secteur %}, {{ f.secteur }}{% endif %} : {{ t.objet[:110] }}.{% if t.date_limite %} Date limite {{ t.date_limite }}.{% endif %}{% if t.montant %} Estimation {{ t.montant }}.{% endif %}{% endblock %}
+{% block title %}{{ t.objet[:1]|upper }}{{ t.objet[1:68] }}{% if f.ville %} — {{ f.ville }}{% endif %} | {{ f.nature }}{% endblock %}
+{% block description %}{{ f.nature }}{% if f.ville %} à {{ f.ville }}{% endif %}{% if f.secteur %}, {{ f.secteur }}{% endif %} : {{ t.objet[:110] }}.{% if t.date_limite %} Date limite {{ t.date_limite }}.{% endif %}{% if t.montant %} Estimation {{ t.montant }}.{% endif %}{% endblock %}
 {% block robots %}{{ 'index,follow' if f.ouvert else 'noindex,follow' }}{% endblock %}
 {% block head %}
 <script type="application/ld+json">
@@ -57,7 +57,7 @@
     {% if ville_page %}<a href="/marches-publics/ville/{{ ville_page.slug }}">{{ ville_page.nom }}</a>{% endif %}
   </nav>
 
-  <div class="am-sur">Appel d'offres{% if f.categorie %} · {{ f.categorie }}{% endif %}{% if f.ville %} · {{ f.ville }}{% endif %}</div>
+  <div class="am-sur">{{ f.nature }}{% if f.categorie %} · {{ f.categorie }}{% endif %}{% if f.ville %} · {{ f.ville }}{% endif %}</div>
   <h1 class="am-h1">{{ t.objet[:1]|upper }}{{ t.objet[1:] }}</h1>
 
   {% if f.ouvert %}
@@ -72,7 +72,11 @@
       {% if ville_page %}<a href="/marches-publics/ville/{{ ville_page.slug }}">{{ f.ville }}</a>{% else %}{{ f.ville or '—' }}{% endif %}</div></div>
     <div class="am-case"><div class="am-cle">Secteur</div><div class="am-val">
       {% if f.secteur %}<a href="/marches-publics/{{ f.secteur_slug }}">{{ f.secteur }}</a>{% else %}—{% endif %}</div></div>
+    {% if f.bdc and not t.montant and t.quantite %}
+    <div class="am-case"><div class="am-cle">Quantité</div><div class="am-val">{{ quantite_texte(t.quantite) }}</div></div>
+    {% else %}
     <div class="am-case"><div class="am-cle">Estimation (TTC)</div><div class="am-val">{{ t.montant or 'Non communiquée' }}</div></div>
+    {% endif %}
     {% if f.procedure %}<div class="am-case"><div class="am-cle">Procédure</div><div class="am-val">{{ f.procedure }}</div></div>{% endif %}
     {% if f.reference %}<div class="am-case"><div class="am-cle">Référence</div><div class="am-val">{{ f.reference }}</div></div>{% endif %}
     <div class="am-case"><div class="am-cle">Acheteur public</div><div class="am-verrou">{{ ico('verrou', 15)|safe }} Réservé aux membres</div></div>
@@ -95,15 +99,15 @@
     <p>Acheteur, conditions détaillées, avis officiel et contact : tout est dans votre espace.</p>
     <a href="/tenders/{{ t.id }}" class="btn btn-primary btn-lg">Ouvrir la fiche →</a>
     {% else %}
-    <h2>Ne manquez plus un marché{% if f.secteur %} en {{ f.secteur }}{% endif %}</h2>
-    <p>Recevez chaque matin les appels d'offres de votre secteur et de votre ville, avec l'acheteur, les conditions et le lien officiel. Essai gratuit de {{ cfg.essai('fr') }}, sans carte bancaire.</p>
+    <h2>Ne manquez plus {{ 'un bon de commande' if f.bdc else 'un marché' }}{% if f.secteur %} en {{ f.secteur }}{% endif %}</h2>
+    <p>Recevez chaque matin les {{ 'bons de commande et ' if f.bdc else '' }}appels d'offres de votre secteur et de votre ville, avec l'acheteur, les conditions et le lien officiel. Essai gratuit de {{ cfg.essai('fr') }}, sans carte bancaire.</p>
     <a href="/register?src=seo" class="btn btn-primary btn-lg">Voir la fiche complète gratuitement →</a>
     {% endif %}
   </div>
 
   {% if voisins %}
   <section class="am-voisins" aria-labelledby="am-v-t">
-    <h2 id="am-v-t">Autres marchés ouverts{% if f.secteur %} en {{ f.secteur }}{% endif %}</h2>
+    <h2 id="am-v-t">{{ 'Autres bons de commande ouverts' if f.bdc else 'Autres marchés ouverts' }}{% if f.secteur %} en {{ f.secteur }}{% endif %}</h2>
     {% for v in voisins %}
     <a class="am-v" href="{{ v.chemin }}"><b>{{ v.objet[:140] }}{% if v.objet|length > 140 %}…{% endif %}</b>
       <span>{{ v.ville or '' }}{% if v.date_limite %} · limite {{ v.date_limite }}{% endif %}{% if v.montant %} · {{ v.montant }}{% endif %}</span></a>

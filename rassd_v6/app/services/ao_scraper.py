@@ -183,7 +183,9 @@ def parse_fiche(html: str) -> dict:
                       r"(\d{1,2}\s+[A-Za-zéûÉ]{3,5}\.?\s+\d{4})\s+(\d{2}:\d{2})", txt)
         if m and _date_carte(m.group(1)):
             limite = f"{_date_carte(m.group(1))} {m.group(2)}"
-    caution = re.search(r"Caution provisoire\s*:\s*(.{1,80}?)\s*(?:Acheteur public|$)", tete)
+    caution = re.search(r"Caution provisoire\s*:\s*(.{0,80}?)\s*(?:Acheteur public|Entité publique|$)", tete)
+    if caution and not caution.group(1).strip():
+        caution = None   # champ vide sur la page (Masen): pas de caution annoncée
     if depart > 0:
         txt = txt[depart:]
     if caution and "Caution provisoire" not in txt:

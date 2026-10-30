@@ -128,3 +128,35 @@ class TestPlanDuSite:
         for chemin in ("/tenders", "/settings", "/invitation/", "/api/"):
             assert f"Disallow: {chemin}" in txt
         assert "Disallow: /appel-offres" not in txt and "Disallow: /marches-publics" not in txt
+
+
+class TestBonsDeCommandePublics:
+    def _bdc(self, db, n="400227", source="marchespublics"):
+        db.execute("""INSERT INTO tenders(id,objet,acheteur,secteur,region,statut,scraped_at,
+                      date_limite,type_offre,type_procedure,source,quantite)
+                      VALUES(?,?,'COMMUNE',?,'Agadir','actif','2026-10-29 10:00:00',?,
+                      'Public','bon_commande',?,'50 unités')""",
+                   ("bdc_" + n, "Achat de fournitures de bureau", "S903",
+                    (date.today() + timedelta(days=5)).strftime("%d/%m/%Y"), source))
+        db.commit()
+
+    def test_page_publique_et_plan_du_site(self, client, db):
+        self._bdc(db)
+        r = client.get("/bon-de-commande/400227-achat-de-fournitures-de-bureau")
+        assert r.status_code == 200 and "Bon de commande" in r.text
+        assert "Réservé aux membres" in r.text and "COMMUNE" not in r.text
+        assert "/bon-de-commande/400227-achat-de-fournitures-de-bureau" in client.get("/sitemap.xml").text
+
+    def test_adresse_corrigee(self, client, db):
+        self._bdc(db)
+        r = client.get("/bon-de-commande/400227-autre", follow_redirects=False)
+        assert r.status_code == 301 and r.headers["location"].endswith("-achat-de-fournitures-de-bureau")
+
+    def test_pas_de_page_pour_une_source_privee(self, client, db):
+        self._bdc(db, "1", source="global-marches")
+        assert client.get("/bon-de-commande/1-achat").status_code == 404
+
+    def test_validation_search_console(self, client, db, monkeypatch):
+        from app.core.config import cfg
+        monkeypatch.setattr(cfg, "GOOGLE_SITE_VERIFICATION", "abc123")
+        assert 'name="google-site-verification" content="abc123"' in _tete(client.get("/").text)

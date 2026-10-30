@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+{% if cfg.GOOGLE_SITE_VERIFICATION %}<meta name="google-site-verification" content="{{ cfg.GOOGLE_SITE_VERIFICATION }}">{% endif %}
 <title>{% block title %}MAROC ENTREPRENEURIAT — Marchés Publics, Semi-publics & Privés du Maroc{% endblock %}</title>
 {# Description et consigne aux robots: chaque page peut les redéfinir.
    Déclarées ici sans s'afficher, elles sont lues par la tête commune. #}

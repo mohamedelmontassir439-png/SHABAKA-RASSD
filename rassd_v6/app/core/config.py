@@ -14,6 +14,9 @@ class Settings:
     APP_NAME:    str  = "MAROC ENTREPRENEURIAT"
     APP_VERSION: str  = "3.0.0"
     SITE_URL:    str  = os.getenv("SITE_URL", "https://marocentrepreneuriat.com")
+    # Code de la balise de validation Google Search Console (« méthode balise
+    # HTML »): seule la valeur de content="…", à poser dans les variables.
+    GOOGLE_SITE_VERIFICATION: str = os.getenv("GOOGLE_SITE_VERIFICATION", "")
     SECRET_KEY:  str  = os.getenv("SECRET_KEY", secrets.token_hex(32))
     DEBUG:       bool = os.getenv("DEBUG","false").lower() == "true"
     # Database

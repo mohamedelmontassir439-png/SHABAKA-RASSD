@@ -397,6 +397,28 @@ async def do_scrape():
             logger.error(f"[ao_scraper] {e}", exc_info=True)
             _record_run("marchespublics-ao", "FAILED", errors=1, started=_t, message=str(e))
 
+        # ── Portails d'achats d'entreprises publiques ──────
+        # Même logiciel que le portail national, mais propres à l'entreprise
+        # (Masen): app/services/portails_prado.py.
+        _t = datetime.now()
+        try:
+            State.log("─" * 48)
+            State.log("  Portails d'entreprises publiques")
+            from app.services import portails_prado
+            db = get_db()
+            known_p = {r[0] for r in db.execute("SELECT id FROM tenders").fetchall()}
+            db.close()
+            p_results = await loop.run_in_executor(None, lambda: portails_prado.run(known_p, State.log))
+            await loop.run_in_executor(None, lambda: classer_ia(p_results))
+            State.found += len(p_results)
+            saved_p = _save_tenders(p_results, new_tenders)
+            State.saved += saved_p
+            _record_run("portails-entreprises", "SUCCESS", len(p_results), saved_p, started=_t)
+        except Exception as e:
+            State.log(f"❌ Portails d'entreprises publiques: {e}")
+            _record_run("portails-entreprises", "FAILED", errors=1, started=_t, message=str(e))
+            logger.error(f"[portails prado] {e}", exc_info=True)
+
         # ── Marchés privés ─────────────────────────────────
         _t = datetime.now()
         try:
@@ -1135,6 +1157,10 @@ def source_label(source: str, lang: str = "fr") -> str:
         return "marchespublics.gov.ma"
     if source == "global-marches":
         return tr_("source_private_platform", lang)
+    from app.services.portails_prado import PORTAILS
+    for code, racine, _nom in PORTAILS:
+        if source == code:
+            return racine.split("//", 1)[-1]
     return tr_("source_private_platform", lang) if source else ""
 
 templates = Jinja2Templates(directory="templates")
@@ -1514,7 +1540,8 @@ async def tender_detail(req: Request, tid: str):
         # marché plutôt qu'à un formulaire de connexion: le visiteur voit
         # de quoi il s'agit, et c'est de là qu'il s'inscrit.
         from app.services import seo
-        t_pub = seo.marche(tid[len(seo.PREFIXE):]) if tid.startswith(seo.PREFIXE) else None
+        p_pub = seo.prefixe(tid)
+        t_pub = seo.marche(tid[len(p_pub):], p_pub) if p_pub else None
         if t_pub:
             return RedirectResponse(seo.chemin(t_pub), 302)
         return RedirectResponse("/login?next=/tenders/" + tid, 302)
@@ -5662,6 +5689,22 @@ async def marche_public(req: Request, ref: str):
         return render(req, "404.html", {}, status_code=404)
     # Une seule adresse par marché: un intitulé corrigé change le texte de
     # l'adresse, et l'ancienne renvoie vers la nouvelle au lieu de doubler.
+    attendu = seo.chemin(t)
+    if req.url.path != attendu:
+        return RedirectResponse(attendu, 301)
+    f = seo.fiche(t)
+    villes = {v["nom"]: v for v in seo.villes_publiques()}
+    return render(req, "seo_marche.html", {
+        "f": f, "voisins": seo.voisins(t), "ville_page": villes.get(f["ville"])})
+
+
+@app.get("/bon-de-commande/{ref}", response_class=HTMLResponse)
+async def bon_commande_public(req: Request, ref: str):
+    """La page publique d'un bon de commande du portail national."""
+    from app.services import seo
+    t = seo.marche(ref.split("-", 1)[0], "bdc_")
+    if not t:
+        return render(req, "404.html", {}, status_code=404)
     attendu = seo.chemin(t)
     if req.url.path != attendu:
         return RedirectResponse(attendu, 301)
