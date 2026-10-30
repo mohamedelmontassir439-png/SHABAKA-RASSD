@@ -5173,9 +5173,63 @@ async def admin_record_payment(req: Request, member_id:int=Form(...), plan:str=F
     }
     receipt_no  = _create_document(db, "receipt", member, common, sub_id, payment_id)
     contract_no = _create_document(db, "contract", member, common, sub_id, payment_id)
+    parrain = _offrir_mois_parrain(db, member, price, now) if price > 0 else None
     db.commit(); db.close()
+    if parrain:
+        _prevenir_parrain(parrain, member)
     logger.info(f"[payment] {price} MAD · membre {member_id} · {receipt_no}")
-    return RedirectResponse(f"/admin/payments?ok={receipt_no}", 302)
+    return RedirectResponse(f"/admin/payments?ok={receipt_no}"
+                            + ("&parrain=1" if parrain else ""), 302)
+
+
+def _offrir_mois_parrain(db, filleul: dict, prix: float, now: datetime):
+    """Un mois offert au parrain quand son filleul paie pour la première fois.
+
+    Une seule fois par filleul (members.parrainage_offert), et seulement pour
+    un paiement réel: c'est l'abonnement qui est récompensé, pas l'inscription.
+    Le mois s'ajoute à l'échéance en cours, ou part d'aujourd'hui si le parrain
+    n'a pas (ou plus) d'abonnement. Retourne le parrain mis à jour, ou None.
+    """
+    pid = filleul.get("referred_by") or 0
+    if not pid or pid == filleul["id"] or filleul.get("parrainage_offert"):
+        return None
+    parrain = db.execute("SELECT * FROM members WHERE id=? AND actif=1", (pid,)).fetchone()
+    if not parrain:
+        return None
+    parrain = dict(parrain)
+    base = now.date()
+    if parrain.get("subscription_status") == "ACTIVE" and parrain.get("subscription_end"):
+        try:
+            base = max(base, datetime.strptime(parrain["subscription_end"][:10], "%Y-%m-%d").date())
+        except ValueError:
+            pass
+    fin = (base + timedelta(days=30)).strftime("%Y-%m-%d")
+    plan = parrain.get("plan") if parrain.get("plan") in cfg.PLANS and parrain.get("plan") != "free" else "monthly"
+    db.execute("""INSERT INTO subscriptions(member_id,plan_id,price,currency,status,start_date,end_date,
+                  created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?)""",
+               (pid, "parrainage", 0, "MAD", "ACTIVE", base.strftime("%Y-%m-%d"), fin,
+                now.isoformat(), now.isoformat()))
+    db.execute("UPDATE members SET plan=?, subscription_status='ACTIVE', subscription_end=? WHERE id=?",
+               (plan, fin, pid))
+    db.execute("UPDATE members SET parrainage_offert=? WHERE id=?",
+               (now.isoformat(timespec="seconds"), filleul["id"]))
+    logger.info(f"[parrainage] mois offert à {parrain['email']} (filleul {filleul['email']}) → {fin}")
+    parrain["subscription_end"] = fin
+    return parrain
+
+
+def _prevenir_parrain(parrain: dict, filleul: dict):
+    """L'email qui dit au parrain ce qu'il a gagné, et l'invite à recommencer."""
+    from app.services.notifications import _enveloppe_email, email_send
+    nom = (filleul.get("company") or filleul.get("nom") or "Un collègue").strip()
+    fin = datetime.strptime(parrain["subscription_end"], "%Y-%m-%d").strftime("%d/%m/%Y")
+    try:
+        email_send(parrain["email"], tr_("mail_parrain_subject", "fr", filleul=nom),
+                   _enveloppe_email(tr_("mail_parrain_h2", "fr"),
+                                    tr_("mail_parrain_p", "fr", filleul=nom, fin=fin),
+                                    f"{cfg.SITE_URL}/settings", tr_("mail_parrain_btn", "fr")))
+    except Exception as e:
+        logger.warning(f"[parrainage] email non envoyé à {parrain['email']}: {e}")
 
 @app.post("/admin/member/{mid}/delete")
 async def admin_delete_member(req: Request, mid: int, confirm: str = Form(""),
@@ -5225,6 +5279,24 @@ async def admin_members(req: Request, q: str = ""):
             codes = []
         m["secteurs_lus"] = [(c, get_label(c)) for c in codes]
         m["manque"] = profil_incomplet(m)
+    # Le bilan d'essai, prêt à partir de votre WhatsApp: tant que l'envoi
+    # automatique n'est pas ouvert, c'est l'administration qui l'envoie.
+    from urllib.parse import quote
+    from app.services.notifications import bilan_essai, texte_bilan_essai
+    from app.core.security import duree_txt, fin_essai
+    db = get_db()
+    try:
+        for m in rows:
+            fin = fin_essai(m.get("trial_ends") or "")
+            if m.get("subscription_status") != "TRIAL" or not fin or fin <= datetime.now():
+                continue
+            n, exemple = bilan_essai(db, m)
+            if n:
+                heures = max(1, round((fin - datetime.now()).total_seconds() / 3600))
+                m["bilan_wa"] = quote(texte_bilan_essai(m, n, exemple, duree_txt(heures)))
+                m["bilan_n"] = n
+    finally:
+        db.close()
     csrf_tok = get_csrf_token(req) or secrets.token_urlsafe(24)
     resp = templates.TemplateResponse("admin_members.html", {
         "request": req, "cfg": cfg, "members": rows, "q": q, "csrf_token": csrf_tok})

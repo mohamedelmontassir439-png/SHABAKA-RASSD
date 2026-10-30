@@ -74,6 +74,11 @@ details.del summary::-webkit-details-marker{display:none}
             <div><a class="lien-contact" href="tel:{{ m.phone }}">{{ ico('telephone', 13)|safe }} {{ tel(m.phone) }}</a></div>
             <div><a class="lien-contact muted" target="_blank" rel="noopener"
                     href="https://wa.me/212{{ m.phone[1:] }}">{{ ico('bulle', 12)|safe }} WhatsApp</a></div>
+            {% if m.bilan_wa %}
+            <div><a class="lien-contact" target="_blank" rel="noopener"
+                    title="Message prêt : {{ m.bilan_n }} marché(s) trouvés pendant son essai"
+                    href="https://wa.me/212{{ m.phone[1:] }}?text={{ m.bilan_wa }}">{{ ico('bulle', 12)|safe }} Bilan d'essai ({{ m.bilan_n }})</a></div>
+            {% endif %}
           {% else %}<span class="badge b-r">sans numéro</span>{% endif %}
           <div><a class="lien-contact muted" href="mailto:{{ m.email }}" title="{{ m.email }}">{{ m.email[:26] }}{{ '…' if m.email|length > 26 }}</a></div>
         </td>

@@ -609,6 +609,9 @@ def migrate_db():
         # Coupure décidée par l'administration: plus aucun message automatique
         # vers ce membre, quels que soient les réglages qu'il a lui-même choisis.
         "ALTER TABLE members ADD COLUMN notif_suspendues INTEGER DEFAULT 0",
+        # Date à laquelle le parrain de ce membre a reçu son mois offert:
+        # une seule récompense par filleul, même s'il renouvelle dix fois.
+        "ALTER TABLE members ADD COLUMN parrainage_offert TEXT DEFAULT ''",
         # Montant de l'adjudication en nombre. La colonne texte reste la
         # source affichée; celle-ci n'existe que pour filtrer et trier, ce que
         # « 5.916.000,00 » et « 6.720.600.00 » — deux formats présents dans la

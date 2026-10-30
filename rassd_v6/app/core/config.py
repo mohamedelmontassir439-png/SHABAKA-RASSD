@@ -59,6 +59,8 @@ class Settings:
     TWILIO_CONTENT_SID:     str = os.getenv("TWILIO_CONTENT_SID", "")
     # Modèle d'authentification pour le code de vérification du numéro.
     TWILIO_OTP_CONTENT_SID: str = os.getenv("TWILIO_OTP_CONTENT_SID", "")
+    # Modèle du bilan d'essai (voir notifications.texte_bilan_essai).
+    TWILIO_TRIAL_CONTENT_SID: str = os.getenv("TWILIO_TRIAL_CONTENT_SID", "")
     # Heure d'envoi du résumé WhatsApp quotidien (heure du Maroc).
     WA_DIGEST_HOUR:         int = int(os.getenv("WA_DIGEST_HOUR", "9"))
     # Abonnement (mise à niveau manuelle via WhatsApp)
@@ -128,7 +130,9 @@ class Settings:
     DAILY_REPORT_HOUR: int = int(os.getenv("DAILY_REPORT_HOUR", "8"))
     # Essai gratuit accordé à chaque nouvelle inscription, en heures (24 = un
     # jour), compté à l'heure près depuis l'inscription.
-    TRIAL_HOURS: int = int(os.getenv("TRIAL_HOURS", "24"))
+    # Sept jours: en vingt-quatre heures, un entrepreneur ne voit souvent
+    # passer aucun marché de son secteur et juge la plateforme sur ce vide.
+    TRIAL_HOURS: int = int(os.getenv("TRIAL_HOURS", "168"))
     # Secteurs qu'un membre choisit lui-même à l'inscription. Au-delà, ou pour
     # en changer, il écrit sur WhatsApp et l'administration s'en charge.
     MAX_SECTEURS: int = int(os.getenv("MAX_SECTEURS", "3"))

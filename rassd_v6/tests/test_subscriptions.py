@@ -129,6 +129,6 @@ class TestEssaiDe24Heures:
         assert duree_txt(1, "fr") == "1 heure" and duree_txt(5, "ar") == "5 ساعات"
         assert duree_txt(168, "fr") == "7 jours" and duree_txt(168, "ar") == "7 أيام"
 
-    def test_l_accueil_annonce_24_heures(self, client):
+    def test_l_accueil_annonce_7_jours(self, client):
         page = client.get("/").text
-        assert "Essai gratuit 24 heures" in page and "Essai gratuit 7 jours" not in page
+        assert "Essai gratuit 7 jours" in page and "Essai gratuit 24 heures" not in page

@@ -266,7 +266,7 @@ class TestEssaiGratuitSurLaLanding:
     def test_essai_annonce_sur_la_page_daccueil(self, client):
         page = client.get("/").text
         assert "Essai gratuit" in page
-        assert "24 heures" in page
+        assert "7 jours" in page
         assert 'href="/register"' in page
 
     def test_essai_annonce_sur_la_page_tarifs(self, client):

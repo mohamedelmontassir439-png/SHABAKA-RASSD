@@ -1,10 +1,10 @@
-import json, logging, smtplib, requests as _req
+import json, logging, re, smtplib, requests as _req
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from app.core.config   import cfg
 from app.core.database import get_db
-from app.core.security import days_left, fin_essai, has_access
+from app.core.security import days_left, duree_txt, fin_essai, has_access
 from app.core.acheteurs import lisible as acheteur_lisible
 from app.core.sectors   import get_label
 
@@ -910,6 +910,67 @@ def _marches_du_membre(db, membre: dict) -> int:
         secteurs + [membre.get("created_at", "")[:10]]).fetchone()[0]
 
 
+def bilan_essai(db, membre: dict) -> tuple:
+    """(nombre, exemple): les marchés de ses secteurs publiés depuis son
+    inscription, et le plus récent d'entre eux pour donner un nom au chiffre."""
+    n = _marches_du_membre(db, membre)
+    if not n:
+        return 0, ""
+    try:
+        secteurs = json.loads(membre.get("secteurs") or "[]")
+    except Exception:
+        secteurs = []
+    ph = ",".join("?" * len(secteurs))
+    r = db.execute(
+        f"""SELECT objet FROM tenders WHERE statut='actif' AND secteur IN ({ph})
+            AND scraped_at >= ? ORDER BY scraped_at DESC LIMIT 1""",
+        secteurs + [membre.get("created_at", "")[:10]]).fetchone()
+    exemple = re.sub(r"\s+", " ", (r["objet"] if r else "") or "").strip()
+    return n, (exemple[:90].rstrip() + "…") if len(exemple) > 90 else exemple
+
+
+def texte_bilan_essai(membre: dict, n: int, exemple: str, reste: str) -> str:
+    """Le bilan d'essai en texte libre: WhatsApp de l'administration (wa.me)
+    ou envoi automatique quand le canal est ouvert.
+
+    Modèle à faire approuver dans Twilio (catégorie UTILITY) pour l'envoi
+    automatique hors fenêtre de 24 h, variables dans cet ordre:
+      Bonjour {{1}}, depuis votre inscription {{2}} marché(s) de vos secteurs
+      ont été publiés, dont : {{3}}. Votre essai se termine dans {{4}}.
+      Pour continuer : {{5}} — Maroc Entrepreneuriat
+    """
+    prenom = ((membre.get("nom") or "").strip().split(" ") or [""])[0]
+    return "\n".join([
+        f"Bonjour {prenom}," if prenom else "Bonjour,",
+        f"Depuis votre inscription sur Maroc Entrepreneuriat, *{n} marché(s)* de vos secteurs ont été publiés,"
+        + (f" dont : « {exemple} »." if exemple else "."),
+        f"Votre essai gratuit se termine dans {reste}. Pour continuer : 249 MAD par mois, sans engagement.",
+        f"👉 {cfg.SITE_URL}/tarifs",
+    ])
+
+
+def _bilan_whatsapp(db, membre: dict, n: int, exemple: str, reste: str) -> bool:
+    """Le même bilan sur WhatsApp, si le canal est ouvert et le numéro vérifié."""
+    if not (cfg.WA_ENABLED and membre.get("notif_wa") and membre.get("whatsapp_verified")
+            and (membre.get("whatsapp") or "").strip()):
+        return False
+    numero = membre["whatsapp"]
+    if twilio_configured() and cfg.TWILIO_TRIAL_CONTENT_SID:
+        prenom = ((membre.get("nom") or "").strip().split(" ") or [""])[0]
+        ok = send_wa_template(numero, cfg.TWILIO_TRIAL_CONTENT_SID, {
+            "1": clean_template_var(prenom, "cher membre", 40), "2": str(n),
+            "3": clean_template_var(exemple, "voir la liste", 120),
+            "4": clean_template_var(reste, reste, 30),
+            "5": f"{cfg.SITE_URL}/tarifs"})
+        fournisseur = "twilio-template"
+    else:
+        ok = send_wa(numero, texte_bilan_essai(membre, n, exemple, reste))
+        fournisseur = "twilio" if twilio_configured() else "baileys"
+    _log_notif(db, membre["id"], "essai:j5", "whatsapp", ok,
+               "" if ok else "échec bilan d'essai WhatsApp", fournisseur)
+    return ok
+
+
 def send_trial_sequence(now=None) -> int:
     """Accompagne chaque membre pendant son essai: 4 emails, du début à la fin.
 
@@ -956,14 +1017,25 @@ def send_trial_sequence(now=None) -> int:
             n = _marches_du_membre(db, membre) if cle == "j2" else 0
             if cle == "j2" and n == 0:
                 continue  # rien à montrer: on n'envoie pas un email vide
+            # Le rappel de fin chiffre ce que l'essai a apporté: « 23 marchés
+            # de vos secteurs » décide plus qu'un « votre essai se termine ».
+            exemple, reste, suffixe = "", "", ""
+            if cle == "j5":
+                n, exemple = bilan_essai(db, membre)
+                heures = max(1, round((fin - now).total_seconds() / 3600))
+                reste = duree_txt(heures, lang)
+                suffixe = "" if n else "0"
             destination = {"j0": "/settings", "j2": "/tenders",
                            "j5": "/tarifs", "j7": "/tarifs"}[cle]
             html = _enveloppe_email(
-                _tr(f"mail_{cle}_h2", lang),
-                _tr(f"mail_{cle}_p", lang, n=n),
+                _tr(f"mail_{cle}_h2", lang, reste=reste),
+                _tr(f"mail_{cle}_p{suffixe}", lang, n=n, exemple=exemple),
                 f"{cfg.SITE_URL}{destination}",
                 _tr(f"mail_{cle}_btn", lang))
-            ok = email_send(membre["email"], _tr(f"mail_{cle}_subject", lang, n=n), html)
+            ok = email_send(membre["email"],
+                            _tr(f"mail_{cle}_subject{suffixe}", lang, n=n, reste=reste), html)
+            if ok and cle == "j5" and n:
+                _bilan_whatsapp(db, membre, n, exemple, reste)
             _log_notif(db, membre["id"], f"essai:{cle}", "email", ok,
                        "" if ok else "échec email d'accompagnement",
                        "brevo" if cfg.BREVO_KEY else "gmail")
