@@ -1598,10 +1598,17 @@ async def tender_detail(req: Request, tid: str):
     from app.services.coffre import pour_marche
     from app.services import eligibilite, groupement, intelligence, reports_officiels, suivi
     dossier_admin = pour_marche(m0["id"], dict(t)) if m0 else []
-    from app.services.fiches_privees import avis_complet
+    from app.services.fiches_privees import avis_complet, officiel
+    off = {}
+    if dict(t).get("fiche_json"):
+        db = get_db()
+        try:
+            off = officiel(db, dict(t))
+        finally:
+            db.close()
     return render(req, "detail.html", {
         "t": dict(t), "related": related, "is_fav": is_fav, "dossier_admin": dossier_admin,
-        "avis_complet": avis_complet(dict(t).get("fiche_json") or ""),
+        "avis_complet": avis_complet(dict(t).get("fiche_json") or "", dict(t), off),
         "mon_suivi": suivi.pour_marche(m0["id"], tid),
         "echeances": suivi.echeances(dict(t)),
         "etapes_suivi": suivi.ETAPES,

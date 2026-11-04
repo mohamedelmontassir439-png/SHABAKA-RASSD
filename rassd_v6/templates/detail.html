@@ -273,8 +273,8 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
         <h2 class="sv-bloc-titre" id="ac-titre">{{ tr('avis_complet_titre') }}</h2>
         <div class="sv-bloc-aide">{{ tr('avis_complet_aide') }}</div>
         <dl class="ac-liste">
-          {% for libelle, valeur in avis_complet %}
-          <div class="ac-ligne"><dt>{{ libelle }}</dt><dd dir="auto">{{ valeur }}</dd></div>
+          {% for libelle, valeur, lien in avis_complet %}
+          <div class="ac-ligne"><dt>{{ libelle }}</dt><dd dir="auto">{% if lien %}<a href="{{ lien }}" target="_blank" rel="noopener">{{ valeur }}</a>{% else %}{{ valeur }}{% endif %}</dd></div>
           {% endfor %}
         </dl>
       </section>

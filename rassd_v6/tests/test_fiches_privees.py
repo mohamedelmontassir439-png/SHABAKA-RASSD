@@ -171,7 +171,7 @@ class TestAvisDansLaPlateforme:
     def test_avis_complet(self):
         import json
         f = F.lire_fiche(TestBonDeCommandeParticulier()._fiche())
-        lignes = dict(F.avis_complet(json.dumps(f)))
+        lignes = {l: v for l, v, _ in F.avis_complet(json.dumps(f))}
         assert lignes["Référence"] == "37/2026" and lignes["Annonce parue dans"] == "Le Matin"
         assert lignes["Allotissement"] == "3 Lots"
         assert F.avis_complet("") == [] and F.avis_complet("pas du json") == []
@@ -196,3 +196,60 @@ class TestAvisDansLaPlateforme:
         assert 'id="avis-complet"' in page and "Le Matin" in page and "37/2026" in page
         assert 'href="#avis-complet"' in page
         assert "global-marches.com/share-po" not in page, "le membre reste dans la plateforme"
+
+
+class TestOuDeposer:
+    """« Soumission électronique : Oui » dit maintenant où déposer."""
+
+    FICHE = {"reference": "48/2026", "electronique": "Oui",
+             "organisme": "Region de tanger-tetouan - al hoceima", "objet": "fabrication de pain"}
+
+    def _po(self, db, fiche=None, acheteur="Region de tanger-tetouan - al hoceima"):
+        import json
+        t = {"id": "po_334847", "acheteur": acheteur, "date_limite": "05/11/2026",
+             "type_offre": "Public", "fiche_json": json.dumps(fiche or self.FICHE)}
+        db.execute("""INSERT INTO tenders(id,objet,acheteur,secteur,statut,scraped_at,source,
+                      date_limite,fiche_json) VALUES(?,?,?,?,?,?,?,?,?)""",
+                   (t["id"], "fabrication de pain", acheteur, "P834", "actif",
+                    "2026-11-03 10:00:00", "global-marches", t["date_limite"], t["fiche_json"]))
+        db.commit()
+        return t
+
+    def _depot(self, t, off):
+        lignes = F.avis_complet(t["fiche_json"], t, off)
+        return next((v, l) for lib, v, l in lignes if lib == "Soumission électronique")
+
+    def test_avis_officiel_retrouve(self, db):
+        t = self._po(db)
+        db.execute("""INSERT INTO tenders(id,objet,acheteur,secteur,statut,scraped_at,source,url,
+                      date_limite,description) VALUES(?,?,?,?,?,?,?,?,?,?)""",
+                   ("bdc_402001", "Fabrication de pain et de pâtisserie",
+                    "REGION TANGER TETOUAN AL HOCEIMA", "P834", "actif", "2026-11-03 09:00:00",
+                    "marchespublics", "https://www.marchespublics.gov.ma/bdc/show/402001",
+                    "05/11/2026", "Détails de l'avis d'achat #48/2026 Objet Fabrication de pain"))
+        db.commit()
+        off = F.officiel(db, t)
+        assert off["id"] == "bdc_402001"
+        texte, lien = self._depot(t, off)
+        assert "marchespublics.gov.ma" in texte and lien.endswith("/bdc/show/402001")
+
+    def test_meme_reference_autre_acheteur_ignore(self, db):
+        t = self._po(db)
+        db.execute("""INSERT INTO tenders(id,objet,acheteur,statut,scraped_at,source,url,
+                      date_limite,description) VALUES(?,?,?,?,?,?,?,?,?)""",
+                   ("bdc_402002", "Pain", "COMMUNE DE FES", "actif", "2026-11-03 09:00:00",
+                    "marchespublics", "https://x/402002", "05/11/2026", "#48/2026"))
+        db.commit()
+        assert F.officiel(db, t) == {}
+
+    def test_acheteur_public_sans_avis_collecte(self, db):
+        t = self._po(db)
+        texte, lien = self._depot(t, {})
+        assert "rubrique « Bons de commande »" in texte and "48/2026" in texte
+        assert lien == F.PORTAIL_NATIONAL
+
+    def test_acheteur_prive(self, db):
+        fiche = dict(self.FICHE, organisme="Auto-entrepreneur Hafsa Ben Hakkoun")
+        t = self._po(db, fiche, acheteur="Auto-entrepreneur Hafsa Ben Hakkoun")
+        texte, lien = self._depot(t, {})
+        assert "plateforme indiquée par l'acheteur" in texte and lien == ""

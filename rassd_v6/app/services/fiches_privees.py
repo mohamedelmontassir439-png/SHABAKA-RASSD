@@ -167,12 +167,69 @@ AVIS_COMPLET = (
 )
 
 
-def avis_complet(fiche_json: str) -> list:
-    """[(libellé, valeur)] des champs remplis, dans l'ordre de la fiche."""
+PORTAIL_NATIONAL = "https://www.marchespublics.gov.ma"
+
+
+def _mots(nom: str) -> set:
+    import unicodedata
+    nu = unicodedata.normalize("NFKD", (nom or "").lower()).encode("ascii", "ignore").decode()
+    return {m for m in re.findall(r"[a-z]{5,}", nu)
+            if m not in ("region", "commune", "province", "prefecture", "direction", "royaume")}
+
+
+def officiel(db, t: dict) -> dict:
+    """Le même avis tel que le portail national le publie, s'il est collecté.
+
+    Global Marchés reprend les avis du portail en écrivant seulement
+    « Soumission électronique : Oui »: le membre ne sait pas où déposer.
+    On retrouve l'avis officiel par sa référence, sa date limite et un nom
+    commun avec l'acheteur, pour lui donner l'adresse exacte du dépôt.
+    """
+    try:
+        f = json.loads(t.get("fiche_json") or "{}")
+    except ValueError:
+        return {}
+    ref = (f.get("reference") or "").strip()
+    limite = (t.get("date_limite") or "").strip()
+    if len(ref) < 3 or not limite:
+        return {}
+    prefixe = "bdc_%" if (t.get("id") or "").startswith("po_") else "ao_%"
+    mots = _mots(f.get("organisme") or t.get("acheteur") or "")
+    for r in db.execute(
+            """SELECT id, url, acheteur FROM tenders WHERE source='marchespublics'
+               AND id LIKE ? AND date_limite=? AND description LIKE ? LIMIT 10""",
+            (prefixe, limite, f"%{ref}%")).fetchall():
+        if not mots or mots & _mots(r["acheteur"]):
+            return {"id": r["id"], "url": r["url"]}
+    return {}
+
+
+def _depot(f: dict, bdc: bool, public: bool, off: dict) -> tuple:
+    """(texte, lien) de la ligne « Soumission électronique »."""
+    v = (f.get("electronique") or "").strip()
+    if not v.lower().startswith("oui"):
+        return v, ""
+    rubrique = "Bons de commande" if bdc else "Consultations en cours"
+    ref = (f.get("reference") or "").strip()
+    if off:
+        return (f"Oui — l'offre se dépose en ligne sur le portail des marchés publics "
+                f"(marchespublics.gov.ma), avec votre compte entreprise du portail. "
+                f"Ouvrir l'avis officiel ↗", off.get("url") or PORTAIL_NATIONAL)
+    if public:
+        return (f"Oui — sur le portail des marchés publics (www.marchespublics.gov.ma), "
+                f"rubrique « {rubrique} »" + (f", référence {ref}" if ref else "")
+                + ", avec votre compte entreprise du portail.", PORTAIL_NATIONAL)
+    return ("Oui — sur la plateforme indiquée par l'acheteur (voir l'observation "
+            "ou le dossier de consultation).", "")
+
+
+def avis_complet(fiche_json: str, t: dict = None, off: dict = None) -> list:
+    """[(libellé, valeur, lien)] des champs remplis, dans l'ordre de la fiche."""
     try:
         f = json.loads(fiche_json or "{}")
     except ValueError:
         return []
+    t = t or {}
     lignes = []
     for libelle, cle in AVIS_COMPLET:
         v = (f.get(cle) or "").strip()
@@ -184,10 +241,16 @@ def avis_complet(fiche_json: str) -> list:
             v = v.title()
         if cle == "observation" and re.fullmatch(r"[^.]{0,40}image int[ée]gral+e\s*\)?\s*", v, re.I):
             continue
-        lignes.append((libelle, v))
+        lien = ""
+        if cle == "electronique":
+            from app.core.organismes import PRIVE, categorie
+            public = categorie(f.get("organisme") or t.get("acheteur") or "",
+                               t.get("type_offre") or "") != PRIVE
+            v, lien = _depot(f, (t.get("id") or "").startswith("po_"), public, off or {})
+        lignes.append((libelle, v, lien))
     if f.get("organisme"):
         from app.core.acheteurs import lisible
-        lignes.insert(3, ("Acheteur", lisible(f["organisme"])))
+        lignes.insert(3, ("Acheteur", lisible(f["organisme"]), ""))
     return lignes
 
 
