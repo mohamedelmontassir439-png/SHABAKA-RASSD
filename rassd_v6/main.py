@@ -297,10 +297,29 @@ def _relais_valeur(cle: str, valeur: str = None) -> str:
 def _relais_dernier_depot() -> str:
     db = get_db()
     try:
-        return db.execute("""SELECT MAX(started_at) FROM scraper_runs WHERE message=?""",
-                          (MESSAGE_RELAIS,)).fetchone()[0] or ""
+        return db.execute("""SELECT MAX(started_at) FROM scraper_runs WHERE message LIKE ?""",
+                          (MESSAGE_RELAIS + "%",)).fetchone()[0] or ""
     finally:
         db.close()
+
+
+def _portail_suspendu(db) -> str:
+    """Depuis quand le portail officiel est fermé par son éditeur, ou "".
+
+    Seulement si la dernière collecte du portail l'a trouvé fermé: le
+    tableau de bord le dit en clair au lieu d'un « SUCCESS » à zéro.
+    """
+    sources = ("marchespublics", "marchespublics-ao")
+    dernier = db.execute("""SELECT status, message FROM scraper_runs WHERE source IN (?,?)
+                            ORDER BY started_at DESC LIMIT 1""", sources).fetchone()
+    if not dernier or dernier["status"] != "FAILED" or "suspendu" not in (dernier["message"] or ""):
+        return ""
+    ouvert = db.execute("""SELECT MAX(started_at) FROM scraper_runs WHERE source IN (?,?)
+                           AND NOT (status='FAILED' AND message LIKE '%suspendu%')
+                           AND records_found > 0""", sources).fetchone()[0] or ""
+    return db.execute("""SELECT MIN(started_at) FROM scraper_runs WHERE source IN (?,?)
+                         AND status='FAILED' AND message LIKE '%suspendu%' AND started_at > ?""",
+                      sources + (ouvert,)).fetchone()[0] or ""
 
 
 def _relais_actif() -> str:
@@ -308,8 +327,8 @@ def _relais_actif() -> str:
     try:
         db = get_db()
         d = db.execute("""SELECT MAX(started_at) FROM scraper_runs
-                          WHERE source IN ('marchespublics','marchespublics-ao') AND message=?""",
-                       (MESSAGE_RELAIS,)).fetchone()[0] or ""
+                          WHERE source IN ('marchespublics','marchespublics-ao') AND message LIKE ?""",
+                       (MESSAGE_RELAIS + "%",)).fetchone()[0] or ""
         db.close()
     except Exception:
         return ""
@@ -3638,6 +3657,7 @@ async def admin_panel(req: Request):
     errors_7j = db.execute(
         "SELECT COUNT(*) FROM error_log WHERE created_at>=datetime('now','-7 days')").fetchone()[0]
     a_traiter = _admin_a_traiter(db)
+    suspendu = _portail_suspendu(db)
     db.close()
     csrf_tok = get_csrf_token(req) or secrets.token_urlsafe(24)
     resp = templates.TemplateResponse("admin.html",{
@@ -3650,7 +3670,7 @@ async def admin_panel(req: Request):
         "referral_top":referral_top,"recent_errors":recent_errors,"errors_7j":errors_7j,
         "a_traiter":a_traiter,"csrf_token":csrf_tok,
         "relais": {"demande": _relais_valeur("demande"), "prise": _relais_valeur("prise"),
-                   "depot": _relais_dernier_depot()}})
+                   "depot": _relais_dernier_depot(), "suspendu": suspendu}})
     if not req.cookies.get("_csrf"):
         resp.set_cookie("_csrf", csrf_tok, max_age=86400*30, httponly=True, samesite="lax", secure=COOKIE_SECURE)
     return resp
@@ -4920,6 +4940,14 @@ async def relais_depot(req: Request):
     loop = asyncio.get_event_loop()
     if source == "marchespublics-ao" and marches:
         await loop.run_in_executor(None, lambda: classer_ia(marches))
+    # Le relais signale aussi ses échecs: un portail fermé ou injoignable
+    # est noté FAILED avec la raison, pas confondu avec « rien de nouveau ».
+    panne = str(corps.get("panne") or "")[:250]
+    if panne:
+        _record_run(source, "FAILED", errors=1, started=debut,
+                    message=f"{MESSAGE_RELAIS} — {panne}")
+        State.log(f"❌ Relais local · {source}: {panne}")
+        return JSONResponse({"ok": True, "recus": 0, "enregistres": 0})
     nouveaux = []
     enregistres = _save_tenders(marches, nouveaux)
     _record_run(source, "SUCCESS", len(marches), enregistres, started=debut,

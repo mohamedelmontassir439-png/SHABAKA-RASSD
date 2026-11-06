@@ -160,6 +160,11 @@
             {% elif relais.prise %}
               <b style="color:var(--grn)">Dernière demande prise à {{ relais.prise[11:16] }} le {{ relais.prise[8:10] }}/{{ relais.prise[5:7] }}</b>.
             {% endif %}
+            {% if relais.suspendu %}
+            <span style="display:block;color:var(--red,#b42318);font-weight:700">⛔ Portail officiel suspendu par la Trésorerie Générale du Royaume
+              depuis le {{ relais.suspendu[8:10] }}/{{ relais.suspendu[5:7] }} à {{ relais.suspendu[11:16] }} — aucun avis n'en sort.
+              Le relais réessaie toutes les dix minutes et reprend seul à la réouverture.</span>
+            {% endif %}
             <span style="display:block">{% if relais.depot %}Dernier dépôt du relais : {{ relais.depot[:16]|replace('T', ' ') }}.{% else %}Le relais n'a encore rien déposé.{% endif %}</span>
           </span>
         </form>

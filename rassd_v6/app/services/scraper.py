@@ -120,6 +120,28 @@ def _cell(soup, *labels):
     return ""
 
 
+MESSAGE_SUSPENDU = "portail suspendu par la Trésorerie Générale du Royaume"
+
+
+class PortailSuspendu(ConnectionError):
+    """Le portail est fermé par son éditeur, pas seulement lent ou injoignable."""
+
+
+def verifier_ouverture(r) -> None:
+    """Lève PortailSuspendu si la réponse est la page de fermeture du portail.
+
+    Depuis le 04/11/2026 la Trésorerie Générale du Royaume remplace toutes
+    les pages par « Site temporairement indisponible … suspension
+    temporaire » (503). Les fiches en 503 passaient pour des numéros vides,
+    et la collecte était notée SUCCESS à zéro pendant que rien ne sortait.
+    """
+    if getattr(r, "status_code", 200) != 503:
+        return
+    texte = r.content.decode("utf-8", "ignore").lower()
+    if "suspension temporaire" in texte or "temporairement indisponible" in texte:
+        raise PortailSuspendu(MESSAGE_SUSPENDU)
+
+
 def make_session():
     class TLSAdapter(requests.adapters.HTTPAdapter):
         def init_poolmanager(self, *a, **kw):
@@ -151,6 +173,7 @@ def find_max_id(s, log_fn=print) -> int:
     try:
         # Page listing principale
         r = s.get(LIST_URL, timeout=REQUEST_TIMEOUT)
+        verifier_ouverture(r)
         if r.status_code != 200:
             r = s.get(f"{HOME_URL}/bdc/entreprise/consultation", timeout=REQUEST_TIMEOUT)
 
@@ -169,6 +192,8 @@ def find_max_id(s, log_fn=print) -> int:
         log_fn("Listing inaccessible — recherche binaire pour trouver max ID...")
         return _find_max_binary(s, 360000, 400000, log_fn)
 
+    except PortailSuspendu:
+        raise
     except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
         # Le portail ne répond pas du tout: inutile de lancer ensuite des
         # centaines de requêtes qui expireront une à une (huit minutes par

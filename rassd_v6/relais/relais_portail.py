@@ -119,6 +119,20 @@ def vider_attente(c: dict) -> bool:
     return True
 
 
+def signaler(c: dict, source: str, panne: Exception, debut: datetime):
+    """Dit au site que la collecte a échoué, et pourquoi.
+
+    Sans ce signal, l'administration ne voyait que le dernier succès: un
+    portail fermé ressemblait à un portail sans nouveaux avis.
+    """
+    lot = {"source": source, "marches": [], "debut": debut.isoformat(timespec="seconds"),
+           "panne": str(panne)[:250]}
+    try:
+        requests.post(f"{c['site']}/api/relais/depot", json=lot, headers=entetes(c), timeout=60)
+    except Exception as e:
+        log(f"  ⚠ panne non signalée au site: {str(e)[:120]}")
+
+
 def deposer(c: dict, source: str, marches: list, debut: datetime):
     lot = {"source": source, "marches": marches, "debut": debut.isoformat(timespec="seconds")}
     if not envoyer(c, lot):
@@ -153,6 +167,7 @@ def cycle(c: dict):
         deposer(c, "marchespublics", bdc, debut)
     except ConnectionError as e:
         log(f"  ⚠ portail injoignable (bons de commande): {str(e)[:160]}")
+        signaler(c, "marchespublics", e, debut)
     except Exception as e:
         log(f"  ⚠ erreur bons de commande: {e!r}")
 
@@ -165,6 +180,7 @@ def cycle(c: dict):
         deposer(c, "marchespublics-ao", ao, debut)
     except ConnectionError as e:
         log(f"  ⚠ portail injoignable (appels d'offres): {str(e)[:160]}")
+        signaler(c, "marchespublics-ao", e, debut)
     except Exception as e:
         log(f"  ⚠ erreur appels d'offres: {e!r}")
 
@@ -172,6 +188,7 @@ def cycle(c: dict):
 def completer_fiches(c: dict, maximum: int = 200):
     """Relit sur le portail les fiches que le site signale incomplètes."""
     from app.services import ao_scraper
+    from app.services.scraper import PortailSuspendu, verifier_ouverture
     try:
         r = requests.get(f"{c['site']}/api/relais/a-completer", params={"limite": maximum},
                          headers=entetes(c), timeout=60)
@@ -199,7 +216,11 @@ def completer_fiches(c: dict, maximum: int = 200):
             continue
         try:
             rep = session.get(f["url"], timeout=45)
+            verifier_ouverture(rep)
             fiche = ao_scraper.parse_fiche(rep.text) if rep.status_code == 200 else {}
+        except PortailSuspendu as e:
+            log(f"  ⚠ fiches non relues: {e}")
+            break
         except Exception as e:
             log(f"  ⚠ portail injoignable (fiches): {str(e)[:120]}")
             break

@@ -144,3 +144,48 @@ class TestBoutonCollecter:
         assert client.get("/api/relais/demande").status_code == 401
         r = client.post("/admin/relais/collecter", data={}, follow_redirects=False)
         assert "/admin/login" in r.headers.get("location", "")
+
+
+class TestPortailSuspendu:
+    """Le 04/11/2026 la TGR a fermé le portail: la collecte notait SUCCESS à zéro."""
+
+    PAGE = ("<html><title>Trésorerie Générale du Royaume</title>Site temporairement "
+            "indisponible ... fait l'objet d'une suspension temporaire.</html>")
+
+    class _Rep:
+        def __init__(self, code, texte):
+            self.status_code, self.content, self.text = code, texte.encode("utf-8"), texte
+
+    def test_la_page_de_fermeture_est_reconnue(self):
+        from app.services.scraper import PortailSuspendu, verifier_ouverture
+        with pytest.raises(PortailSuspendu):
+            verifier_ouverture(self._Rep(503, self.PAGE))
+        verifier_ouverture(self._Rep(503, "Service Unavailable"))   # simple panne
+        verifier_ouverture(self._Rep(200, self.PAGE))
+
+    def test_la_veille_echoue_au_lieu_de_compter_zero(self, monkeypatch):
+        from app.services import scraper
+        class Session:
+            def get(s, *a, **k):
+                return self._Rep(503, self.PAGE)
+        with pytest.raises(scraper.PortailSuspendu):
+            scraper.find_max_id(Session(), lambda m: None)
+
+    def test_la_panne_est_notee_et_affichee(self, client, admin, db):
+        r = client.post("/api/relais/depot", headers=_jeton(), json={
+            "source": "marchespublics", "marches": [], "debut": datetime.now().isoformat(),
+            "panne": "portail suspendu par la Trésorerie Générale du Royaume"})
+        assert r.json()["ok"]
+        run = db.execute("SELECT status, message FROM scraper_runs WHERE source='marchespublics'").fetchone()
+        assert run["status"] == "FAILED" and "suspendu" in run["message"]
+        assert main._relais_actif(), "le relais qui signale une panne est bien en vie"
+        page = admin.get("/admin").text
+        assert "Portail officiel suspendu" in page
+
+    def test_plus_d_alerte_quand_le_portail_rouvre(self, client, admin, db):
+        client.post("/api/relais/depot", headers=_jeton(), json={
+            "source": "marchespublics", "marches": [], "panne": "portail suspendu par la TGR",
+            "debut": (datetime.now() - timedelta(minutes=10)).isoformat()})
+        client.post("/api/relais/depot", headers=_jeton(), json={
+            "source": "marchespublics", "marches": [_bdc(399100)], "debut": datetime.now().isoformat()})
+        assert "Portail officiel suspendu" not in admin.get("/admin").text

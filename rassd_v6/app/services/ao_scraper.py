@@ -20,7 +20,8 @@ from datetime import date, datetime, timedelta
 from bs4 import BeautifulSoup as BS
 
 from app.core.config import cfg
-from app.services.scraper import make_session, _extract_date, is_expired
+from app.services.scraper import (make_session, _extract_date, is_expired,
+                                  PortailSuspendu, verifier_ouverture)
 from app.core.sectors import classify
 from app.core.objets import sans_repetition
 
@@ -275,6 +276,7 @@ def _cartes(soup) -> list:
 def _lister_cartes(session, jours: int, log_fn, pages_max: int = 20) -> list:
     """Les consultations en cours mises en ligne depuis `jours` jours."""
     r = session.get(URL_EN_COURS, timeout=60)
+    verifier_ouverture(r)
     r.raise_for_status()
     soup = BS(r.text, "html.parser")
     depuis = (date.today() - timedelta(days=jours)).strftime("%d/%m/%Y")
@@ -354,6 +356,8 @@ def run(known_ids: set, log_fn=print, pages: int = 3, par_lot=None, taille_lot: 
             lignes = _lister(session, pages, log_fn)
         if not lignes:
             raise ConnectionError("aucune consultation lisible sur le portail")
+    except PortailSuspendu:
+        raise
     except Exception as e:
         log_fn(f"  ⚠ liste des appels d'offres indisponible: {str(e)[:100]}")
         # Une liste qu'on n'a pas pu lire n'est pas une liste vide: l'erreur
