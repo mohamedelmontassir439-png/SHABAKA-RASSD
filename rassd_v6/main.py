@@ -1404,9 +1404,36 @@ async def home(req: Request):
         "SELECT secteur,COUNT(*) cnt FROM tenders WHERE statut='actif' GROUP BY secteur ORDER BY cnt DESC LIMIT 12").fetchall()]
     from app.core.regions import carte
     carte_regions = carte(db, get_lang(req))
+    recit = _echeances_a_venir(db)
     db.close()
+    from app.core.photos import PHOTOS
     return render(req, "landing.html", {"stats":stats,"recent":recent,"sectors":sectors,
-                                        "carte_regions":carte_regions})
+                                        "carte_regions":carte_regions, "recit": recit,
+                                        "photos": PHOTOS})
+
+
+def _echeances_a_venir(db) -> dict:
+    """La courbe du relevé de l'accueil: les marchés ouverts qui ferment
+    chacune des huit semaines à venir.
+
+    Pas la collecte par jour: l'import initial du 27/10/2026 (plus de
+    5 000 avis d'un coup) et les pannes du portail en faisaient une courbe
+    qui parlait de la plateforme, pas des marchés.
+    """
+    debut = datetime.now().date()
+    serie = []
+    for i in range(8):
+        a, b = debut + timedelta(days=7 * i), debut + timedelta(days=7 * (i + 1))
+        serie.append(db.execute(
+            f"""SELECT COUNT(*) FROM tenders WHERE statut='actif' AND COALESCE(date_limite,'')<>''
+                AND {DATE_LIMITE_ISO} >= ? AND {DATE_LIMITE_ISO} < ?""",
+            (a.isoformat(), b.isoformat())).fetchone()[0])
+    haut = max(serie) or 1
+    xy = [(round(i * 214 / 7, 1), round(62 - n / haut * 52, 1)) for i, n in enumerate(serie)]
+    return {"serie": serie, "points": " ".join(f"{x},{y}" for x, y in xy),
+            "reperes": [xy[2], xy[5]], "fin_xy": xy[-1],
+            "debut": debut.strftime("%d/%m"),
+            "fin": (debut + timedelta(days=55)).strftime("%d/%m")}
 
 # La date limite est stockee telle que la source l'ecrit: « 30/09/2026 » le
 # plus souvent, « 2026-09-30 » parfois. Pour la comparer en SQL il faut la
@@ -3039,7 +3066,9 @@ async def tarifs(req: Request): return render(req,"tarifs.html",{})
 # PAGES LÉGALES
 # ══════════════════════════════════════════════════════════
 @app.get("/mentions-legales", response_class=HTMLResponse)
-async def legal_mentions(req: Request): return render(req, "legal_mentions.html", {})
+async def legal_mentions(req: Request):
+    from app.core.photos import PHOTOS, LICENCES
+    return render(req, "legal_mentions.html", {"photos": PHOTOS, "licences": LICENCES})
 
 @app.get("/cgu", response_class=HTMLResponse)
 async def legal_cgu(req: Request): return render(req, "legal_cgu.html", {})

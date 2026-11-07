@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""La couverture d'accueil: du texte lisible, une marque, un seul fond.
+"""La couverture d'accueil: du texte lisible, des photos réelles et créditées.
 
 Trois états se sont succédé, et chacun a laissé un piège:
 
@@ -12,6 +12,10 @@ Trois états se sont succédé, et chacun a laissé un piège:
 3. La photo a été retirée. Le fond est désormais peint par CSS en une seule
    propriété `background`, et la marque — le médaillon, le même tracé qu'en
    en-tête de document — tient la place qu'occupait le globe de la photo.
+
+4. Depuis le 07/11/2026 la couverture est un récit au défilement, porté
+   par des photographies réelles du Maroc sous licence libre: le titre
+   reste du texte, et chaque photo est créditée.
 
 Ce que ces tests retiennent, c'est ce qui casse sans qu'on le voie.
 """
@@ -57,7 +61,7 @@ class TestLeTexteEstDuTexte:
     ])
     def test_l_accroche_est_rendue_dans_la_langue_demandee(self, client, langue, extrait):
         page = client.get(f"/?lang={langue}").text
-        titre = re.search(r'<h1 class="hero-titre">(.*?)</h1>', page, re.S)
+        titre = re.search(r'<h1 class="une-titre">(.*?)</h1>', page, re.S)
         assert titre and extrait in titre.group(1), f"accroche absente en {langue}"
 
     def test_l_etiquette_et_le_paragraphe_suivent_aussi(self, client):
@@ -70,34 +74,46 @@ class TestLeTexteEstDuTexte:
         assert "hors-ecran" not in _gabarit()
 
 
-class TestAucuneImageDansLaCouverture:
-    def test_la_photo_a_disparu(self):
-        """Elle imposait son cadrage, sa couture, et 300 Ko au premier écran."""
-        gabarit = _gabarit()
-        assert "hero.jpg" not in gabarit
-        assert "hero-banniere" not in gabarit
+class TestLesPhotosDuRecit:
+    NOMS = ("tanger-med", "chantier-rabat", "casablanca-finance-city", "pont-settat",
+            "tramway-casablanca", "noor-ouarzazate")
 
-    def test_le_fond_est_une_seule_propriete(self):
-        """Un `::before` posé par-dessus, c'était le second fond: il ne se
-        voyait que là où le premier s'arrêtait."""
-        assert ".hero::before" not in _gabarit()
-        assert _regle(".hero").count("background:") == 1
+    def test_les_photos_sont_servies_en_webp(self, client):
+        page = client.get("/").text
+        for nom in self.NOMS:
+            assert f"/static/img/recit/{nom}.webp" in page, nom
+        r = client.get("/static/img/recit/tanger-med.webp")
+        assert r.status_code == 200 and r.headers["content-type"] == "image/webp"
 
-    def test_le_fond_ne_charge_aucune_image_tramee(self, client):
-        """Seules les données SVG en ligne sont admises: elles ne font pas de
-        requête et ne pèsent presque rien.
+    def test_chaque_photo_est_creditee(self, client):
+        """CC BY et CC BY-SA: l'auteur, la licence et un lien, sinon la
+        photo est utilisée hors licence."""
+        from app.core.photos import PHOTOS, LICENCES
+        page = client.get("/mentions-legales").text
+        assert set(PHOTOS) == set(self.NOMS)
+        for p in PHOTOS.values():
+            assert p["auteur"] in page and p["source"] in page and LICENCES[p["licence"]] in page
+        assert 'href="/mentions-legales#credits"' in client.get("/").text
 
-        Sur la page rendue, et non sur le gabarit: les motifs y sont des
-        appels Jinja, aucune adresse ne s'y lit encore, et ce test passait
-        sans rien examiner — une boucle sur une liste vide ne se plaint pas.
-        """
-        regle = re.search(r"\.hero \{[^}]*\}", client.get("/").text).group(0)
-        adresses = re.findall(r"url\(([^)]+)\)", regle)
-        # La photo de l'équipe est une balise <img> chargée à part; le fond
-        # CSS, lui, n'appelle plus aucune image depuis le 27/10/2026.
-        for url in adresses:
-            assert url.startswith("data:image/svg+xml"), url[:60]
+    def test_la_premiere_image_est_annoncee_tot(self):
+        assert 'rel="preload" as="image" href="/static/img/recit/tanger-med.webp"' in _gabarit()
 
+
+class TestLaCourbeDesEcheances:
+    def test_huit_semaines_de_marches_ouverts(self, client, db):
+        from datetime import date, timedelta
+        import main
+        dans = lambda j: (date.today() + timedelta(days=j)).strftime("%d/%m/%Y")
+        for i, j in enumerate((1, 2, 9, 30)):
+            db.execute("""INSERT INTO tenders(id,objet,secteur,statut,scraped_at,date_limite)
+                          VALUES(?,?,?,?,?,?)""", (f"e{i}", "x", "T101", "actif", "2026-11-01", dans(j)))
+        db.execute("""INSERT INTO tenders(id,objet,secteur,statut,scraped_at,date_limite)
+                      VALUES('clos','x','T101','expire','2026-11-01',?)""", (dans(1),))
+        db.commit()
+        r = main._echeances_a_venir(db)
+        assert r["serie"][:5] == [2, 1, 0, 0, 1], "les marchés clos ne comptent pas"
+        assert len(r["points"].split()) == 8
+        assert r["points"] in client.get("/").text
 
 class TestLaCarteDeLaVeille:
     """Depuis le 27/10/2026 la couverture montre la veille en direct: le
@@ -136,22 +152,16 @@ class TestLaCarteDeLaVeille:
 
 
 class TestLaMiseEnPageTientDansLesDeuxSens:
-    def test_la_grille_se_retourne_avec_la_langue(self):
-        """Sans photo, rien n'impose un côté: en arabe la parole passe à
-        droite et la marque à gauche, ce qui est la bonne lecture. Une marge
-        physique l'en empêcherait — c'était nécessaire tant que la place
-        libre était à gauche de la photo, ça ne l'est plus."""
-        regle = _regle(".hero-texte")
-        for fige in ("margin-left:", "margin-right:", "position: absolute", "left:"):
-            assert fige not in regle, f"{fige} fige un côté"
-
-    def test_sous_900_px_la_marque_passe_sous_la_parole(self):
-        petit = re.search(r"@media\(max-width: 900px\) \{.*?\n\}", _gabarit(), re.S).group(0)
-        assert ".hero-inner { grid-template-columns: minmax(0, 1fr)" in petit
-        assert ".hero-marque { order: 2; }" in petit
+    def test_les_textes_se_placent_par_le_debut_de_ligne(self):
+        """En arabe le paragraphe et le titre de la veille passent à droite:
+        une marge physique les clouerait à gauche, sur la photo."""
+        for sel in (".compte", ".station-t", ".legende"):
+            regle = _regle(sel)
+            assert "inset-inline-start" in regle and " left:" not in regle, sel
 
     def test_le_mouvement_se_tait_quand_on_le_demande(self):
-        assert "prefers-reduced-motion" in _gabarit()
+        src = _gabarit()
+        assert "prefers-reduced-motion" in src and "matchMedia('(prefers-reduced-motion: reduce)')" in src
 
 
 class TestFriseEtApercu:
@@ -162,15 +172,6 @@ class TestFriseEtApercu:
     l'autre. Et la section « derniers marchés » montrait, au visiteur
     anonyme, un grand cadre vide qui disait seulement ce qu'il n'aurait pas.
     """
-
-    def test_la_photo_de_couverture_reste_nette(self):
-        """Depuis le 27/10/2026 la photo de l'équipe porte la couverture:
-        ni frise, ni rosaces, ni trame par-dessus, et un médaillon ajouré."""
-        regle = _regle(".hero")
-        for motif in ("fond_frise", "fond_rosace", "fond_trame"):
-            assert motif not in regle
-        page = open(os.path.join(RACINE, "templates", "landing.html"), encoding="utf-8").read()
-        assert 'class="hero-photo"' in page and "hero-meridiens" not in page
 
     def test_aucun_marche_nest_montre_au_visiteur_anonyme(self, client):
         """Le détail d'un marché est réservé aux membres activés. L'aperçu

@@ -368,6 +368,20 @@ T = {
 
     # ── Landing (accueil) ───────────────────────────────────────
     "hero_eyebrow":       {"fr": "✦ Marchés publics, semi-publics & privés du Maroc", "ar": "✦ الصفقات العمومية وشبه العمومية والخاصة في المغرب"},
+    # Le récit de la page d'accueil (templates/landing.html).
+    "recit_defiler":      {"fr": "Défiler pour explorer", "ar": "مرّر للاستكشاف"},
+    "recit_legende":      {"fr": "Appels d'offres publics, semi-publics et privés|Bons de commande des administrations|Lus, triés et expliqués chaque jour",
+                           "ar": "طلبات العروض العمومية وشبه العمومية والخاصة|سندات طلب الإدارات|تُقرأ وتُصنَّف وتُشرح كل يوم"},
+    "recit_lieu":         {"fr": "Port Tanger Med", "ar": "ميناء طنجة المتوسط"},
+    "recit_resultats":    {"fr": "Adjudications publiées", "ar": "نتائج منشورة"},
+    "recit_station_label": {"fr": "Veille en direct", "ar": "رصد مباشر"},
+    "recit_station_titre": {"fr": "Tous les marchés de vos secteurs, au même endroit", "ar": "كل صفقات مجالاتك في مكان واحد"},
+    "recit_carte_titre":  {"fr": "Marchés ouverts|en ce moment", "ar": "صفقات مفتوحة|في هذه اللحظة"},
+    "recit_carte_note":   {"fr": "Échéances · 8 prochaines semaines", "ar": "الآجال · 8 أسابيع القادمة"},
+    "recit_secteurs":     {"fr": "{n} secteurs", "ar": "{n} مجالاً"},
+    "recit_etape":        {"fr": "Étape {n} / 4", "ar": "المرحلة {n} / 4"},
+    "recit_credits":      {"fr": "Photographies : Wikimedia Commons, licences libres", "ar": "الصور: ويكيميديا كومنز، تراخيص حرة"},
+    "credits_titre":      {"fr": "Crédits photographiques", "ar": "مصادر الصور"},
     "hero_title": {"fr": "Trouvez, comprenez et remportez <em>les marchés du Maroc.</em>",
                   "ar": "اعثر على صفقات المغرب، <em>افهمها واربحها.</em>"},
     "hero_sub_wa": {"fr": "Maroc Entrepreneuriat repère chaque jour les appels d'offres et les bons de commande de vos secteurs, lit leurs conditions pour vous, vous dit où déposer, suit vos offres et vos attestations, et vous met en relation avec des partenaires — tout au même endroit, avec vos alertes par email et un résumé WhatsApp chaque matin.",

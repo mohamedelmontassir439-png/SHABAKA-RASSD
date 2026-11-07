@@ -62,5 +62,14 @@
     Cette page est un modèle générique et ne remplace pas un conseil juridique.
   </div>
   {% endif %}
+
+  {# CC BY et CC BY-SA demandent l'auteur, la licence et un lien. #}
+  <div class="legal-body" id="credits">
+    <h2>{{ tr('credits_titre') }}</h2>
+    {% for nom, p in photos.items() %}
+    <p><b>{{ p.lieu }}</b> — <a href="{{ p.source }}" target="_blank" rel="noopener">{{ p.auteur }}</a>,
+      <a href="{{ licences[p.licence] }}" target="_blank" rel="noopener">{{ p.licence }}</a>, via Wikimedia Commons.</p>
+    {% endfor %}
+  </div>
 </div>
 {% endblock %}
