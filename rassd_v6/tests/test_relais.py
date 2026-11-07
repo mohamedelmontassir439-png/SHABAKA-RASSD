@@ -182,6 +182,15 @@ class TestPortailSuspendu:
         page = admin.get("/admin").text
         assert "Portail officiel suspendu" in page
 
+    def test_reste_affiche_quand_le_portail_ne_repond_plus(self, client, admin, db):
+        client.post("/api/relais/depot", headers=_jeton(), json={
+            "source": "marchespublics", "marches": [], "panne": "portail suspendu par la TGR",
+            "debut": (datetime.now() - timedelta(minutes=10)).isoformat()})
+        client.post("/api/relais/depot", headers=_jeton(), json={
+            "source": "marchespublics", "marches": [], "panne": "portail injoignable: Read timed out",
+            "debut": datetime.now().isoformat()})
+        assert "Portail officiel suspendu" in admin.get("/admin").text
+
     def test_plus_d_alerte_quand_le_portail_rouvre(self, client, admin, db):
         client.post("/api/relais/depot", headers=_jeton(), json={
             "source": "marchespublics", "marches": [], "panne": "portail suspendu par la TGR",

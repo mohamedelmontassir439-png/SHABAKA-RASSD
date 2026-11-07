@@ -310,13 +310,11 @@ def _portail_suspendu(db) -> str:
     tableau de bord le dit en clair au lieu d'un « SUCCESS » à zéro.
     """
     sources = ("marchespublics", "marchespublics-ao")
-    dernier = db.execute("""SELECT status, message FROM scraper_runs WHERE source IN (?,?)
-                            ORDER BY started_at DESC LIMIT 1""", sources).fetchone()
-    if not dernier or dernier["status"] != "FAILED" or "suspendu" not in (dernier["message"] or ""):
-        return ""
+    # Fermé, le portail alterne entre sa page de fermeture et l'absence de
+    # réponse: tant qu'aucune collecte n'a réussi depuis la première page de
+    # fermeture, il reste suspendu.
     ouvert = db.execute("""SELECT MAX(started_at) FROM scraper_runs WHERE source IN (?,?)
-                           AND NOT (status='FAILED' AND message LIKE '%suspendu%')
-                           AND records_found > 0""", sources).fetchone()[0] or ""
+                           AND status='SUCCESS'""", sources).fetchone()[0] or ""
     return db.execute("""SELECT MIN(started_at) FROM scraper_runs WHERE source IN (?,?)
                          AND status='FAILED' AND message LIKE '%suspendu%' AND started_at > ?""",
                       sources + (ouvert,)).fetchone()[0] or ""

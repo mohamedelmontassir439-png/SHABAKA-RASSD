@@ -388,6 +388,16 @@ def run(known_ids: set, log_fn=print) -> list:
         max_id = db_max
         log_fn(f"Max ID DB plus récent: #{max_id}")
 
+    # Sans la liste, la recherche binaire bornée à #400000 ne voyait rien
+    # au-delà du dernier connu: après une coupure de plusieurs jours, la
+    # plage de 200 numéros n'atteignait pas les avis publiés entre-temps.
+    # On cherche donc le dernier avis en avant du dernier connu.
+    if db_max and max_id <= db_max:
+        devant = _find_max_binary(s, db_max, db_max + RATTRAPAGE_MAX, log_fn)
+        if devant > max_id:
+            max_id = devant
+            log_fn(f"Rattrapage jusqu'à #{max_id}")
+
     # Rattrapage: après une coupure, les avis publiés entre le dernier connu
     # et le plus récent seraient sautés si l'on ne repartait que du plus
     # récent. On repart du dernier connu, dans la limite de RATTRAPAGE_MAX

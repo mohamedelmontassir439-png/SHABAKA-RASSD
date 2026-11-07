@@ -184,6 +184,7 @@ class TestRattrapage:
         from app.services import scraper
         vus = []
         monkeypatch.setattr(scraper, "find_max_id", lambda s, log: max_portail)
+        monkeypatch.setattr(scraper, "_find_max_binary", lambda s, bas, haut, log: bas)
         monkeypatch.setattr(scraper, "_fetch_one", lambda s, tid: (vus.append(int(tid)), (None, None))[1])
         scraper.run({f"bdc_{i}" for i in connus}, lambda *_: None)
         return min(vus), max(vus)
@@ -305,3 +306,27 @@ class TestFiche2026:
         c = conditions_avis(ao.parse_fiche(FICHE_2026)["description"])
         assert "agrements" not in c and "echantillons" not in c
         assert c["reserve"].lower().startswith("non")
+
+
+class TestRattrapageSansListe:
+    """Liste refusée et poste éteint cinq jours: la plage doit atteindre le
+    dernier avis publié, pas s'arrêter 200 numéros après le dernier connu."""
+
+    def test_la_plage_va_jusqu_au_dernier_avis(self, monkeypatch):
+        from app.services import scraper
+        dernier_publie = 402900
+
+        class Session:
+            def get(self, url, **k):
+                n = int(url.rsplit("/", 1)[1])
+                class R:
+                    status_code = 200 if n <= dernier_publie else 404
+                    text = "x" * 3000
+                return R()
+
+        vus = []
+        monkeypatch.setattr(scraper, "make_session", Session)
+        monkeypatch.setattr(scraper, "find_max_id", lambda s, log: 360000)
+        monkeypatch.setattr(scraper, "_fetch_one", lambda s, tid: (vus.append(int(tid)), (None, None))[1])
+        scraper.run({"bdc_401880"}, lambda *_: None)
+        assert min(vus) <= 401881 and max(vus) >= dernier_publie
