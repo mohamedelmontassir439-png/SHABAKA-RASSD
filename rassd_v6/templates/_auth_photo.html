@@ -1,0 +1,12 @@
+{# Le panneau photographique des pages de compte (connexion, inscription,
+   mot de passe): il dit ce que l'on rejoint pendant qu'on remplit le
+   formulaire. Variable: photo, cadrage. #}
+<aside class="auth-photo" aria-hidden="true">
+  <img src="/static/img/recit/{{ photo }}.webp" alt="" style="object-position: {{ cadrage or '50% 50%' }};" decoding="async">
+  <div class="auth-photo-texte">
+    <span class="puce">{{ tr('recit_station_label') }}</span>
+    <p class="auth-photo-titre">{{ tr('recit_station_titre') }}</p>
+    <p class="auth-photo-legende mono-etiq">{% for l in tr('recit_legende').split('|') %}{{ l }}{% if not loop.last %}<br>{% endif %}{% endfor %}</p>
+  </div>
+  <span class="auth-photo-lieu mono-etiq">{{ photos_site[photo].lieu_ar if lang == 'ar' else photos_site[photo].lieu }}</span>
+</aside>

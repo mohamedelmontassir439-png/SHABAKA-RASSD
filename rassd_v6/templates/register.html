@@ -26,6 +26,8 @@
 .reg-foot a:hover { text-decoration: underline; }
 </style>
 
+<div class="auth-scene">
+  {% with photo="tramway-casablanca", cadrage="40% 60%" %}{% include "_auth_photo.html" %}{% endwith %}
 <div class="reg-wrap">
   <div class="reg-eyebrow">{{ tr('reg_eyebrow') }}</div>
   <h1 class="reg-title">{{ tr('reg_title')|safe }}</h1>
@@ -93,5 +95,6 @@
   <div class="reg-foot">
     {{ tr('reg_have_account') }} <a href="/login">{{ tr('reg_login_link') }}</a>
   </div>
+</div>
 </div>
 {% endblock %}

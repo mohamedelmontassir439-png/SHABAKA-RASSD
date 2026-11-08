@@ -1,0 +1,8 @@
+{# Le bandeau photographique des pages publiques: une photographie réelle
+   (app/core/photos.py) qui se fond dans le crème de la page; le titre de
+   la page remonte dessus (classe « sur-bandeau » sur le bloc qui suit).
+   Variables: photo, cadrage. #}
+<div class="bandeau-fond" aria-hidden="true">
+  <img src="/static/img/recit/{{ photo }}.webp" alt="" style="object-position: {{ cadrage or '50% 50%' }};" fetchpriority="high" decoding="async">
+  <span class="bandeau-lieu mono-etiq">{{ photos_site[photo].lieu_ar if lang == 'ar' else photos_site[photo].lieu }}</span>
+</div>

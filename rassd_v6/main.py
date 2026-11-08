@@ -1205,6 +1205,8 @@ templates.env.globals["fond_rosace"] = marque.fond_rosace
 # `ico` et non `icone`: la macro du rail a un paramètre de ce nom, qui
 # masquerait la globale à l'intérieur de la macro.
 templates.env.globals["ico"] = marque.icone
+from app.core.photos import PHOTOS as _PHOTOS_SITE
+templates.env.globals["photos_site"] = _PHOTOS_SITE
 templates.env.globals["profil_manque"] = profil_incomplet
 templates.env.globals["issue_procedure"] = issue_procedure
 templates.env.globals["cartes_conditions"] = lambda texte, tid="ao_": cartes(conditions_avis(texte), portail=(tid or "").startswith("ao_"))

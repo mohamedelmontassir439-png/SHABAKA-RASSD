@@ -14,7 +14,8 @@
 @media (max-width: 640px) { .contact-grid { grid-template-columns: 1fr; } }
 </style>
 
-<div class="legal-wrap">
+{% with photo="tramway-casablanca", cadrage="50% 70%" %}{% include "_bandeau_fond.html" %}{% endwith %}
+<div class="legal-wrap sur-bandeau">
   <div class="legal-hero">
     <div class="section-label">Une question ?</div>
     <h1 class="display-l">Contactez <em>nous</em></h1>

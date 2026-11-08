@@ -36,7 +36,8 @@
 </style>
 {% endblock %}
 {% block body %}
-<div class="av-wrap">
+{% with photo="tramway-casablanca", cadrage="50% 70%" %}{% include "_bandeau_fond.html" %}{% endwith %}
+<div class="av-wrap sur-bandeau">
   <nav class="av-fil" aria-label="Fil d'Ariane"><a href="/marches-publics">Marchés publics</a> › {{ v.nom }}</nav>
   <h1 class="av-h1">Appels d'offres à {{ v.nom }} : {{ v.n }} marché{{ 's' if v.n > 1 else '' }} ouvert{{ 's' if v.n > 1 else '' }}</h1>
   <p class="av-lede">Les consultations en cours dont le lieu d'exécution est {{ v.nom }} ou sa province : appels d'offres des communes, administrations et établissements publics, bons de commande. La liste se met à jour chaque jour et les marchés clôturés en sortent d'eux-mêmes.</p>

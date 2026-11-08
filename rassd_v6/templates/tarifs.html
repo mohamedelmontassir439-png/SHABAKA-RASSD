@@ -60,7 +60,8 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
 {% endblock %}
 {% block body %}
 
-<section class="pricing-hero">
+{% with photo="casablanca-finance-city", cadrage="50% 35%" %}{% include "_bandeau_fond.html" %}{% endwith %}
+<section class="pricing-hero sur-bandeau">
   <div class="blob blob-indigo" style="width:320px; height:320px; top:-80px; inset-inline-end:5%;"></div>
   <div class="section-label reveal" style="justify-content:center;">{{ tr('pr_label') }}</div>
   <h1 class="pricing-title reveal">{{ tr('pr_title')|safe }}</h1>

@@ -16,13 +16,6 @@ body.accueil .nav { position: fixed; inset-inline: 0; top: 0;
   background: rgba(248,241,225,.6); border-bottom-color: transparent; transition: background .4s, border-color .4s; }
 body.accueil.nav-pleine .nav { background: rgba(248,241,225,.9); border-bottom-color: var(--line); }
 
-.puce { display: inline-flex; align-items: center; justify-content: center; height: 24px; padding: 0 10px;
-  background: var(--ink); color: var(--ink3); border-radius: 4px; font-family: var(--mono); font-size: var(--f1);
-  font-weight: 600; letter-spacing: .16em; text-transform: uppercase; white-space: nowrap; }
-html[dir="rtl"] .puce { letter-spacing: 0; font-family: 'Tajawal', var(--sans); font-size: var(--f2); font-weight: 700; }
-.mono-etiq { font-family: var(--mono); text-transform: uppercase; letter-spacing: .14em; font-size: var(--f1); }
-html[dir="rtl"] .mono-etiq { font-family: 'Tajawal', var(--sans); letter-spacing: 0; font-size: var(--f2); }
-
 .recit { position: relative; height: 640vh; }
 .scene { position: sticky; top: 0; height: 100vh; height: 100svh; overflow: hidden; background: #d9cdb8; }
 .cam { position: absolute; inset: -6% -3% -3%; will-change: transform; }
@@ -446,7 +439,7 @@ LON   5.5017° W
     <div class="etapes">
       {% for n, icone, photo, cadrage, services in etapes %}
       <article class="etape">
-        <div class="etape-img" style="background-image:url('/static/img/recit/{{ photo }}.webp'); background-position:{{ cadrage }};" role="img" aria-label="{{ photos[photo].lieu }}"></div>
+        <div class="etape-img" style="background-image:url('/static/img/recit/{{ photo }}.webp'); background-position:{{ cadrage }};" role="img" aria-label="{{ photos[photo].lieu_ar if lang == 'ar' else photos[photo].lieu }}"></div>
         <div class="etape-haut">
           <span class="mono-etiq">[ {{ tr('recit_etape', n=n) }} ]</span>
           <span class="etape-rond">{{ ico(icone, 18)|safe }}</span>

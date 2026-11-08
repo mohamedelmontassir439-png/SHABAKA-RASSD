@@ -15,7 +15,8 @@
 .auth-foot-link { display: block; margin-bottom: 16px; color: var(--text3); }
 </style>
 
-<div class="auth-wrap">
+<div class="auth-wrap auth-scene">
+  {% with photo="chantier-rabat", cadrage="64% 45%" %}{% include "_auth_photo.html" %}{% endwith %}
   <div class="auth-card">
     <h1 class="auth-title">{{ tr('login_title') }}</h1>
     <p class="auth-sub">{{ tr('login_sub') }}</p>

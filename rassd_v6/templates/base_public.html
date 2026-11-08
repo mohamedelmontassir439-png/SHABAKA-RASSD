@@ -152,8 +152,9 @@ html[dir="rtl"] .sel { background-position: left 14px center; padding-right: 14p
 
 .section { padding: 88px 0; position: relative; }
 .section-header { margin-bottom: 48px; }
-.section-label { display: inline-flex; align-items: center; gap: 10px; font-size:var(--f2); font-weight: 700; color: var(--ink); letter-spacing: .09em; text-transform: uppercase; margin-bottom: 16px; }
-.section-label::before { content: ""; width: 24px; height: 2px; background: var(--grad); border-radius:var(--r1); }
+/* L'étiquette de section a pris la forme de la puce du récit. */
+.section-label { display: inline-flex; align-items: center; gap: 10px; min-height: 24px; padding: 0 10px; background: var(--ink); color: var(--ink3); border-radius: 4px; font-family: var(--mono); font-size:var(--f1); font-weight: 600; letter-spacing: .14em; text-transform: uppercase; margin-bottom: 16px; }
+html[dir="rtl"] .section-label { font-family: 'Tajawal', var(--sans); letter-spacing: 0; font-weight: 700; }
 .section-title { font-family: var(--serif); font-weight: 700; font-size: clamp(32px, 4.5vw, 50px); color: var(--text1); line-height: 1.1; letter-spacing: -.01em; }
 .section-title em { font-style: italic; color: var(--ink); font-weight: 600; }
 .section-sub { color: var(--text3); font-size:var(--f4); margin-top: 16px; max-width: 560px; line-height: 1.7; }
@@ -281,7 +282,6 @@ html[dir="rtl"] .section-title em, html[dir="rtl"] .display-xl em, html[dir="rtl
 html[dir="rtl"] .mono { direction: ltr; unicode-bidi: isolate; }
 html[dir="rtl"] .skip-link { left: auto; right: -999px; border-radius: 0 0 0 8px; }
 html[dir="rtl"] .skip-link:focus { right: 0; }
-html[dir="rtl"] .section-label::before { order: 2; }
 
 /* Entre 900 et 1500 px, on resserre plutot que de faire defiler. */
 @media(max-width: 1500px) {
@@ -338,6 +338,45 @@ html[dir="rtl"] .section-label::before { order: 2; }
   a[href]:after { content: none !important; }
 }
 @page { size: A4; margin: 14mm 12mm; }
+/* ── Le langage du récit, partagé par toutes les pages publiques ── */
+.puce { display: inline-flex; align-items: center; justify-content: center; min-height: 24px; padding: 0 10px;
+  background: var(--ink); color: var(--ink3); border-radius: 4px; font-family: var(--mono); font-size: var(--f1);
+  font-weight: 600; letter-spacing: .14em; text-transform: uppercase; white-space: nowrap; }
+html[dir="rtl"] .puce { letter-spacing: 0; font-family: 'Tajawal', var(--sans); font-weight: 700; }
+.mono-etiq { font-family: var(--mono); text-transform: uppercase; letter-spacing: .14em; font-size: var(--f1); }
+html[dir="rtl"] .mono-etiq { font-family: 'Tajawal', var(--sans); letter-spacing: 0; }
+
+.bandeau-fond { position: relative; height: clamp(260px, 42vh, 440px); overflow: hidden; background: #2b211b; }
+.bandeau-fond img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; max-width: none;
+  animation: bandeau-zoom 16s cubic-bezier(.2,.7,.2,1) both; }
+.bandeau-fond::after { content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(248,241,225,.1) 0%, rgba(248,241,225,0) 26%, rgba(248,241,225,.78) 74%, var(--bg) 100%); }
+@keyframes bandeau-zoom { from { transform: scale(1.1); } to { transform: scale(1); } }
+.bandeau-lieu { position: absolute; top: 16px; inset-inline-end: 20px; z-index: 1; color: #fff; text-shadow: 0 1px 8px rgba(0,0,0,.55); }
+body .sur-bandeau { position: relative; z-index: 1; margin-top: clamp(-190px, -17vh, -110px); }
+
+body .auth-scene { display: grid; grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr); align-items: start;
+  min-height: calc(100vh - 68px); padding: 0; max-width: none; margin: 0; }
+body .auth-scene > .auth-card { align-self: center; justify-self: center; width: 100%; max-width: 468px; padding: 56px 24px; }
+body .auth-scene > .reg-wrap { width: 100%; }
+.auth-photo { position: sticky; top: 68px; height: calc(100vh - 68px); min-height: 520px; overflow: hidden;
+  display: flex; align-items: flex-end; padding: 44px; color: #fff; background: #2b211b; }
+.auth-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; max-width: none;
+  animation: bandeau-zoom 16s cubic-bezier(.2,.7,.2,1) both; }
+.auth-photo::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(30,22,17,.05) 30%, rgba(30,22,17,.8)); }
+.auth-photo-texte { position: relative; z-index: 1; max-width: 460px; }
+.auth-photo-titre { font-family: var(--serif); font-weight: 700; font-size: clamp(26px, 2.6vw, 38px); line-height: 1.1; margin: 14px 0 18px; color: #fff; }
+html[dir="rtl"] .auth-photo-titre { font-family: 'Amiri', var(--serif); line-height: 1.35; }
+.auth-photo-legende { line-height: 1.8; color: rgba(255,255,255,.86); padding-inline-start: 14px; border-inline-start: 2px solid var(--ink); }
+.auth-photo-lieu { position: absolute; top: 18px; inset-inline-start: 20px; z-index: 1; color: rgba(255,255,255,.85); text-shadow: 0 1px 8px rgba(0,0,0,.5); }
+@media (max-width: 900px) {
+  body .auth-scene { grid-template-columns: minmax(0, 1fr); }
+  .auth-photo { position: relative; top: 0; height: 240px; min-height: 0; padding: 22px; }
+  .auth-photo-titre { font-size: var(--f7); margin: 10px 0 0; }
+  .auth-photo-legende { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { .bandeau-fond img, .auth-photo img { animation: none; } }
+
 /* Téléphone: la même échelle resserrée que l'espace membre. */
 @media(max-width: 640px) {
   :root { --f4: 14.5px; --f5: 16px; --f6: 17.5px; --f7: 21px; --f8: 25px; --f9: 32px; --fg: 44px; }

@@ -75,7 +75,8 @@
 </svg>
 {% endmacro %}
 
-<div class="gd">
+{% with photo="chantier-rabat", cadrage="50% 55%" %}{% include "_bandeau_fond.html" %}{% endwith %}
+<div class="gd sur-bandeau">
   <div class="gd-sur">{{ tr('gd_sur') }}</div>
   <h1 class="gd-h1">{{ tr('gd_titre') }}</h1>
   <p class="gd-lede">{{ tr('gd_lede') }}</p>

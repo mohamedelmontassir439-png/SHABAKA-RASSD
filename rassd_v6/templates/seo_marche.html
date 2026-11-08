@@ -50,7 +50,8 @@
 </style>
 {% endblock %}
 {% block body %}
-<div class="am-wrap">
+{% with photo="noor-ouarzazate", cadrage="60% 60%" %}{% include "_bandeau_fond.html" %}{% endwith %}
+<div class="am-wrap sur-bandeau">
   <nav class="am-fil" aria-label="Fil d'Ariane">
     <a href="/marches-publics">Marchés publics</a> ›
     {% if f.secteur %}<a href="/marches-publics/{{ f.secteur_slug }}">{{ f.secteur }}</a> ›{% endif %}

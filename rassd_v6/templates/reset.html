@@ -12,7 +12,8 @@
 .auth-form { display: flex; flex-direction: column; gap: 20px; }
 </style>
 
-<div class="auth-wrap">
+<div class="auth-wrap auth-scene">
+  {% with photo="pont-settat", cadrage="50% 50%" %}{% include "_auth_photo.html" %}{% endwith %}
   <div class="auth-card">
     <h1 class="auth-title">{{ tr('reset_title')|safe }}</h1>
     <p class="auth-sub">{{ tr('reset_sub') }}</p>

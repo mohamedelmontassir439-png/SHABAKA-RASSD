@@ -19,7 +19,8 @@
 .auth-foot a:hover { text-decoration: underline; }
 </style>
 
-<div class="auth-wrap">
+<div class="auth-wrap auth-scene">
+  {% with photo="noor-ouarzazate", cadrage="60% 60%" %}{% include "_auth_photo.html" %}{% endwith %}
   <div class="auth-card">
     <h1 class="auth-title">{{ tr('verif_title')|safe }}</h1>
     <p class="auth-sub">{{ tr('verif_sub') }}</p>

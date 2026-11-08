@@ -39,7 +39,8 @@
 .ss-proches a:hover { border-color: var(--ink); color: var(--ink); }
 </style>
 
-<div class="ss-wrap">
+{% with photo="pont-settat", cadrage="50% 50%" %}{% include "_bandeau_fond.html" %}{% endwith %}
+<div class="ss-wrap sur-bandeau">
   <div class="ss-fil"><a href="/">Accueil</a> › <a href="/marches-publics">Marchés publics</a> › {{ page.label }}</div>
 
   <h1 class="ss-h1">{{ page.label }} : {{ page.n }} marché{{ 's' if page.n > 1 else '' }} ouvert{{ 's' if page.n > 1 else '' }} au Maroc</h1>

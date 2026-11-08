@@ -22,7 +22,8 @@
 .sx-cta p { color: var(--text3); font-size:var(--f4); margin-bottom: 20px; }
 </style>
 
-<div class="sx-wrap">
+{% with photo="tanger-med", cadrage="45% 60%" %}{% include "_bandeau_fond.html" %}{% endwith %}
+<div class="sx-wrap sur-bandeau">
   <h1 class="sx-h1">Marchés publics au Maroc, <em>secteur par secteur</em></h1>
   <p class="sx-lede">Appels d'offres, bons de commande, marchés semi-publics et privés actuellement ouverts, classés selon le référentiel officiel des 83 secteurs. Les volumes ci-dessous sont mis à jour en continu.</p>
   <p class="sx-count"><b>{{ pages | sum(attribute='n') }}</b> marchés ouverts en ce moment · mise à jour permanente</p>
