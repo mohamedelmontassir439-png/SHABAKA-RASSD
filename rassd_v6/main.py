@@ -1093,10 +1093,10 @@ async def not_found(req: Request, exc):
 def _server_error_html() -> str:
     return """<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>Erreur serveur — Maroc Entrepreneuriat</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:#f6f7fb;color:#3b4457;font-family:'Manrope',system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px}
+body{background:#f6f7fb;color:#3b4457;font-family:'Inter Tight',system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px}
 .num{font-weight:800;font-size:96px;color:#f2662d;line-height:.85}
 h1{font-weight:800;font-size:28px;color:#2b211b;margin:16px 0}
 p{font-size:16px;color:#8a7a6a;margin-bottom:32px}

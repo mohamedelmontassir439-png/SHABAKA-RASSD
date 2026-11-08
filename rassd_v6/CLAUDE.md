@@ -4,7 +4,7 @@
 
 ### 🎨 Refonte design complète
 - Identité visuelle éditoriale premium (inspirée Vesper)
-- Typographie : Fraunces variable + Manrope + JetBrains Mono
+- Typographie : Inter Tight (titres et texte) + JetBrains Mono (étiquettes); arabe Tajawal/Amiri; Libre Caslon seulement pour le logo
 - Palette : ink #0a0a0e + bone #f4ece0 + gold #d4a574
 - Three.js sphère animée (landing), custom cursor, grain overlay
 - Tous les 16 templates redessinés
