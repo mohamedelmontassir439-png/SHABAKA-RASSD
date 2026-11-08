@@ -48,10 +48,6 @@
   </div>
   {% endif %}
 
-  {% for m in p.marches %}
-  <a class="av-m" href="{{ m.chemin }}"><b>{{ m.objet[:150] }}{% if m.objet|length > 150 %}…{% endif %}</b>
-    <span>{{ m.secteur_label }}{% if m.date_limite %} · limite {{ m.date_limite }}{% endif %}{% if m.montant %} · {{ m.montant }}{% endif %}</span></a>
-  {% endfor %}
 
   <div class="av-cta">
     <h2>Les marchés {{ de_v }}, chaque matin</h2>

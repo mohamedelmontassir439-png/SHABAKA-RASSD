@@ -156,15 +156,16 @@ class TestPagesPubliques:
         slug = main._slug("Constructions, bâtiments & ouvrages d'art")
         page = client.get(f"/marches-publics/{slug}")
         assert page.status_code == 200
-        assert "TRAVAUX DE VOIRIE COMMUNALE" in page.text
+        assert "1 marché ouvert" in page.text
+        assert "TRAVAUX DE VOIRIE COMMUNALE" not in page.text, "aucun intitulé sans compte"
         assert "canonical" in page.text and "og:title" in page.text
 
     def test_page_secteur_ne_livre_pas_le_detail(self, client, db):
-        # L'aperçu attire; l'acheteur et le lien officiel restent aux membres.
+        # Le nombre attire; la liste reste aux membres.
         _marche(db, "t_seo")
         slug = main._slug("Constructions, bâtiments & ouvrages d'art")
         page = client.get(f"/marches-publics/{slug}")
-        assert "réservés aux membres" in page.text
+        assert "réservée aux membres" in page.text
         assert "/tenders/t_seo" not in page.text
 
     def test_secteur_inconnu(self, client):

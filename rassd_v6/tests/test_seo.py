@@ -61,35 +61,30 @@ class TestLaTete:
 
 
 class TestPageMarche:
-    def test_elle_existe_et_cache_l_acheteur(self, client, db):
-        _marche(db)
-        r = client.get("/appel-offres/1043943-achevement-des-travaux-de-la-rp5125")
-        assert r.status_code == 200
-        assert "Achèvement des travaux de la RP5125" in r.text
-        assert "DIRECTION PROVINCIALE" not in r.text, "l'acheteur reste réservé aux membres"
-        assert "350 000" not in r.text, "la caution aussi"
-        assert "Caution provisoire" in r.text, "mais on dit qu'il y en a une"
-        assert 'content="index,follow"' in _tete(r.text)
+    """Depuis le 2026-11-08, aucun marché n'est lisible sans compte: les
+    anciennes adresses publiques renvoient vers la fiche membre."""
 
-    def test_une_seule_adresse(self, client, db):
+    def test_l_ancienne_adresse_renvoie_vers_la_fiche_membre(self, client, db):
         _marche(db)
-        r = client.get("/appel-offres/1043943-ancien-intitule", follow_redirects=False)
-        assert r.status_code == 301
-        assert r.headers["location"] == "/appel-offres/1043943-achevement-des-travaux-de-la-rp5125"
+        for chemin in ("/appel-offres/1043943-achevement-des-travaux-de-la-rp5125",
+                       "/appel-offres/1043943-ancien-intitule"):
+            r = client.get(chemin, follow_redirects=False)
+            assert r.status_code == 301 and r.headers["location"] == "/tenders/ao_1043943"
+
+    def test_le_visiteur_ne_voit_pas_le_marche(self, client, db):
+        _marche(db)
+        r = client.get("/appel-offres/1043943-achevement-des-travaux-de-la-rp5125", follow_redirects=True)
+        assert "/login" in str(r.url)
+        assert "Achèvement des travaux de la RP5125" not in r.text
 
     def test_pas_de_page_pour_un_agregateur_prive(self, client, db):
         _marche(db, tid="gm_988395", source="global-marches")
         assert client.get("/appel-offres/988395-x").status_code == 404
 
-    def test_cloture_reste_lisible_mais_sort_de_l_index(self, client, db):
-        _marche(db, statut="expire", jours=-3)
-        r = client.get("/appel-offres/1043943-achevement-des-travaux-de-la-rp5125")
-        assert r.status_code == 200 and "noindex" in _tete(r.text)
-
-    def test_un_lien_partage_mene_a_la_page_publique(self, client, db):
+    def test_un_lien_partage_mene_a_la_connexion(self, client, db):
         _marche(db)
         r = client.get("/tenders/ao_1043943", follow_redirects=False)
-        assert r.status_code == 302 and r.headers["location"].startswith("/appel-offres/1043943-")
+        assert r.status_code == 302 and r.headers["location"] == "/login?next=/tenders/ao_1043943"
 
 
 class TestVilles:
@@ -100,6 +95,7 @@ class TestVilles:
             _marche(db, tid=f"ao_20{i}", region="El kelaa sraghna", objet=f"Autre {i}")
         r = client.get("/marches-publics/ville/el-kelaa-des-sraghna")
         assert r.status_code == 200 and "6 marchés ouverts" in r.text
+        assert "Marché 0" not in r.text and "Autre 1" not in r.text, "le nombre, pas la liste"
 
     def test_pas_de_page_mince(self, client, db):
         _marche(db, region="Tata")
@@ -118,9 +114,9 @@ class TestPlanDuSite:
         _marche(db, tid="ao_2", statut="expire", jours=-2, objet="Clos")
         _marche(db, tid="gm_3", source="global-marches", objet="Prive")
         xml = client.get("/sitemap.xml").text
-        assert "/appel-offres/1043943-" in xml
-        assert "/appel-offres/2-" not in xml, "un marché clôturé sort du plan"
-        assert "gm_3" not in xml and "/appel-offres/3-" not in xml
+        assert "/marches-publics" in xml
+        assert "/appel-offres/" not in xml, "plus aucune fiche de marché dans le plan"
+        assert "gm_3" not in xml
         assert "/login" not in xml
 
     def test_robots_ecarte_les_espaces_prives(self, client, db):
@@ -140,17 +136,11 @@ class TestBonsDeCommandePublics:
                     (date.today() + timedelta(days=5)).strftime("%d/%m/%Y"), source))
         db.commit()
 
-    def test_page_publique_et_plan_du_site(self, client, db):
+    def test_l_ancienne_adresse_renvoie_vers_la_fiche_membre(self, client, db):
         self._bdc(db)
-        r = client.get("/bon-de-commande/400227-achat-de-fournitures-de-bureau")
-        assert r.status_code == 200 and "Bon de commande" in r.text
-        assert "Réservé aux membres" in r.text and "COMMUNE" not in r.text
-        assert "/bon-de-commande/400227-achat-de-fournitures-de-bureau" in client.get("/sitemap.xml").text
-
-    def test_adresse_corrigee(self, client, db):
-        self._bdc(db)
-        r = client.get("/bon-de-commande/400227-autre", follow_redirects=False)
-        assert r.status_code == 301 and r.headers["location"].endswith("-achat-de-fournitures-de-bureau")
+        r = client.get("/bon-de-commande/400227-achat-de-fournitures-de-bureau", follow_redirects=False)
+        assert r.status_code == 301 and r.headers["location"] == "/tenders/bdc_400227"
+        assert "/bon-de-commande/" not in client.get("/sitemap.xml").text
 
     def test_pas_de_page_pour_une_source_privee(self, client, db):
         self._bdc(db, "1", source="global-marches")

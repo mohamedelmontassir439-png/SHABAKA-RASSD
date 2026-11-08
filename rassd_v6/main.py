@@ -1582,14 +1582,8 @@ async def bons_commande_page(req: Request, q:str="", s:str="", r:str="", t:str="
 async def tender_detail(req: Request, tid: str):
     m0 = get_member(req)
     if not m0:
-        # Un lien partagé (WhatsApp, email) mène à la page publique du
-        # marché plutôt qu'à un formulaire de connexion: le visiteur voit
-        # de quoi il s'agit, et c'est de là qu'il s'inscrit.
-        from app.services import seo
-        p_pub = seo.prefixe(tid)
-        t_pub = seo.marche(tid[len(p_pub):], p_pub) if p_pub else None
-        if t_pub:
-            return RedirectResponse(seo.chemin(t_pub), 302)
+        # Aucun marché n'est lisible sans compte (choix du 2026-11-08):
+        # un lien partagé mène à la connexion.
         return RedirectResponse("/login?next=/tenders/" + tid, 302)
     if not has_access(m0):
         return RedirectResponse("/tarifs?locked=1", 302)
@@ -5796,10 +5790,7 @@ async def marches_secteur(req: Request, slug: str):
     if not page:
         return render(req, "404.html", {}, status_code=404)
     db = get_db()
-    apercu = [dict(r) for r in db.execute(
-        """SELECT id, objet, acheteur, region, date_limite, montant, type_procedure, source
-           FROM tenders WHERE statut='actif' AND secteur=?
-           ORDER BY scraped_at DESC LIMIT 12""", (page["code"],)).fetchall()]
+    # Pas d'aperçu des marchés: le visiteur voit le volume, les membres la liste.
     villes = [r[0] for r in db.execute(
         """SELECT region FROM tenders WHERE statut='actif' AND secteur=? AND region!=''
            GROUP BY region ORDER BY COUNT(*) DESC LIMIT 8""", (page["code"],)).fetchall()]
@@ -5807,47 +5798,32 @@ async def marches_secteur(req: Request, slug: str):
     proches = [p for p in pages if p["code"] != page["code"] and p["n"]][:8]
     from app.services import seo
     from app.core.villes import ville as nom_ville
-    for t in apercu:
-        t["chemin"] = seo.chemin(t) if seo.a_une_page(t) else ""
     pages_villes = {v["nom"]: v for v in seo.villes_publiques()}
     villes = [{"nom": nom_ville(v) or v, "page": pages_villes.get(nom_ville(v))} for v in villes]
     return render(req, "seo_secteur.html",
-                  {"page": page, "apercu": apercu, "villes": villes, "proches": proches})
+                  {"page": page, "villes": villes, "proches": proches})
 
 
 @app.get("/appel-offres/{ref}", response_class=HTMLResponse)
 async def marche_public(req: Request, ref: str):
-    """La page publique d'un appel d'offres du portail national (app/services/seo.py)."""
+    """Ancienne page publique d'un appel d'offres. Les marchés sont réservés
+    aux membres depuis le 2026-11-08: l'adresse, déjà connue de Google ou
+    partagée, renvoie vers la fiche membre (connexion si besoin)."""
     from app.services import seo
-    numero = ref.split("-", 1)[0]
-    t = seo.marche(numero)
+    t = seo.marche(ref.split("-", 1)[0])
     if not t:
         return render(req, "404.html", {}, status_code=404)
-    # Une seule adresse par marché: un intitulé corrigé change le texte de
-    # l'adresse, et l'ancienne renvoie vers la nouvelle au lieu de doubler.
-    attendu = seo.chemin(t)
-    if req.url.path != attendu:
-        return RedirectResponse(attendu, 301)
-    f = seo.fiche(t)
-    villes = {v["nom"]: v for v in seo.villes_publiques()}
-    return render(req, "seo_marche.html", {
-        "f": f, "voisins": seo.voisins(t), "ville_page": villes.get(f["ville"])})
+    return RedirectResponse("/tenders/" + t["id"], 301)
 
 
 @app.get("/bon-de-commande/{ref}", response_class=HTMLResponse)
 async def bon_commande_public(req: Request, ref: str):
-    """La page publique d'un bon de commande du portail national."""
+    """Ancienne page publique d'un bon de commande: voir marche_public."""
     from app.services import seo
     t = seo.marche(ref.split("-", 1)[0], "bdc_")
     if not t:
         return render(req, "404.html", {}, status_code=404)
-    attendu = seo.chemin(t)
-    if req.url.path != attendu:
-        return RedirectResponse(attendu, 301)
-    f = seo.fiche(t)
-    villes = {v["nom"]: v for v in seo.villes_publiques()}
-    return render(req, "seo_marche.html", {
-        "f": f, "voisins": seo.voisins(t), "ville_page": villes.get(f["ville"])})
+    return RedirectResponse("/tenders/" + t["id"], 301)
 
 
 @app.get("/marches-publics/ville/{slug}", response_class=HTMLResponse)
@@ -5886,9 +5862,8 @@ async def webhook_brevo(req: Request):
 
 @app.get("/sitemap.xml")
 async def sitemap():
-    # Les fiches membres (/tenders/…) restent hors du plan: elles demandent
-    # une connexion. Y figurent les pages publiques — secteurs, villes, et un
-    # appel d'offres du portail national par page, tant qu'il est ouvert.
+    # Seules les pages sans marché y figurent: secteurs et villes (des
+    # nombres), jamais une fiche — elles demandent une connexion.
     from app.services import seo
     from xml.sax.saxutils import escape
     site = cfg.SITE_URL.rstrip("/")
@@ -5897,8 +5872,6 @@ async def sitemap():
         "/mentions-legales", "/cgu", "/confidentialite", "/guide/depot-electronique")]
     urls += [(f"{site}/marches-publics/{p['slug']}", "") for p in _secteurs_publics() if p["n"]]
     urls += [(f"{site}/marches-publics/ville/{v['slug']}", "") for v in seo.villes_publiques()]
-    urls += [(site + seo.chemin(t), (t.get("scraped_at") or "")[:10])
-             for t in seo.marches_ouverts_publics()]
     corps = "\n".join(
         f"  <url><loc>{escape(u)}</loc>" + (f"<lastmod>{d}</lastmod>" if d else "") + "</url>"
         for u, d in urls)

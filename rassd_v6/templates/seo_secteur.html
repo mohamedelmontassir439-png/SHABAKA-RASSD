@@ -58,20 +58,8 @@
     {% if villes %}<div class="ss-stat"><b>{{ villes|length }}</b><span>villes concernées</span></div>{% endif %}
   </div>
 
-  {% for t in apercu %}
-  <div class="ss-item">
-    <div class="ss-obj">{% if t.chemin %}<a href="{{ t.chemin }}" style="color:inherit">{{ t.objet[:150] }}{% if t.objet|length > 150 %}…{% endif %}</a>{% else %}{{ t.objet[:150] }}{% if t.objet|length > 150 %}…{% endif %}{% endif %}</div>
-    <div class="ss-meta">
-      <span class="badge badge-terra">{{ 'Bon de commande' if t.type_procedure == 'bon_commande' else "Appel d'offres" }}</span>
-      {% if t.region %}<span class="badge badge-gray">{{ t.region[:22] }}</span>{% endif %}
-      {% if t.date_limite %}<span class="badge badge-gold">Clôture {{ t.date_limite }}</span>{% endif %}
-      {% if t.montant %}<span class="badge badge-grn">{{ t.montant[:22] }}</span>{% endif %}
-    </div>
-  </div>
-  {% endfor %}
-
   <div class="ss-locked">
-    <b>L'acheteur, le dossier et le lien officiel</b> de chaque consultation sont réservés aux membres — comme les {{ page.n }} marchés de ce secteur, dont ceux publiés aujourd'hui.
+    <b>La liste des {{ page.n }} marchés de ce secteur</b> — intitulé, acheteur, date limite, estimation, dossier et lien officiel — est réservée aux membres. <a href="/register?src=seo" style="color:var(--ink);font-weight:700">Créer mon compte →</a>
   </div>
 
   {% if villes %}
