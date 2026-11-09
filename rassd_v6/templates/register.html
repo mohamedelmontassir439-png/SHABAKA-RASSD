@@ -72,6 +72,16 @@
         {% endfor %}
       </div>
 
+      <div class="field">
+        <label for="connu">{{ tr('reg_connu') }}</label>
+        <select id="connu" name="connu" class="inp">
+          <option value="">{{ tr('reg_connu_choisir') }}</option>
+          {% for cle, lib in options_connu(lang) %}
+          <option value="{{ cle }}" {% if (vals or {}).get('connu') == cle %}selected{% endif %}>{{ lib }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
       <button type="submit" class="btn btn-primary btn-full btn-lg">{{ tr('reg_submit') }}</button>
     </form>
     <script>

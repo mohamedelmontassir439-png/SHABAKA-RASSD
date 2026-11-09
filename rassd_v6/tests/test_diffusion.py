@@ -161,3 +161,34 @@ class TestPageAdmin:
     def test_elle_est_reservee_a_l_admin(self, client, db):
         r = client.get("/admin/campagne", follow_redirects=False)
         assert r.status_code in (302, 303, 307, 404)
+
+
+class TestSourceDeclaree:
+    """« Comment avez-vous connu la plateforme ? » et la correction admin."""
+
+    def test_la_reponse_est_rangee(self, client, db):
+        client.get("/register")
+        assert 'name="connu"' in client.get("/register").text
+        _inscription(client, connu="bouche")
+        m = db.execute("SELECT source, source_declaree FROM members WHERE email='neuf@example.com'").fetchone()
+        assert m["source"] == "direct" and m["source_declaree"] == "bouche"
+
+    def test_une_reponse_inconnue_est_ignoree(self, client, db):
+        client.get("/register")
+        _inscription(client, connu="<script>")
+        m = db.execute("SELECT source_declaree FROM members WHERE email='neuf@example.com'").fetchone()
+        assert m["source_declaree"] == ""
+
+    def test_l_admin_corrige_et_le_bilan_suit(self, client, db, admin):
+        admin.get("/register")
+        _inscription(admin)
+        mid = db.execute("SELECT id FROM members WHERE email='neuf@example.com'").fetchone()["id"]
+        page = admin.get("/admin/members").text
+        assert "D'où viennent les membres" in page and "Source : Direct" in page
+        r = admin.post(f"/admin/member/{mid}/source",
+                       data={"source": "recherche", "csrf_token": admin.cookies.get("_csrf")},
+                       follow_redirects=False)
+        assert r.status_code == 302
+        from app.services.diffusion import bilan_canaux
+        assert [b["cle"] for b in bilan_canaux()] == ["recherche"]
+        assert "Source : Moteur de recherche" in admin.get("/admin/members").text

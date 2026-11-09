@@ -1031,10 +1031,16 @@ class SourceMiddleware(BaseHTTPMiddleware):
         resp = await call_next(req)
         q = req.query_params
         brut = q.get("src") or q.get("utm_source") or ""
-        if brut and req.method == "GET" and not req.cookies.get(canaux.COOKIE):
-            cle = canaux.canal(brut)
+        if req.method == "GET" and not req.cookies.get(canaux.COOKIE):
+            cle = canaux.canal(brut) if brut else ""
+            nom = canaux.campagne(q.get("cmp") or q.get("utm_campaign") or "") if cle else ""
+            if not cle and not req.url.path.startswith(("/static", "/api", "/admin")):
+                # Sans lien suivi, la page d'où l'on arrive dit souvent
+                # d'où l'on vient: une recherche Google, un groupe Facebook.
+                cle, hote = canaux.depuis_referent(req.headers.get("referer", ""),
+                                                   req.headers.get("host", ""))
+                nom = canaux.campagne(hote.replace(".", "-"))
             if cle:
-                nom = canaux.campagne(q.get("cmp") or q.get("utm_campaign") or "")
                 resp.set_cookie(canaux.COOKIE, f"{cle}|{nom}", max_age=canaux.DUREE_COOKIE,
                                 httponly=True, samesite="lax", secure=COOKIE_SECURE)
         return resp
@@ -1194,6 +1200,7 @@ templates.env.globals["source_label"] = source_label
 # Globales plutot que variables de contexte: toutes les pages ne passent pas
 # par render(), et une marque absente faisait echouer le rendu entier.
 templates.env.globals["logo"] = marque.logo
+templates.env.globals["options_connu"] = canaux.options_declarees
 templates.env.globals["etoile"] = marque.etoile
 templates.env.globals["entete_document"] = marque.entete_document
 templates.env.globals["medaillon"] = marque.medaillon
@@ -3087,8 +3094,9 @@ async def register_get(req: Request, ref:str=""):
 async def register_post(req: Request,
     nom:str=Form(""), email:str=Form(""), phone:str=Form(""),
     company:str=Form(""), pw:str=Form(""), pw2:str=Form(""),
-    ref:str=Form(""), csrf_token:str=Form(""), secteurs_sel:list=Form(default=[])):
-    vals = {"nom":nom,"email":email,"phone":phone,"company":company}
+    ref:str=Form(""), csrf_token:str=Form(""), secteurs_sel:list=Form(default=[]),
+    connu:str=Form("")):
+    vals = {"nom":nom,"email":email,"phone":phone,"company":company,"connu":connu}
     lang = get_lang(req)
     csrf_guard(req, csrf_token)
     if not check_rate_limit(f"register_{get_ip(req)}", 5, 600):
@@ -3137,15 +3145,16 @@ async def register_post(req: Request,
         cur = db.execute(
             """INSERT INTO members(nom,email,phone,company,pw_hash,secteurs,plan,created_at,
                trial_start,trial_ends,subscription_status,session_token,referral_code,referred_by,
-               email_verified,email_token,email_token_expires,source,source_campagne)
-               VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+               email_verified,email_token,email_token_expires,source,source_campagne,
+               source_declaree)
+               VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             # Le numéro est rangé sous une seule forme: « +212 6 12 34 56 78 »
             # et « 0612345678 » sont le même abonné, et deux écritures en
             # feraient deux contacts dont l'un ne serait jamais rappelé.
             (nom.strip(),email,telephone_normalise(phone),company.strip(),
              hash_pw(pw),json.dumps(sects),"free",created_at,
              trial_start,trial_ends,"TRIAL",session_tok,my_ref_code,referred_by,
-             0,email_token,token_expires,source,src_cmp))
+             0,email_token,token_expires,source,src_cmp,canaux.declare(connu)))
         db.execute(
             """INSERT INTO subscriptions(member_id,plan_id,price,currency,status,
                trial_start,trial_end,created_at,updated_at)
@@ -5337,6 +5346,9 @@ async def admin_members(req: Request, q: str = ""):
             codes = []
         m["secteurs_lus"] = [(c, get_label(c)) for c in codes]
         m["manque"] = profil_incomplet(m)
+        m["source_eff"] = canaux.effective(m.get("source") or "", m.get("source_declaree") or "")
+        m["source_lib"] = canaux.libelle(m["source_eff"])
+        m["source_suivi"] = canaux.libelle(m.get("source") or "")
     # Le bilan d'essai, prêt à partir de votre WhatsApp: tant que l'envoi
     # automatique n'est pas ouvert, c'est l'administration qui l'envoie.
     from urllib.parse import quote
@@ -5356,11 +5368,27 @@ async def admin_members(req: Request, q: str = ""):
     finally:
         db.close()
     csrf_tok = get_csrf_token(req) or secrets.token_urlsafe(24)
+    from app.services.diffusion import bilan_canaux
     resp = templates.TemplateResponse("admin_members.html", {
-        "request": req, "cfg": cfg, "members": rows, "q": q, "csrf_token": csrf_tok})
+        "request": req, "cfg": cfg, "members": rows, "q": q, "csrf_token": csrf_tok,
+        "bilan_sources": bilan_canaux(),
+        "options_source": canaux.options_declarees("fr")})
     if not req.cookies.get("_csrf"):
         resp.set_cookie("_csrf", csrf_tok, max_age=86400*30, httponly=True, samesite="lax", secure=COOKIE_SECURE)
     return resp
+
+@app.post("/admin/member/{mid}/source")
+async def admin_member_source(req: Request, mid: int, csrf_token: str = Form(""),
+                              source: str = Form("")):
+    """Corrige d'où vient un membre, par exemple après le lui avoir demandé:
+    le suivi des liens ne voit ni le bouche-à-oreille ni un lien recopié."""
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    csrf_guard(req, csrf_token)
+    db = get_db()
+    db.execute("UPDATE members SET source_declaree=? WHERE id=?", (canaux.declare(source), mid))
+    db.commit(); db.close()
+    return RedirectResponse(f"/admin/members#m{mid}", 302)
+
 
 @app.post("/admin/member/{mid}/notifications")
 async def admin_member_notifications(req: Request, mid: int, csrf_token: str = Form("")):

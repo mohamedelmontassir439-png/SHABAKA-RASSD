@@ -17,7 +17,7 @@ import re
 from datetime import date, datetime, timedelta
 from urllib.parse import quote
 
-from app.core.canaux import CANAUX, CANAUX_DEDUITS, libelle, lien
+from app.core.canaux import CANAUX, CANAUX_DEDUITS, CANAUX_REFERENT, libelle, lien
 from app.core.config import cfg
 from app.core.database import get_db
 from app.core.sectors import get_label
@@ -236,20 +236,20 @@ def bilan_canaux() -> list:
     db = get_db()
     try:
         lignes = db.execute(
-            f"""SELECT COALESCE(source,''), COUNT(*),
+            f"""SELECT COALESCE(NULLIF(source_declaree,''), source, ''), COUNT(*),
                        SUM(CASE WHEN email_verified=1 THEN 1 ELSE 0 END),
                        SUM(CASE WHEN plan IN ({payants}) THEN 1 ELSE 0 END),
                        SUM(CASE WHEN created_at >= ? THEN 1 ELSE 0 END)
                 FROM members GROUP BY 1""", (*PAID_PLANS, depuis)).fetchall()
         campagnes = {}
         for src, cmp, n in db.execute(
-                """SELECT COALESCE(source,''), source_campagne, COUNT(*) FROM members
+                """SELECT COALESCE(NULLIF(source_declaree,''), source, ''), source_campagne, COUNT(*) FROM members
                    WHERE COALESCE(source_campagne,'')!='' GROUP BY 1, 2
                    ORDER BY 3 DESC""").fetchall():
             campagnes.setdefault(src, []).append((cmp, n))
     finally:
         db.close()
-    ordre = list(CANAUX) + list(CANAUX_DEDUITS)
+    ordre = list(CANAUX) + list(CANAUX_REFERENT) + list(CANAUX_DEDUITS)
     bilan = [{"cle": s, "label": libelle(s), "inscrits": n, "confirmes": c or 0,
               "payants": p or 0, "recents": r or 0, "campagnes": campagnes.get(s, [])[:4]}
              for s, n, c, p, r in lignes]

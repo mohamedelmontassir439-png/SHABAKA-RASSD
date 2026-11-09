@@ -24,6 +24,14 @@ table.membres .badge{padding:1px 6px;font-size:var(--f1)}
 .actions svg{width:11px;height:11px}
 .actions form{display:block}
 .lien-contact{white-space:nowrap}
+.src-ligne{margin-top:4px;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.src-ligne details summary{cursor:pointer;list-style:none;color:var(--t3);text-decoration:underline dotted;font-size:var(--f1)}
+.src-ligne details summary::-webkit-details-marker{display:none}
+.src-ligne form{display:flex;gap:4px;margin-top:4px}
+.src-bilan{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;padding:14px 20px}
+.src-case{border:1px solid var(--line);border-radius:var(--r1);padding:10px 12px;background:var(--surface)}
+.src-case b{display:block;color:var(--t1);font-size:var(--f3)}
+.src-case span{color:var(--t3);font-size:var(--f1)}
 .activite{margin-top:5px;padding-top:5px;border-top:1px dashed var(--line);color:var(--t3);white-space:nowrap}
 .actions details{position:relative}
 .actions .del-box{position:absolute;inset-inline-end:0;top:100%;width:300px;z-index:5;background:var(--surface);box-shadow:0 10px 28px rgba(0,0,0,.12)}
@@ -44,6 +52,21 @@ details.del summary::-webkit-details-marker{display:none}
   <div class="alert-err">✕ Compte introuvable.</div>
   {% endif %}
 
+  {# D'où viennent les membres: la réponse à l'inscription (ou la correction
+     faite ici) d'abord, sinon le lien suivi ou la page d'arrivée. #}
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-h"><span class="card-ht">D'où viennent les membres</span>
+      <span class="muted" style="font-size:var(--f1)">— détail par campagne dans <a href="/admin/campagne">Campagne</a></span></div>
+    <div class="src-bilan">
+      {% for b in bilan_sources %}
+      <div class="src-case"><b>{{ b.label }}</b>
+        <span>{{ b.inscrits }} inscrit{{ 's' if b.inscrits > 1 }} · {% if b.payants %}<strong style="color:var(--grn)">{{ b.payants }} payant{{ 's' if b.payants > 1 }}</strong>{% else %}0 payant{% endif %}</span></div>
+      {% else %}
+      <span class="muted">Aucun inscrit pour l'instant.</span>
+      {% endfor %}
+    </div>
+  </div>
+
   <div class="card">
     <form method="get" class="filters">
       <input name="q" value="{{ q }}" class="inp" placeholder="Rechercher par email, nom ou entreprise…">
@@ -60,6 +83,19 @@ details.del summary::-webkit-details-marker{display:none}
         <td>
           <div class="m-name">{{ (m.nom or '—')[:32] }}</div>
           {% if m.company %}<div class="muted">{{ m.company[:32] }}</div>{% endif %}
+          <div class="src-ligne">
+            <span class="badge {{ 'b-gray' if m.source_eff in ('', 'direct') else 'b-g' }}" title="{% if m.source_declaree %}Déclaré{% if m.source and m.source != m.source_declaree %} · suivi : {{ m.source_suivi }}{% endif %}{% else %}Suivi automatique{% endif %}{% if m.source_campagne %} · {{ m.source_campagne }}{% endif %}">Source : {{ m.source_lib[:28] }}</span>
+            <details>
+              <summary>corriger</summary>
+              <form method="post" action="/admin/member/{{ m.id }}/source">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <select name="source" class="sel" onchange="this.form.submit()">
+                  <option value="">— suivi auto —</option>
+                  {% for cle, lib in options_source %}<option value="{{ cle }}" {% if m.source_declaree == cle %}selected{% endif %}>{{ lib }}</option>{% endfor %}
+                </select>
+              </form>
+            </details>
+          </div>
           {# Un profil troué se voit tout de suite: c'est lui qui empêche
              d'appeler, et c'est la première chose à réparer. #}
           {% if m.manque %}

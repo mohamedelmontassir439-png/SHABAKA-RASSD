@@ -550,6 +550,8 @@ def migrate_db():
         "ALTER TABLE tenders ADD COLUMN dao_url TEXT DEFAULT ''",
         "ALTER TABLE tender_results ADD COLUMN secteur_ia TEXT DEFAULT ''",
         "ALTER TABLE members ADD COLUMN source_campagne TEXT DEFAULT ''",
+        # Réponse à « Comment avez-vous connu la plateforme ? » (ou correction admin)
+        "ALTER TABLE members ADD COLUMN source_declaree TEXT DEFAULT ''",
         "ALTER TABLE tenders ADD COLUMN type_procedure TEXT DEFAULT 'marche'",
         "ALTER TABLE tender_results ADD COLUMN type_procedure TEXT DEFAULT 'marche'",
         # Abonnement / essai gratuit

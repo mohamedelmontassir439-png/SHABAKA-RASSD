@@ -112,3 +112,36 @@ class TestResumeQuotidienUnique:
                           if not l.lstrip().startswith("#"))
         assert "/recap/" in corps
         assert "/opportunites-du-jour" not in corps
+
+
+class TestProvenanceSansLien:
+    """Un visiteur arrivé sans « ?src= »: la page d'où il vient, puis ce
+    qu'il répond à l'inscription."""
+
+    def test_referent(self):
+        from app.core.canaux import depuis_referent
+        assert depuis_referent("https://www.google.com/", "marocentrepreneuriat.com") == ("recherche", "google.com")
+        assert depuis_referent("https://www.google.co.ma/search?q=x")[0] == "recherche"
+        assert depuis_referent("https://l.facebook.com/l.php?u=x")[0] == "facebook"
+        assert depuis_referent("https://mail.google.com/")[0] == "email"
+        assert depuis_referent("https://lnkd.in/abc")[0] == "linkedin"
+        assert depuis_referent("https://exemple.ma/page") == ("site", "exemple.ma")
+
+    def test_pas_de_referent_utile(self):
+        from app.core.canaux import depuis_referent
+        assert depuis_referent("", "marocentrepreneuriat.com") == ("", "")
+        assert depuis_referent("https://marocentrepreneuriat.com/tarifs", "marocentrepreneuriat.com") == ("", "")
+
+    def test_cookie_pose_depuis_google(self, client):
+        r = client.get("/", headers={"referer": "https://www.google.com/"})
+        assert r.cookies.get("_src", "").startswith("recherche|")
+
+    def test_le_lien_suivi_l_emporte(self, client):
+        r = client.get("/?src=facebook", headers={"referer": "https://www.google.com/"})
+        assert r.cookies.get("_src", "").startswith("facebook|")
+
+    def test_la_reponse_declaree_l_emporte(self):
+        from app.core.canaux import declare, effective
+        assert declare("Bouche") == "bouche" and declare("n'importe quoi") == ""
+        assert effective("direct", "bouche") == "bouche"
+        assert effective("facebook", "") == "facebook"
