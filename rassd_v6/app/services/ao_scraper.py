@@ -273,7 +273,20 @@ def _cartes(soup) -> list:
             if "refConsultation" in (d.get("onclick") or "")]
 
 
-def _lister_cartes(session, jours: int, log_fn, pages_max: int = 20) -> list:
+def taille_max(soup, defaut: int = 500) -> int:
+    """La plus grande taille de page que le portail propose.
+
+    Elle était de 500; à la réouverture du 09/11/2026 la liste ne va plus que
+    jusqu'à 50, et une demande de 500 retombait sur 10: la lecture s'arrêtait
+    après dix consultations sur plus de cinq cents.
+    """
+    sel = soup.find("select", attrs={"name": CIBLE_TAILLE_PAGE})
+    valeurs = [int(o.get("value")) for o in (sel.find_all("option") if sel else [])
+               if (o.get("value") or "").isdigit()]
+    return max(valeurs) if valeurs else defaut
+
+
+def _lister_cartes(session, jours: int, log_fn, pages_max: int = 200) -> list:
     """Les consultations en cours mises en ligne depuis `jours` jours."""
     r = session.get(URL_EN_COURS, timeout=60)
     verifier_ouverture(r)
@@ -284,7 +297,8 @@ def _lister_cartes(session, jours: int, log_fn, pages_max: int = 20) -> list:
               CHAMP + "dateMiseEnLigneCalculeEnd": date.today().strftime("%d/%m/%Y"),
               CIBLE_LANCER: "Lancer la recherche"}
     soup = _postback(session, soup, CIBLE_LANCER, url=URL_ACTION, champs=champs)
-    soup = _postback(session, soup, CIBLE_TAILLE_PAGE, "500", url=URL_ACTION)
+    taille = taille_max(soup)
+    soup = _postback(session, soup, CIBLE_TAILLE_PAGE, str(taille), url=URL_ACTION)
     total = soup.find(id=re.compile(r"resultSearch_nombreElement$"))
     log_fn(f"  consultations en cours mises en ligne depuis le {depuis}: "
            f"{_texte(total) if total else '?'}")
@@ -302,10 +316,20 @@ def _lister_cartes(session, jours: int, log_fn, pages_max: int = 20) -> list:
         # On s'arrête sur une page incomplète du portail, pas sur une page
         # dont on a écarté un doublon: le 27/10/2026, « 499 » sur une page
         # pleine arrêtait la lecture à la moitié des 4 880 consultations.
-        if len(cartes) < 500:
+        if len(cartes) < taille:
             break
         time.sleep(DELAI)
-        soup = _postback(session, soup, CIBLE_SUIVANTE_CARTES, url=URL_ACTION)
+        # Portail chargé: une page qui coupe est retentée une fois; si elle
+        # échoue encore, on garde les pages déjà lues plutôt que tout perdre.
+        try:
+            soup = _postback(session, soup, CIBLE_SUIVANTE_CARTES, url=URL_ACTION)
+        except Exception:
+            time.sleep(DELAI * 5)
+            try:
+                soup = _postback(session, soup, CIBLE_SUIVANTE_CARTES, url=URL_ACTION)
+            except Exception as e:
+                log_fn(f"  pagination interrompue après la page {numero}: {str(e)[:80]}")
+                break
     return lignes
 
 

@@ -385,3 +385,23 @@ class TestPortailRouvert:
         monkeypatch.setattr(scraper, "_fetch_one", fetch)
         trouves = scraper.run({"bdc_403115"}, lambda *_: None)
         assert tentatives["403120"] == 2 and [t["objet"] for t in trouves] == ["Entretien"]
+
+
+class TestTailleDePage:
+    """Réouverture du 09/11/2026: la liste ne propose plus que 10, 20 ou 50."""
+
+    def _soup(self, valeurs):
+        from bs4 import BeautifulSoup
+        from app.services.ao_scraper import CIBLE_TAILLE_PAGE
+        options = "".join(f'<option value="{v}">{v}</option>' for v in valeurs)
+        return BeautifulSoup(f'<select name="{CIBLE_TAILLE_PAGE}">{options}</select>', "html.parser")
+
+    def test_la_plus_grande_taille_proposee(self):
+        from app.services.ao_scraper import taille_max
+        assert taille_max(self._soup([10, 20, 50])) == 50
+        assert taille_max(self._soup([10, 500])) == 500
+
+    def test_sans_liste_on_garde_l_ancienne_taille(self):
+        from bs4 import BeautifulSoup
+        from app.services.ao_scraper import taille_max
+        assert taille_max(BeautifulSoup("<p></p>", "html.parser")) == 500
