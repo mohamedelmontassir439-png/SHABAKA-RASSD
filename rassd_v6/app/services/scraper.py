@@ -28,6 +28,10 @@ REQUEST_TIMEOUT  = 8
 SCRAPER_WORKERS  = 12
 # Nombre maximal d'identifiants repris d'un coup après une coupure du portail.
 RATTRAPAGE_MAX   = 4000
+# Seconde passe sur les numéros en échec: moins de requêtes à la fois,
+# plus de patience.
+REPRISE_WORKERS  = 4
+REPRISE_TIMEOUT  = 25
 
 UA = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/122.0 Safari/537.36",
@@ -204,6 +208,20 @@ def find_max_id(s, log_fn=print) -> int:
         return 370000
 
 
+def est_un_avis(r) -> bool:
+    """Vrai si la réponse est la fiche d'un avis.
+
+    Depuis la réouverture du 09/11/2026, le portail répond à un numéro qui
+    n'existe pas encore par sa page « Liste des avis d'achat » (200, 64 Ko):
+    la taille seule faisait croire à des milliers d'avis à venir, et chaque
+    cycle balayait 4 000 numéros vides en surchargeant le portail.
+    """
+    if getattr(r, "status_code", 200) != 200 or len(r.text) <= 2000:
+        return False
+    titre = re.search(r"<title>(.*?)</title>", r.text[:6000], re.S | re.I)
+    return not (titre and "liste des avis" in titre.group(1).lower())
+
+
 def _find_max_binary(s, low, high, log_fn) -> int:
     """Recherche binaire du max ID actif"""
     best = low
@@ -211,7 +229,7 @@ def _find_max_binary(s, low, high, log_fn) -> int:
         mid = (low + high) // 2
         try:
             r = s.get(f"{BASE}/show/{mid}", timeout=REQUEST_TIMEOUT)
-            if r.status_code == 200 and len(r.text) > 2000:
+            if est_un_avis(r):
                 best = mid
                 low = mid + 1
             else:
@@ -345,11 +363,11 @@ def parse_page(html, tid):
         return None
 
 
-def _fetch_one(session: requests.Session, tid: str):
+def _fetch_one(session: requests.Session, tid: str, timeout: int = 0):
     """Récupère et parse une seule fiche. Retourne (tender_ou_None, erreur_ou_None)."""
     try:
-        r = session.get(f"{BASE}/show/{tid}", timeout=REQUEST_TIMEOUT)
-        if r.status_code == 404 or r.status_code != 200 or len(r.text) < 1500:
+        r = session.get(f"{BASE}/show/{tid}", timeout=timeout or REQUEST_TIMEOUT)
+        if r.status_code == 404 or r.status_code != 200 or len(r.text) < 1500 or not est_un_avis(r):
             return None, None
         return parse_page(r.text, tid), None
     except Exception as e:
@@ -417,6 +435,7 @@ def run(known_ids: set, log_fn=print) -> list:
     sessions = [make_session() for _ in range(SCRAPER_WORKERS)]
 
     errors = 0
+    en_echec = []
     done   = 0
     premiere_erreur = ""
     with concurrent.futures.ThreadPoolExecutor(max_workers=SCRAPER_WORKERS) as pool:
@@ -430,6 +449,7 @@ def run(known_ids: set, log_fn=print) -> list:
             done += 1
             if err:
                 errors += 1
+                en_echec.append(tid)
                 premiere_erreur = premiere_erreur or str(err)
                 if errors <= 5:
                     log_fn(f"⚠ #{tid}: {err}")
@@ -438,6 +458,23 @@ def run(known_ids: set, log_fn=print) -> list:
                 log_fn(f"✓ #{tid} │ {t['secteur'][:16]:16} │ {t['objet'][:45]} │ ⏰{t['date_limite'] or '?'}")
             if done % 50 == 0:
                 log_fn(f"… {done}/{len(scan_ids)} traités ({errors} erreurs)")
+
+    # Les numéros en échec (portail lent) sont repris une fois, doucement:
+    # sans cela, un avis tombé en timeout sous le dernier trouvé n'était plus
+    # jamais relu, le cycle suivant repartant au-dessus.
+    if en_echec and errors < len(scan_ids):
+        log_fn(f"Reprise de {len(en_echec)} numéro(s) en échec…")
+        lent = [make_session() for _ in range(REPRISE_WORKERS)]
+        with concurrent.futures.ThreadPoolExecutor(max_workers=REPRISE_WORKERS) as pool:
+            futs = {pool.submit(_fetch_one, lent[i % REPRISE_WORKERS], tid, REPRISE_TIMEOUT): tid
+                    for i, tid in enumerate(en_echec)}
+            for future in concurrent.futures.as_completed(futs):
+                t, err = future.result()
+                if not err:
+                    errors -= 1
+                    if t:
+                        results.append(t)
+                        log_fn(f"✓ #{futs[future]} │ {t['secteur'][:16]:16} │ {t['objet'][:45]} │ ⏰{t['date_limite'] or '?'}")
 
     log_fn(f"═══ {len(results)} nouveaux │ {errors} erreurs ═══")
     # Toutes les requêtes en échec, ce n'est pas « rien de nouveau »: c'est un

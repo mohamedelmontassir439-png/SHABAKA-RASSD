@@ -173,7 +173,7 @@ class TestPortailInjoignable:
         from app.services import scraper
         monkeypatch.setattr(scraper, "find_max_id", lambda s, log: 400000)
         monkeypatch.setattr(scraper, "_fetch_one",
-                            lambda s, tid: (None, "timeout") if tid.endswith("7") else (None, None))
+                            lambda s, tid, timeout=0: (None, "timeout") if tid.endswith("7") else (None, None))
         assert scraper.run(set(), lambda *_: None) == []
 
 
@@ -330,3 +330,58 @@ class TestRattrapageSansListe:
         monkeypatch.setattr(scraper, "_fetch_one", lambda s, tid: (vus.append(int(tid)), (None, None))[1])
         scraper.run({"bdc_401880"}, lambda *_: None)
         assert min(vus) <= 401881 and max(vus) >= dernier_publie
+
+
+class TestPortailRouvert:
+    """Réouverture du 09/11/2026: un numéro inexistant renvoie la page « Liste
+    des avis d'achat » (200, 64 Ko), et le portail chargé coupe une partie
+    des requêtes."""
+
+    LISTE = "<html><head><title>Liste des avis d&#039;achat</title></head>" + "x" * 60000
+    AVIS = "<html><head><title>Détails de l&#039;avis d&#039;achat #70/2026</title></head>" + "x" * 20000
+
+    def test_la_page_liste_n_est_pas_un_avis(self):
+        from app.services.scraper import est_un_avis
+        class R: status_code = 200
+        liste, avis = R(), R()
+        liste.text, avis.text = self.LISTE, self.AVIS
+        assert not est_un_avis(liste) and est_un_avis(avis)
+
+    def test_le_dernier_avis_n_est_pas_trompe_par_la_liste(self, monkeypatch):
+        from app.services import scraper
+        dernier_publie = 403193
+        page = {True: self.AVIS, False: self.LISTE}
+
+        class Session:
+            def get(self, url, **k):
+                n = int(url.rsplit("/", 1)[1])
+                class R:
+                    status_code = 200
+                    text = page[n <= dernier_publie]
+                return R()
+
+        vus = []
+        monkeypatch.setattr(scraper, "make_session", Session)
+        monkeypatch.setattr(scraper, "find_max_id", lambda s, log: 403034)
+        monkeypatch.setattr(scraper, "_fetch_one", lambda s, tid, timeout=0: (vus.append(int(tid)), (None, None))[1])
+        scraper.run({"bdc_403115"}, lambda *_: None)
+        assert max(vus) <= dernier_publie + 200, "pas 4 000 numéros vides"
+
+    def test_un_numero_en_echec_est_repris(self, monkeypatch):
+        from app.services import scraper
+        tentatives = {}
+
+        def fetch(s, tid, timeout=0):
+            tentatives[tid] = tentatives.get(tid, 0) + 1
+            if tid == "403120" and tentatives[tid] == 1:
+                return None, "Read timed out."
+            if tid == "403120":
+                return {"secteur": "S906", "objet": "Entretien", "date_limite": "13/11/2026"}, None
+            return None, None
+
+        monkeypatch.setattr(scraper, "make_session", lambda: None)
+        monkeypatch.setattr(scraper, "find_max_id", lambda s, log: 403115)
+        monkeypatch.setattr(scraper, "_find_max_binary", lambda s, lo, hi, log: 403130)
+        monkeypatch.setattr(scraper, "_fetch_one", fetch)
+        trouves = scraper.run({"bdc_403115"}, lambda *_: None)
+        assert tentatives["403120"] == 2 and [t["objet"] for t in trouves] == ["Entretien"]
