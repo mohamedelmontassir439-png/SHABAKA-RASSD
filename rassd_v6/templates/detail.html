@@ -221,7 +221,7 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
         {% if t.montant or not t.quantite %}
         <div class="info-cell">
           <div class="info-label">{{ tr('detail_amount') }}</div>
-          <div class="info-value" style="color: var(--grn);">{{ t.montant or '—' }}</div>
+          <div class="info-value" style="color: var(--grn);"><bdi dir="ltr">{{ t.montant or '—' }}</bdi></div>
           {% if t.montant %}<div class="info-note">{{ tr('detail_amount_note') }}</div>{% endif %}
           {# La caution juste sous le montant: les deux chiffres se lisent
              ensemble, l'un découle de l'autre. #}
@@ -232,7 +232,7 @@ html[dir="rtl"] .lire-item:nth-child(odd) { border-right: none; border-left: 1px
               <span>{{ tr('cond_caution') }}</span>
               {% if ns_caution.c[1] %}<span class="cond-badge">{{ tr('cond_exige') }}</span>{% endif %}
             </div>
-            <div class="info-value" dir="{{ 'auto' if cv not in ('aucune', 'par_lot') else 'rtl' if lang == 'ar' else 'ltr' }}">{{ tr('cond_v_' ~ cv) if cv in ('aucune', 'par_lot') else cv }}</div>
+            <div class="info-value">{% if cv in ('aucune', 'par_lot') %}{{ tr('cond_v_' ~ cv) }}{% else %}<bdi dir="ltr">{{ cv }}</bdi>{% endif %}</div>
             {% if cv not in ('aucune', 'par_lot') %}<div class="info-note">{{ tr('cond_caution_aide') }}</div>{% endif %}
           </div>
           {% endif %}
