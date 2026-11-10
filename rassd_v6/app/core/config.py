@@ -69,6 +69,13 @@ class Settings:
     # numero ecrit en dur qui n'etait celui de personne.
     PAYMENT_PHONE: str = os.getenv("PAYMENT_PHONE", "212621728813")
     PAYMENT_MSG:   str = os.getenv("PAYMENT_MSG", "Bonjour, je souhaite m'abonner à MAROC ENTREPRENEURIAT")
+    # Compte qui reçoit les virements d'abonnement, affiché sur la page de
+    # paiement et dans l'email envoyé au membre qui choisit une formule.
+    PAYMENT_BANK:   str = os.getenv("PAYMENT_BANK", "CIH Bank")
+    PAYMENT_HOLDER: str = os.getenv("PAYMENT_HOLDER", "Mohamed El Montassir")
+    PAYMENT_RIB:    str = os.getenv("PAYMENT_RIB", "230 270 4193980211007100 02")
+    PAYMENT_IBAN:   str = os.getenv("PAYMENT_IBAN", "MA64 2302 7041 9398 0211 0071 0002")
+    PAYMENT_SWIFT:  str = os.getenv("PAYMENT_SWIFT", "CIHMMAMC")
     # Annuaire d'entreprises — Google Places API (officielle).
     # On n'utilise pas le scraping direct de Google Maps: il viole les
     # conditions d'utilisation de Google, déclenche des CAPTCHA et fait
@@ -130,9 +137,9 @@ class Settings:
     DAILY_REPORT_HOUR: int = int(os.getenv("DAILY_REPORT_HOUR", "8"))
     # Essai gratuit accordé à chaque nouvelle inscription, en heures (24 = un
     # jour), compté à l'heure près depuis l'inscription.
-    # Sept jours: en vingt-quatre heures, un entrepreneur ne voit souvent
-    # passer aucun marché de son secteur et juge la plateforme sur ce vide.
-    TRIAL_HOURS: int = int(os.getenv("TRIAL_HOURS", "168"))
+    # Trois jours (choix du 10/11/2026, après sept jours). Seules les nouvelles
+    # inscriptions sont concernées: la fin d'essai est figée à l'inscription.
+    TRIAL_HOURS: int = int(os.getenv("TRIAL_HOURS", "72"))
     # Secteurs qu'un membre choisit lui-même à l'inscription. Au-delà, ou pour
     # en changer, il écrit sur WhatsApp et l'administration s'en charge.
     MAX_SECTEURS: int = int(os.getenv("MAX_SECTEURS", "3"))

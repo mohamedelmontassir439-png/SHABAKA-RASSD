@@ -931,6 +931,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
 CHEMINS_LIBRES_EXACTS = frozenset((
     "/", "/login", "/register", "/logout", "/forgot", "/reset", "/tarifs",
     "/contact", "/cgu", "/confidentialite", "/mentions-legales", "/health",
+    "/abonnement/paiement",
     "/robots.txt", "/sitemap.xml", "/manifest.json", "/sw.js",
     "/webhooks/brevo",
 ))
@@ -3064,6 +3065,76 @@ def _a_faire(member: dict, horizon: int = 14) -> list:
 
 @app.get("/tarifs", response_class=HTMLResponse)
 async def tarifs(req: Request): return render(req,"tarifs.html",{})
+
+
+def _email_paiement(m: dict, plan: str, lang: str) -> str:
+    """Les coordonnées de virement et la marche à suivre, par email."""
+    from html import escape
+    from urllib.parse import quote
+    from app.services.notifications import _enveloppe_email
+    t = lambda k, **kw: tr_(k, lang, **kw)
+    info = cfg.PLANS[plan]
+    nom = t(f"pay_plan_{plan}")
+    ref = m.get("company") or m.get("email")
+    lignes = "".join(
+        f"<tr><td style='padding:4px 12px 4px 0;color:#6b7488'>{k}</td>"
+        f"<td style='padding:4px 0;font-weight:700;color:#1e1611'>{escape(v)}</td></tr>"
+        for k, v in ((t("pay_amount"), f"{info['price']} MAD {t('pay_period_' + plan)}"),
+                     (t("pay_holder"), cfg.PAYMENT_HOLDER), (t("pay_bank"), cfg.PAYMENT_BANK),
+                     ("RIB", cfg.PAYMENT_RIB), ("IBAN", cfg.PAYMENT_IBAN), ("SWIFT", cfg.PAYMENT_SWIFT),
+                     (t("pay_motif"), ref)))
+    sens = "rtl" if lang == "ar" else "ltr"
+    texte = (f"<span dir='{sens}' style='display:block'>"
+             f"1. <b>{t('pay_s1_t')}</b> — {t('pay_s1_d')}</span>"
+             f"<table style='margin:12px 0 16px;font-size:14px' dir='{sens}'>{lignes}</table>"
+             f"<span dir='{sens}' style='display:block'>2. <b>{t('pay_s2_t')}</b> — {t('pay_s2_d')}<br>"
+             f"3. <b>{t('pay_s3_t')}</b> — {t('pay_s3_d')}</span>")
+    msg = t("wa_msg_recu", price=info["price"], plan=nom, compte=m.get("email", ""))
+    lien = f"https://wa.me/{cfg.PAYMENT_PHONE}?text={quote(msg, safe='')}"
+    return _enveloppe_email(t("pay_title", plan=nom).replace("<em>", "").replace("</em>", ""),
+                            texte, lien, t("pay_wa_btn"))
+
+
+@app.get("/abonnement/paiement", response_class=HTMLResponse)
+async def abonnement_paiement(req: Request, plan: str = "monthly"):
+    """Page de paiement d'une formule: RIB, virement, reçu sur WhatsApp.
+    Un membre connecté reçoit aussi le tout par email (une fois par
+    formule et par 12 heures, pour ne pas le répéter à chaque visite)."""
+    from urllib.parse import quote
+    if plan not in ("monthly", "pro", "business"):
+        plan = "monthly"
+    lang = get_lang(req)
+    m = get_member(req)
+    nom = tr_(f"pay_plan_{plan}", lang)
+    info = cfg.PLANS[plan]
+    compte = (m.get("email") or "") if m else ""
+    msg = tr_("wa_msg_recu", lang, price=info["price"], plan=nom,
+              compte=compte or tr_("pay_ref_anon", lang))
+    mail_envoye = False
+    if m and m.get("email"):
+        cle = f"paiement:{plan}"
+        db = get_db()
+        deja = db.execute(
+            "SELECT 1 FROM notif_log WHERE member_id=? AND tender_id=? AND status='SENT' AND sent_at>=?",
+            (m["id"], cle, (datetime.now() - timedelta(hours=12)).isoformat())).fetchone()
+        db.close()
+        if not deja:
+            from app.services.notifications import email_send, _log_notif
+            corps = _email_paiement(m, plan, lang)
+            sujet = tr_("pay_mail_subject", lang, plan=nom)
+            def _envoi(mid=m["id"], to=m["email"]):
+                ok = email_send(to, sujet, corps, essentiel=True)
+                d = get_db()
+                _log_notif(d, mid, cle, "email", ok)
+                try: d.commit()
+                finally: d.close()
+            asyncio.get_event_loop().run_in_executor(None, _envoi)
+        mail_envoye = True
+    return render(req, "paiement.html", {
+        "plan": plan, "nom_plan": nom, "info": info, "mail_envoye": mail_envoye,
+        "ref": (m.get("company") or m.get("email")) if m else tr_("pay_ref_anon", lang),
+        "wa_recu": f"https://wa.me/{cfg.PAYMENT_PHONE}?text={quote(msg, safe='')}",
+    })
 
 # ══════════════════════════════════════════════════════════
 # PAGES LÉGALES

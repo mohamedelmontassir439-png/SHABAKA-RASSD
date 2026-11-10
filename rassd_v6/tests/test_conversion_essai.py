@@ -46,11 +46,11 @@ def envois(monkeypatch):
     return captures
 
 
-class TestEssaiDeSeptJours:
+class TestEssaiDeTroisJours:
     def test_duree_par_defaut(self):
-        assert cfg.TRIAL_HOURS == 168 and cfg.essai() == "7 jours"
+        assert cfg.TRIAL_HOURS == 72 and cfg.essai() == "3 jours"
 
-    def test_inscription_ouvre_sept_jours(self, client, db):
+    def test_inscription_ouvre_trois_jours(self, client, db):
         page = client.get("/register").text
         csrf = re.search(r'name="csrf_token" value="([^"]+)"', page).group(1)
         client.post("/register", data={
@@ -59,7 +59,7 @@ class TestEssaiDeSeptJours:
             "csrf_token": csrf, "secteurs_sel": ["T101"]}, follow_redirects=False)
         fin = db.execute("SELECT trial_ends FROM members WHERE email='karim@example.com'").fetchone()[0]
         reste = datetime.fromisoformat(fin) - datetime.now()
-        assert timedelta(days=6, hours=23) < reste <= timedelta(days=7)
+        assert timedelta(days=2, hours=23) < reste <= timedelta(days=3)
 
 
 class TestBilanDEssai:

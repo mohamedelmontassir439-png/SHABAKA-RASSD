@@ -1,0 +1,94 @@
+{% extends "base_public.html" %}
+{% block title %}{{ tr('pay_seo') }}{% endblock %}
+{% block description %}{{ tr('pay_lede') }}{% endblock %}
+{% block robots %}noindex,nofollow{% endblock %}
+{% block body %}
+<style>
+.pay-wrap { max-width: 760px; margin: 0 auto; padding: 56px 24px 90px; }
+.pay-hero { margin-bottom: 28px; }
+.pay-lede { font-size: var(--f4); color: var(--text2); line-height: 1.7; margin-top: 12px; }
+.pay-amount { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; background: var(--surface); border: 1.5px solid var(--purple); border-radius: var(--r3); padding: 18px 22px; margin-bottom: 26px; box-shadow: var(--sh), var(--shg); }
+.pay-amount-k { font-size: var(--f2); font-weight: 700; color: var(--text3); letter-spacing: .05em; text-transform: uppercase; }
+.pay-amount-v { font-family: var(--serif); font-size: var(--f8); font-weight: 700; color: var(--text1); }
+.pay-amount-p { font-size: var(--f3); color: var(--text3); font-weight: 600; }
+.pay-steps { list-style: none; display: grid; gap: 16px; padding: 0; margin: 0; counter-reset: s; }
+.pay-step { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 22px 22px 22px 66px; box-shadow: var(--sh), var(--shg); counter-increment: s; }
+[dir="rtl"] .pay-step { padding: 22px 66px 22px 22px; }
+.pay-step::before { content: counter(s); position: absolute; top: 20px; inset-inline-start: 20px; width: 32px; height: 32px; border-radius: 50%; background: var(--purple); color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+.pay-step h2 { font-size: var(--f5); color: var(--text1); margin: 2px 0 6px; }
+.pay-step p { font-size: var(--f3); color: var(--text2); line-height: 1.65; margin: 0; }
+.pay-bank { margin-top: 14px; display: grid; gap: 8px; }
+.pay-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--line); border-radius: var(--r2, 10px); padding: 10px 12px; }
+.pay-row-k { font-size: var(--f1); font-weight: 700; color: var(--text3); letter-spacing: .05em; text-transform: uppercase; min-width: 74px; }
+.pay-row-v { flex: 1; font-weight: 700; color: var(--text1); font-variant-numeric: tabular-nums; word-break: break-word; }
+.pay-copy { flex-shrink: 0; border: 1px solid var(--line); background: none; border-radius: var(--rp, 99px); padding: 5px 12px; font: inherit; font-size: var(--f2); font-weight: 700; color: var(--ink); cursor: pointer; }
+.pay-copy:focus-visible { outline: 2px solid var(--purple); outline-offset: 2px; }
+.pay-copy.ok { color: var(--grn); border-color: var(--grn); }
+.pay-wa { margin-top: 14px; }
+.pay-hint { font-size: var(--f2); color: var(--text3); margin-top: 8px; }
+.pay-note { margin-top: 22px; font-size: var(--f3); color: var(--text2); background: var(--indigoa, rgba(0,0,0,.04)); border-radius: var(--r3); padding: 14px 18px; }
+.pay-foot { margin-top: 22px; font-size: var(--f3); }
+.pay-foot a { color: var(--ink); font-weight: 700; }
+@media (max-width: 560px) { .pay-row { flex-wrap: wrap; } .pay-row-k { min-width: 0; width: 100%; } }
+</style>
+
+{% with photo="casablanca-finance-city", cadrage="50% 35%" %}{% include "_bandeau_fond.html" %}{% endwith %}
+<div class="pay-wrap sur-bandeau">
+  <div class="pay-hero">
+    <div class="section-label">{{ tr('pay_label') }}</div>
+    <h1 class="display-l">{{ tr('pay_title', plan=nom_plan)|safe }}</h1>
+    <p class="pay-lede">{{ tr('pay_lede') }}</p>
+  </div>
+
+  <div class="pay-amount">
+    <span class="pay-amount-k">{{ tr('pay_amount') }}</span>
+    <span class="pay-amount-v"><bdi dir="ltr">{{ info.price }} MAD</bdi></span>
+    <span class="pay-amount-p">{{ tr('pay_period_' ~ plan) }}</span>
+  </div>
+
+  {% if not member %}<div class="pay-note" style="margin:0 0 22px">{{ tr('pay_login') }} <a href="/login?next={{ ('/abonnement/paiement?plan=' ~ plan)|urlencode }}">→</a></div>{% endif %}
+
+  <ol class="pay-steps">
+    <li class="pay-step">
+      <h2>{{ tr('pay_s1_t') }}</h2>
+      <p>{{ tr('pay_s1_d') }}</p>
+      <div class="pay-bank">
+        {% for k, v in [(tr('pay_holder'), cfg.PAYMENT_HOLDER), (tr('pay_bank'), cfg.PAYMENT_BANK), ('RIB', cfg.PAYMENT_RIB), ('IBAN', cfg.PAYMENT_IBAN), ('SWIFT', cfg.PAYMENT_SWIFT), (tr('pay_motif'), ref)] %}
+        <div class="pay-row">
+          <span class="pay-row-k">{{ k }}</span>
+          <span class="pay-row-v" dir="ltr">{{ v }}</span>
+          {% if k in ('RIB', 'IBAN', 'SWIFT') %}<button type="button" class="pay-copy" data-v="{{ v|replace(' ', '') }}">{{ tr('pay_copy') }}</button>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </li>
+    <li class="pay-step">
+      <h2>{{ tr('pay_s2_t') }}</h2>
+      <p>{{ tr('pay_s2_d') }}</p>
+      <div class="pay-wa">
+        <a href="{{ wa_recu }}" target="_blank" rel="noopener" class="btn btn-primary btn-lg">{{ tr('pay_wa_btn') }}</a>
+        <div class="pay-hint">{{ tr('pay_wa_hint') }}</div>
+      </div>
+    </li>
+    <li class="pay-step">
+      <h2>{{ tr('pay_s3_t') }}</h2>
+      <p>{{ tr('pay_s3_d') }}</p>
+    </li>
+  </ol>
+
+  {% if mail_envoye %}<div class="pay-note">{{ tr('pay_mail_sent', email=member.email) }}</div>{% endif %}
+  <div class="pay-foot"><a href="/tarifs">{{ tr('pay_other') }}</a></div>
+</div>
+
+<script>
+document.querySelectorAll('.pay-copy').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var fini = function () {
+      var avant = b.textContent; b.textContent = {{ tr('pay_copied')|tojson }}; b.classList.add('ok');
+      setTimeout(function () { b.textContent = avant; b.classList.remove('ok'); }, 1800);
+    };
+    if (navigator.clipboard) navigator.clipboard.writeText(b.dataset.v).then(fini, function () {});
+  });
+});
+</script>
+{% endblock %}

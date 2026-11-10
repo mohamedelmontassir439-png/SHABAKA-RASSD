@@ -90,7 +90,7 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
         <li>{{ tr('pr_pro_feat4') }}</li>
         <li>{{ tr('pr_monthly_feat5') }}</li>
       </ul>
-      <a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ tr('wa_msg_monthly', price=monthly.price)|urlencode }}" target="_blank" class="btn btn-outline btn-full btn-lg">{{ tr('pr_monthly_cta') }}</a>
+      <a href="/abonnement/paiement?plan=monthly" class="btn btn-outline btn-full btn-lg">{{ tr('pr_monthly_cta') }}</a>
     </div>
 
     {% set pro = plans.pro if plans else {"price":2499} %}
@@ -106,7 +106,7 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
         <li>{{ tr('pr_pro_feat4') }}</li>
         <li>{{ tr('pr_pro_feat5') }}</li>
       </ul>
-      <a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ tr('wa_msg_annual', price=pro.price)|urlencode }}" target="_blank" class="btn btn-accent btn-full btn-lg">{{ tr('pr_pro_cta') }}</a>
+      <a href="/abonnement/paiement?plan=pro" class="btn btn-accent btn-full btn-lg">{{ tr('pr_pro_cta') }}</a>
     </div>
 
     {% set biz = plans.business if plans else {"price":4299} %}
@@ -121,7 +121,7 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
         <li>{{ tr('pr_biz_feat4') }}</li>
         <li>{{ tr('pr_biz_feat5') }}</li>
       </ul>
-      <a href="https://wa.me/{{ cfg.PAYMENT_PHONE }}?text={{ tr('wa_msg_biennial', price=biz.price)|urlencode }}" target="_blank" class="btn btn-outline btn-full btn-lg">{{ tr('pr_biz_cta') }}</a>
+      <a href="/abonnement/paiement?plan=business" class="btn btn-outline btn-full btn-lg">{{ tr('pr_biz_cta') }}</a>
     </div>
 
   </div>
