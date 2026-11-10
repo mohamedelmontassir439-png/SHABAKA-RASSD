@@ -1654,16 +1654,21 @@ async def tender_detail(req: Request, tid: str):
             off = officiel(db, dict(t))
         finally:
             db.close()
+    from app.services import synthese
+    elig = eligibilite.pour_marche(m0["id"], dict(t))
+    echeances = suivi.echeances(dict(t))
+    caution = next((v for cle, v, _a, _e in cartes(conditions_avis(t["description"] or ""), portail=tid.startswith("ao_")) if cle == "cond_caution"), "")
     return render(req, "detail.html", {
         "t": dict(t), "related": related, "is_fav": is_fav, "dossier_admin": dossier_admin,
+        "synthese": synthese.pour_marche(elig, dossier_admin, echeances, caution, get_lang(req)),
         "avis_complet": avis_complet(dict(t).get("fiche_json") or "", dict(t), off),
         "mon_suivi": suivi.pour_marche(m0["id"], tid),
-        "echeances": suivi.echeances(dict(t)),
+        "echeances": echeances,
         "etapes_suivi": suivi.ETAPES,
         "comparables": intelligence.comparables(dict(t)),
         "analyse": _derniere_analyse(m0["id"], tid),
         "report": reports_officiels.pour_marche(dict(t)),
-        "eligibilite": eligibilite.pour_marche(m0["id"], dict(t)),
+        "eligibilite": elig,
         "groupement": groupement.partenaires(m0["id"], dict(t)),
         "grp_msg": req.query_params.get("grp", ""),
         "analyse_msg": req.query_params.get("analyse", ""),

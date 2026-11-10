@@ -1,0 +1,37 @@
+{# « Pouvez-vous répondre ? » — verdict, quatre points, prochaines dates.
+   Données: app/services/synthese.py. #}
+{% if synthese and synthese.points %}
+<section class="syn" aria-labelledby="syn-v">
+  <div class="syn-tete {{ synthese.verdict }}">
+    <div>
+      <div class="syn-q">{{ tr('syn_titre') }}</div>
+      <div class="syn-v" id="syn-v">{{ tr('syn_v_' ~ synthese.verdict, n=synthese.a_regler) }}</div>
+    </div>
+  </div>
+  <div class="syn-pts">
+    {% for p in synthese.points %}
+    {% set icone = {'ok': '✓', 'info': 'i', 'attention': '!', 'bloquant': '✕'}[p.etat] %}
+    {% if p.lien %}<a class="syn-pt" href="{{ p.lien }}">{% else %}<div class="syn-pt">{% endif %}
+      <span class="syn-ic {{ p.etat }}" aria-hidden="true">{{ icone }}</span>
+      <span>
+        <span class="syn-l" style="display:block">{{ tr('syn_l_' ~ p.cle) }}</span>
+        {# Montants, codes et dates restent lus de gauche à droite en arabe. #}
+        {% set args = {} %}{% for k, v in p.args.items() %}{% set _ = args.update({k: ('<bdi dir="ltr">'|safe) ~ v ~ ('</bdi>'|safe)}) %}{% endfor %}
+        <span class="syn-m" style="display:block">{{ tr(p.msg, **args)|safe }}</span>
+      </span>
+    {% if p.lien %}</a>{% else %}</div>{% endif %}
+    {% endfor %}
+  </div>
+  <div class="syn-pied">
+    {% if synthese.dates %}
+    <div class="syn-dates">
+      <span class="syn-dates-t">{{ tr('syn_dates') }} :</span>
+      {% for e in synthese.dates %}
+      <span class="syn-date{{ ' proche' if e.reste <= 3 else '' }}">{{ tr('suivi_ech_' ~ e.cle) }} · <b><bdi dir="ltr">{{ e.jour.strftime('%d/%m') }}</bdi></b> · {{ tr('syn_auj') if e.reste == 0 else tr('syn_dans', n=e.reste) }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if synthese.verdict not in ('non', 'clos') %}<a href="#suivi" class="btn btn-primary btn-sm">{{ tr('syn_suivre') }}</a>{% endif %}
+  </div>
+</section>
+{% endif %}

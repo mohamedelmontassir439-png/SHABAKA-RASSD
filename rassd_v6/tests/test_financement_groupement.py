@@ -119,7 +119,9 @@ class TestFicheMontantCaution:
         page = client.get("/tenders/ao_7").text
         montant = page.index("1 200 000,00 MAD")
         caution = page.index('class="montant-caution"')
-        assert montant < caution < page.index("20 000,00 MAD")
+        # La synthèse en tête de fiche cite aussi la caution: on la cherche
+        # dans l'encadré du montant.
+        assert montant < caution < page.index("20 000,00 MAD", caution)
         # Une seule fois: elle a quitté l'encadré des conditions.
-        assert page.count("Caution provisoire</span>") == 1
+        assert page.count("<span>Caution provisoire</span>") == 1
         assert "Consultations" not in page and ">57<" not in page
