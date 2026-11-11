@@ -98,6 +98,7 @@ T = {
     "comp_acheteur":     {"fr": "chez ce même acheteur", "ar": "لدى نفس صاحب المشروع"},
     "comp_ville":        {"fr": "même secteur, même ville", "ar": "نفس القطاع ونفس المدينة"},
     "comp_secteur":      {"fr": "même secteur", "ar": "نفس القطاع"},
+    "comp_similaires":   {"fr": "même nature de marché, mots communs, montant proche", "ar": "نفس نوع الصفقة، كلمات مشتركة، مبلغ قريب"},
     "comp_gagnants":     {"fr": "Qui remporte ce type de marché", "ar": "من يفوز بهذا النوع من الصفقات"},
     "comp_voir":         {"fr": "Voir tout", "ar": "عرض الكلّ"},
     # ── Suivi des offres (app/services/suivi.py) ────────────────────────

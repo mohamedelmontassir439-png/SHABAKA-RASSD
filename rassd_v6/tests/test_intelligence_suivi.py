@@ -166,3 +166,33 @@ class TestAcheteur:
         page = client.get(f"/acheteurs/{s}").text
         assert "STE ATLAS BTP SARL" in page and "50 %" in page
         assert f"/acheteurs/{s}" in client.get("/tenders/ao_9").text
+
+
+class TestComparablesSimilaires:
+    def test_meme_nature_et_mots_communs(self, db):
+        from app.services.intelligence import comparables
+        _resultat(db, "piste", objet="Travaux de construction de la piste reliant douar X", montant="3.100.000,00",
+                  acheteur="Commune de Tata", region="Tata")
+        _resultat(db, "topo", objet="Contrôle topographique des travaux de construction de la piste",
+                  montant="21.506,00", acheteur="Commune de Tata", region="Tata")
+        _resultat(db, "nettoyage", objet="Nettoyage des bâtiments administratifs", montant="900.000,00",
+                  acheteur="Commune de Tata", region="Tata")
+        c = comparables({"secteur": "T101", "acheteur": "Commune OUARGUI", "region": "El Kelaa",
+                         "objet": "Travaux de construction des pistes de divers douar", "montant": "3 397 250,40"})
+        assert [r["id"] for r in c["lignes"]] == ["piste"] and c["portee"] == "similaires"
+
+    def test_le_montant_proche_passe_devant(self, db):
+        from app.services.intelligence import comparables
+        _resultat(db, "petit", objet="Construction d'une école primaire", montant="90.000,00",
+                  acheteur="A", region="Fès", jour="20/10/2026")
+        _resultat(db, "proche", objet="Construction d'une école primaire", montant="2.800.000,00",
+                  acheteur="B", region="Fès", jour="01/09/2026")
+        c = comparables({"secteur": "T101", "acheteur": "C", "region": "Rabat",
+                         "objet": "Travaux de construction d'une école", "montant": "3 000 000,00"})
+        assert [r["id"] for r in c["lignes"]][:2] == ["proche", "petit"]
+
+    def test_nature(self):
+        from app.services.intelligence import nature
+        assert nature("Contrôle des travaux de terrassement") == "etude"
+        assert nature("Acquisition de matériel") == "fourniture"
+        assert nature("Travaux d'assainissement") == "travaux"

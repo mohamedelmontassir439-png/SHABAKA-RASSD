@@ -93,32 +93,120 @@ def _date_tri(r: dict) -> str:
     return f"{m.group(3)}{m.group(2)}{m.group(1)}" if m else ""
 
 
+# Mots qui ne disent rien de la nature des travaux: on ne rapproche pas deux
+# marchés parce qu'ils sont tous deux « relevant de la commune ».
+VIDES = set("""travaux travail realisation realiser execution relatif relatifs relative relatives
+relevant releve commune communes province provinciale prefecture region regionale regional
+direction centre ville dans pour avec ainsi que les des une aux sur sous entre leur leurs
+lot lots unique marche marches appel offre offres ouvert ouverte simplifie simplifiee
+divers diverses douar douars rurale rural urbaine urbain cadre programme projet projets
+tranche phase annee annees niveau secteur site sites siege lieu lieux maroc royaume
+partie parties premiere deuxieme troisieme etat cours selon type objet consultation
+majoration rabais bon commande prix
+construction installation fourniture fournitures acquisition livraison amenagement
+equipement equipements materiel materiels mise service services technique techniques
+etude etudes generale generaux general neuf neuve existant existante destine destinee
+destines destinees compte besoin besoins""".split())
+
+NATURES = (
+    ("etude", r"\b(etude|etudes|controle|suivi|assistance|laboratoire|essais?|topograph|expertise|"
+              r"audit|conception|diagnostic|plans?|levee?s?|geotechni)"),
+    ("service", r"\b(nettoiement|proprete|blanchissage|nettoyage|gardiennage|entretien|maintenance|location|transport|restauration|"
+                r"jardinage|formation|impression|reparation|exploitation)"),
+    ("fourniture", r"\b(acquisition|fourniture|achat|livraison)"),
+    ("travaux", r"\b(travaux|construction|realisation|amenagement|rehabilitation|renforcement|"
+                r"elargissement|extension|refection|revetement|creation|equipement)"),
+)
+
+
+def nature(objet: str) -> str:
+    """Travaux, fourniture, étude ou service — d'après les premiers mots de
+    l'objet, qui disent ce qu'on achète (« Contrôle des travaux de… » est une
+    étude, pas des travaux)."""
+    debut = " ".join(_nu(objet).split()[:6])
+    for nom, motif in NATURES:
+        if re.search(motif, debut):
+            return nom
+    return ""
+
+
+def themes(objet: str) -> set:
+    """Les mots porteurs de l'objet: piste, ecole, assainissement, voirie…"""
+    mots = set()
+    for m in _nu(objet).split():
+        if len(m) < 4 or m in VIDES or m.isdigit():
+            continue
+        mots.add(m[:-1] if m.endswith("s") and len(m) > 4 else m)
+    return mots
+
+
+def _proximite_montant(a: float, b: float) -> float:
+    """1 pour deux montants égaux, 0 au-delà d'un facteur dix."""
+    import math
+    if not a or not b:
+        return 0.0
+    return max(0.0, 1 - abs(math.log10(a / b)))
+
+
 def comparables(t: dict, limite: int = 5) -> dict:
     """Les marchés attribués qui ressemblent le plus à celui-ci.
 
-    Dans l'ordre: même acheteur, puis même secteur dans la même ville, puis
-    même secteur. On dit lequel des trois a servi — « chez ce même
-    acheteur » ne se lit pas comme « dans le secteur ».
+    Un marché attribué n'est retenu que s'il partage au moins un mot porteur
+    de l'objet (piste, école, assainissement…) ou le même acheteur, et
+    jamais s'il est d'une autre nature (un contrôle de travaux n'est pas un
+    marché de travaux). Les retenus sont classés par mots communs, montant
+    proche de l'estimation, même acheteur, même ville, puis date.
     """
     secteur = t.get("secteur") or ""
     acheteur = cle_acheteur(t.get("acheteur") or "")
     v = ville(t.get("region") or "")
-    tous = [_forme(r) for r in _resultats("secteur=? OR 1=1", (secteur,))]
-    tous = [r for r in tous if r["attribue"]]
-
-    meme_acheteur = [r for r in tous if acheteur and len(acheteur) > 6
-                     and cle_acheteur(r["acheteur"]) == acheteur]
-    if meme_acheteur:
-        base, portee = meme_acheteur, "acheteur"
+    mes_themes = themes(t.get("objet") or "")
+    ma_nature = nature(t.get("objet") or "")
+    estimation = montant(t.get("montant") or "")
+    tous = [_forme(r) for r in _resultats()]
+    for r in tous:
+        r["_themes"] = themes(r.get("objet") or "")
+    # Un mot présent dans plus d'un résultat sur seize (« profit »,
+    # « prestations »…) ne distingue rien: il ne compte pas comme point commun.
+    frequence = Counter(m for r in tous for m in r["_themes"])
+    seuil = max(3, len(tous) / 16)
+    mes_themes = {m for m in mes_themes if frequence[m] <= seuil}
+    retenus = []
+    for r in tous:
+        if not r["attribue"]:
+            continue
+        sa_nature = nature(r.get("objet") or "")
+        if ma_nature and sa_nature and sa_nature != ma_nature:
+            continue
+        communs = mes_themes & r["_themes"]
+        # Un seul mot commun sur un objet qui en compte dix est un hasard —
+        # sauf s'il est rare (« dédoublement », « hydroponique »): il dit alors
+        # exactement de quoi il s'agit.
+        if (len(communs) == 1 and len(mes_themes) > 5
+                and frequence[next(iter(communs))] > 5):
+            communs = set()
+        meme_acheteur = bool(acheteur) and len(acheteur) > 6 and cle_acheteur(r["acheteur"]) == acheteur
+        if not communs and not meme_acheteur:
+            continue
+        score = (2.0 * len(communs) / (len(mes_themes) or 1) + (0.5 if communs else 0)
+                 + 1.5 * _proximite_montant(estimation, r["montant_n"])
+                 + (1.0 if meme_acheteur else 0) + (0.5 if v and r["ville"] == v else 0)
+                 + (0.3 if secteur and r["secteur"] == secteur else 0))
+        r["communs"] = sorted(communs)
+        r["meme_acheteur"] = meme_acheteur
+        r.pop("_themes", None)
+        retenus.append((score, _date_tri(r), r))
+    # Dès qu'il existe des marchés de même objet, eux seuls: un mobilier de
+    # bureau n'éclaire pas un achat d'habillement parce que l'acheteur est le
+    # même. Faute de quoi, les marchés de ce même acheteur, annoncés comme tels.
+    similaires = [x for x in retenus if x[2]["communs"]]
+    if similaires:
+        retenus, portee = similaires, "similaires"
     else:
-        meme_ville = [r for r in tous if secteur and r["secteur"] == secteur and v and r["ville"] == v]
-        if len(meme_ville) >= 2:
-            base, portee = meme_ville, "ville"
-        else:
-            base = [r for r in tous if secteur and r["secteur"] == secteur]
-            portee = "secteur"
-    base.sort(key=_date_tri, reverse=True)
-    return {"portee": portee, "lignes": base[:limite], "total": len(base)}
+        portee = "acheteur"
+    retenus.sort(key=lambda x: (x[0], x[1]), reverse=True)
+    lignes = [r for _, _, r in retenus[:limite]]
+    return {"portee": portee, "lignes": lignes, "total": len(retenus)}
 
 
 def qui_gagne(secteur: str, region: str = "", limite: int = 5) -> list:
