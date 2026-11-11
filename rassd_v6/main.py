@@ -1517,6 +1517,11 @@ async def tenders_page(req: Request, q:str="", s:str="", r:str="", t:str="",
         rows  = [dict(x) for x in db.execute(
             f"SELECT * FROM tenders WHERE {wh} ORDER BY {order} LIMIT ? OFFSET ?",
             params+[per,(page-1)*per]).fetchall()]
+    # Sur chaque ligne: peut-il répondre, et quelle caution prévoir.
+    from app.services.synthese import pour_carte
+    lang_liste = get_lang(req)
+    for x in rows:
+        x["carte"] = pour_carte(mes_qualifs, x, lang_liste)
     favs = {x[0] for x in db.execute(
         "SELECT tender_id FROM favorites WHERE member_id=?", (m0["id"],)).fetchall()}
     my_secteurs = clean_secteurs(json.loads(m0.get("secteurs","[]") or "[]"))

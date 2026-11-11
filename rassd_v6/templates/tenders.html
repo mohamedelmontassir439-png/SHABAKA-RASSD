@@ -145,7 +145,18 @@
         <div>
           <div class="row-title">{{ t.objet[:140] }}{% if t.objet|length > 140 %}…{% endif %}</div>
           <div class="row-tags">
-            {% if my_secteurs and t.secteur in my_secteurs %}<span class="badge badge-grn">✓ {{ tr('tenders_match') }}</span>{% endif %}
+            {# Peut-il répondre, et quelle caution prévoir (app/services/synthese.pour_carte).
+               Le « correspond à votre profil » d'avant figurait sur toutes les lignes:
+               le membre ne voit que ses secteurs. #}
+            {% set c = t.carte %}
+            {% if c %}
+            {% set ltr = ('<bdi dir="ltr">'|safe) %}{% set fin = ('</bdi>'|safe) %}
+            {% if c.etat in ('libre', 'eligible') %}<span class="badge badge-grn">✓ {{ tr('tl_peut') }}</span>
+            {% elif c.etat == 'inconnu' %}<span class="badge badge-gold" style="white-space:normal;max-width:100%">{{ tr('tl_declarer', exigee=ltr ~ c.exigee ~ fin)|safe }}</span>
+            {% else %}<span class="badge badge-red" style="white-space:normal;max-width:100%">✕ {{ tr('tl_non', exigee=ltr ~ c.exigee ~ fin)|safe }}</span>{% endif %}
+            {% if c.caution == 'aucune' %}<span class="badge badge-gray">{{ tr('tl_sans_caution') }}</span>
+            {% elif c.caution %}<span class="badge badge-gray">{{ tr('tl_caution', m=ltr ~ c.caution ~ fin)|safe }}</span>{% endif %}
+            {% endif %}
             {% if t.organisme=='semi_public' %}<span class="badge badge-gold">{{ tr('org_semi_public') }}</span>
             {% elif t.organisme=='prive' %}<span class="badge badge-blue">{{ tr('org_prive') }}</span>{% endif %}
             <span class="badge badge-gold">{{ get_label(t.secteur)[:24] }}</span>

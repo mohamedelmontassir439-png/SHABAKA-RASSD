@@ -81,3 +81,34 @@ def pour_marche(elig: dict, pieces: list, echeances: list, caution: str = "", la
     a_venir = [e for e in echeances if e["reste"] >= 0]
     return {"verdict": verdict, "points": points, "dates": a_venir,
             "a_regler": sum(1 for p in points if p["etat"] == "attention")}
+
+
+def pour_carte(mes_qualifs: list, t: dict, lang: str = "fr") -> dict:
+    """La même question, en version courte, pour une ligne de la liste des
+    marchés: le membre trie sans ouvrir chaque fiche.
+
+    {"etat": libre | eligible | inconnu | non_eligible, "exigee": "B.1 cl. 2",
+     "caution": "67 000 MAD" | "aucune" | ""}
+    """
+    from app.core.conditions import conditions_avis
+    from app.services import eligibilite
+    desc = t.get("description") or ""
+    portail = (t.get("id") or "").startswith("ao_")
+    exig = eligibilite.exigences(desc) if portail else []
+    v = eligibilite.verdict(mes_qualifs, exig)
+    cl = "الصنف" if lang == "ar" else "cl."
+    manquantes = [l for l in v["lignes"] if not l.get("ok")] or v["lignes"]
+    def court(code):
+        # Les agréments de laboratoire arrivent en toutes lettres
+        # (« CONTROLE DES TRAVAUX DE TERRASSEMENT… »): on en garde le début.
+        return code if len(code) <= 24 else code[:22].rsplit(" ", 1)[0] + "…"
+    exigee = ", ".join(f"{court(l['code'])} {cl} {l['classe']}" for l in manquantes[:2])
+    cond = conditions_avis(desc)
+    brut = (cond.get("caution") or "").strip()
+    if brut and re.search(r"[1-9]", brut):
+        caution = re.sub(r"[,.]00\b", "", brut)
+    elif portail and brut:
+        caution = "aucune"
+    else:
+        caution = ""
+    return {"etat": v["etat"], "exigee": exigee, "caution": caution}

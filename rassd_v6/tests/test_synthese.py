@@ -81,3 +81,42 @@ class TestFiche:
         page = client.get("/tenders/ao_999001").text
         assert "Pouvez-vous répondre ?" in page
         assert "Caution provisoire" in page and "Vos prochaines dates" in page
+
+
+class TestCarte:
+    def test_sans_qualification_exigee(self):
+        c = synthese.pour_carte([], {"id": "ao_1", "description": "Caution provisoire : 0,00 MAD Qualifications : - Agréments : -"})
+        assert c["etat"] == "libre" and c["caution"] == "aucune"
+
+    def test_caution_arrondie(self):
+        c = synthese.pour_carte([], {"id": "ao_1", "description": "Caution provisoire : 67 000,00 MAD Qualifications : -"})
+        assert c["caution"] == "67 000 MAD"
+
+    def test_hors_portail_on_ne_conclut_pas_a_aucune(self):
+        c = synthese.pour_carte([], {"id": "gm_1", "description": ""})
+        assert c["caution"] == "" and c["etat"] == "libre"
+
+
+    def test_agrement_en_toutes_lettres_raccourci(self, monkeypatch):
+        from app.services import eligibilite
+        monkeypatch.setattr(eligibilite, "exigences", lambda d: [
+            {"code": "CONTROLE DES TRAVAUX DE TERRASSEMENT ET VOIRIE", "libelle": "", "classe": "3"}])
+        c = synthese.pour_carte([{"code": "B.1", "classe": "3"}], {"id": "ao_1", "description": "x"})
+        assert len(c["exigee"]) < 40 and c["exigee"].startswith("CONTROLE DES")
+
+
+class TestListe:
+    def test_chaque_ligne_dit_si_lon_peut_repondre(self, client, db):
+        db.execute("""INSERT INTO tenders(id,objet,secteur,statut,source,date_limite,description,scraped_at,type_procedure)
+                      VALUES('ao_999002','Travaux de piste','T101','actif','marchespublics','20/12/2026',
+                             'Caution provisoire : 15 000,00 MAD Qualifications : -',?,'marche')""", (datetime.now().isoformat(),))
+        fin = (datetime.now() + timedelta(days=2)).isoformat(timespec="seconds")
+        db.execute("""INSERT INTO members(nom,email,plan,subscription_status,session_token,email_verified,
+                         actif,secteurs,created_at,trial_ends)
+                      VALUES('Karim','liste@example.com','free','TRIAL','jeton-liste-0001',1,1,'["T101"]',?,?)""",
+                   (datetime.now().isoformat(), fin))
+        db.commit()
+        client.cookies.set("_session", "jeton-liste-0001")
+        page = client.get("/tenders").text
+        assert "Vous pouvez répondre" in page and "15 000 MAD" in page
+        assert "Correspond à votre profil" not in page

@@ -1132,6 +1132,11 @@ T = {
     "syn_dates":          {"fr": "Vos prochaines dates", "ar": "مواعيدك القادمة"},
     "syn_auj":            {"fr": "aujourd'hui", "ar": "اليوم"},
     "syn_dans":           {"fr": "dans {n} j", "ar": "بعد {n} يوم"},
+    "tl_peut":            {"fr": "Vous pouvez répondre", "ar": "يمكنك المشاركة"},
+    "tl_declarer":        {"fr": "Exige {exigee} · déclarez la vôtre", "ar": "يتطلّب {exigee} · صرّح بتأهيلك"},
+    "tl_non":             {"fr": "Il vous manque {exigee}", "ar": "ينقصك {exigee}"},
+    "tl_caution":         {"fr": "Caution {m}", "ar": "ضمانة {m}"},
+    "tl_sans_caution":    {"fr": "Sans caution", "ar": "بدون ضمانة"},
     "syn_suivre":         {"fr": "Suivre cette offre", "ar": "تتبّع هذا العرض"},
     # ── Page de paiement (/abonnement/paiement) ─────────────────────
     "pay_seo":            {"fr": "Paiement de l'abonnement — Maroc Entrepreneuriat", "ar": "أداء الاشتراك — Maroc Entrepreneuriat"},
