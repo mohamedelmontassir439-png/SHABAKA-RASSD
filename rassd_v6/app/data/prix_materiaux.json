@@ -1,0 +1,101 @@
+{
+  "_note": "Prix indicatifs relevés le 11/11/2026 sur des sites marocains de prix et de fournisseurs. Chaque ligne cite ses sources; une fourchette réunit les fourchettes des sources citées. TTC sauf mention HT. Mettre à jour en changeant 'releve' et les lignes.",
+  "releve": "11/11/2026",
+  "sources": {
+    "enginloc": {"nom": "enginloc.ma — Prix matériaux construction Maroc 2026", "url": "https://enginloc.ma/blog/prix-materiaux-construction-maroc-2026", "date": "10/01/2026"},
+    "francobat": {"nom": "francobat.ma — Prix matériaux de construction au Maroc", "url": "https://francobat.ma/prix-materiaux-de-construction-au-maroc/", "date": "18/03/2026"},
+    "souika": {"nom": "souika.ma — Prix des matériaux de construction 2026", "url": "https://www.souika.ma/guides/prix-materiaux-construction-maroc", "date": "mi-2026"},
+    "lechantier": {"nom": "lechantier.ma — offres de fournisseurs", "url": "https://lechantier.ma/en/produits/materiaux-de-construction", "date": "2026"},
+    "cype": {"nom": "CYPE — Générateur de prix de la construction, Maroc", "url": "https://maroc.prix-construction.info/", "date": "non datée"}
+  },
+  "categories": [
+    {"cle": "ciment", "fr": "Ciment", "ar": "الإسمنت", "lignes": [
+      {"fr": "Ciment CPJ 35", "ar": "إسمنت CPJ 35", "unite": "sac 50 kg", "min": 65, "max": 75, "src": ["enginloc"], "usage_fr": "Maçonnerie, fondations courantes", "usage_ar": "البناء والأساسات العادية"},
+      {"fr": "Ciment CPJ 45", "ar": "إسمنت CPJ 45", "unite": "sac 50 kg", "min": 65, "max": 85, "src": ["enginloc", "francobat", "lechantier"], "usage_fr": "Béton armé courant", "usage_ar": "الخرسانة المسلحة العادية"},
+      {"fr": "Ciment CPJ 55", "ar": "إسمنت CPJ 55", "unite": "sac 50 kg", "min": 85, "max": 100, "src": ["enginloc"], "usage_fr": "Ouvrages exigeants, résistance élevée", "usage_ar": "المنشآت التي تتطلب مقاومة عالية"},
+      {"fr": "Ciment résistant aux sulfates (CRS)", "ar": "إسمنت مقاوم للكبريتات", "unite": "sac 50 kg", "min": 90, "max": 110, "src": ["enginloc"], "usage_fr": "Assainissement, milieux agressifs", "usage_ar": "التطهير والأوساط العدوانية"},
+      {"fr": "Ciment blanc", "ar": "إسمنت أبيض", "unite": "sac 25 kg", "min": 80, "max": 100, "src": ["enginloc"]},
+      {"fr": "Mortier / enduit prêt à l'emploi", "ar": "ملاط / طلاء جاهز", "unite": "sac 25 kg", "min": 69, "max": 69, "src": ["lechantier"]}
+    ]},
+    {"cle": "acier", "fr": "Acier", "ar": "الحديد", "lignes": [
+      {"fr": "Acier HA Fe E400 Ø 8 mm", "ar": "حديد HA Fe E400 قطر 8 مم", "unite": "tonne", "min": 8500, "max": 9200, "src": ["enginloc"]},
+      {"fr": "Acier HA Fe E400 Ø 10 mm", "ar": "حديد HA Fe E400 قطر 10 مم", "unite": "tonne", "min": 8200, "max": 8900, "src": ["enginloc"]},
+      {"fr": "Acier HA Fe E400 Ø 12 mm", "ar": "حديد HA Fe E400 قطر 12 مم", "unite": "tonne", "min": 8000, "max": 8700, "src": ["enginloc"]},
+      {"fr": "Acier HA Fe E500 Ø 12 à 32 mm", "ar": "حديد HA Fe E500 من 12 إلى 32 مم", "unite": "tonne", "min": 8500, "max": 10500, "src": ["enginloc", "francobat"], "note_fr": "Suit le cours mondial de l'acier: à reconfirmer avant chiffrage.", "note_ar": "يتبع السعر العالمي للصلب: يُعاد التأكد منه قبل التسعير."},
+      {"fr": "Treillis soudé ST25", "ar": "شبكة ملحومة ST25", "unite": "m²", "min": 45, "max": 55, "src": ["enginloc"]},
+      {"fr": "Treillis soudé ST50", "ar": "شبكة ملحومة ST50", "unite": "m²", "min": 55, "max": 70, "src": ["enginloc"]},
+      {"fr": "Pointes et fil d'attache", "ar": "مسامير وسلك الربط", "unite": "kg", "min": 13, "max": 13, "src": ["lechantier"]}
+    ]},
+    {"cle": "granulats", "fr": "Sable et granulats", "ar": "الرمل والحصى", "lignes": [
+      {"fr": "Sable de concassage 0/4", "ar": "رمل مكسّر 0/4", "unite": "m³", "min": 150, "max": 250, "src": ["enginloc", "francobat"]},
+      {"fr": "Sable de rivière lavé", "ar": "رمل الوادي المغسول", "unite": "m³", "min": 200, "max": 350, "src": ["enginloc"]},
+      {"fr": "Sable de mer traité", "ar": "رمل البحر المعالج", "unite": "m³", "min": 180, "max": 280, "src": ["enginloc"]},
+      {"fr": "Gravier 5/15 ou 8/15", "ar": "حصى 5/15 أو 8/15", "unite": "m³", "min": 180, "max": 280, "src": ["enginloc", "francobat"]},
+      {"fr": "Gravier 15/25", "ar": "حصى 15/25", "unite": "m³", "min": 170, "max": 260, "src": ["enginloc"]},
+      {"fr": "Gravier 25/40", "ar": "حصى 25/40", "unite": "m³", "min": 160, "max": 250, "src": ["enginloc"]},
+      {"fr": "Tout-venant 0/40", "ar": "حصى مختلط 0/40", "unite": "m³", "min": 120, "max": 200, "src": ["enginloc"], "usage_fr": "Couches de forme, remblais", "usage_ar": "طبقات التسوية والردم"}
+    ]},
+    {"cle": "beton", "fr": "Béton prêt à l'emploi", "ar": "الخرسانة الجاهزة", "lignes": [
+      {"fr": "Béton B15 (250 kg/m³)", "ar": "خرسانة B15 (250 كغ/م³)", "unite": "m³", "min": 750, "max": 900, "src": ["enginloc"], "usage_fr": "Béton de propreté", "usage_ar": "خرسانة النظافة"},
+      {"fr": "Béton B20 (300 kg/m³)", "ar": "خرسانة B20 (300 كغ/م³)", "unite": "m³", "min": 850, "max": 1000, "src": ["enginloc"]},
+      {"fr": "Béton B25 (350 kg/m³)", "ar": "خرسانة B25 (350 كغ/م³)", "unite": "m³", "min": 950, "max": 1100, "src": ["enginloc"], "usage_fr": "Béton armé courant (poteaux, dalles)", "usage_ar": "الخرسانة المسلحة (أعمدة، بلاطات)"},
+      {"fr": "Béton B30 (400 kg/m³)", "ar": "خرسانة B30 (400 كغ/م³)", "unite": "m³", "min": 1050, "max": 1250, "src": ["enginloc"]},
+      {"fr": "Béton B40", "ar": "خرسانة B40", "unite": "m³", "min": 1200, "max": 1450, "src": ["enginloc"]},
+      {"fr": "Béton autoplaçant (BAP)", "ar": "خرسانة ذاتية الدمك", "unite": "m³", "min": 1300, "max": 1600, "src": ["enginloc"]}
+    ]},
+    {"cle": "maconnerie", "fr": "Maçonnerie", "ar": "البناء", "lignes": [
+      {"fr": "Bloc creux béton 20×20×40", "ar": "آجور إسمنتي مجوف 20×20×40", "unite": "unité", "min": 3.5, "max": 6, "src": ["enginloc", "francobat"]},
+      {"fr": "Bloc creux béton 15×20×40", "ar": "آجور إسمنتي مجوف 15×20×40", "unite": "unité", "min": 3, "max": 4.5, "src": ["enginloc"]},
+      {"fr": "Bloc creux béton 10×20×40", "ar": "آجور إسمنتي مجوف 10×20×40", "unite": "unité", "min": 2.5, "max": 3.5, "src": ["enginloc"]},
+      {"fr": "Brique rouge creuse (8 trous)", "ar": "آجور أحمر مجوف (8 ثقوب)", "unite": "unité", "min": 1, "max": 4.5, "src": ["enginloc", "souika", "francobat"], "note_fr": "Écart selon format et distance de la briqueterie.", "note_ar": "يختلف حسب المقاس والبعد عن المصنع."},
+      {"fr": "Brique rouge pleine", "ar": "آجور أحمر مملوء", "unite": "unité", "min": 2, "max": 3, "src": ["enginloc"]},
+      {"fr": "Hourdis béton 16+4", "ar": "هوردي إسمنتي 16+4", "unite": "unité", "min": 5, "max": 7.5, "src": ["enginloc"]},
+      {"fr": "Hourdis béton 20+4", "ar": "هوردي إسمنتي 20+4", "unite": "unité", "min": 6, "max": 10, "src": ["enginloc", "francobat"]}
+    ]},
+    {"cle": "finitions", "fr": "Revêtements et finitions", "ar": "التكسيات والتشطيبات", "lignes": [
+      {"fr": "Carrelage sol, entrée de gamme", "ar": "زليج أرضي، فئة اقتصادية", "unite": "m²", "min": 40, "max": 60, "src": ["souika"]},
+      {"fr": "Carrelage sol standard", "ar": "زليج أرضي عادي", "unite": "m²", "min": 90, "max": 200, "src": ["francobat"]},
+      {"fr": "Carrelage haut de gamme", "ar": "زليج راقٍ", "unite": "m²", "min": 300, "max": 600, "src": ["francobat"]},
+      {"fr": "Faïence murale", "ar": "زليج جداري", "unite": "m²", "min": 80, "max": 180, "src": ["francobat"]},
+      {"fr": "Marbre local", "ar": "رخام محلي", "unite": "m²", "min": 250, "max": 500, "src": ["francobat"]},
+      {"fr": "Menuiserie aluminium", "ar": "نجارة الألومنيوم", "unite": "m²", "min": 700, "max": 2000, "src": ["francobat"]},
+      {"fr": "Peinture acrylique intérieure", "ar": "صباغة أكريليك داخلية", "unite": "bidon 20 L", "min": 350, "max": 650, "src": ["francobat"]},
+      {"fr": "Isolation laine de roche", "ar": "عزل بالصوف الصخري", "unite": "m²", "min": 80, "max": 160, "src": ["francobat"]},
+      {"fr": "Étanchéité (bitume, membranes)", "ar": "العزل المائي (بيتوم، أغشية)", "unite": "m²", "min": 60, "max": 220, "src": ["lechantier"]}
+    ]},
+    {"cle": "reseaux", "fr": "Plomberie et électricité", "ar": "السباكة والكهرباء", "lignes": [
+      {"fr": "Tube PPR plomberie", "ar": "أنبوب PPR للسباكة", "unite": "ml", "min": 12, "max": 30, "src": ["francobat"]},
+      {"fr": "Câble électrique 1,5 mm²", "ar": "كابل كهربائي 1,5 مم²", "unite": "ml", "min": 4, "max": 8, "src": ["francobat"]}
+    ]},
+    {"cle": "vrd", "fr": "Voirie (VRD)", "ar": "الطرق والشبكات", "lignes": [
+      {"fr": "Enrobé bitumineux à chaud (matériau)", "ar": "خليط بيتومي ساخن (المادة)", "unite": "tonne", "min": 541.77, "max": 541.77, "src": ["cype"], "ht": true},
+      {"fr": "Enrobé bitumineux à froid (matériau)", "ar": "خليط بيتومي بارد (المادة)", "unite": "tonne", "min": 430.18, "max": 430.18, "src": ["cype"], "ht": true},
+      {"fr": "Revêtement enrobé à chaud, mis en œuvre", "ar": "تكسية بخليط ساخن، مع التنفيذ", "unite": "m²", "min": 106.12, "max": 106.12, "src": ["cype"], "ht": true},
+      {"fr": "Revêtement enrobé à froid 8 cm, mis en œuvre", "ar": "تكسية بخليط بارد 8 سم، مع التنفيذ", "unite": "m²", "min": 85.17, "max": 85.17, "src": ["cype"], "ht": true}
+    ]}
+  ],
+  "fabricants": [
+    {"cle": "ciment", "fr": "Ciment", "ar": "الإسمنت", "noms": [
+      {"nom": "LafargeHolcim Maroc", "fr": "Premier cimentier du pays", "ar": "أول منتج للإسمنت في المغرب"},
+      {"nom": "Ciments du Maroc (Heidelberg Materials)", "fr": "Contrôle Asment Temara depuis juillet 2025", "ar": "يملك أسمنت تمارة منذ يوليوز 2025"},
+      {"nom": "Ciments de l'Atlas (CIMAT)", "fr": "", "ar": ""},
+      {"nom": "Asment Temara", "fr": "Filiale de Ciments du Maroc", "ar": "فرع لإسمنت المغرب"},
+      {"nom": "Novacim", "fr": "Entrant le plus récent", "ar": "أحدث الوافدين"}
+    ], "src": [{"nom": "BTPnews — le marché du ciment", "url": "https://www.btpnews.ma/le-marche-marocain-du-ciment-entre-dans-une-nouvelle-ere/"}, {"nom": "AMMC — Ciments du Maroc", "url": "https://www.ammc.ma/en/espace-emetteurs/liste-des-emetteurs/2758"}]},
+    {"cle": "acier", "fr": "Rond à béton", "ar": "حديد التسليح", "noms": [
+      {"nom": "Sonasid", "fr": "Barres de 6 à 40 mm, couronnes de 5,5 à 16 mm", "ar": "قضبان من 6 إلى 40 مم، ولفائف من 5,5 إلى 16 مم"}
+    ], "src": [{"nom": "Sonasid — produits", "url": "https://www.sonasidpro.ma/fr/produits-services"}]},
+    {"cle": "tubes", "fr": "Tubes PVC et PEHD (eau, assainissement)", "ar": "أنابيب PVC وPEHD (الماء والتطهير)", "noms": [
+      {"nom": "Plastima (Groupe Sekkat)", "fr": "PEHD sous pression (Polyma), PVC (Conduma), PRV", "ar": "PEHD تحت الضغط (Polyma)، PVC (Conduma)، PRV"},
+      {"nom": "Dimatit (Ynna Holding)", "fr": "Tubes PVC, PE, PP et PRV", "ar": "أنابيب PVC وPE وPP وPRV"},
+      {"nom": "Adeauplast", "fr": "Tubes PVC, PEBD et PEHD", "ar": "أنابيب PVC وPEBD وPEHD"},
+      {"nom": "Smeceplast", "fr": "PEHD et PVC, Tit Mellil", "ar": "PEHD وPVC، تيط مليل"}
+    ], "src": [{"nom": "Plastima", "url": "https://plastimacanalisations.com/"}, {"nom": "Dimatit", "url": "https://dimatit.com/"}, {"nom": "Adeauplast", "url": "https://adeauplast.com/"}, {"nom": "Smeceplast", "url": "https://www.smeceplast.com/"}]},
+    {"cle": "carrelage", "fr": "Carrelage", "ar": "الزليج", "noms": [
+      {"nom": "Super Cérame (Ynna Holding)", "fr": "Quatre usines: Casablanca, Berrechid, Kénitra, Tétouan", "ar": "أربعة مصانع: الدار البيضاء، برشيد، القنيطرة، تطوان"}
+    ], "src": [{"nom": "Wikipédia — Super Cérame", "url": "https://fr.wikipedia.org/wiki/Super_C%C3%A9rame"}]},
+    {"cle": "peinture", "fr": "Peinture", "ar": "الصباغة", "noms": [
+      {"nom": "Colorado", "fr": "Fondée en 1962, cotée à la Bourse de Casablanca", "ar": "تأسست سنة 1962، مدرجة في بورصة الدار البيضاء"}
+    ], "src": [{"nom": "Wikipédia — Colorado", "url": "https://fr.wikipedia.org/wiki/Colorado_(entreprise)"}]}
+  ]
+}

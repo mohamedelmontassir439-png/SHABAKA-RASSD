@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}{{ tr('nav_prix') }} — Maroc Entrepreneuriat{% endblock %}
+{% block body %}
+<style>
+.pm-hero { padding: 40px 0 22px; border-bottom: 1px solid var(--line); }
+.pm-lede { color: var(--text3); font-size: var(--f4); line-height: 1.65; max-width: 70ch; margin-top: 10px; }
+.pm-avert { margin-top: 16px; padding: 12px 16px; border-radius: var(--r2); background: var(--ambera); color: var(--amberd); font-size: var(--f3); line-height: 1.55; max-width: 80ch; }
+.pm-outils { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: 22px 0 6px; }
+.pm-outils input { flex: 1; min-width: 220px; padding: 11px 14px; border: 1px solid var(--line); border-radius: var(--r2); background: var(--surface); font: inherit; color: var(--text1); }
+.pm-outils input:focus-visible { outline: 2px solid var(--purple); outline-offset: 1px; }
+.pm-cats { display: flex; gap: 6px; flex-wrap: wrap; }
+.pm-cats a { font-size: var(--f2); font-weight: 600; padding: 5px 12px; border: 1px solid var(--line); border-radius: var(--rp); color: var(--text2); text-decoration: none; background: var(--surface); }
+.pm-cats a:hover { border-color: var(--purple); color: var(--ink); }
+.pm-titre { font-size: var(--f2); font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--amberd); margin: 30px 0 10px; scroll-margin-top: 90px; }
+.pm-table { width: 100%; border-collapse: separate; border-spacing: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); overflow: hidden; }
+.pm-table th { text-align: start; font-size: var(--f1); font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--text3); padding: 10px 16px; border-bottom: 1px solid var(--line); background: var(--surface2, transparent); }
+.pm-table td { padding: 12px 16px; border-bottom: 1px solid var(--line); font-size: var(--f3); color: var(--text1); vertical-align: top; }
+.pm-table tr:last-child td { border-bottom: none; }
+.pm-nom b { display: block; font-weight: 650; }
+.pm-nom small { display: block; color: var(--text3); font-size: var(--f2); margin-top: 3px; line-height: 1.45; }
+.pm-prix { font-weight: 700; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pm-prix .ht { font-size: var(--f1); font-weight: 700; color: var(--amberd); margin-inline-start: 6px; }
+.pm-unite { color: var(--text2); white-space: nowrap; }
+.pm-src a { font-size: var(--f2); color: var(--ink); font-weight: 600; text-decoration: none; margin-inline-end: 6px; }
+.pm-src a:hover { text-decoration: underline; }
+.pm-fab { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.pm-fab-c { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 16px 18px; }
+.pm-fab-c h3 { font-size: var(--f4); margin: 0 0 8px; color: var(--text1); }
+.pm-fab-c li { list-style: none; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: var(--f3); }
+.pm-fab-c li:last-child { border-bottom: none; }
+.pm-fab-c li span { display: block; color: var(--text3); font-size: var(--f2); }
+.pm-fab-c ul { padding: 0; margin: 0; }
+.pm-fab-c .src { margin-top: 8px; font-size: var(--f1); color: var(--text3); }
+.pm-fab-c .src a { color: var(--text3); }
+.pm-sources li { font-size: var(--f2); color: var(--text2); margin-bottom: 6px; }
+.pm-sources a { color: var(--ink); }
+.pm-vide { display: none; padding: 16px; color: var(--text3); }
+@media (max-width: 700px) {
+  .pm-table thead { display: none; }
+  .pm-table tr { display: grid; grid-template-columns: 1fr auto; gap: 4px 12px; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+  .pm-table tr:last-child { border-bottom: none; }
+  .pm-table td { padding: 0; border: none; }
+  .pm-nom { grid-column: 1 / -1; }
+  .pm-src { grid-column: 1 / -1; }
+}
+</style>
+
+<div class="container">
+  <section class="pm-hero">
+    <div class="section-label">{{ tr('pm_label') }}</div>
+    <h1 class="display-l">{{ tr('pm_titre')|safe }}</h1>
+    <p class="pm-lede">{{ tr('pm_lede') }}</p>
+    <p class="pm-avert">{{ tr('pm_avertir', date=ref.releve) }}</p>
+  </section>
+
+  <div class="pm-outils">
+    <input type="search" id="pm-q" placeholder="{{ tr('pm_chercher') }}" aria-label="{{ tr('pm_chercher') }}">
+  </div>
+  <nav class="pm-cats" aria-label="{{ tr('pm_materiau') }}">
+    {% for c in ref.categories %}<a href="#cat-{{ c.cle }}">{{ c[lang] }}</a>{% endfor %}
+    <a href="#fabricants">{{ tr('pm_fabricants') }}</a>
+  </nav>
+
+  {% for c in ref.categories %}
+  <section class="pm-cat" data-cat>
+    <h2 class="pm-titre" id="cat-{{ c.cle }}">{{ c[lang] }}</h2>
+    <div style="overflow-x:auto">
+    <table class="pm-table">
+      <thead><tr><th>{{ tr('pm_materiau') }}</th><th>{{ tr('pm_prix') }} (MAD)</th><th>{{ tr('pm_unite') }}</th><th>{{ tr('pm_source') }}</th></tr></thead>
+      <tbody>
+      {% for l in c.lignes %}
+      <tr data-q="{{ (l.fr ~ ' ' ~ l.ar ~ ' ' ~ c.fr ~ ' ' ~ c.ar)|lower }}">
+        <td class="pm-nom"><b>{{ l[lang] }}</b>
+          {% if l['usage_' ~ lang] %}<small>{{ l['usage_' ~ lang] }}</small>{% endif %}
+          {% if l['note_' ~ lang] %}<small>{{ l['note_' ~ lang] }}</small>{% endif %}</td>
+        <td class="pm-prix"><bdi dir="ltr">{{ l.prix }}</bdi>{% if l.ht %}<span class="ht">{{ tr('pm_ht') }}</span>{% endif %}</td>
+        <td class="pm-unite">{{ l.unite_ar if lang == 'ar' else l.unite }}</td>
+        <td class="pm-src">{% for s in l.sources %}<a href="{{ s.url }}" target="_blank" rel="noopener">{{ s.nom.split(' — ')[0] }}</a>{% endfor %}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </section>
+  {% endfor %}
+  <p class="pm-vide" id="pm-vide">{{ tr('pm_aucun') }}</p>
+
+  <h2 class="pm-titre" id="fabricants">{{ tr('pm_fabricants') }}</h2>
+  <p class="pm-lede" style="margin:0 0 14px">{{ tr('pm_fab_note') }}</p>
+  <div class="pm-fab">
+    {% for f in ref.fabricants %}
+    <div class="pm-fab-c">
+      <h3>{{ f[lang] }}</h3>
+      <ul>{% for n in f.noms %}<li><b>{{ n.nom }}</b>{% if n[lang] %}<span>{{ n[lang] }}</span>{% endif %}</li>{% endfor %}</ul>
+      <div class="src">{{ tr('pm_source') }} : {% for s in f.src %}<a href="{{ s.url }}" target="_blank" rel="noopener">{{ s.nom }}</a>{% if not loop.last %} · {% endif %}{% endfor %}</div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <h2 class="pm-titre">{{ tr('pm_sources') }}</h2>
+  <ul class="pm-sources" style="padding-inline-start:18px;margin-bottom:60px">
+    {% for k, s in ref.sources.items() %}<li><a href="{{ s.url }}" target="_blank" rel="noopener">{{ s.nom }}</a> · {{ s.date }}</li>{% endfor %}
+  </ul>
+</div>
+
+<script>
+(function () {
+  var champ = document.getElementById('pm-q');
+  if (!champ) return;
+  champ.addEventListener('input', function () {
+    var q = champ.value.trim().toLowerCase(), total = 0;
+    document.querySelectorAll('[data-cat]').forEach(function (sec) {
+      var n = 0;
+      sec.querySelectorAll('tr[data-q]').forEach(function (tr) {
+        var ok = !q || tr.dataset.q.indexOf(q) !== -1;
+        tr.style.display = ok ? '' : 'none'; if (ok) n++;
+      });
+      sec.style.display = n ? '' : 'none'; total += n;
+    });
+    document.getElementById('pm-vide').style.display = total ? 'none' : 'block';
+  });
+})();
+</script>
+{% endblock %}

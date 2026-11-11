@@ -1797,6 +1797,17 @@ async def acheteur_page(req: Request, slug: str):
     return render(req, "acheteur.html", {"p": p})
 
 
+@app.get("/prix-materiaux", response_class=HTMLResponse)
+async def prix_materiaux_page(req: Request):
+    """Fourchettes de prix des matériaux, sources et fabricants
+    (app/data/prix_materiaux.json)."""
+    member = get_member(req)
+    if not member: return RedirectResponse("/login?next=/prix-materiaux", 302)
+    if not has_access(member): return RedirectResponse("/tarifs?locked=1", 302)
+    from app.services.prix_materiaux import referentiel
+    return render(req, "prix_materiaux.html", {"ref": referentiel()})
+
+
 @app.get("/financement", response_class=HTMLResponse)
 async def financement_page(req: Request, tender: str = "", type: str = "", ok: str = "", err: str = ""):
     """Garanties et financement: ce qu'il faut savoir, et la demande."""
