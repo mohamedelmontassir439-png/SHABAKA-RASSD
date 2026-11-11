@@ -936,7 +936,7 @@ CHEMINS_LIBRES_EXACTS = frozenset((
     "/webhooks/brevo",
 ))
 CHEMINS_LIBRES_PREFIXES = (
-    "/verifier-email", "/settings", "/static", "/admin", "/icon-",
+    "/verifier-email", "/settings", "/static", "/video", "/admin", "/icon-",
     "/marches-publics", "/appel-offres", "/guide",
     # L'invitation est une page publique: l'entreprise invitée n'a pas encore
     # de compte, elle ne peut donc pas avoir confirmé d'adresse.
@@ -1035,7 +1035,7 @@ class SourceMiddleware(BaseHTTPMiddleware):
         if req.method == "GET" and not req.cookies.get(canaux.COOKIE):
             cle = canaux.canal(brut) if brut else ""
             nom = canaux.campagne(q.get("cmp") or q.get("utm_campaign") or "") if cle else ""
-            if not cle and not req.url.path.startswith(("/static", "/api", "/admin")):
+            if not cle and not req.url.path.startswith(("/static", "/video", "/api", "/admin")):
                 # Sans lien suivi, la page d'où l'on arrive dit souvent
                 # d'où l'on vient: une recherche Google, un groupe Facebook.
                 cle, hote = canaux.depuis_referent(req.headers.get("referer", ""),
@@ -1193,6 +1193,9 @@ from app.core.acheteurs import lisible as _acheteur_lisible
 # « casablanca BAIA SOCIETE CASABLANCA BAÏA ». Le client lisait deux fois
 # le même nom et doutait du sérieux de la veille.
 templates.env.globals["acheteur"] = _acheteur_lisible
+# L'emblème posé devant le nom de l'acheteur dans les listes.
+from app.core.logos import logo_html as _logo_acheteur
+templates.env.globals["logo_acheteur"] = _logo_acheteur
 # Le numéro tel qu'on le compose, pas tel qu'on le stocke.
 from app.services.companies import telephone_lisible as _tel_lisible
 templates.env.globals["tel"] = _tel_lisible
@@ -1258,6 +1261,44 @@ try:
     app.mount("/static", StaticFiles(directory="static"), name="static")
 except OSError as e:
     logger.warning(f"[static] Impossible de monter /static: {e}")
+
+
+# Vidéo de présentation de l'accueil. Servie ici et non par /static: le
+# StaticFiles de cette version de Starlette ignore l'en-tête Range, et
+# Safari (iPhone compris) refuse de lire une vidéo sans réponse 206.
+_VIDEOS = {"presentation_fr.mp4", "presentation_ar.mp4"}
+_TRANCHE = 2 * 1024 * 1024
+
+
+@app.get("/video/{nom}")
+async def video(req: Request, nom: str):
+    from fastapi.responses import FileResponse, Response
+    if nom not in _VIDEOS:
+        raise HTTPException(404)
+    chemin = os.path.join("static", "video", nom)
+    if not os.path.isfile(chemin):
+        raise HTTPException(404)
+    taille = os.path.getsize(chemin)
+    entetes = {"Accept-Ranges": "bytes", "Cache-Control": "public, max-age=86400"}
+    m = re.fullmatch(r"bytes=(\d*)-(\d*)", (req.headers.get("range") or "").strip())
+    if not m or not (m.group(1) or m.group(2)):
+        return FileResponse(chemin, media_type="video/mp4", headers=entetes)
+    if m.group(1):
+        debut = int(m.group(1))
+        fin = min(int(m.group(2)) if m.group(2) else taille - 1, taille - 1)
+    else:                                   # « bytes=-500 »: les 500 derniers octets
+        debut, fin = max(0, taille - int(m.group(2))), taille - 1
+    if debut >= taille or debut > fin:
+        return Response(status_code=416, headers={"Content-Range": f"bytes */{taille}"})
+    fin = min(fin, debut + _TRANCHE - 1)
+
+    def lire():
+        with open(chemin, "rb") as f:
+            f.seek(debut)
+            return f.read(fin - debut + 1)
+    donnees = await asyncio.get_event_loop().run_in_executor(None, lire)
+    return Response(donnees, status_code=206, media_type="video/mp4",
+                    headers={**entetes, "Content-Range": f"bytes {debut}-{fin}/{taille}"})
 
 # ══════════════════════════════════════════════════════════
 # HELPERS
@@ -1403,13 +1444,15 @@ async def home(req: Request):
     # passent par `restreindre_aux_secteurs`; celle-ci ne le faisait pas, et
     # l'accueil montrait au membre des marchés qui ne le concernaient pas —
     # exactement le tri qu'on lui vend et qu'on lui laissait faire.
-    recent = []
-    if has_access(member):
+    acces = has_access(member)
+    if acces:
         ou, params = ["statut='actif'"], []
         restreindre_aux_secteurs(member, ou, params)
         recent = [dict(r) for r in db.execute(
             f"SELECT * FROM tenders WHERE {' AND '.join(ou)} "
             f"ORDER BY scraped_at DESC LIMIT 9", params).fetchall()]
+    else:
+        recent = _vitrine(db)
     sectors = [dict(r) for r in db.execute(
         "SELECT secteur,COUNT(*) cnt FROM tenders WHERE statut='actif' GROUP BY secteur ORDER BY cnt DESC LIMIT 12").fetchall()]
     from app.core.regions import carte
@@ -1417,9 +1460,35 @@ async def home(req: Request):
     recit = _echeances_a_venir(db)
     db.close()
     from app.core.photos import PHOTOS
-    return render(req, "landing.html", {"stats":stats,"recent":recent,"sectors":sectors,
+    return render(req, "landing.html", {"stats":stats,"recent":recent,"sectors":sectors,"acces":acces,
                                         "carte_regions":carte_regions, "recit": recit,
                                         "photos": PHOTOS})
+
+
+def _vitrine(db, n: int = 8) -> list:
+    """Quelques marchés récents montrés aux visiteurs (choix du 11/11/2026).
+
+    L'objet, l'acheteur, la ville et la date limite seulement: le détail,
+    le dossier et les conditions restent réservés aux abonnés, et un clic
+    mène à la page d'abonnement. Des avis à l'acheteur connu et à l'échéance
+    encore ouverte, un par acheteur, ceux du portail national d'abord: leur
+    acheteur est une administration que le visiteur reconnaît."""
+    lignes = db.execute(
+        f"""SELECT id,objet,acheteur,type_offre,secteur,region,date_limite FROM tenders
+            WHERE statut='actif' AND acheteur!='' AND length(objet)>=25
+              AND {DATE_LIMITE_ISO} >= ?
+            ORDER BY (source='marchespublics') DESC, scraped_at DESC LIMIT 200""",
+        (date.today().isoformat(),)).fetchall()
+    vus, choix = set(), []
+    for r in lignes:
+        cle = (r["acheteur"] or "").strip().lower()[:30]
+        if cle in vus:
+            continue
+        vus.add(cle)
+        choix.append(dict(r))
+        if len(choix) >= n:
+            break
+    return choix
 
 
 def _echeances_a_venir(db) -> dict:
@@ -3205,77 +3274,39 @@ def _a_faire(member: dict, horizon: int = 14) -> list:
     return sorted(taches, key=lambda t: t["reste"])[:6]
 
 @app.get("/tarifs", response_class=HTMLResponse)
-async def tarifs(req: Request): return render(req,"tarifs.html",{})
+async def tarifs(req: Request, ao: str = ""):
+    """L'abonnement unique et le bouton WhatsApp qui le déclenche.
 
-
-def _email_paiement(m: dict, plan: str, lang: str) -> str:
-    """Les coordonnées de virement et la marche à suivre, par email."""
-    from html import escape
+    Venu d'un marché de l'accueil (?ao=...), le visiteur retrouve ce marché
+    en tête de page, et le message WhatsApp le cite: on sait d'emblée ce qui
+    l'a décidé."""
     from urllib.parse import quote
-    from app.services.notifications import _enveloppe_email
-    t = lambda k, **kw: tr_(k, lang, **kw)
-    info = cfg.PLANS[plan]
-    nom = t(f"pay_plan_{plan}")
-    ref = m.get("company") or m.get("email")
-    lignes = "".join(
-        f"<tr><td style='padding:4px 12px 4px 0;color:#6b7488'>{k}</td>"
-        f"<td style='padding:4px 0;font-weight:700;color:#1e1611'>{escape(v)}</td></tr>"
-        for k, v in ((t("pay_amount"), f"{info['price']} MAD {t('pay_period_' + plan)}"),
-                     (t("pay_holder"), cfg.PAYMENT_HOLDER), (t("pay_bank"), cfg.PAYMENT_BANK),
-                     ("RIB", cfg.PAYMENT_RIB), ("IBAN", cfg.PAYMENT_IBAN), ("SWIFT", cfg.PAYMENT_SWIFT),
-                     (t("pay_motif"), ref)))
-    sens = "rtl" if lang == "ar" else "ltr"
-    texte = (f"<span dir='{sens}' style='display:block'>"
-             f"1. <b>{t('pay_s1_t')}</b> — {t('pay_s1_d')}</span>"
-             f"<table style='margin:12px 0 16px;font-size:14px' dir='{sens}'>{lignes}</table>"
-             f"<span dir='{sens}' style='display:block'>2. <b>{t('pay_s2_t')}</b> — {t('pay_s2_d')}<br>"
-             f"3. <b>{t('pay_s3_t')}</b> — {t('pay_s3_d')}</span>")
-    msg = t("wa_msg_recu", price=info["price"], plan=nom, compte=m.get("email", ""))
-    lien = f"https://wa.me/{cfg.PAYMENT_PHONE}?text={quote(msg, safe='')}"
-    return _enveloppe_email(t("pay_title", plan=nom).replace("<em>", "").replace("</em>", ""),
-                            texte, lien, t("pay_wa_btn"))
-
-
-@app.get("/abonnement/paiement", response_class=HTMLResponse)
-async def abonnement_paiement(req: Request, plan: str = "monthly"):
-    """Page de paiement d'une formule: RIB, virement, reçu sur WhatsApp.
-    Un membre connecté reçoit aussi le tout par email (une fois par
-    formule et par 12 heures, pour ne pas le répéter à chaque visite)."""
-    from urllib.parse import quote
-    if plan not in ("monthly", "pro", "business"):
-        plan = "monthly"
     lang = get_lang(req)
     m = get_member(req)
-    nom = tr_(f"pay_plan_{plan}", lang)
-    info = cfg.PLANS[plan]
-    compte = (m.get("email") or "") if m else ""
-    msg = tr_("wa_msg_recu", lang, price=info["price"], plan=nom,
-              compte=compte or tr_("pay_ref_anon", lang))
-    mail_envoye = False
-    if m and m.get("email"):
-        cle = f"paiement:{plan}"
+    marche = None
+    if ao:
         db = get_db()
-        deja = db.execute(
-            "SELECT 1 FROM notif_log WHERE member_id=? AND tender_id=? AND status='SENT' AND sent_at>=?",
-            (m["id"], cle, (datetime.now() - timedelta(hours=12)).isoformat())).fetchone()
+        r = db.execute("SELECT id,objet,acheteur,type_offre,date_limite,region FROM tenders WHERE id=?",
+                       (ao[:40],)).fetchone()
         db.close()
-        if not deja:
-            from app.services.notifications import email_send, _log_notif
-            corps = _email_paiement(m, plan, lang)
-            sujet = tr_("pay_mail_subject", lang, plan=nom)
-            def _envoi(mid=m["id"], to=m["email"]):
-                ok = email_send(to, sujet, corps, essentiel=True)
-                d = get_db()
-                _log_notif(d, mid, cle, "email", ok)
-                try: d.commit()
-                finally: d.close()
-            asyncio.get_event_loop().run_in_executor(None, _envoi)
-        mail_envoye = True
-    return render(req, "paiement.html", {
-        "plan": plan, "nom_plan": nom, "info": info, "mail_envoye": mail_envoye,
-        "ref": (m.get("company") or m.get("email")) if m else tr_("pay_ref_anon", lang),
-        "wa_recu": f"https://wa.me/{cfg.PAYMENT_PHONE}?text={quote(msg, safe='')}",
+        marche = dict(r) if r else None
+    compte = (m.get("email") or "") if m else ""
+    msg = tr_("wa_msg_abo", lang, price=cfg.PRIX_TXT)
+    if compte:
+        msg += " " + tr_("wa_msg_abo_compte", lang, compte=compte)
+    if marche:
+        msg += " " + tr_("wa_msg_abo_ao", lang, objet=(marche["objet"] or "")[:140])
+    return render(req, "tarifs.html", {
+        "marche": marche,
+        "wa_abo": f"https://wa.me/{cfg.PAYMENT_PHONE}?text={quote(msg, safe='')}",
     })
+
+
+@app.get("/abonnement/paiement")
+async def abonnement_paiement(req: Request):
+    """Ancienne page de virement: l'abonnement se règle désormais sur
+    WhatsApp, et aucune coordonnée bancaire n'est publiée sur le site."""
+    return RedirectResponse("/tarifs", 301)
 
 # ══════════════════════════════════════════════════════════
 # PAGES LÉGALES
@@ -3340,9 +3371,7 @@ async def register_post(req: Request,
             return render(req,"register.html",{"err":tr_("err_email_taken",lang),"vals":vals})
         sects       = clean_secteurs(secteurs_sel)
         now         = datetime.now()
-        trial_start = now.strftime("%Y-%m-%d")
-        # À l'heure près: un essai de 24 heures arrondi au jour en durerait 48.
-        trial_ends  = (now + timedelta(hours=cfg.TRIAL_HOURS)).isoformat(timespec="seconds")
+        trial_start, trial_ends, statut = _ouverture_compte(now)
         created_at  = now.isoformat()
         session_tok = make_session_token()
         my_ref_code = secrets.token_urlsafe(5).upper().replace("_","A").replace("-","B")[:7]
@@ -3365,13 +3394,14 @@ async def register_post(req: Request,
             # feraient deux contacts dont l'un ne serait jamais rappelé.
             (nom.strip(),email,telephone_normalise(phone),company.strip(),
              hash_pw(pw),json.dumps(sects),"free",created_at,
-             trial_start,trial_ends,"TRIAL",session_tok,my_ref_code,referred_by,
+             trial_start,trial_ends,statut,session_tok,my_ref_code,referred_by,
              0,email_token,token_expires,source,src_cmp,canaux.declare(connu)))
-        db.execute(
-            """INSERT INTO subscriptions(member_id,plan_id,price,currency,status,
-               trial_start,trial_end,created_at,updated_at)
-               VALUES(?,?,?,?,?,?,?,?,?)""",
-            (cur.lastrowid, "trial", 0, "MAD", "TRIAL", trial_start, trial_ends, created_at, created_at))
+        if statut == "TRIAL":
+            db.execute(
+                """INSERT INTO subscriptions(member_id,plan_id,price,currency,status,
+                   trial_start,trial_end,created_at,updated_at)
+                   VALUES(?,?,?,?,?,?,?,?,?)""",
+                (cur.lastrowid, "trial", 0, "MAD", "TRIAL", trial_start, trial_ends, created_at, created_at))
         db.commit()
     finally: db.close()
     envoyer_lien_verification(email, email_token, lang)
@@ -3379,6 +3409,20 @@ async def register_post(req: Request,
     resp.set_cookie("_session", session_tok,
                     max_age=86400*30, httponly=True, samesite="lax", secure=COOKIE_SECURE)
     return resp
+
+def _ouverture_compte(maintenant: datetime) -> tuple:
+    """(début d'essai, fin d'essai, statut) d'un compte qui vient d'être créé.
+
+    Sans essai (TRIAL_HOURS=0), le compte est « en attente »: il existe, le
+    membre s'y connecte, mais les marchés restent fermés jusqu'à ce que
+    l'abonnement soit enregistré par l'administration."""
+    if cfg.TRIAL_HOURS <= 0:
+        return "", "", "PENDING"
+    # À l'heure près: un essai de 24 heures arrondi au jour en durerait 48.
+    return (maintenant.strftime("%Y-%m-%d"),
+            (maintenant + timedelta(hours=cfg.TRIAL_HOURS)).isoformat(timespec="seconds"),
+            "TRIAL")
+
 
 def envoyer_lien_verification(email: str, token: str, lang: str = "fr"):
     """Envoie le lien de confirmation, hors du thread de la requête.
@@ -4695,8 +4739,8 @@ def _script_appel(entreprise: dict, ouverts: int, marches: list) -> list:
         ("L'offre — seulement après sa réponse",
          f"C'est exactement ce qu'on fait : chaque matin, les marchés de "
          f"votre secteur et de votre région, par WhatsApp et par email. "
-         f"Essai gratuit de {cfg.essai()}, sans carte bancaire, et vous "
-         f"arrêtez quand vous voulez."),
+         f"Un seul abonnement : {cfg.PRIX_TXT} dirhams pour l'année, toutes "
+         f"les fonctions comprises."),
         ("Clôture — obtenez le WhatsApp, pas un « rappelez-moi »",
          "Je vous envoie le lien sur WhatsApp là, maintenant, pendant qu'on "
          "se parle — c'est quoi votre numéro ? … Je vous rappelle demain "
@@ -5011,18 +5055,17 @@ async def invitation_post(req: Request, token: str, email: str = Form(""),
         (inv.get("legal_name", "")[:120], email, inv.get("phone", ""),
          inv.get("legal_name", "")[:200], hash_pw(pw), secteurs,
          json.dumps([inv["city"]] if inv.get("city") else []), "free",
-         maintenant.isoformat(), maintenant.strftime("%Y-%m-%d"),
-         (maintenant + timedelta(hours=cfg.TRIAL_HOURS)).isoformat(timespec="seconds"),
-         "TRIAL", session_tok,
+         maintenant.isoformat(), *_ouverture_compte(maintenant), session_tok,
          secrets.token_urlsafe(5).upper().replace("_", "A").replace("-", "B")[:7], 0,
          0, email_token, (maintenant + timedelta(days=7)).isoformat()))
     mid = cur.lastrowid
-    db.execute("""INSERT INTO subscriptions(member_id,plan_id,price,currency,status,
-                     trial_start,trial_end,created_at,updated_at)
-                  VALUES(?,?,?,?,?,?,?,?,?)""",
-               (mid, "trial", 0, "MAD", "TRIAL", maintenant.strftime("%Y-%m-%d"),
-                (maintenant + timedelta(hours=cfg.TRIAL_HOURS)).isoformat(timespec="seconds"),
-                maintenant.isoformat(), maintenant.isoformat()))
+    if cfg.TRIAL_HOURS > 0:
+        db.execute("""INSERT INTO subscriptions(member_id,plan_id,price,currency,status,
+                         trial_start,trial_end,created_at,updated_at)
+                      VALUES(?,?,?,?,?,?,?,?,?)""",
+                   (mid, "trial", 0, "MAD", "TRIAL", maintenant.strftime("%Y-%m-%d"),
+                    (maintenant + timedelta(hours=cfg.TRIAL_HOURS)).isoformat(timespec="seconds"),
+                    maintenant.isoformat(), maintenant.isoformat()))
     # Le profil de sous-traitance démarre déjà rempli: métier, ville et
     # raison sociale viennent de la fiche collectée.
     db.execute("""INSERT OR IGNORE INTO subcontract_profiles(member_id,raison_sociale,

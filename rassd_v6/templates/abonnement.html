@@ -49,12 +49,14 @@ table.ab-t tr:last-child td { border-bottom: none; }
         <div class="plan-sub">
           {% if sub.status == 'TRIAL' %}{{ tr('trial_banner', n=duree(sub.heures_restantes)) }}
           {% elif sub.status == 'ACTIVE' %}{% if sub.end_date %}{{ tr('sub_expires_on', d=sub.end_date) }}{% else %}Abonnement actif.{% endif %}
+          {% elif sub.status == 'PENDING' %}{{ tr('pending_banner', price=cfg.PRIX_TXT) }}
           {% else %}{{ tr('trial_over_banner') }}{% endif %}
         </div>
       </div>
       <span class="state-pill state-{{ sub.status }}">
         {% if sub.status=='TRIAL' %}{{ tr('sub_status_trial') }}
         {% elif sub.status=='ACTIVE' %}{{ tr('sub_status_active') }}
+        {% elif sub.status=='PENDING' %}{{ tr('sub_status_pending') }}
         {% else %}{{ tr('sub_status_expired') }}{% endif %}
       </span>
     </div>
@@ -78,7 +80,7 @@ table.ab-t tr:last-child td { border-bottom: none; }
 
     {% if not sub.is_active or sub.in_trial %}
     <div style="margin-top:20px;">
-      <a href="/tarifs" class="btn btn-accent btn-lg">{{ tr('trial_banner_cta') }}</a>
+      <a href="/tarifs" class="btn btn-accent btn-lg">{{ tr('hero_cta_abo', price=cfg.PRIX_TXT) }}</a>
     </div>
     {% endif %}
   </div>

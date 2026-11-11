@@ -340,6 +340,8 @@
           {% elif sub.status == 'ACTIVE' %}
             {{ cfg.PLANS.get(sub.plan, {}).get('name', '—') }}
             <span class="account-pill account-pill-ok">{{ tr('sub_status_active') }}</span>
+          {% elif sub.status == 'PENDING' %}
+            <span class="account-pill account-pill-off">{{ tr('sub_status_pending') }}</span>
           {% else %}
             <span class="account-pill account-pill-off">{{ tr('sub_status_expired') }}</span>
           {% endif %}

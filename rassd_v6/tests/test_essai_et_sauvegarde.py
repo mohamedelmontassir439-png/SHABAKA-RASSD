@@ -148,6 +148,7 @@ class TestBonDeCommandeQuantite:
     def test_toujours_pas_de_montant_invente(self):
         assert sc.parse_page(self._fiche(), "1")["montant"] == ""
 
+    @pytest.mark.usefixtures("essai_72h")
     def test_affichage_de_la_quantite(self, client, db):
         db.execute("""INSERT INTO tenders(id,objet,secteur,statut,scraped_at,date_limite,
                       type_offre,type_procedure,source,quantite,nature)

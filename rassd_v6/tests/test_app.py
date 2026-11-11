@@ -36,12 +36,13 @@ class TestPagesPubliques:
     def test_accessibles_sans_compte(self, client, path):
         assert client.get(path).status_code == 200
 
-    def test_offre_mensuelle_affichee(self, client):
+    def test_offre_annuelle_unique_affichee(self, client):
         from app.core.config import cfg
         page = client.get("/tarifs").text
         # Le prix vient de la configuration: un tarif écrit en dur ici
         # casserait au prochain changement sans rien démontrer.
-        assert str(cfg.PLANS["monthly"]["price"]) in page and "Mensuel" in page
+        assert cfg.PRIX_TXT in page and "Abonnement annuel" in page
+        assert "Mensuel" not in page and "Biennal" not in page
 
     def test_pages_legales_ont_du_contenu_reel(self, client):
         assert "Éditeur du site" in client.get("/mentions-legales").text
@@ -149,6 +150,7 @@ class TestPaiementEtDocuments:
 
 
 class TestBonsDeCommandeSepares:
+    @pytest.mark.usefixtures("essai_72h")
     def test_les_bons_de_commande_n_apparaissent_pas_dans_les_marches(self, client, db):
         db.execute("""INSERT INTO tenders(id,objet,secteur,statut,type_procedure,scraped_at)
                       VALUES('bc_1','BON DE COMMANDE TEST','T101','actif','bon_commande','2026-01-01')""")
@@ -262,16 +264,19 @@ class TestSuppressionDeCompte:
         assert r.status_code == 302 and "/admin/login" in r.headers["location"]
 
 
-class TestEssaiGratuitSurLaLanding:
-    def test_essai_annonce_sur_la_page_daccueil(self, client):
-        page = client.get("/").text
-        assert "Essai gratuit" in page
-        assert "3 jours" in page
-        assert 'href="/register"' in page
+class TestAbonnementUniqueSurLaLanding:
+    """Depuis le 11/11/2026: plus d'essai, un seul abonnement annuel."""
 
-    def test_essai_annonce_sur_la_page_tarifs(self, client):
+    def test_l_accueil_mene_a_l_abonnement(self, client):
+        from app.core.config import cfg
+        page = client.get("/").text
+        assert "Essai gratuit" not in page
+        assert f"{cfg.PRIX_TXT} MAD / an" in page
+        assert 'href="/tarifs"' in page
+
+    def test_la_page_tarifs_n_annonce_aucun_essai(self, client):
         page = client.get("/tarifs").text
-        assert "Essai gratuit" in page and "Sans carte bancaire" in page
+        assert "Essai gratuit" not in page and "Sans carte bancaire" not in page
 
 
 class TestCompteDansLeTableauDeBord:

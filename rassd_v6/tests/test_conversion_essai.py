@@ -47,10 +47,11 @@ def envois(monkeypatch):
 
 
 class TestEssaiDeTroisJours:
-    def test_duree_par_defaut(self):
-        assert cfg.TRIAL_HOURS == 72 and cfg.essai() == "3 jours"
+    def test_pas_d_essai_par_defaut(self):
+        assert cfg.TRIAL_HOURS == 0
 
-    def test_inscription_ouvre_trois_jours(self, client, db):
+    @pytest.mark.usefixtures("essai_72h")
+    def test_inscription_ouvre_trois_jours_si_l_essai_est_reglé(self, client, db):
         page = client.get("/register").text
         csrf = re.search(r'name="csrf_token" value="([^"]+)"', page).group(1)
         client.post("/register", data={

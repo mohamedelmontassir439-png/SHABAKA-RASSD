@@ -101,7 +101,7 @@
     <a href="/tenders/{{ t.id }}" class="btn btn-primary btn-lg">Ouvrir la fiche →</a>
     {% else %}
     <h2>Ne manquez plus {{ 'un bon de commande' if f.bdc else 'un marché' }}{% if f.secteur %} en {{ f.secteur }}{% endif %}</h2>
-    <p>Recevez chaque matin les {{ 'bons de commande et ' if f.bdc else '' }}appels d'offres de votre secteur et de votre ville, avec l'acheteur, les conditions et le lien officiel. Essai gratuit de {{ cfg.essai('fr') }}, sans carte bancaire.</p>
+    <p>Recevez chaque matin les {{ 'bons de commande et ' if f.bdc else '' }}appels d'offres de votre secteur et de votre ville, avec l'acheteur, les conditions et le lien officiel. Abonnement annuel : {{ cfg.PRIX_TXT }} MAD, toutes les fonctions comprises.</p>
     <a href="/register?src=seo" class="btn btn-primary btn-lg">Voir la fiche complète gratuitement →</a>
     {% endif %}
   </div>

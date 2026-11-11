@@ -69,6 +69,24 @@ class TestSubscriptionState:
         assert has_access(m) is False
 
 
+class TestInscriptionSansEssai:
+    def test_le_compte_attend_l_abonnement(self, client, db, confirmer_email):
+        page = client.get("/register")
+        token = page.cookies.get("_csrf")
+        client.post("/register", data={"phone": "0612345678", "company": "SIMAC",
+            "email": "attente@example.com", "pw": "MotDePasse1!", "pw2": "MotDePasse1!",
+            "nom": "Attente", "csrf_token": token, "secteurs_sel": ["T101"]}, follow_redirects=False)
+        row = db.execute("SELECT subscription_status, trial_ends FROM members WHERE email=?",
+                         ("attente@example.com",)).fetchone()
+        assert row["subscription_status"] == "PENDING" and row["trial_ends"] == ""
+        assert db.execute("SELECT COUNT(*) FROM subscriptions").fetchone()[0] == 0
+        confirmer_email("attente@example.com")
+        assert client.get("/tenders", follow_redirects=False).status_code == 302
+        tableau = client.get("/dashboard").text
+        assert "Abonnez-vous" in tableau and "/tarifs" in tableau
+
+
+@pytest.mark.usefixtures("essai_72h")
 class TestInscriptionAccordeUnEssai:
     def test_inscription_cree_essai_de_7_jours(self, client, db):
         from app.core.config import cfg
@@ -129,6 +147,6 @@ class TestEssaiDe24Heures:
         assert duree_txt(1, "fr") == "1 heure" and duree_txt(5, "ar") == "5 ساعات"
         assert duree_txt(168, "fr") == "7 jours" and duree_txt(168, "ar") == "7 أيام"
 
-    def test_l_accueil_annonce_3_jours(self, client):
+    def test_l_accueil_n_annonce_plus_d_essai(self, client):
         page = client.get("/").text
-        assert "Essai gratuit 3 jours" in page and "Essai gratuit 24 heures" not in page
+        assert "Essai gratuit" not in page

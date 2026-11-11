@@ -119,7 +119,7 @@ class TestInscriptionDepuisInvitation:
         assert "T101" in m["secteurs"], "le métier vient de la fiche collectée"
         assert "Casablanca" in m["regions"]
         assert m["phone"] == "0612345678"
-        assert m["subscription_status"] == "TRIAL"
+        assert m["subscription_status"] == "PENDING", "plus d'essai: le compte attend l'abonnement"
         assert m["email_verified"] == 0, "l'adresse reste à confirmer"
 
     def test_profil_de_sous_traitance_demarre_rempli(self, admin, client, db):

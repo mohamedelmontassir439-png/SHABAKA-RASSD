@@ -69,13 +69,6 @@ class Settings:
     # numero ecrit en dur qui n'etait celui de personne.
     PAYMENT_PHONE: str = os.getenv("PAYMENT_PHONE", "212621728813")
     PAYMENT_MSG:   str = os.getenv("PAYMENT_MSG", "Bonjour, je souhaite m'abonner à MAROC ENTREPRENEURIAT")
-    # Compte qui reçoit les virements d'abonnement, affiché sur la page de
-    # paiement et dans l'email envoyé au membre qui choisit une formule.
-    PAYMENT_BANK:   str = os.getenv("PAYMENT_BANK", "CIH Bank")
-    PAYMENT_HOLDER: str = os.getenv("PAYMENT_HOLDER", "Mohamed El Montassir")
-    PAYMENT_RIB:    str = os.getenv("PAYMENT_RIB", "230 270 4193980211007100 02")
-    PAYMENT_IBAN:   str = os.getenv("PAYMENT_IBAN", "MA64 2302 7041 9398 0211 0071 0002")
-    PAYMENT_SWIFT:  str = os.getenv("PAYMENT_SWIFT", "CIHMMAMC")
     # Annuaire d'entreprises — Google Places API (officielle).
     # On n'utilise pas le scraping direct de Google Maps: il viole les
     # conditions d'utilisation de Google, déclenche des CAPTCHA et fait
@@ -100,6 +93,16 @@ class Settings:
     COMPANY_ICE:     str = os.getenv("COMPANY_ICE", "")
     COMPANY_ADDRESS: str = os.getenv("COMPANY_ADDRESS", "")
     CONTACT_EMAIL:   str = os.getenv("CONTACT_EMAIL", "contact@marocentrepreneuriat.com")
+
+    @property
+    def PRIX_ANNUEL(self) -> int:
+        """Le prix de l'abonnement en vente, en dirhams par an."""
+        return self.PLANS["pro"]["price"]
+
+    @property
+    def PRIX_TXT(self) -> str:
+        """Le même, tel qu'on l'écrit: « 3 999 » (espace insécable)."""
+        return f"{self.PRIX_ANNUEL:,}".replace(",", " ")
 
     def essai(self, lang: str = "fr") -> str:
         """La durée de l'essai telle qu'on l'écrit: « 24 heures », « 24 ساعة »."""
@@ -137,9 +140,10 @@ class Settings:
     DAILY_REPORT_HOUR: int = int(os.getenv("DAILY_REPORT_HOUR", "8"))
     # Essai gratuit accordé à chaque nouvelle inscription, en heures (24 = un
     # jour), compté à l'heure près depuis l'inscription.
-    # Trois jours (choix du 10/11/2026, après sept jours). Seules les nouvelles
-    # inscriptions sont concernées: la fin d'essai est figée à l'inscription.
-    TRIAL_HOURS: int = int(os.getenv("TRIAL_HOURS", "72"))
+    # 0 = pas d'essai (choix du 11/11/2026): le compte est créé « en attente »
+    # et l'accès s'ouvre quand l'abonnement est enregistré. Les essais déjà
+    # ouverts vont à leur terme: leur fin est figée à l'inscription.
+    TRIAL_HOURS: int = int(os.getenv("TRIAL_HOURS", "0"))
     # Secteurs qu'un membre choisit lui-même à l'inscription. Au-delà, ou pour
     # en changer, il écrit sur WhatsApp et l'administration s'en charge.
     MAX_SECTEURS: int = int(os.getenv("MAX_SECTEURS", "3"))
@@ -148,9 +152,11 @@ class Settings:
         # Le drapeau `telegram` a disparu avec le canal: plus rien ne le
         # lisait, et le laisser laissait croire qu'un plan l'ouvrait encore.
         "free":    {"name":"Inactif", "price":0,   "period":"",      "months":0, "tenders_day":15,"email":True, "whatsapp":False,"api":False},
-        "monthly": {"name":"Mensuel", "price":249, "period":"mois",  "months":1, "tenders_day":0, "email":True, "whatsapp":True, "api":True},
-        "pro":     {"name":"Annuel",  "price":2499,"period":"an",    "months":12,"tenders_day":0, "email":True, "whatsapp":True, "api":True},
-        "business":{"name":"Biennal", "price":4299,"period":"2 ans", "months":24,"tenders_day":0, "email":True, "whatsapp":True, "api":True},
+        # Une seule offre en vente depuis le 11/11/2026: l'annuelle. Mensuel et
+        # Biennal restent pour les membres qui les ont déjà (public=False).
+        "monthly": {"name":"Mensuel", "price":249, "period":"mois",  "months":1, "tenders_day":0, "email":True, "whatsapp":True, "api":True, "public":False},
+        "pro":     {"name":"Annuel",  "price":3999,"period":"an",    "months":12,"tenders_day":0, "email":True, "whatsapp":True, "api":True, "public":True},
+        "business":{"name":"Biennal", "price":4299,"period":"2 ans", "months":24,"tenders_day":0, "email":True, "whatsapp":True, "api":True, "public":False},
     })
     SECTEURS: dict = field(default_factory=lambda: SECTORS)
     SECTOR_GROUPS: dict = field(default_factory=lambda: GROUPS)

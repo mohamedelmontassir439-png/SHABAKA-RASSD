@@ -792,6 +792,10 @@ def envoyer_bienvenue(member_id: int) -> int:
         if not (membre.get("notif_email") and membre.get("email")
                 and membre.get("email_verified", 1)):
             return 0
+        # Un compte en attente d'abonnement ne voit pas les marchés: lui en
+        # annoncer le nombre l'enverrait sur une page fermée.
+        if not has_access(membre):
+            return 0
         marches = [dict(r) for r in db.execute(
             "SELECT * FROM tenders WHERE statut='actif' ORDER BY scraped_at DESC LIMIT 2000"
         ).fetchall()]
@@ -944,7 +948,7 @@ def texte_bilan_essai(membre: dict, n: int, exemple: str, reste: str) -> str:
         f"Bonjour {prenom}," if prenom else "Bonjour,",
         f"Depuis votre inscription sur Maroc Entrepreneuriat, *{n} marché(s)* de vos secteurs ont été publiés,"
         + (f" dont : « {exemple} »." if exemple else "."),
-        f"Votre essai gratuit se termine dans {reste}. Pour continuer : 249 MAD par mois, sans engagement.",
+        f"Votre essai gratuit se termine dans {reste}. Pour continuer : abonnement annuel à {cfg.PRIX_TXT} MAD.",
         f"👉 {cfg.SITE_URL}/tarifs",
     ])
 

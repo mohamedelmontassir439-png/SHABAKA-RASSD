@@ -1,88 +1,66 @@
-"""La page de paiement d'une formule.
+"""L'abonnement unique et son règlement sur WhatsApp (11/11/2026).
 
-Le membre qui choisit une formule voit le compte à créditer et reçoit les
-mêmes informations par email, avec la consigne d'envoyer le reçu du virement
-sur WhatsApp pour que son compte soit activé.
+Plus de page de virement: aucune coordonnée bancaire n'est publiée sur le
+site. La page Tarifs mène à WhatsApp avec un message prêt, qui cite le
+marché choisi quand le visiteur vient de l'accueil.
 """
-import time
+import pathlib
 from datetime import datetime
+from urllib.parse import unquote
 
-import pytest
-
-import app.services.notifications as notif
 from app.core.config import cfg
 
-
-@pytest.fixture()
-def envois(monkeypatch):
-    captures = []
-    monkeypatch.setattr(notif, "email_send",
-                        lambda to, sujet, html, **k: captures.append((to, sujet, html)) or True)
-    return captures
-
-
-def _connecte(client, db, email="paie@example.com"):
-    db.execute("""INSERT INTO members(nom,email,company,plan,subscription_status,session_token,
-                     email_verified,actif,secteurs,created_at)
-                  VALUES('Karim','%s','Alaoui Travaux','free','TRIAL','jeton-paiement-0001',1,1,'["T101"]',?)""" % email,
-               (datetime.now().isoformat(),))
-    db.commit()
-    client.cookies.set("_session", "jeton-paiement-0001")
-
-
-def _attendre(liste, n=1):
-    for _ in range(40):
-        if len(liste) >= n:
-            return
-        time.sleep(.05)
+RACINE = pathlib.Path(__file__).resolve().parent.parent
 
 
 class TestTarifs:
-    def test_chaque_formule_mene_a_la_page_de_paiement(self, client):
+    def test_une_seule_offre_a_3999(self, client):
         page = client.get("/tarifs").text
-        for plan in ("monthly", "pro", "business"):
-            assert f'href="/abonnement/paiement?plan={plan}"' in page
+        assert cfg.PRIX_ANNUEL == 3999 and cfg.PRIX_TXT in page
+        assert page.count('class="plan-card"') == 1
 
-
-class TestPage:
-    def test_elle_donne_le_compte_et_le_montant(self, client):
-        page = client.get("/abonnement/paiement?plan=monthly").text
-        assert cfg.PAYMENT_RIB in page and cfg.PAYMENT_IBAN in page and cfg.PAYMENT_SWIFT in page
-        assert f"{cfg.PLANS['monthly']['price']} MAD" in page
-
-    def test_elle_demande_le_recu_sur_whatsapp(self, client):
-        page = client.get("/abonnement/paiement?plan=pro").text
+    def test_le_bouton_ouvre_whatsapp_avec_le_message(self, client):
+        page = client.get("/tarifs").text
         assert f"https://wa.me/{cfg.PAYMENT_PHONE}?text=" in page
-        assert "re%C3%A7u" in page   # « reçu », dans le message prérempli
+        assert "abonnement annuel" in unquote(page)
 
-    def test_formule_inconnue_ramenee_au_mensuel(self, client):
-        r = client.get("/abonnement/paiement?plan=xyz")
-        assert r.status_code == 200 and "Mensuel" in r.text
-
-    def test_pas_indexee(self, client):
-        assert "noindex" in client.get("/abonnement/paiement").text
+    def test_le_marche_choisi_est_repris(self, client, db):
+        db.execute("""INSERT INTO tenders(id,objet,acheteur,secteur,statut,date_limite,scraped_at)
+                      VALUES('ao_abo1','Réfection de la piste de Tafraout','Commune de Tafraout',
+                             'T101','actif','20/12/2099',?)""", (datetime.now().isoformat(),))
+        db.commit()
+        page = client.get("/tarifs?ao=ao_abo1").text
+        assert "Réfection de la piste de Tafraout" in page
+        assert "Réfection de la piste de Tafraout" in unquote(page.split("wa.me/", 1)[1].split('"', 1)[0])
 
     def test_en_arabe(self, client):
         client.cookies.set("lang", "ar")
-        page = client.get("/abonnement/paiement?plan=monthly").text
-        assert "أرسل الوصل على واتساب" in page and cfg.PAYMENT_RIB in page
+        page = client.get("/tarifs").text
+        assert "اشترك عبر واتساب" in page and "الاشتراك السنوي" in page
 
 
-class TestEmail:
-    def test_le_membre_recoit_le_rib_une_seule_fois(self, client, db, envois):
-        _connecte(client, db)
-        page = client.get("/abonnement/paiement?plan=monthly").text
-        assert "paie@example.com" in page
-        _attendre(envois)
-        assert len(envois) == 1
-        to, sujet, html = envois[0]
-        assert to == "paie@example.com" and "Mensuel" in sujet
-        assert cfg.PAYMENT_RIB in html and "Alaoui Travaux" in html
-        client.get("/abonnement/paiement?plan=monthly")
-        time.sleep(.3)
-        assert len(envois) == 1
+class TestPlusDeCoordonneesBancaires:
+    def test_l_ancienne_page_renvoie_aux_tarifs(self, client):
+        r = client.get("/abonnement/paiement?plan=monthly", follow_redirects=False)
+        assert r.status_code == 301 and r.headers["location"] == "/tarifs"
 
-    def test_pas_demail_sans_compte(self, client, envois):
-        client.get("/abonnement/paiement?plan=monthly")
-        time.sleep(.3)
-        assert envois == []
+    def test_aucun_rib_dans_le_code(self):
+        for dossier in ("app", "templates"):
+            for f in (RACINE / dossier).rglob("*"):
+                if f.suffix in (".py", ".html", ".json"):
+                    texte = f.read_text(encoding="utf-8", errors="ignore")
+                    assert "4193980211" not in texte and "CIHMMAMC" not in texte, f
+        assert not hasattr(cfg, "PAYMENT_RIB")
+
+
+class TestVideoDeLAccueil:
+    def test_l_accueil_affiche_la_video(self, client):
+        page = client.get("/").text
+        assert 'src="/video/presentation_fr.mp4"' in page and 'id="video"' in page
+
+    def test_lecture_par_plages_pour_safari(self, client):
+        r = client.get("/video/presentation_fr.mp4", headers={"Range": "bytes=0-99"})
+        assert r.status_code == 206 and len(r.content) == 100
+        assert r.headers["content-range"].startswith("bytes 0-99/")
+        assert client.get("/video/presentation_fr.mp4", headers={"Range": "bytes=-10"}).status_code == 206
+        assert client.get("/video/autre.mp4").status_code == 404

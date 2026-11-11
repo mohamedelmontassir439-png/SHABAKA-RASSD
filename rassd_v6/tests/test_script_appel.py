@@ -75,8 +75,8 @@ class TestContenu:
     def test_il_annonce_la_duree_reelle_de_lessai(self, admin, db):
         cid = _entreprise(db)
         page = admin.get(f"/admin/prospection/{cid}").text
-        assert f"Essai gratuit de {cfg.essai()}" in page and "3 jours" in page
-        assert "24 heures" not in page
+        assert f"{cfg.PRIX_TXT} dirhams pour l" in page
+        assert "Essai gratuit" not in page
 
 
 class TestSansPreuve:

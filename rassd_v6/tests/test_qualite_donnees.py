@@ -114,6 +114,7 @@ class TestCloture:
 
 
 class TestPagesSeparees:
+    @pytest.mark.usefixtures("essai_72h")
     def test_les_pages_suivent_le_type_de_procedure(self, db, client):
         """Un bon de commande ne doit pas apparaître dans la page Marchés."""
         db.execute("""INSERT INTO tenders(id,objet,secteur,statut,scraped_at,date_limite,

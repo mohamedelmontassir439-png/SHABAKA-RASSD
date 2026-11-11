@@ -173,31 +173,19 @@ class TestFriseEtApercu:
     anonyme, un grand cadre vide qui disait seulement ce qu'il n'aurait pas.
     """
 
-    def test_aucun_marche_nest_montre_au_visiteur_anonyme(self, client):
-        """Le détail d'un marché est réservé aux membres activés. L'aperçu
-        montre des secteurs et leur nombre — un agrégat de même nature que
-        les totaux déjà affichés — et jamais un objet de marché."""
-        from app.core.database import get_db
-        db = get_db()
-        objets = [r[0] for r in db.execute(
-            "SELECT objet FROM tenders WHERE statut='actif' LIMIT 5").fetchall()]
-        db.close()
-        page = client.get("/").text
-        for objet in objets:
-            assert objet[:40] not in page, f"objet de marché exposé: {objet[:40]!r}"
-
-    def test_lapercu_annonce_ce_quil_montre(self, client):
-        """« Voici ce qui vient de paraître » au-dessus d'une liste de
-        secteurs annonce autre chose que ce qui suit."""
+    def test_le_visiteur_voit_quelques_marches_menant_a_l_abonnement(self, client, db):
+        """Choix du 11/11/2026: l'accueil montre quelques marchés ouverts
+        (objet, acheteur, date limite). Le clic mène à l'abonnement, pas au
+        détail, qui reste réservé aux abonnés."""
+        db.execute("""INSERT INTO tenders(id,objet,acheteur,secteur,statut,date_limite,scraped_at)
+                      VALUES('ao_vit1','Construction d''une école primaire à Taroudant',
+                             'Commune de Taroudant','T101','actif','20/12/2099',?)""",
+                   (__import__("datetime").datetime.now().isoformat(),))
+        db.commit()
         from app.core.i18n import tr
         page = client.get("/").text
-        assert tr("latest_label_secteurs", "fr") in page
-        assert "ça bouge" in page
-
-    def test_lapercu_nest_pas_cliquable(self, client):
-        """Il ne mène nulle part: le faire ressembler à un lien serait
-        promettre une page qui n'existe pas pour ce visiteur."""
-        page = client.get("/").text
-        bloc = page[page.index("latest-apercu"):]
-        bloc = bloc[:bloc.index("latest-promo")]
-        assert "<a " not in bloc
+        assert tr("vit_label", "fr") in page
+        assert "Construction d'une école primaire" in page or "Construction d&#39;une école primaire" in page
+        assert 'href="/tarifs?ao=ao_vit1#abonnement"' in page
+        assert 'href="/tenders/ao_vit1"' not in page
+        assert "/static/img/logos/armoiries.webp" in page

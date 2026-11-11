@@ -70,6 +70,7 @@ class TestBlocageAvantConfirmation:
 
 
 class TestConfirmation:
+    @pytest.mark.usefixtures("essai_72h")
     def test_jeton_valide_ouvre_l_acces(self, client, db):
         _inscrire(client)
         token = _membre(db)["email_token"]

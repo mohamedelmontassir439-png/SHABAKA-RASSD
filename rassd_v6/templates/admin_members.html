@@ -135,7 +135,7 @@ details.del summary::-webkit-details-marker{display:none}
             <select name="plan" class="sel" onchange="this.form.submit()">
               <option value="free" {% if m.plan=='free' %}selected{% endif %}>Inactif</option>
               <option value="monthly" {% if m.plan=='monthly' %}selected{% endif %}>Mensuel 250</option>
-              <option value="pro" {% if m.plan=='pro' %}selected{% endif %}>Annuel 2499</option>
+              <option value="pro" {% if m.plan=='pro' %}selected{% endif %}>Annuel {{ cfg.PLANS.pro.price }}</option>
               <option value="business" {% if m.plan=='business' %}selected{% endif %}>Biennal 4299</option>
             </select>
           </form>

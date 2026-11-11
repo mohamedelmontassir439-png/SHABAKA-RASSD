@@ -237,25 +237,24 @@ html[dir="rtl"] .couverture h2 { font-family: 'Amiri', var(--serif); line-height
 
   .st-spot-card-exemple { margin-top: 6px; font-size:var(--f1); font-weight: 700;
       letter-spacing: .06em; text-transform: uppercase; color: var(--text3, #98a1b3); }
-/* ── Essai gratuit ─────────────────────────────────────── */
-.trial-section { padding: 80px 0; background: var(--surface2); border-block: 1px solid var(--line); }
-.trial-card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); box-shadow: var(--sh2), var(--shg); padding: 0 40px 48px; text-align: center; max-width: 900px; margin: 0 auto; overflow: hidden; }
-.trial-photo { display: block; height: auto; width: calc(100% + 80px); max-width: none; margin: 0 -40px 36px; aspect-ratio: 21 / 8; object-fit: cover; object-position: center 45%; }
-.trial-badge { display: inline-flex; align-items: center; gap: 8px; padding: 8px 18px; border-radius:var(--rp); background: var(--golda); border: 1px solid rgba(242,102,45,.3); color: var(--goldd); font-size:var(--f2); font-weight: 700; letter-spacing: .02em; margin-bottom: 20px; }
-.trial-title { font-family: var(--serif); font-weight: 700; font-size: clamp(26px, 4vw, 40px); line-height: 1.15; color: var(--text1); letter-spacing: -.01em; }
-.trial-title em { font-style: italic; color: var(--ink); font-weight: 600; }
-.trial-sub { font-size:var(--f4); color: var(--text3); line-height: 1.65; margin: 16px auto 32px; max-width: 620px; }
-.trial-steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 36px; text-align: start; }
-.trial-step { padding: 22px; border: 1px solid var(--line); border-radius: var(--r2); background: var(--surface2); }
-.trial-step-n { width: 32px; height: 32px; border-radius: 50%; background: var(--ink); color: #fff; font-weight: 800; font-size:var(--f4); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; }
-.trial-step-t { font-weight: 700; font-size:var(--f4); color: var(--text1); margin-bottom: 6px; }
-.trial-step-d { font-size:var(--f3); color: var(--text3); line-height: 1.6; }
-.trial-note { margin-top: 16px; font-size:var(--f2); color: var(--text4); }
-@media (max-width: 860px) {
-  .trial-steps { grid-template-columns: 1fr; gap: 14px; }
-  .trial-card { padding: 0 22px 34px; }
-  .trial-photo { width: calc(100% + 44px); margin: 0 -22px 28px; aspect-ratio: 16 / 9; }
-  .trial-section { padding: 56px 0; }
+/* ── Vidéo de présentation ─────────────────────────────── */
+.video-section { padding: 88px 0; background: var(--surface2); border-block: 1px solid var(--line); scroll-margin-top: 72px; }
+.video-tete { max-width: 760px; margin: 0 auto 32px; text-align: center; }
+.video-tete h2 { font-family: var(--serif); font-weight: 700; font-size: clamp(26px, 4vw, 40px); line-height: 1.15; color: var(--text1); letter-spacing: -.01em; margin-top: 12px; text-wrap: balance; }
+.video-tete h2 em { font-style: italic; color: var(--ink); font-weight: 600; }
+.video-tete p { font-size: var(--f4); color: var(--text3); line-height: 1.65; margin-top: 14px; }
+.video-cadre { max-width: 980px; margin: 0 auto; border-radius: var(--r3); overflow: hidden; background: #120d0a; box-shadow: var(--sh2), var(--shg); border: 1px solid var(--line); }
+.video-cadre video { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; }
+.video-actions { display: flex; justify-content: center; margin-top: 28px; }
+@media (max-width: 760px) { .video-section { padding: 56px 0; } }
+/* ── Vitrine des marchés (visiteurs) ─────────────────────── */
+.latest-row.vit-row { grid-template-columns: 44px minmax(0, 1fr) 190px 110px 24px; gap: 20px; }
+.vit-org { font-size: var(--f2); color: var(--text3); margin-top: 4px; }
+.vit-lim { font-size: var(--f2); color: var(--text2); font-weight: 600; text-align: end; }
+.vit-lim small { display: block; font-size: var(--f1); color: var(--text4); font-weight: 500; }
+@media (max-width: 760px) {
+  .latest-row.vit-row { grid-template-columns: 44px minmax(0, 1fr) 20px; gap: 12px; padding: 16px; }
+  .vit-row > .latest-meta, .vit-row > .vit-lim { display: none; }
 }
 
 .hero-card-promo-title { font-family: var(--serif); font-weight: 700; font-size:var(--f5); color: var(--text1); max-width: 260px; line-height: 1.4; margin: 0 auto; }
@@ -348,10 +347,10 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
         <span class="puce">{{ tr('hero_eyebrow')|replace('✦ ', '') }}</span>
         <h1 class="une-titre"><span class="une-ligne"><span>{{ tr('hero_title')|safe }}</span></span></h1>
         <div class="une-actions">
-          <a href="/register" class="btn btn-accent btn-xl">{{ tr('hero_cta_trial', n=essai_duree) }}</a>
-          <a href="/tarifs" class="btn btn-outline btn-xl">{{ tr('hero_cta_free') }}</a>
+          <a href="/tarifs" class="btn btn-accent btn-xl">{{ tr('hero_cta_abo', price=cfg.PRIX_TXT) }}</a>
+          <a href="#video" class="btn btn-outline btn-xl">▶ {{ tr('hero_cta_video') }}</a>
         </div>
-        <div class="une-note">{{ tr('trial_note_nocard') }} &nbsp;·&nbsp; {{ tr('trial_note_full', n=essai_duree) }}</div>
+        <div class="une-note">{{ tr('une_note_abo') }}</div>
       </div>
     </div>
 
@@ -462,6 +461,23 @@ LON   5.5017° W
   </div>
 </section>
 
+<!-- VIDÉO DE PRÉSENTATION -->
+<section class="video-section" id="video">
+  <div class="container">
+    <div class="video-tete reveal">
+      <span class="puce">{{ tr('vid_label') }}</span>
+      <h2>{{ tr('vid_titre')|safe }}</h2>
+      <p>{{ tr('vid_sub') }}</p>
+    </div>
+    <div class="video-cadre reveal">
+      <video controls preload="none" playsinline poster="/static/video/presentation_{{ 'ar' if lang == 'ar' else 'fr' }}.webp" aria-label="{{ tr('vid_aria') }}">
+        <source src="/video/presentation_{{ 'ar' if lang == 'ar' else 'fr' }}.mp4" type="video/mp4">
+      </video>
+    </div>
+    <div class="video-actions"><a href="/tarifs" class="btn btn-accent btn-lg">{{ tr('hero_cta_abo', price=cfg.PRIX_TXT) }}</a></div>
+  </div>
+</section>
+
 <!-- LA COUVERTURE NATIONALE -->
 <section class="couverture">
   <div class="container couverture-grille">
@@ -522,48 +538,30 @@ LON   5.5017° W
   </div>
 </section>
 
-<!-- LATEST TENDERS -->
-<section class="latest">
+<!-- MARCHÉS DU MOMENT -->
+<section class="latest" id="marches">
   <div class="container">
-    <div class="section-label reveal">{{ tr('latest_label') if recent else tr('latest_label_secteurs') }}</div>
-    <div class="section-title reveal" style="max-width: 720px;">{{ (tr('latest_title') if recent else tr('latest_title_secteurs'))|safe }}</div>
+    <div class="section-label reveal">{{ tr('latest_label') if acces else tr('vit_label') }}</div>
+    <div class="section-title reveal" style="max-width: 720px;">{{ (tr('latest_title') if acces else tr('vit_titre'))|safe }}</div>
+    {% if not acces %}<p class="section-sub reveal" style="max-width: 640px;">{{ tr('vit_sub') }}</p>{% endif %}
     {% if recent %}
     <div class="latest-list">
-      {% for t in recent[:6] %}
-      <a href="/tenders/{{ t.id }}" class="latest-row">
-        <div>
-          <div class="latest-title">{{ t.objet[:110] }}{% if t.objet|length > 110 %}…{% endif %}</div>
+      {% for t in recent[:8] %}
+      <a href="{{ ('/tenders/' ~ t.id) if acces else ('/tarifs?ao=' ~ t.id ~ '#abonnement') }}" class="latest-row vit-row">
+        {{ logo_acheteur(t.acheteur, t.type_offre, 'lg') }}
+        <div style="min-width:0">
+          <div class="latest-title">{{ t.objet[:120] }}{% if t.objet|length > 120 %}…{% endif %}</div>
+          <div class="vit-org">{{ (acheteur(t.acheteur) or tr('latest_empty'))[:70] }}</div>
         </div>
-        <div class="latest-meta">{{ (acheteur(t.acheteur) or 'Maroc')[:28] }}</div>
-        <div class="latest-meta">{{ t.date_limite or tr('latest_empty') }}</div>
+        <div class="latest-meta">{{ get_label(t.secteur)[:30] }}{% if t.region %}<br>{{ t.region[:26] }}{% endif %}</div>
+        <div class="vit-lim">{% if t.date_limite %}<small>{{ tr('vit_limite') }}</small><bdi dir="ltr">{{ t.date_limite[:10] }}</bdi>{% else %}—{% endif %}</div>
         <div class="latest-arrow">{{ '←' if dir=='rtl' else '→' }}</div>
       </a>
       {% endfor %}
     </div>
-    {% else %}
-    {# Le détail d'un marché est réservé aux membres activés — c'est la
-       règle, et elle tient. Ce qu'on montre ici n'est donc aucun marché:
-       ce sont les secteurs les plus fournis et leur nombre, un agrégat de
-       même nature que les « 1754 marchés actifs » déjà affichés plus haut.
-       Mais mis en page comme de vraies lignes, et estompé à la troisième,
-       il dit ce qui attend derrière — ce qu'un cadre vide ne disait pas. #}
-    <div class="latest-list latest-apercu" aria-hidden="true">
-      {% for s in sectors[:3] %}
-      <div class="latest-row latest-row-fige">
-        <div><div class="latest-title">{{ get_label(s.secteur) }}</div></div>
-        <div class="latest-meta">{{ tr('latest_sector_open', n=s.cnt) }}</div>
-        <div class="latest-meta latest-flou">—</div>
-        <div class="latest-arrow">{{ '←' if dir=='rtl' else '→' }}</div>
-      </div>
-      {% endfor %}
-    </div>
-    <div class="latest-promo">
-      <div class="hero-card-promo-title">{{ tr('latest_locked_text') }}</div>
-      <a href="/tarifs" class="btn btn-accent btn-lg">{{ tr('latest_locked_cta') }}</a>
-    </div>
     {% endif %}
     <div style="text-align: center; margin-top: 44px;">
-      <a href="{{ '/tenders' if recent else '/tarifs' }}" class="btn btn-outline btn-lg">{{ tr('latest_view_all') if recent else tr('latest_view_signup') }}</a>
+      <a href="{{ '/tenders' if acces else '/tarifs' }}" class="btn {{ 'btn-outline' if acces else 'btn-accent' }} btn-lg">{{ tr('latest_view_all') if acces else tr('latest_view_signup') }}</a>
     </div>
   </div>
 </section>
@@ -576,7 +574,7 @@ LON   5.5017° W
     <div class="faq-grid">
       <div class="faq-acc-item reveal reveal-1">
         <button class="faq-acc-q" type="button">{{ tr('pr_faq1_q') }}<span class="faq-acc-icon">+</span></button>
-        <div class="faq-acc-a"><div class="faq-acc-a-inner">{{ tr('pr_faq1_a') }}</div></div>
+        <div class="faq-acc-a"><div class="faq-acc-a-inner">{{ tr('pr_faq1_a', price=cfg.PRIX_TXT) }}</div></div>
       </div>
       <div class="faq-acc-item reveal reveal-2">
         <button class="faq-acc-q" type="button">{{ tr('pr_faq2_q') }}<span class="faq-acc-icon">+</span></button>
@@ -598,37 +596,6 @@ LON   5.5017° W
   </div>
 </section>
 
-<!-- ESSAI GRATUIT -->
-<section class="trial-section">
-  <div class="container">
-    <div class="trial-card reveal">
-      <img class="trial-photo" src="/static/img/accueil/essai.webp" alt="" width="1400" height="787" loading="lazy" decoding="async">
-      <div class="trial-badge">{{ tr('trial_badge', n=essai_duree) }}</div>
-      <h2 class="trial-title">{{ tr('trial_title', n=essai_duree)|safe }}</h2>
-      <p class="trial-sub">{{ tr('trial_sub') }}</p>
-      <div class="trial-steps">
-        <div class="trial-step">
-          <div class="trial-step-n">1</div>
-          <div class="trial-step-t">{{ tr('trial_step1_t') }}</div>
-          <div class="trial-step-d">{{ tr('trial_step1_d') }}</div>
-        </div>
-        <div class="trial-step">
-          <div class="trial-step-n">2</div>
-          <div class="trial-step-t">{{ tr('trial_step2_t', n=essai_duree) }}</div>
-          <div class="trial-step-d">{{ tr('trial_step2_d_wa') if cfg.WA_ENABLED else tr('trial_step2_d') }}</div>
-        </div>
-        <div class="trial-step">
-          <div class="trial-step-n">3</div>
-          <div class="trial-step-t">{{ tr('trial_step3_t') }}</div>
-          <div class="trial-step-d">{{ tr('trial_step3_d', price=cfg.PLANS.monthly.price) }}</div>
-        </div>
-      </div>
-      <a href="/register" class="btn btn-accent btn-xl">{{ tr('trial_cta', n=essai_duree) }}</a>
-      <div class="trial-note">{{ tr('trial_note_keep') }}</div>
-    </div>
-  </div>
-</section>
-
 <!-- FINAL CTA -->
 <section class="final-cta">
   <img class="final-cta-photo" src="/static/img/accueil/rencontre.webp" alt="" width="1920" height="1080" loading="lazy" decoding="async">
@@ -636,7 +603,7 @@ LON   5.5017° W
     <div class="final-cta-eyebrow">{{ tr('finalcta_eyebrow') }}</div>
     <h2 class="final-cta-title">{{ tr('finalcta_title')|safe }}</h2>
     <p class="final-cta-text">{{ tr('finalcta_text') }}</p>
-    <a href="/register" class="btn btn-accent btn-xl">{{ tr('finalcta_cta') }}</a>
+    <a href="/tarifs" class="btn btn-accent btn-xl">{{ tr('finalcta_cta') }}</a>
     <div class="final-cta-note">
       <span>{{ tr('finalcta_note1') }}</span>
       <span>{{ tr('finalcta_note2') }}</span>

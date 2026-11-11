@@ -23,6 +23,15 @@ os.environ.setdefault("SECRET_KEY", "test-secret-key-for-pytest-only-0123456789"
 
 
 @pytest.fixture()
+def essai_72h(monkeypatch):
+    """Rétablit l'essai de trois jours le temps d'un test: le parcours des
+    inscrits qui voient les marchés reste vérifié, alors que la plateforme
+    n'ouvre plus d'essai par défaut (TRIAL_HOURS=0 depuis le 11/11/2026)."""
+    from app.core.config import cfg
+    monkeypatch.setattr(cfg, "TRIAL_HOURS", 72)
+
+
+@pytest.fixture()
 def db():
     """Base vierge, initialisée avec le schéma complet, détruite après le test."""
     if _TMP_DB.exists():

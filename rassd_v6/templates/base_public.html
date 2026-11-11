@@ -382,6 +382,18 @@ html[dir="rtl"] .auth-photo-titre { font-family: 'Amiri', var(--serif); line-hei
 @media(max-width: 640px) {
   :root { --f4: 14.5px; --f5: 16px; --f6: 17.5px; --f7: 21px; --f8: 25px; --f9: 32px; --fg: 44px; }
 }
+/* Emblème de l'acheteur (app/core/logos.py) */
+.org-logo { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%; background: #fff; border: 1px solid var(--line); overflow: hidden; vertical-align: middle; }
+.org-logo img { width: 22px; height: auto; }
+.org-logo-sigle { font-family: var(--sans); font-size: var(--f1); font-weight: 800; letter-spacing: .02em; line-height: 1; color: hsl(var(--teinte) 48% 30%); background: hsl(var(--teinte) 60% 94%); border-color: hsl(var(--teinte) 40% 82%); }
+.org-logo-long { letter-spacing: -.02em; transform-origin: center; }
+.org-logo-long { font-size: calc(var(--f1) * .78); }
+.org-logo-lg { width: 44px; height: 44px; }
+.org-logo-lg img { width: 33px; }
+.org-logo-lg.org-logo-sigle { font-size: var(--f2); }
+.org-logo-lg.org-logo-long { font-size: var(--f1); }
+.org-nom { display: inline-flex; align-items: center; gap: 10px; min-width: 0; }
+.org-nom > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 </style>
 {% block head %}{% endblock %}
 </head>
