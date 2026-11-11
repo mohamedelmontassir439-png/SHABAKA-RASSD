@@ -1,0 +1,201 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+{% set titres = {'declaration': "Déclaration sur l'honneur", 'acte': "Acte d'engagement", 'bordereau': "Bordereau des prix-détail estimatif"} %}
+<title>{{ titres[piece] }} — {{ (p.raison_sociale or p.signataire or '')[:40] }}</title>
+<style>
+/* Pièce de candidature: A4, sobre, prête à signer. Les champs vides restent en
+   pointillés pour être complétés à la main. Polices système: une pièce
+   administrative doit s'imprimer pareil partout, sans dépendre d'un réseau. */
+:root { --encre: #111; --gris: #555; --ligne: #999; --fond: #fff; }
+* { box-sizing: border-box; }
+body { margin: 0; background: #e9e7e2; color: var(--encre); font-family: "Times New Roman", Times, Georgia, serif; font-size: 12pt; line-height: 1.5; }
+.barre { position: sticky; top: 0; display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 10px 16px; background: #1e1611; color: #fff; font: 14px/1.4 system-ui, sans-serif; }
+.barre button { font: inherit; font-weight: 700; padding: 8px 16px; border-radius: 8px; border: none; background: #f2662d; color: #fff; cursor: pointer; }
+.barre a { color: #f5d9c8; }
+.page { width: 210mm; max-width: 100%; min-height: 297mm; margin: 18px auto; padding: 18mm 18mm 20mm; background: var(--fond); box-shadow: 0 2px 14px rgba(0,0,0,.15); }
+h1 { text-align: center; font-size: 16pt; letter-spacing: .02em; margin: 0 0 14px; text-transform: uppercase; }
+h2 { font-size: 12pt; margin: 16px 0 6px; }
+p { margin: 4px 0; }
+.v { font-weight: 700; }
+.vide { color: var(--gris); letter-spacing: 1px; }
+.ital { font-style: italic; color: var(--gris); font-size: 10.5pt; }
+ol.dec { padding-inline-start: 22px; margin: 8px 0; }
+ol.dec li { margin: 5px 0; }
+.sign { margin-top: 26px; display: flex; justify-content: flex-end; }
+.sign div { text-align: center; min-width: 240px; }
+.sign .cadre { height: 70px; }
+table.bp { width: 100%; border-collapse: collapse; font-size: 10.5pt; margin-top: 8px; }
+table.bp th, table.bp td { border: 1px solid #444; padding: 4px 6px; vertical-align: top; }
+table.bp th { background: #f1f1f1; font-weight: 700; text-align: center; }
+table.bp td.n { text-align: end; white-space: nowrap; font-variant-numeric: tabular-nums; }
+table.bp tr.somme td { font-weight: 700; }
+.montants p { margin: 6px 0; }
+.note { font-size: 9.5pt; color: var(--gris); margin-top: 16px; border-top: 1px solid var(--ligne); padding-top: 6px; }
+@page { size: A4; margin: 0; }
+@media print {
+  body { background: #fff; }
+  .barre { display: none; }
+  .page { margin: 0; box-shadow: none; width: auto; min-height: auto; }
+}
+@media (max-width: 800px) { .page { padding: 18px 14px; margin: 0; } body { font-size: 11pt; } }
+</style>
+</head>
+<body>
+{% macro v(x, n=30) %}{% if x %}<span class="v">{{ x }}</span>{% else %}<span class="vide">{{ '.' * n }}</span>{% endif %}{% endmacro %}
+{% set morale = p.statut in ('societe', 'cooperative') %}
+{% set rib = p.rib|replace(' ', '') %}
+{% set fait_a = p.ville_signature %}
+{% set date_doc = d.date %}
+
+<div class="barre">
+  <span>{{ titres[piece] }} · {{ t.objet[:70] }}{% if t.objet|length > 70 %}…{% endif %}</span>
+  <span><a href="/tenders/{{ t.id }}/candidature">← Retour au dossier</a> &nbsp; <button onclick="window.print()">Imprimer / PDF</button></span>
+</div>
+
+<div class="page">
+{% if piece == 'declaration' %}
+  {# Modèle 9-1, arrêté n° 1689-23 du 3 juillet 2023 #}
+  <h1>Déclaration sur l'honneur</h1>
+  <p>Objet du marché : <span class="v">{{ t.objet }}</span>{% if ref %} — Appel d'offres n° <span class="v">{{ ref }}</span>{% endif %}</p>
+
+  {% if p.statut == 'personne_physique' %}
+  <h2>A - Pour les personnes physiques agissant pour leur propre compte</h2>
+  <p>Je soussigné {{ v(p.signataire) }} ({{ v(p.qualite, 15) }}), agissant en mon nom personnel et pour mon propre compte.</p>
+  {% elif p.statut == 'auto_entrepreneur' %}
+  <h2>A - Cas de l'auto-entrepreneur</h2>
+  <p>Je soussigné {{ v(p.signataire) }}, agissant en mon nom personnel et pour mon propre compte.</p>
+  {% elif p.statut == 'cooperative' %}
+  <h2>B - Cas des coopératives ou union des coopératives</h2>
+  <p>Je soussigné {{ v(p.signataire) }} ({{ v(p.qualite, 15) }}) agissant au nom et pour le compte de {{ v(p.raison_sociale) }}{% if p.forme_juridique %} ({{ p.forme_juridique }}){% endif %}, au capital social de {{ v(p.capital, 15) }}{% if p.capital %} dirhams{% endif %}.</p>
+  {% else %}
+  <h2>B - Pour les personnes morales : cas des sociétés</h2>
+  <p>Je soussigné {{ v(p.signataire) }} ({{ v(p.qualite, 15) }}), agissant au nom et pour le compte de {{ v(p.raison_sociale) }}{% if p.forme_juridique %} ({{ p.forme_juridique }}){% endif %}, au capital social de : {{ v(p.capital, 15) }}{% if p.capital %} dirhams{% endif %}.</p>
+  {% endif %}
+  <p>Numéro de téléphone : {{ v(p.telephone, 20) }}</p>
+  <p>Numéro du fax : {{ v(p.fax, 20) }}</p>
+  <p>Adresse électronique : {{ v(p.email) }}</p>
+  {% if morale %}<p>Adresse du siège social{% if p.statut == 'cooperative' %} de la coopérative{% else %} de la société{% endif %} : {{ v(p.adresse_siege, 50) }}</p>{% endif %}
+  <p>Adresse du domicile élu : {{ v(p.domicile_elu or p.adresse_siege, 50) }}</p>
+  {% if p.statut == 'auto_entrepreneur' %}
+  <p>Inscrit au registre national de l'auto-entrepreneur sous le numéro {{ v(p.rc, 20) }}</p>
+  {% else %}
+  {% if p.statut == 'cooperative' %}<p>Inscrite au registre local des coopératives, sous le numéro {{ v(p.rc, 20) }}</p>{% endif %}
+  <p>Affilié{{ 'e' if morale else '' }} à la CNSS sous le numéro : {{ v(p.cnss, 20) }}</p>
+  {% if p.statut != 'cooperative' %}<p>Inscrit{{ 'e' if morale else '' }} au registre du commerce de {{ v(p.rc_ville, 15) }} sous le numéro : {{ v(p.rc, 20) }}</p>{% endif %}
+  <p>Inscrite à la taxe professionnelle sous le numéro : {{ v(p.tp, 20) }}</p>
+  {% endif %}
+  <p>Numéro de l'identifiant commun de l'entreprise : {{ v(p.ice, 20) }}</p>
+  <p>Relevé d'identité bancaire ({{ p.rib_type }}) numéro : {{ v(rib, 30) }}</p>
+  <p>En vertu des pouvoirs qui me sont conférés ;</p>
+
+  <h2>Déclare sur l'honneur :</h2>
+  <ol class="dec">
+    <li>que je remplis les conditions prévues à l'article 27 du décret relatif aux marchés publics ;</li>
+    <li>m'engager à couvrir, dans les conditions fixées dans le cahier des charges, par une police d'assurance, les risques découlant de mon activité professionnelle ;</li>
+    <li>m'engage, si j'envisage de recourir à la sous-traitance :
+      <br>– à veiller à ce que celle-ci ne dépasse pas cinquante pour cent (50%) du montant du marché et qu'elle ne porte pas sur le lot ou le corps d'état principal du marché ;
+      <br>– à m'assurer que les sous-traitants auxquels je recours remplissent les conditions prévues à l'article 27 du décret n° 2-22-431 du 8 mars 2023 ;</li>
+    <li>atteste que je dispose des autorisations requises pour l'exécution des prestations telles que prévues par la législation et la réglementation en vigueur ;</li>
+    <li>atteste que je ne suis pas en liquidation judiciaire ou redressement judiciaire ;</li>
+    <li>je m'engage à ne pas recourir par moi-même ou par personne interposée à des pratiques de fraude ou de corruption des personnes qui interviennent, à quelque titre que ce soit, dans les procédures de passation, de gestion et d'exécution du marché ;</li>
+    <li>je m'engage à ne pas faire, par moi-même ou par personne interposée, de promesses, de dons ou de présents, en vue d'influer sur la procédure de conclusion du marché et de son exécution ;</li>
+    <li>j'atteste que je ne suis pas en situation de conflit d'intérêts ;</li>
+    <li>j'atteste que je n'ai pas participé à la préparation du dossier de l'appel d'offres considéré.</li>
+  </ol>
+  <p>Je certifie l'exactitude des renseignements contenus dans la présente déclaration sur l'honneur et dans les pièces fournies dans mon dossier de candidature, sous peine de l'application des mesures coercitives prévues à l'article 152 du décret n° 2-22-431 du 8 mars 2023.</p>
+  <div class="sign"><div>Fait à {{ v(fait_a, 15) }}, le {{ v(date_doc, 15) }}<div class="cadre"></div>Signature et cachet du concurrent</div></div>
+  <p class="note">Modèle 9-1 de l'arrêté n° 1689-23 du 3 juillet 2023 (BO n° 7222 du 17/08/2023). Le paragraphe relatif au redressement judiciaire autorisé est supprimé, le concurrent n'étant pas dans ce cas ; en cas de groupement, chaque membre présente sa propre déclaration. Vérifiez que le règlement de consultation de ce marché n'exige pas d'autre mention.</p>
+
+{% elif piece == 'acte' %}
+  {# Modèle 1-1 #}
+  <h1>Acte d'engagement</h1>
+  <h2>A - Partie réservée à l'Administration</h2>
+  <p>– Appel d'offres {{ v(procedure, 25) }} n° {{ v(ref, 12) }} du <span class="vide">..................</span></p>
+  <p>Objet du marché : <span class="v">{{ t.objet }}</span>{% if t.region %}, {{ t.region }}{% endif %},
+    passé en application de l'alinéa <span class="vide">......</span> du paragraphe <span class="vide">......</span>, de l'article <span class="vide">......</span> du décret n° 2-22-431 du 8 mars 2023 relatif aux marchés publics.</p>
+
+  <h2>B - Partie réservée au concurrent agissant à titre individuel</h2>
+  {% if morale %}
+  <p><b>b) Pour les personnes morales :</b></p>
+  <p>Je soussigné {{ v(p.signataire) }} ({{ v(p.qualite, 15) }}) agissant au nom et pour le compte de {{ v(p.raison_sociale) }}{% if p.forme_juridique %} ({{ p.forme_juridique }}){% endif %}, au capital social de {{ v(p.capital, 15) }}{% if p.capital %} dirhams{% endif %}.</p>
+  <p>Adresse du siège social de la société : {{ v(p.adresse_siege, 50) }}</p>
+  {% else %}
+  <p><b>a) Pour les personnes physiques :</b></p>
+  <p>Je soussigné {{ v(p.signataire) }} ({{ v(p.qualite, 15) }}), agissant en mon nom personnel et pour mon propre compte,</p>
+  {% endif %}
+  <p>Adresse du domicile élu : {{ v(p.domicile_elu or p.adresse_siege, 50) }}</p>
+  {% if p.statut != 'auto_entrepreneur' %}
+  <p>Affilié{{ 'e' if morale else '' }} à la CNSS sous le numéro : {{ v(p.cnss, 20) }}</p>
+  <p>Inscrit{{ 'e' if morale else '' }} au registre du commerce de {{ v(p.rc_ville, 15) }} sous le numéro : {{ v(p.rc, 20) }}</p>
+  <p>Inscrite à la taxe professionnelle sous le numéro : {{ v(p.tp, 20) }}</p>
+  {% endif %}
+  <p>Numéro de l'identifiant commun de l'entreprise : {{ v(p.ice, 20) }}</p>
+  <p>En vertu des pouvoirs qui me sont conférés ;</p>
+
+  <h2>D - Partie commune à tous les concurrents</h2>
+  <p>Après avoir pris connaissance du dossier d'appel d'offres concernant les prestations précisées en objet de la partie A ci-dessus.</p>
+  <p>Après avoir apprécié à mon point de vue et sous ma responsabilité la nature et les difficultés que comportent ces prestations :</p>
+  <p>1) remets, revêtu de ma signature, un bordereau de prix et un détail estimatif établis conformément aux modèles figurant au dossier d'appel d'offres ;</p>
+  {% if rabais %}
+  <p>2) m'engage à exécuter lesdites prestations conformément au cahier des prescriptions spéciales, moyennant un rabais (ou une majoration) de {{ v(d.rabais, 10) }} (en pourcentage), sur le bordereau des prix-détail estimatif :</p>
+  <div class="montants">
+    <p>– Montant estimé toutes taxes comprises : <span class="vide">........................................</span> (en lettres et en chiffres)</p>
+    <p>– Taux du rabais ou majoration : {{ v(d.rabais, 10) }} (en pourcentage)</p>
+    <p>– Montant total toutes taxes comprises après rabais ou majoration : <span class="vide">........................................</span> (en lettres et en chiffres)</p>
+  </div>
+  {% else %}
+  <p>2) m'engage à exécuter lesdites prestations conformément au cahier des prescriptions spéciales et moyennant les prix que j'ai établis moi-même, lesquels font ressortir :</p>
+  <div class="montants">
+  {% if tot.complet %}
+    <p>– Montant hors TVA : <span class="v">{{ lettres(tot.ht)|capitalize }} ({{ chiffres(tot.ht) }} DH)</span></p>
+    <p>– Taux de la TVA : <span class="v">{{ tot.tva|int }} %</span></p>
+    <p>– Montant de la TVA : <span class="v">{{ lettres(tot.montant_tva)|capitalize }} ({{ chiffres(tot.montant_tva) }} DH)</span></p>
+    <p>– Montant TVA comprise : <span class="v">{{ lettres(tot.ttc)|capitalize }} ({{ chiffres(tot.ttc) }} DH)</span></p>
+  {% else %}
+    <p>– Montant hors TVA : <span class="vide">........................................</span> (en lettres et en chiffres)</p>
+    <p>– Taux de la TVA : <span class="vide">..........</span> (en pourcentage)</p>
+    <p>– Montant de la TVA : <span class="vide">........................................</span> (en lettres et en chiffres)</p>
+    <p>– Montant TVA comprise : <span class="vide">........................................</span> (en lettres et en chiffres)</p>
+  {% endif %}
+  </div>
+  {% endif %}
+  <p>Se libère <span class="vide">....................</span> (l'Etat ou la collectivité territoriale ou l'établissement public ou la personne morale de droit public) des sommes dues par lui en faisant donner crédit au compte {{ p.rib_type }} ouvert au nom de {{ v(p.raison_sociale or p.signataire) }} à {{ v(p.rib_ville, 15) }} sous le relevé d'identification bancaire numéro {{ v(rib, 30) }}.</p>
+  <div class="sign"><div>Fait à {{ v(fait_a, 15) }}, le {{ v(date_doc, 15) }}<div class="cadre"></div>Signature et cachet du concurrent</div></div>
+  <p class="note">Modèle 1-1 de l'arrêté n° 1689-23 du 3 juillet 2023 (BO n° 7222 du 17/08/2023). La partie A est celle de l'Administration : reportez-y les références du règlement de consultation. Marché alloti : un acte d'engagement par lot, chacun dans une enveloppe portant « Lot n°… ». Groupement : utilisez la partie C du modèle.</p>
+
+{% else %}
+  {# Modèle 5 #}
+  <h1>Bordereau des prix-détail estimatif</h1>
+  <p style="text-align:center">relatif à l'appel d'offres {{ procedure }}{% if ref %} n° <span class="v">{{ ref }}</span>{% endif %}</p>
+  <p>Objet : <span class="v">{{ t.objet }}</span></p>
+  <p>Concurrent : <span class="v">{{ p.raison_sociale or p.signataire }}</span></p>
+  <table class="bp">
+    <thead>
+      <tr><th>N° du poste</th><th>Désignation des prestations</th><th>Unité de mesure ou de compte</th><th>Quantité</th><th>Prix unitaire en dirhams (hors TVA) en chiffres</th><th>Total (en chiffres)</th></tr>
+      <tr><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6 = 4 × 5</th></tr>
+    </thead>
+    <tbody>
+    {% for l in d.lignes %}
+      <tr><td>{{ l.n }}</td><td>{{ l.designation }}</td><td>{{ l.unite }}</td>
+        <td class="n">{{ chiffres(l.quantite)|replace(',00', '') if l.quantite else '' }}</td>
+        <td class="n">{{ chiffres(l.pu) if l.pu else '' }}</td>
+        <td class="n">{{ chiffres(l.total) if l.total else '' }}</td></tr>
+    {% else %}
+      {% for i in range(8) %}<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>{% endfor %}
+    {% endfor %}
+      <tr class="somme"><td colspan="5">Total hors TVA (a)</td><td class="n">{{ chiffres(tot.ht) if tot.ht else '' }}</td></tr>
+      <tr class="somme"><td colspan="5">Taux TVA ({{ tot.tva|int }} %) (b)</td><td class="n">{{ chiffres(tot.montant_tva) if tot.ht else '' }}</td></tr>
+      <tr class="somme"><td colspan="5">Total (a + b)</td><td class="n">{{ chiffres(tot.ttc) if tot.ht else '' }}</td></tr>
+    </tbody>
+  </table>
+  {% if tot.ht %}<p style="margin-top:10px">Arrêté le présent bordereau des prix-détail estimatif à la somme de : <span class="v">{{ lettres(tot.ttc) }} toutes taxes comprises</span>.</p>{% endif %}
+  <div class="sign"><div>Fait à {{ v(fait_a, 15) }}, le {{ v(date_doc, 15) }}<div class="cadre"></div>Signature et cachet du concurrent</div></div>
+  <p class="note">Modèle 5 de l'arrêté n° 1689-23 du 3 juillet 2023. Les numéros, désignations, unités et quantités doivent être ceux du bordereau du dossier d'appel d'offres, sans modification : vérifiez-les contre l'original avant de signer.</p>
+{% endif %}
+</div>
+</body>
+</html>

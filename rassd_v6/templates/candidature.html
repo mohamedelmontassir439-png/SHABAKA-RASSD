@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}{{ tr('cd_titre_court') }} — Maroc Entrepreneuriat{% endblock %}
+{% block body %}
+<style>
+.cd-hero { padding: 34px 0 20px; border-bottom: 1px solid var(--line); }
+.cd-objet { font-size: var(--f5); font-weight: 700; color: var(--text1); line-height: 1.35; margin-top: 10px; max-width: 70ch; }
+.cd-meta { color: var(--text3); font-size: var(--f2); margin-top: 6px; }
+.cd-msg { margin-top: 16px; padding: 12px 16px; border-radius: var(--r2); font-size: var(--f3); font-weight: 600; display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.cd-msg.ok { background: var(--grna); color: var(--grn); }
+.cd-msg.att { background: var(--ambera); color: var(--amberd); }
+.cd-titre { font-size: var(--f2); font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--amberd); margin: 28px 0 10px; scroll-margin-top: 90px; }
+.cd-grille { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.cd-groupe { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 14px 16px; }
+.cd-groupe h3 { font-size: var(--f3); margin: 0 0 8px; color: var(--text1); }
+.cd-piece { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: var(--f3); color: var(--text1); }
+.cd-piece:last-child { border-bottom: none; }
+.cd-piece a { color: inherit; }
+.cd-etat { flex-shrink: 0; font-size: var(--f1); font-weight: 700; border-radius: var(--rp); padding: 3px 9px; white-space: nowrap; }
+.cd-etat.ok { background: var(--grna); color: var(--grn); }
+.cd-etat.a_faire { background: var(--ambera); color: var(--amberd); }
+.cd-etat.a_verifier { background: var(--surface2, rgba(0,0,0,.05)); color: var(--text2); }
+.cd-etat.sans_objet { background: transparent; color: var(--text4); }
+.cd-note { color: var(--text3); font-size: var(--f2); margin-top: 8px; }
+.cd-docs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.cd-doc { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; }
+.cd-doc b { color: var(--text1); font-size: var(--f4); }
+.cd-doc span { color: var(--text3); font-size: var(--f2); line-height: 1.5; flex: 1; }
+.cd-bord { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 16px; }
+.cd-table { width: 100%; border-collapse: collapse; min-width: 720px; }
+.cd-table th { font-size: var(--f1); text-transform: uppercase; letter-spacing: .04em; color: var(--text3); text-align: start; padding: 6px 6px; border-bottom: 1px solid var(--line); }
+.cd-table td { padding: 5px 6px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.cd-table input { width: 100%; padding: 7px 8px; border: 1px solid var(--line); border-radius: var(--r1); background: var(--surface); font: inherit; font-size: var(--f2); color: var(--text1); }
+.cd-table input:focus-visible { outline: 2px solid var(--purple); outline-offset: 0; }
+.cd-table .num { text-align: end; font-variant-numeric: tabular-nums; }
+.cd-table td.tot { text-align: end; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; padding-top: 12px; font-size: var(--f2); }
+.cd-pied { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; justify-content: space-between; margin-top: 14px; }
+.cd-pied label { display: flex; flex-direction: column; gap: 5px; font-size: var(--f2); font-weight: 600; color: var(--text2); }
+.cd-pied select, .cd-pied input { padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--r1); background: var(--surface); font: inherit; }
+.cd-sommes { font-variant-numeric: tabular-nums; font-size: var(--f3); color: var(--text2); display: grid; grid-template-columns: auto auto; gap: 4px 18px; }
+.cd-sommes b { color: var(--text1); text-align: end; }
+.cd-vide { color: var(--text3); font-size: var(--f3); padding: 8px 0 12px; }
+@media (max-width: 900px) { .cd-grille, .cd-docs { grid-template-columns: 1fr; } }
+</style>
+
+<div class="container" style="padding-bottom:70px">
+  <section class="cd-hero">
+    <a href="/tenders/{{ t.id }}" style="font-size:var(--f2);color:var(--text3)">{{ '→' if dir == 'rtl' else '←' }} {{ tr('cd_retour') }}</a>
+    <div class="section-label" style="margin-top:12px">{{ tr('cd_label') }}</div>
+    <div class="cd-objet">{{ t.objet }}</div>
+    <div class="cd-meta">{% if ref %}{{ tr('cd_ref') }} <bdi dir="ltr">{{ ref }}</bdi> · {% endif %}{{ acheteur(t.acheteur) or '' }}{% if t.date_limite %} · {{ tr('detail_deadline') }} <bdi dir="ltr">{{ t.date_limite }}</bdi>{% endif %}</div>
+    {% if ok %}<div class="cd-msg ok">✓ {{ tr('cd_enregistre') }}</div>{% endif %}
+    {% if manquants %}<div class="cd-msg att"><span>{{ tr('cd_fiche_incomplete', n=manquants|length) }}</span>
+      <a class="btn btn-primary btn-sm" href="/entreprise/fiche?next=/tenders/{{ t.id }}/candidature">{{ tr('cd_completer') }}</a></div>
+    {% else %}<p class="cd-meta" style="margin-top:12px">{{ tr('cd_fiche_ok', nom=p.raison_sociale or p.signataire) }} · <a href="/entreprise/fiche?next=/tenders/{{ t.id }}/candidature">{{ tr('cd_modifier') }}</a></p>{% endif %}
+  </section>
+
+  <h2 class="cd-titre">{{ tr('cd_pieces') }}</h2>
+  <div class="cd-grille">
+    {% for g in pieces %}
+    <div class="cd-groupe">
+      <h3>{{ tr('cd_g_' ~ g.groupe) }}</h3>
+      {% for x in g.pieces %}
+      <div class="cd-piece">
+        {% if x.lien and x.lien != 'doc' %}<a href="{{ x.lien }}">{{ tr('cd_p_' ~ x.cle) }}</a>{% else %}<span>{{ tr('cd_p_' ~ x.cle) }}</span>{% endif %}
+        <span class="cd-etat {{ x.etat }}">{{ tr('cd_e_' ~ x.etat) }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+  <p class="cd-note">{{ tr('cd_note_rc') }}</p>
+
+  <h2 class="cd-titre">{{ tr('cd_docs') }}</h2>
+  <div class="cd-docs">
+    {% for doc in ('declaration', 'acte', 'bordereau') %}
+    <div class="cd-doc">
+      <b>{{ tr('cd_d_' ~ doc) }}</b>
+      <span>{{ tr('cd_d_' ~ doc ~ '_aide') }}</span>
+      <a class="btn btn-outline btn-sm" href="/tenders/{{ t.id }}/candidature/{{ doc }}" target="_blank" rel="noopener">{{ tr('cd_ouvrir') }}</a>
+    </div>
+    {% endfor %}
+  </div>
+
+  <h2 class="cd-titre" id="bordereau">{{ tr('cd_d_bordereau') }}</h2>
+  <form method="post" action="/tenders/{{ t.id }}/candidature" class="cd-bord" id="cd-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    {% if not d.lignes %}<p class="cd-vide">{{ tr('cd_bord_vide') }} <a href="/tenders/{{ t.id }}#analyse">{{ tr('cd_bord_analyser') }}</a></p>{% endif %}
+    <div style="overflow-x:auto">
+    <table class="cd-table">
+      <thead><tr><th style="width:70px">{{ tr('cd_c_n') }}</th><th>{{ tr('cd_c_des') }}</th><th style="width:80px">{{ tr('cd_c_u') }}</th><th style="width:100px">{{ tr('cd_c_q') }}</th><th style="width:120px">{{ tr('cd_c_pu') }}</th><th style="width:130px">{{ tr('cd_c_total') }}</th></tr></thead>
+      <tbody id="cd-lignes">
+      {% for l in (d.lignes or [{'n': '1', 'designation': '', 'unite': '', 'quantite': 0, 'pu': 0}]) %}
+      <tr>
+        <td><input name="n_{{ loop.index0 }}" value="{{ l.n }}" dir="ltr"></td>
+        <td><input name="des_{{ loop.index0 }}" value="{{ l.designation }}"></td>
+        <td><input name="u_{{ loop.index0 }}" value="{{ l.unite }}" dir="ltr"></td>
+        <td><input class="num q" name="q_{{ loop.index0 }}" value="{{ l.quantite|round(2) if l.quantite else '' }}" inputmode="decimal" dir="ltr"></td>
+        <td><input class="num pu" name="pu_{{ loop.index0 }}" value="{{ l.pu|round(2) if l.pu else '' }}" inputmode="decimal" dir="ltr"></td>
+        <td class="tot" dir="ltr">—</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    <button type="button" class="btn btn-outline btn-sm" id="cd-ajout" style="margin-top:10px">+ {{ tr('cd_ajout') }}</button>
+    <div class="cd-pied">
+      <div style="display:flex;gap:14px;flex-wrap:wrap">
+        <label>{{ tr('cd_tva') }}
+          <select name="tva" id="cd-tva">{% for v in (20, 14, 10, 7, 0) %}<option value="{{ v }}" {{ 'selected' if d.tva|float == v else '' }}>{{ v }} %</option>{% endfor %}</select></label>
+        {% if rabais %}<label>{{ tr('cd_rabais') }}<input name="rabais" value="{{ d.rabais }}" placeholder="-5 %" dir="ltr" style="width:110px"></label>{% endif %}
+        <label>{{ tr('cd_date') }}<input name="date" value="{{ d.date or '' }}" placeholder="jj/mm/aaaa" dir="ltr" style="width:130px"></label>
+      </div>
+      <div class="cd-sommes" dir="ltr">
+        <span>{{ tr('cd_ht') }}</span><b id="s-ht">—</b>
+        <span>{{ tr('cd_mtva') }}</span><b id="s-tva">—</b>
+        <span>{{ tr('cd_ttc') }}</span><b id="s-ttc">—</b>
+      </div>
+    </div>
+    <div style="margin-top:14px"><button class="btn btn-primary" type="submit">{{ tr('cd_enregistrer') }}</button></div>
+  </form>
+</div>
+
+<script>
+(function () {
+  var corps = document.getElementById('cd-lignes'), tva = document.getElementById('cd-tva');
+  function nb(v) {
+    v = String(v || '').replace(/\s/g, '');
+    var m = v.match(/^(.*?)[.,](\d{1,2})$/);
+    var e = (m ? m[1] : v).replace(/\D/g, '');
+    return parseFloat((e || '0') + (m ? '.' + m[2] : '')) || 0;
+  }
+  function fmt(x) { return x.toLocaleString('fr-FR', {minimumFractionDigits: 2, maximumFractionDigits: 2}); }
+  function calc() {
+    var ht = 0;
+    corps.querySelectorAll('tr').forEach(function (tr) {
+      var q = nb(tr.querySelector('.q').value), pu = nb(tr.querySelector('.pu').value), t = Math.round(q * pu * 100) / 100;
+      tr.querySelector('.tot').textContent = t ? fmt(t) : '—'; ht += t;
+    });
+    var tx = parseFloat(tva.value) || 0, mt = Math.round(ht * tx) / 100;
+    document.getElementById('s-ht').textContent = fmt(ht);
+    document.getElementById('s-tva').textContent = fmt(mt);
+    document.getElementById('s-ttc').textContent = fmt(ht + mt);
+  }
+  corps.addEventListener('input', calc); tva.addEventListener('change', calc);
+  document.getElementById('cd-ajout').addEventListener('click', function () {
+    var i = corps.querySelectorAll('tr').length, tr = corps.querySelector('tr').cloneNode(true);
+    tr.querySelectorAll('input').forEach(function (inp) { inp.name = inp.name.replace(/_\d+$/, '_' + i); inp.value = ''; });
+    tr.querySelector('input').value = String(i + 1);
+    corps.appendChild(tr); calc(); tr.querySelectorAll('input')[1].focus();
+  });
+  calc();
+})();
+</script>
+{% endblock %}

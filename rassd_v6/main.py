@@ -1797,6 +1797,126 @@ async def acheteur_page(req: Request, slug: str):
     return render(req, "acheteur.html", {"p": p})
 
 
+# ══════════════════════════════════════════════════════════
+# DOSSIER DE CANDIDATURE (app/services/candidature.py)
+# ══════════════════════════════════════════════════════════
+@app.get("/entreprise/fiche", response_class=HTMLResponse)
+async def fiche_entreprise(req: Request, next: str = "", ok: str = ""):
+    """La fiche de l'entreprise qui remplit les pièces de candidature."""
+    member = get_member(req)
+    if not member: return RedirectResponse("/login?next=/entreprise/fiche", 302)
+    if not has_access(member): return RedirectResponse("/tarifs?locked=1", 302)
+    from app.services import candidature as cand
+    p = cand.profil(member["id"], member)
+    return render(req, "fiche_entreprise.html", {
+        "p": p, "champs": cand.CHAMPS, "statuts": cand.STATUTS, "rib_types": cand.RIB_TYPES,
+        "manquants": cand.manquants(p), "erreurs": [], "ok": ok,
+        "suite": next if next.startswith("/tenders/") else ""})
+
+
+@app.post("/entreprise/fiche", response_class=HTMLResponse)
+async def fiche_entreprise_post(req: Request):
+    member = get_member(req)
+    form = dict(await req.form())
+    csrf_guard(req, form.get("csrf_token", ""))
+    if not member: return RedirectResponse("/login?next=/entreprise/fiche", 302)
+    if not has_access(member): return RedirectResponse("/tarifs?locked=1", 302)
+    from app.services import candidature as cand
+    p = cand.nettoyer_profil(form)
+    erreurs = cand.erreurs_profil(p)
+    suite = form.get("suite", "")
+    suite = suite if suite.startswith("/tenders/") and "//" not in suite else ""
+    if erreurs:
+        return render(req, "fiche_entreprise.html", {
+            "p": p, "champs": cand.CHAMPS, "statuts": cand.STATUTS, "rib_types": cand.RIB_TYPES,
+            "manquants": cand.manquants(p), "erreurs": erreurs, "ok": "", "suite": suite}, status_code=400)
+    cand.enregistrer_profil(member["id"], p)
+    return RedirectResponse(suite or "/entreprise/fiche?ok=1", 303)
+
+
+def _marche_pour_candidature(req: Request, tid: str):
+    """(membre, marché) ou la réponse à renvoyer: mêmes règles que la fiche."""
+    m0 = get_member(req)
+    if not m0:
+        return None, None, RedirectResponse(f"/login?next=/tenders/{tid}/candidature", 302)
+    if not has_access(m0):
+        return None, None, RedirectResponse("/tarifs?locked=1", 302)
+    db = get_db()
+    try:
+        t = db.execute("SELECT * FROM tenders WHERE id=?", (tid,)).fetchone()
+        siens = mes_secteurs(m0)
+        if t and siens and (t["secteur"] or "") not in siens and not db.execute(
+                "SELECT 1 FROM favorites WHERE member_id=? AND tender_id=?", (m0["id"], tid)).fetchone():
+            t = None
+    finally:
+        db.close()
+    if not t:
+        return None, None, render(req, "404.html", {}, status_code=404)
+    return m0, dict(t), None
+
+
+def _lignes_initiales(m0: dict, tid: str, d: dict) -> list:
+    if d.get("lignes"):
+        return d["lignes"]
+    from app.services.candidature import nombre
+    a = _derniere_analyse(m0["id"], tid)
+    lus = (a or {}).get("resultat", {}).get("bordereau") or []
+    return [{"n": l.get("n", ""), "designation": l.get("designation", ""), "unite": l.get("unite", ""),
+             "quantite": nombre(l.get("quantite")), "pu": 0.0} for l in lus]
+
+
+@app.get("/tenders/{tid}/candidature", response_class=HTMLResponse)
+async def candidature_page(req: Request, tid: str, ok: str = ""):
+    m0, t, rep = _marche_pour_candidature(req, tid)
+    if rep: return rep
+    from app.services import candidature as cand
+    from app.services.coffre import pour_marche
+    p = cand.profil(m0["id"], m0)
+    d = cand.dossier(m0["id"], tid)
+    d["lignes"] = _lignes_initiales(m0, tid, d)
+    tot = cand.totaux(d["lignes"], d.get("tva", 20))
+    return render(req, "candidature.html", {
+        "t": t, "p": p, "d": d, "tot": tot, "manquants": cand.manquants(p),
+        "pieces": cand.pieces(t, pour_marche(m0["id"], t), d, p), "rabais": cand.mode_rabais(t),
+        "ref": cand.reference(t), "chiffres": cand.chiffres, "ok": ok})
+
+
+@app.post("/tenders/{tid}/candidature")
+async def candidature_post(req: Request, tid: str):
+    form = await req.form()
+    csrf_guard(req, form.get("csrf_token", ""))
+    m0, t, rep = _marche_pour_candidature(req, tid)
+    if rep: return rep
+    from app.services import candidature as cand
+    tva = cand.nombre(form.get("tva"))
+    d = {"lignes": cand.lignes_depuis_formulaire(form),
+         "tva": tva if tva in (0, 7, 10, 14, 20) else 20.0,
+         "rabais": (form.get("rabais") or "").strip()[:20],
+         "date": (form.get("date") or "").strip()[:20]}
+    cand.enregistrer_dossier(m0["id"], tid, d)
+    return RedirectResponse(f"/tenders/{tid}/candidature?ok=1#bordereau", 303)
+
+
+@app.get("/tenders/{tid}/candidature/{piece}", response_class=HTMLResponse)
+async def candidature_piece(req: Request, tid: str, piece: str):
+    """Une pièce prête à imprimer, signer et cacheter (modèles de l'arrêté 1689-23)."""
+    if piece not in ("declaration", "acte", "bordereau"):
+        return render(req, "404.html", {}, status_code=404)
+    m0, t, rep = _marche_pour_candidature(req, tid)
+    if rep: return rep
+    from app.services import candidature as cand
+    from app.core.conditions import conditions_avis
+    p = cand.profil(m0["id"], m0)
+    d = cand.dossier(m0["id"], tid)
+    d["lignes"] = _lignes_initiales(m0, tid, d)
+    tot = cand.totaux(d["lignes"], d.get("tva", 20))
+    return templates.TemplateResponse("piece_candidature.html", {
+        "request": req, "piece": piece, "t": t, "p": p, "d": d, "tot": tot,
+        "rabais": cand.mode_rabais(t), "ref": cand.reference(t),
+        "procedure": cand.procedure(t),
+        "chiffres": cand.chiffres, "lettres": cand.en_lettres})
+
+
 @app.get("/prix-materiaux", response_class=HTMLResponse)
 async def prix_materiaux_page(req: Request):
     """Fourchettes de prix des matériaux, sources et fabricants

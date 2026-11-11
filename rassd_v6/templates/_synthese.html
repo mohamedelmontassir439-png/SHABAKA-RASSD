@@ -31,7 +31,9 @@
       {% endfor %}
     </div>
     {% endif %}
-    {% if synthese.verdict not in ('non', 'clos') %}<a href="#suivi" class="btn btn-primary btn-sm">{{ tr('syn_suivre') }}</a>{% endif %}
+    {% if synthese.verdict not in ('non', 'clos') %}<span style="display:flex;gap:8px;flex-wrap:wrap">
+      <a href="/tenders/{{ t.id }}/candidature" class="btn btn-primary btn-sm">{{ tr('syn_dossier_cand') }}</a>
+      <a href="#suivi" class="btn btn-outline btn-sm">{{ tr('syn_suivre') }}</a></span>{% endif %}
   </div>
 </section>
 {% endif %}

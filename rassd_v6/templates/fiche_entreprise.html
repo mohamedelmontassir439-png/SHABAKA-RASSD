@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}{{ tr('fe_titre_court') }} — Maroc Entrepreneuriat{% endblock %}
+{% block body %}
+<style>
+.fe-hero { padding: 40px 0 22px; border-bottom: 1px solid var(--line); }
+.fe-lede { color: var(--text3); font-size: var(--f4); line-height: 1.65; max-width: 68ch; margin-top: 10px; }
+.fe-form { max-width: 860px; margin: 24px 0 70px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); padding: 22px; display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
+.fe-form label { display: flex; flex-direction: column; gap: 6px; font-size: var(--f2); font-weight: 600; color: var(--text2); }
+.fe-form input, .fe-form select { padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r1); background: var(--surface); font: inherit; color: var(--text1); }
+.fe-form input:focus-visible, .fe-form select:focus-visible { outline: 2px solid var(--purple); outline-offset: 1px; }
+.fe-form .large { grid-column: 1 / -1; }
+.fe-form .manque input, .fe-form .manque select { border-color: var(--amberd); }
+.fe-form .faux input { border-color: var(--red); }
+.fe-form small { font-weight: 500; color: var(--text3); }
+.fe-form .faux small { color: var(--red); }
+.fe-msg { margin-top: 18px; padding: 12px 16px; border-radius: var(--r2); font-weight: 600; font-size: var(--f3); max-width: 860px; }
+.fe-msg.ok { background: var(--grna); color: var(--grn); }
+.fe-msg.att { background: var(--ambera); color: var(--amberd); }
+.fe-msg.err { background: var(--reda); color: var(--red); }
+.fe-actions { grid-column: 1 / -1; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+@media (max-width: 700px) { .fe-form { grid-template-columns: 1fr; padding: 16px; } }
+</style>
+<div class="container">
+  <section class="fe-hero">
+    <div class="section-label">{{ tr('fe_label') }}</div>
+    <h1 class="display-l">{{ tr('fe_titre')|safe }}</h1>
+    <p class="fe-lede">{{ tr('fe_lede') }}</p>
+    {% if ok %}<div class="fe-msg ok">✓ {{ tr('fe_ok') }}</div>
+    {% elif erreurs %}<div class="fe-msg err">{{ tr('fe_erreurs') }}</div>
+    {% elif manquants %}<div class="fe-msg att">{{ tr('fe_manquants', n=manquants|length) }}</div>{% endif %}
+  </section>
+
+  <form method="post" action="/entreprise/fiche" class="fe-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="suite" value="{{ suite }}">
+    {% for cle, lfr, lar, obl in champs %}
+    {% set cls = 'faux' if cle in erreurs else ('manque' if cle in manquants else '') %}
+    <label class="{{ cls }} {{ 'large' if cle in ('adresse_siege', 'domicile_elu', 'raison_sociale') else '' }}">
+      <span>{{ lar if lang == 'ar' else lfr }}{% if obl %} *{% endif %}</span>
+      {% if cle == 'statut' %}
+      <select name="statut">{% for s in statuts %}<option value="{{ s }}" {{ 'selected' if p.statut == s else '' }}>{{ tr('fe_statut_' ~ s) }}</option>{% endfor %}</select>
+      {% elif cle == 'rib_type' %}
+      <select name="rib_type">{% for s in rib_types %}<option value="{{ s }}" {{ 'selected' if p.rib_type == s else '' }}>{{ tr('fe_rib_' ~ s) }}</option>{% endfor %}</select>
+      {% else %}
+      <input name="{{ cle }}" value="{{ p[cle] or '' }}" {% if cle in ('rib', 'ice', 'cnss', 'rc', 'tp', 'capital', 'telephone', 'fax', 'email') %}dir="ltr"{% endif %}
+             {% if cle == 'email' %}type="email"{% elif cle in ('rib', 'ice') %}inputmode="numeric"{% endif %}>
+      {% endif %}
+      {% if cle == 'rib' %}<small>{{ tr('fe_rib_aide') }}</small>{% elif cle == 'ice' %}<small>{{ tr('fe_ice_aide') }}</small>{% endif %}
+    </label>
+    {% endfor %}
+    <div class="fe-actions">
+      <button class="btn btn-primary" type="submit">{{ tr('fe_enregistrer') }}</button>
+      {% if suite %}<a href="{{ suite }}">{{ tr('fe_retour') }}</a>{% endif %}
+    </div>
+  </form>
+</div>
+{% endblock %}
