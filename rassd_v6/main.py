@@ -1476,6 +1476,7 @@ def _vitrine(db, n: int = 8) -> list:
     lignes = db.execute(
         f"""SELECT id,objet,acheteur,type_offre,secteur,region,date_limite FROM tenders
             WHERE statut='actif' AND acheteur!='' AND length(objet)>=25
+              AND COALESCE(type_procedure,'marche')!='bon_commande'
               AND {DATE_LIMITE_ISO} >= ?
             ORDER BY (source='marchespublics') DESC, scraped_at DESC LIMIT 200""",
         (date.today().isoformat(),)).fetchall()
