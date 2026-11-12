@@ -185,7 +185,7 @@ def cycle(c: dict):
         log(f"  ⚠ erreur appels d'offres: {e!r}")
 
 
-def completer_fiches(c: dict, maximum: int = 200):
+def completer_fiches(c: dict, maximum: int = 400):
     """Relit sur le portail les fiches que le site signale incomplètes."""
     from app.services import ao_scraper
     from app.services.scraper import PortailSuspendu, verifier_ouverture

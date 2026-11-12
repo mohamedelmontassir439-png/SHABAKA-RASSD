@@ -8,9 +8,6 @@ from app.core.sectors import get_label
 
 logger = logging.getLogger("atlas.whatsapp")
 
-def _headers():
-    return {"x-wa-token": cfg.WA_SECRET, "Content-Type": "application/json"}
-
 def wa_connected() -> bool:
     """Vérifie si le service WhatsApp local est connecté."""
     try:
@@ -131,22 +128,8 @@ def send_wa(phone: str, message: str) -> bool:
     if not phone or not phone.strip(): return False
     if twilio_configured():
         return send_wa_twilio(phone, message)
-    p = normalize_ma_phone(phone)
-    if not p:
-        logger.warning(f"[WA] Numéro invalide: {phone}")
-        return False
-    try:
-        r = requests.post(f"{cfg.WA_SERVICE_URL}/send", json={"phone": p, "message": message},
-                         headers=_headers(), timeout=10)
-        data = r.json()
-        if data.get("ok"):
-            logger.info(f"[WA] ✅ Message envoyé → {phone}")
-            return True
-        logger.warning(f"[WA] ⚠ {data.get('msg')}")
-        return False
-    except Exception as e:
-        logger.error(f"[WA] ❌ {e}")
-        return False
+    logger.info("[WA] aucun expéditeur configuré (Twilio): message non envoyé")
+    return False
 
 def format_tender_wa(tender: dict) -> str:
     """Format un marché pour WhatsApp"""

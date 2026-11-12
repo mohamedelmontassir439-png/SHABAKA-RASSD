@@ -56,8 +56,8 @@
           <div class="fld">
             <label>Offre</label>
             <select name="plan" class="sel">
-              {% for key, p in cfg.PLANS.items() %}{% if key != 'free' %}
-              <option value="{{ key }}" {% if key=='monthly' %}selected{% endif %}>{{ p.name }} — {{ p.price }} MAD / {{ p.period }}</option>
+              {% for key, p in cfg.PLANS.items() %}{% if p.get('public') %}
+              <option value="{{ key }}" selected>{{ p.name }} — {{ p.price }} MAD / {{ p.period }}</option>
               {% endif %}{% endfor %}
             </select>
           </div>

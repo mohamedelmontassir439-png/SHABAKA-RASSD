@@ -38,7 +38,8 @@ CONTEXTE_MAX = 400
 
 
 def disponible() -> bool:
-    return bool(os.getenv("ANTHROPIC_API_KEY"))
+    """Une clé d'API, et le choix explicite de payer ces appels (CLASSEMENT_IA=1)."""
+    return bool(os.getenv("ANTHROPIC_API_KEY")) and cfg.CLASSEMENT_IA
 
 
 def _consignes() -> str:

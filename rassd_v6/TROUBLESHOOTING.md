@@ -126,25 +126,10 @@ curl -I https://www.marchespublics.gov.ma
 
 ### 8. WhatsApp لا يعمل
 
-WhatsApp يتطلّب تشغيل خدمة Node.js منفصلة (`whatsapp_service/`) — تطبيق Python الرئيسي لا يشغّلها تلقائياً.
-
-**محلياً:**
-```bash
-cd whatsapp_service
-npm install
-npm start
-# افتح http://localhost:3001/qr وامسح الـ QR من هاتفك (WhatsApp → الأجهزة المرتبطة)
-```
-
-**على Railway (كخدمة ثانية منفصلة في نفس المشروع):**
-1. فـ Railway Dashboard → مشروع ATLAS PRO → **+ New** → **GitHub Repo** (نفس المستودع)
-2. فـ إعدادات الخدمة الجديدة → **Settings → Root Directory** → `whatsapp_service`
-3. زيد Volume مربوط بـ `/app/auth_info` (باش الجلسة ماتضيعش عند كل redeploy — بحال ما ديرنا مع SQLite)
-4. زيد المتغيرات: `WA_SECRET` (نفس القيمة اللي حطيتيها فخدمة Python)، و`WA_PORT` اختياري
-5. بعد أول deploy، افتح `<url-diال-khidma>/qr` وامسح الـ QR من هاتفك — مرة وحدة فقط، الجلسة كتبقى محفوظة فـ Volume
-6. فخدمة Python الرئيسية، زيد المتغير `WA_SERVICE_URL` بعنوان الخدمة الثانية الداخلي (Railway كيعطيك رابط `.railway.internal` بين الخدمات فنفس المشروع)
-
-**مهم:** الحساب اللي كتربطو بـ QR هو حساب WhatsApp حقيقي (رقم هاتف) خاص يبقى مفتوح/متصل بالأنترنت من وقت لآخر — بحال أي "WhatsApp Web" آخر.
+قناة واتساب معطّلة في الإنتاج (`WA_ENABLED=0`) حتى يُعتمد مرسل رسمي عبر Twilio/Meta.
+خدمة Baileys القديمة (`whatsapp_service/`) أُزيلت في 12/11/2026: كانت تربط حساب واتساب
+شخصياً بسكربت، وهذا مخالف لشروط واتساب. لتفعيل القناة: متغيرات `TWILIO_ACCOUNT_SID`،
+`TWILIO_AUTH_TOKEN`، `TWILIO_WHATSAPP_FROM` ثم `WA_ENABLED=1`.
 
 ---
 

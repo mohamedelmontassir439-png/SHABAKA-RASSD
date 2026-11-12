@@ -80,9 +80,8 @@ atlas-pro/
 │       ├── scraper.py         # Scraper مصدر رئيسي
 │       ├── multi_scraper.py   # مصادر ثانوية
 │       ├── notifications.py   # Email + Telegram + WhatsApp
-│       └── whatsapp.py        # WhatsApp عبر Baileys
+│       └── whatsapp.py        # WhatsApp عبر Twilio (معطّل حتى يُعتمد مرسل رسمي)
 ├── templates/                 # 14 template Jinja2
-├── whatsapp_service/          # خدمة Node.js للـ WhatsApp
 ├── .env.example               # قالب المتغيرات
 ├── .gitignore
 ├── requirements.txt

@@ -37,6 +37,7 @@ from app.core import marque
 from app.core import organismes
 from app.core.i18n import get_lang, make_t, SUPPORTED_LANGS, tr as tr_
 from app.services.notifications import dispatch_notifications, envoyer_apercu, tg_admin
+from app.services import visites
 
 # Les sources secondaires (ONDA, ONEE, ONCF, IAM, SNRT, Le Matin, banques)
 # ont été retirées: deux bloquent les robots, les autres ne renvoyaient plus
@@ -766,24 +767,6 @@ async def renewal_scheduler():
         await asyncio.sleep(12 * 3600)
 
 
-async def trial_sequence_scheduler():
-    """Accompagne les essais gratuits: une vérification toutes les 6 heures.
-
-    send_trial_sequence() est idempotent (members.trial_seq), donc plusieurs
-    passages le même jour n'envoient jamais deux fois la même étape.
-    """
-    from app.services.notifications import send_trial_sequence
-    await asyncio.sleep(180)
-    while True:
-        try:
-            loop = asyncio.get_event_loop()
-            n = await loop.run_in_executor(None, send_trial_sequence)
-            if n: logger.info(f"[essai] {n} email(s) d'accompagnement")
-        except Exception as e:
-            logger.error(f"[trial_sequence_scheduler] {e}")
-        await asyncio.sleep(6 * 3600)
-
-
 BACKUP_DIR  = "data/backups"
 BACKUP_KEEP = 14
 
@@ -971,7 +954,7 @@ class PorteAdminMiddleware(BaseHTTPMiddleware):
                 logger.info(f"[porte admin] accès refusé à {chemin} depuis {get_ip(req)}")
                 # 404 et non 403: un « accès refusé » confirmerait au visiteur
                 # que l'administration se trouve bien à cette adresse.
-                return templates.TemplateResponse("404.html", {"request": req, "cfg": cfg,
+                return templates.TemplateResponse(req, "404.html", {"request": req, "cfg": cfg,
                                                                "tr": make_t(get_lang(req)),
                                                                "lang": get_lang(req),
                                                                "dir": "rtl" if get_lang(req) == "ar" else "ltr",
@@ -1069,13 +1052,10 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"[reports] {e}")
     State.log(f"MAROC ENTREPRENEURIAT v{cfg.APP_VERSION}")
-    if cfg.WA_SECRET == "atlas_wa_secret_2024":
-        logger.warning("[startup] WA_SECRET utilise sa valeur par défaut — configure-la dans les variables d'environnement Railway.")
     asyncio.create_task(scheduler())
     asyncio.create_task(digest_scheduler())
     asyncio.create_task(backup_scheduler())
     asyncio.create_task(wa_digest_scheduler())
-    asyncio.create_task(trial_sequence_scheduler())
     asyncio.create_task(supervision_scheduler())
     asyncio.create_task(renewal_scheduler())
     asyncio.create_task(daily_digest_scheduler())
@@ -1085,10 +1065,65 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(classement_ia_scheduler())
     yield
 
+class MasqueMiddleware(BaseHTTPMiddleware):
+    """Les fonctions retirées de l'offre répondent 404, comme si elles
+    n'existaient pas.
+
+    La place de marché de sous-traitance, les groupements, les demandes de
+    financement, les documents et l'API publique n'ont jamais servi: leurs
+    tables sont restées vides. Les montrer à un visiteur, c'est lui montrer
+    une salle vide. Le code reste; cfg.FONCTIONS_MASQUEES dit ce qui est
+    fermé, et un seul réglage rouvre une fonction le jour où elle a un
+    public. L'administration garde ses pages (/admin/...).
+    """
+    async def dispatch(self, req, call_next):
+        chemin = req.url.path
+        for prefixe in cfg.prefixes_masques():
+            if chemin == prefixe or chemin.startswith(prefixe + "/"):
+                return render(req, "404.html", {}, status_code=404)
+        return await call_next(req)
+
+
+class VisitesMiddleware(BaseHTTPMiddleware):
+    """Compte les pages vues par des personnes (app/services/visites.py)."""
+    async def dispatch(self, req, call_next):
+        resp = await call_next(req)
+        try:
+            chemin = req.url.path
+            if (req.method == "GET" and resp.status_code == 200
+                    and "text/html" in (resp.headers.get("content-type") or "")
+                    and not chemin.startswith(visites.IGNORER)
+                    and not visites.robot(req.headers.get("user-agent", ""))):
+                jour = date.today().isoformat()
+                visiteur = visites.empreinte(get_ip(req), req.headers.get("user-agent", ""), jour)
+                referent = visites.referent_externe(req.headers.get("referer", ""), req.headers.get("host", ""))
+                canal = (req.cookies.get(canaux.COOKIE) or "").split("|", 1)[0]
+                membre = 1 if req.cookies.get("_session") else 0
+                loop = asyncio.get_event_loop()
+                await loop.run_in_executor(None, lambda: visites.enregistrer(chemin, visiteur, referent, canal, membre))
+        except Exception as e:
+            logger.warning(f"[visites] {e}")
+        return resp
+
+
+def _evenement_visite(req: Request, nom: str, chemin: str = "", membre: int = 0) -> None:
+    """Un événement qui compte (inscription, clic WhatsApp), rattaché au
+    même visiteur du jour que ses pages vues."""
+    try:
+        jour = date.today().isoformat()
+        visiteur = visites.empreinte(get_ip(req), req.headers.get("user-agent", ""), jour)
+        canal = (req.cookies.get(canaux.COOKIE) or "").split("|", 1)[0]
+        visites.enregistrer(chemin or req.url.path, visiteur, "", canal, membre, nom)
+    except Exception as e:
+        logger.warning(f"[visites] {e}")
+
+
 app = FastAPI(lifespan=lifespan, title=cfg.APP_NAME,
               version=cfg.APP_VERSION, docs_url=None, redoc_url=None)
 app.add_middleware(SecurityMiddleware)
+app.add_middleware(VisitesMiddleware)
 app.add_middleware(SourceMiddleware)
+app.add_middleware(MasqueMiddleware)
 app.add_middleware(VerificationEmailMiddleware)
 app.add_middleware(DomaineCanoniqueMiddleware)
 app.add_middleware(PorteAdminMiddleware)
@@ -1120,7 +1155,7 @@ async def server_error(req: Request, exc):
     logger.error(f"[500] {req.url}: {exc}")
     return HTMLResponse(_server_error_html(), 500)
 
-def _client_parti(exc: Exception) -> bool:
+def _client_parti(exc: Exception, vus: set | None = None) -> bool:
     """L'exception vient-elle d'un visiteur qui a coupé la connexion ?
 
     Quand un onglet se ferme pendant l'envoi de la réponse, Starlette remonte
@@ -1133,9 +1168,17 @@ def _client_parti(exc: Exception) -> bool:
     `ExceptionGroup`: on regarde dans le groupe. Relevé du 26/10/2026: toutes
     les « erreurs » des 7 derniers jours étaient de cette sorte.
     """
+    # Les chaînes __context__ peuvent boucler (a -> b -> a): sans mémoire des
+    # exceptions déjà vues, la fonction récursait jusqu'à l'épuisement de la
+    # pile — constaté avec Starlette 1.x sur une page en erreur.
+    if vus is None:
+        vus = set()
+    if id(exc) in vus:
+        return False
+    vus.add(id(exc))
     if isinstance(exc, BaseExceptionGroup):
-        return all(_client_parti(e) for e in exc.exceptions)
-    if exc.__context__ is not None and exc.__context__ is not exc and _client_parti(exc.__context__):
+        return all(_client_parti(e, vus) for e in exc.exceptions)
+    if exc.__context__ is not None and _client_parti(exc.__context__, vus):
         return True
     nom = type(exc).__name__
     if nom in ("ClientDisconnect", "ClientDisconnected", "ClosedResourceError", "BrokenResourceError",
@@ -1193,6 +1236,9 @@ from app.core.acheteurs import lisible as _acheteur_lisible
 # « casablanca BAIA SOCIETE CASABLANCA BAÏA ». Le client lisait deux fois
 # le même nom et doutait du sérieux de la veille.
 templates.env.globals["acheteur"] = _acheteur_lisible
+# Une fonction masquée (cfg.FONCTIONS_MASQUEES) ne s'affiche nulle part:
+# les gabarits demandent visible('sous-traitance') avant chaque lien.
+templates.env.globals["visible"] = cfg.visible
 # L'emblème posé devant le nom de l'acheteur dans les listes.
 from app.core.logos import logo_html as _logo_acheteur
 templates.env.globals["logo_acheteur"] = _logo_acheteur
@@ -1310,7 +1356,7 @@ def render(req: Request, tpl: str, ctx: dict = None, status_code: int = 200):
     dl_bound = lambda val: days_left(val, lang)
     src_bound = lambda val: source_label(val, lang)
     csrf_tok = get_csrf_token(req) or secrets.token_urlsafe(24)
-    resp = templates.TemplateResponse(tpl, {
+    resp = templates.TemplateResponse(req, tpl, {
         "request":   req,  "member":   m,
         "cfg":          cfg,
         "secteurs":     cfg.SECTEURS,
@@ -1345,6 +1391,9 @@ def get_stats() -> dict:
             "notifs":  db.execute("SELECT COUNT(*) FROM notif_log WHERE sent_at>=date('now','-7 days')").fetchone()[0],
             "expired": db.execute("SELECT COUNT(*) FROM tenders WHERE statut='expire'").fetchone()[0],
             "scrapes": db.execute("SELECT COUNT(*) FROM scrape_log").fetchone()[0],
+            # Appels d'offres dont la fiche n'a pas encore été relue par le
+            # relais: la synthèse de l'avis dépend de cette lecture.
+            "a_completer": db.execute(f"SELECT COUNT(*) {_A_COMPLETER}").fetchone()[0],
             # Chiffres de la page d'accueil. Ils y remplacent trois témoignages
             # de clients inventés — noms, villes et citations — alors que la
             # plateforme n'avait encore aucun abonné. Un prospect peut vérifier
@@ -1980,7 +2029,7 @@ async def candidature_piece(req: Request, tid: str, piece: str):
     d = cand.dossier(m0["id"], tid)
     d["lignes"] = _lignes_initiales(m0, tid, d)
     tot = cand.totaux(d["lignes"], d.get("tva", 20))
-    return templates.TemplateResponse("piece_candidature.html", {
+    return templates.TemplateResponse(req, "piece_candidature.html", {
         "request": req, "piece": piece, "t": t, "p": p, "d": d, "tot": tot,
         "rabais": cand.mode_rabais(t), "ref": cand.reference(t),
         "procedure": cand.procedure(t),
@@ -3197,7 +3246,7 @@ async def dashboard(req: Request):
         return render(req,"dashboard.html",{
             "locked":True,"favs":[],"notifs":[],"recs":[],
             "stats":{"favs":0,"notifs":0,"active":0,"today":0,"recs":0},
-            "sector_dist":[],"trend":[]})
+            "sector_dist":[],"trend":[], "preuve": _preuve_valeur(member)})
     db   = get_db()
     ms   = clean_secteurs(json.loads(member.get("secteurs","[]") or "[]"))
     favs = [dict(r) for r in db.execute(
@@ -3249,6 +3298,33 @@ async def dashboard(req: Request):
         "sector_dist":sector_dist,"trend":trend, "a_faire": _a_faire(member)})
 
 
+def _preuve_valeur(member: dict, jours: int = 30) -> dict:
+    """Ce que le compte en attente aurait vu: les marchés de ses secteurs
+    publiés depuis trente jours, et trois titres sans le détail.
+
+    Un inscrit qui n'a pas encore payé ne voit rien du tout, et rien ne lui
+    dit ce qu'il manque. Le chiffre, lui, se vérifie et se compare à ce que
+    coûte l'abonnement; les titres prouvent que les marchés sont réels."""
+    ms = clean_secteurs(json.loads(member.get("secteurs", "[]") or "[]"))
+    portee = ("AND secteur IN (%s)" % ",".join("?" * len(ms))) if ms else ""
+    db = get_db()
+    try:
+        total = db.execute(f"""SELECT COUNT(*) FROM tenders
+                               WHERE scraped_at >= datetime('now', ?) {portee}""",
+                           [f"-{jours} days", *ms]).fetchone()[0]
+        ouverts = db.execute(f"SELECT COUNT(*) FROM tenders WHERE statut='actif' {portee}", ms).fetchone()[0]
+        exemples = [dict(r) for r in db.execute(
+            f"""SELECT objet, acheteur, region, date_limite, secteur FROM tenders
+                WHERE statut='actif' {portee} ORDER BY scraped_at DESC LIMIT 3""", ms)]
+    finally:
+        db.close()
+    for e in exemples:
+        e["acheteur"] = _acheteur_lisible(e.get("acheteur") or "")
+        e["secteur_label"] = get_label(e.get("secteur") or "")
+    return {"jours": jours, "total": total, "ouverts": ouverts, "exemples": exemples,
+            "secteurs": [get_label(c) for c in ms]}
+
+
 def _a_faire(member: dict, horizon: int = 14) -> list:
     """Ce qui attend le membre: les échéances de ses offres en cours (visite,
     caution, dépôt) et les pièces de son dossier qui expirent. Le tableau de
@@ -3281,6 +3357,18 @@ async def tarifs(req: Request, ao: str = ""):
     Venu d'un marché de l'accueil (?ao=...), le visiteur retrouve ce marché
     en tête de page, et le message WhatsApp le cite: on sait d'emblée ce qui
     l'a décidé."""
+    marche, lien = _lien_wa_abo(req, ao)
+    # Le bouton passe par /aller/whatsapp: le clic est compté avant la
+    # redirection vers wa.me — c'est la conversion que l'on mesure.
+    return render(req, "tarifs.html", {
+        "marche": marche,
+        "wa_abo": "/aller/whatsapp" + (f"?ao={marche['id']}" if marche else ""),
+        "wa_abo_direct": lien,
+    })
+
+
+def _lien_wa_abo(req: Request, ao: str = "") -> tuple:
+    """Le marché cité (s'il y en a un) et le lien wa.me avec le message prêt."""
     from urllib.parse import quote
     lang = get_lang(req)
     m = get_member(req)
@@ -3297,10 +3385,16 @@ async def tarifs(req: Request, ao: str = ""):
         msg += " " + tr_("wa_msg_abo_compte", lang, compte=compte)
     if marche:
         msg += " " + tr_("wa_msg_abo_ao", lang, objet=(marche["objet"] or "")[:140])
-    return render(req, "tarifs.html", {
-        "marche": marche,
-        "wa_abo": f"https://wa.me/{cfg.PAYMENT_PHONE}?text={quote(msg, safe='')}",
-    })
+    return marche, f"https://wa.me/{cfg.PAYMENT_PHONE}?text={quote(msg, safe='')}"
+
+
+@app.get("/aller/whatsapp")
+async def aller_whatsapp(req: Request, ao: str = ""):
+    """Compte le clic sur « S'abonner sur WhatsApp », puis ouvre WhatsApp."""
+    marche, lien = _lien_wa_abo(req, ao)
+    _evenement_visite(req, visites.WHATSAPP, "/tarifs" + (f"?ao={marche['id']}" if marche else ""),
+                      membre=1 if req.cookies.get("_session") else 0)
+    return RedirectResponse(lien, 302)
 
 
 @app.get("/abonnement/paiement")
@@ -3406,6 +3500,7 @@ async def register_post(req: Request,
         db.commit()
     finally: db.close()
     envoyer_lien_verification(email, email_token, lang)
+    _evenement_visite(req, visites.INSCRIPTION, "/register")
     resp = RedirectResponse("/verifier-email?envoye=1",302)
     resp.set_cookie("_session", session_tok,
                     max_age=86400*30, httponly=True, samesite="lax", secure=COOKIE_SECURE)
@@ -3548,16 +3643,8 @@ async def logout():
 async def settings_get(req: Request):
     member = get_member(req)
     if not member: return RedirectResponse("/login?next=/settings",302)
-    if not member.get("referral_code"):
-        code = secrets.token_urlsafe(5).upper().replace("_","A").replace("-","B")[:7]
-        db = get_db()
-        db.execute("UPDATE members SET referral_code=? WHERE id=?", (code, member["id"]))
-        db.commit(); db.close()
     ms = clean_secteurs(json.loads(member.get("secteurs","[]") or "[]"))
-    db2 = get_db()
-    referral_count = db2.execute("SELECT COUNT(*) FROM members WHERE referred_by=?", (member["id"],)).fetchone()[0]
     all_regions = REGIONS_OFFICIELLES
-    db2.close()
     try:
         my_regions = json.loads(member.get("notif_regions","[]") or "[]")
     except json.JSONDecodeError:
@@ -3570,7 +3657,7 @@ async def settings_get(req: Request):
     except json.JSONDecodeError:
         my_types = []
     return render(req,"settings.html",{
-        "ms": ms, "referral_count": referral_count, "all_regions": all_regions,
+        "ms": ms, "all_regions": all_regions,
         "my_regions": my_regions, "my_types": my_types})
 
 @app.post("/settings")
@@ -3929,10 +4016,6 @@ async def admin_panel(req: Request):
     biz_price  = cfg.PLANS.get("business",{}).get("price",0)
     mrr_estimate = round(plan_dist.get("pro",0) * (pro_price/12) + plan_dist.get("business",0) * (biz_price/24))
     total_active_members = db.execute("SELECT COUNT(*) FROM members WHERE actif=1").fetchone()[0]
-    referral_top = [dict(r) for r in db.execute(
-        """SELECT m.nom, m.email, COUNT(r.id) n FROM members m
-           JOIN members r ON r.referred_by = m.id
-           GROUP BY m.id ORDER BY n DESC LIMIT 5""").fetchall()]
     recent_errors = [dict(r) for r in db.execute(
         "SELECT * FROM error_log ORDER BY created_at DESC LIMIT 10").fetchall()]
     # Sans message, le type de l'exception: la dernière ligne « XxxError: … »
@@ -3949,14 +4032,14 @@ async def admin_panel(req: Request):
     suspendu = _portail_suspendu(db)
     db.close()
     csrf_tok = get_csrf_token(req) or secrets.token_urlsafe(24)
-    resp = templates.TemplateResponse("admin.html",{
+    resp = templates.TemplateResponse(req, "admin.html",{
         "request":req,"stats":stats,"sectors":sectors,
         "scrapes":scrapes,
         "logs":State.logs[-100:],"running":State.running,
         "last_run":State.last_run,"cfg":cfg,"multi_ok":False,
         "member_growth":member_growth,"plan_dist":plan_dist,
         "mrr_estimate":mrr_estimate,"total_active_members":total_active_members,
-        "referral_top":referral_top,"recent_errors":recent_errors,"errors_7j":errors_7j,
+        "recent_errors":recent_errors,"errors_7j":errors_7j,
         "a_traiter":a_traiter,"csrf_token":csrf_tok,
         "relais": {"demande": _relais_valeur("demande"), "prise": _relais_valeur("prise"),
                    "depot": _relais_dernier_depot(), "suspendu": suspendu}})
@@ -4081,7 +4164,7 @@ async def admin_prospects(req: Request, sort: str = "wins", page: int = 1):
         base_params).fetchone()[0]
     db.close()
     pages = max(1, (total+per-1)//per)
-    return templates.TemplateResponse("admin_prospects.html", {
+    return templates.TemplateResponse(req, "admin_prospects.html", {
         "request": req, "cfg": cfg, "rows": rows, "total": total, "total_companies": total_companies,
         "page": page, "pages": pages, "q": q, "sf": s, "rf": r, "sort": sort,
         "regions": regions, "sector_groups": cfg.SECTOR_GROUPS})
@@ -4129,7 +4212,7 @@ async def admin_subtraitance(req: Request):
     """).fetchall()]
     db.close()
     csrf_tok = get_csrf_token(req) or secrets.token_urlsafe(24)
-    resp = templates.TemplateResponse("admin_subtraitance.html", {
+    resp = templates.TemplateResponse(req, "admin_subtraitance.html", {
         "request": req, "cfg": cfg, "posts": posts, "reports": reports, "csrf_token": csrf_tok})
     if not req.cookies.get("_csrf"):
         resp.set_cookie("_csrf", csrf_tok, max_age=86400*30, httponly=True, samesite="lax", secure=COOKIE_SECURE)
@@ -4191,7 +4274,7 @@ async def admin_companies(req: Request, q:str="", s:str="", r:str="",
     db.close()
     from app.services.places_scraper import VILLES
     csrf_tok = get_csrf_token(req) or secrets.token_urlsafe(24)
-    resp = templates.TemplateResponse("admin_companies.html", {
+    resp = templates.TemplateResponse(req, "admin_companies.html", {
         "request": req, "cfg": cfg, "rows": rows, "total": total, "stats": stats,
         "page": page, "pages": max(1,(total+per-1)//per), "q": q, "sf": s, "rf": r,
         "src": src, "avec": avec, "sources": sources, "tri": req.query_params.get("tri","contact"),
@@ -4386,7 +4469,7 @@ async def admin_sources(req: Request):
                SUM(records_saved) AS saved
         FROM scraper_runs GROUP BY source ORDER BY last_run DESC""").fetchall()]
     db.close()
-    return templates.TemplateResponse("admin_sources.html", {
+    return templates.TemplateResponse(req, "admin_sources.html", {
         "request": req, "cfg": cfg, "sources": sources, "runs": runs, "per_source": per_source})
 
 @app.get("/admin/backups", response_class=HTMLResponse)
@@ -4402,7 +4485,7 @@ async def admin_backups(req: Request):
                 "size_mb": round(os.path.getsize(p) / (1024*1024), 2),
                 "mtime": datetime.fromtimestamp(os.path.getmtime(p)).strftime("%Y-%m-%d %H:%M"),
             })
-    return templates.TemplateResponse("admin_backups.html", {"request": req, "cfg": cfg, "files": files})
+    return templates.TemplateResponse(req, "admin_backups.html", {"request": req, "cfg": cfg, "files": files})
 
 @app.get("/admin/backups/run")
 async def admin_backups_run(req: Request):
@@ -4694,7 +4777,7 @@ async def admin_prospection(req: Request, statut: str = "", s: str = "",
         "SELECT COUNT(*) FROM companies WHERE COALESCE(wins,0) > 0 "
         "AND COALESCE(annuaire_url,'') != ''").fetchone()[0]
     db.close()
-    return templates.TemplateResponse("admin_prospection.html", {
+    return templates.TemplateResponse(req, "admin_prospection.html", {
         "request": req, "cfg": cfg, "rows": rows, "total": total, "page": page,
         "pages": max(1, (total + per - 1) // per), "statuts": STATUTS_PROSPECTION,
         "compteurs": compteurs, "rappels": rappels, "villes": villes,
@@ -4772,7 +4855,7 @@ async def admin_plan_appel(req: Request):
     """
     if not _is_admin(req): return RedirectResponse("/admin/login", 302)
     from app.services.campagne import priorites, villes_a_joindre
-    return templates.TemplateResponse("admin_plan.html", {
+    return templates.TemplateResponse(req, "admin_plan.html", {
         "request": req, "cfg": cfg, "priorites": priorites(),
         "villes": villes_a_joindre(), "creneaux": CRENEAUX_APPEL})
 
@@ -4841,7 +4924,7 @@ async def admin_prospection_fiche(req: Request, cid: int):
             f"{cfg.essai()} et recevoir les demandes de sous-traitance de votre "
             f"secteur :\n{lien}\n\nSi vous ne souhaitez plus être contacté, dites-le nous "
             f"et nous retirons vos coordonnées.")
-    return templates.TemplateResponse("admin_prospection_fiche.html", {
+    return templates.TemplateResponse(req, "admin_prospection_fiche.html", {
         "request": req, "cfg": cfg, "c": entreprise, "marches": marches,
         "script": _script_appel(entreprise, ouverts, marches),
         "msg_wa": msg_wa, "msg_objet": msg_objet, "msg_html": msg_html,
@@ -5427,7 +5510,7 @@ async def admin_payments(req: Request):
     ).fetchone()[0]
     db.close()
     csrf_tok = get_csrf_token(req) or secrets.token_urlsafe(24)
-    resp = templates.TemplateResponse("admin_payments.html", {
+    resp = templates.TemplateResponse(req, "admin_payments.html", {
         "request": req, "cfg": cfg, "payments": payments, "members": members,
         "total": total, "this_month": this_month, "csrf_token": csrf_tok})
     if not req.cookies.get("_csrf"):
@@ -5576,6 +5659,17 @@ async def admin_delete_member(req: Request, mid: int, confirm: str = Form(""),
     logger.info(f"[admin] compte supprimé: {row['email']} (id={mid})")
     return RedirectResponse(f"/admin/members?deleted={row['email']}", 302)
 
+@app.get("/admin/visites", response_class=HTMLResponse)
+async def admin_visites(req: Request, jours: int = 30):
+    """Qui vient, d'où, et ce qu'il fait: le compteur maison."""
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    jours = max(7, min(int(jours or 30), 90))
+    tableau = visites.tableau(jours)
+    pic = max([j["pages"] for j in tableau["serie"]] + [1])
+    return templates.TemplateResponse(req, "admin_visites.html", {
+        "request": req, "cfg": cfg, "t": tableau, "pic": pic})
+
+
 @app.get("/admin/members", response_class=HTMLResponse)
 async def admin_members(req: Request, q: str = ""):
     """Gestion complète des comptes membres (plan, activation, suppression)."""
@@ -5625,7 +5719,7 @@ async def admin_members(req: Request, q: str = ""):
         db.close()
     csrf_tok = get_csrf_token(req) or secrets.token_urlsafe(24)
     from app.services.diffusion import bilan_canaux
-    resp = templates.TemplateResponse("admin_members.html", {
+    resp = templates.TemplateResponse(req, "admin_members.html", {
         "request": req, "cfg": cfg, "members": rows, "q": q, "csrf_token": csrf_tok,
         "bilan_sources": bilan_canaux(),
         "options_source": canaux.options_declarees("fr")})
@@ -5726,7 +5820,7 @@ async def admin_annuaires(req: Request):
     """Ce que les annuaires publics rendent des entreprises qu'on ne peut pas joindre."""
     if not _is_admin(req): return RedirectResponse("/admin/login", 302)
     from app.services.annuaires import etat, dernieres_trouvailles
-    return templates.TemplateResponse("admin_annuaires.html", {
+    return templates.TemplateResponse(req, "admin_annuaires.html", {
         "request": req, "cfg": cfg, "e": etat(),
         "trouvailles": dernieres_trouvailles(40),
         "etat_tache": {"running": AnnuairesState.running, "logs": AnnuairesState.logs[-80:]},
@@ -5767,7 +5861,7 @@ async def admin_maintenance(req: Request):
     depuis le rail — mais le rail ne porte que le lien, jamais le bouton.
     """
     if not _is_admin(req): return RedirectResponse("/admin/login", 302)
-    return templates.TemplateResponse("admin_maintenance.html", {
+    return templates.TemplateResponse(req, "admin_maintenance.html", {
         "request": req, "cfg": cfg,
         "csrf_token": get_csrf_token(req) or secrets.token_urlsafe(24)})
 
@@ -5990,8 +6084,8 @@ async def reset_post(req: Request, token: str = Form(""),
 async def wa_status(req: Request):
     if not _is_admin(req): return JSONResponse({"ok": False}, 401)
     try:
-        from app.services.whatsapp import wa_connected
-        return JSONResponse({"ok": True, "connected": wa_connected()})
+        from app.services.whatsapp import twilio_configured
+        return JSONResponse({"ok": True, "connected": twilio_configured()})
     except ImportError:
         # Service WhatsApp pas installé
         return JSONResponse({"ok": True, "connected": False})

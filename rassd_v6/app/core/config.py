@@ -45,11 +45,10 @@ class Settings:
     # pour éviter de promettre aux membres une alerte qui ne part jamais.
     # Repasser à WA_ENABLED=1 quand le compte Twilio/Meta est prêt.
     WA_ENABLED:     bool = os.getenv("WA_ENABLED", "0").lower() in ("1", "true")
-    # WhatsApp (service Baileys séparé)
-    WA_SERVICE_URL: str = os.getenv("WA_SERVICE_URL", "http://localhost:3001")
-    WA_SECRET:      str = os.getenv("WA_SECRET", "atlas_wa_secret_2024")
-    # WhatsApp via Twilio — utilisé automatiquement si ces variables sont
-    # renseignées, sinon on reste sur le service Baileys existant.
+    # WhatsApp via Twilio, seul expéditeur possible. Le pont Baileys (un
+    # compte WhatsApp personnel piloté par un script) a été retiré le
+    # 12/11/2026: il contrevenait aux conditions de WhatsApp et n'a jamais
+    # tourné en production.
     TWILIO_SID:        str = os.getenv("TWILIO_ACCOUNT_SID", "")
     TWILIO_AUTH_TOKEN: str = os.getenv("TWILIO_AUTH_TOKEN", "")
     TWILIO_WA_FROM:    str = os.getenv("TWILIO_WHATSAPP_FROM", "")
@@ -147,6 +146,30 @@ class Settings:
     # Secteurs qu'un membre choisit lui-même à l'inscription. Au-delà, ou pour
     # en changer, il écrit sur WhatsApp et l'administration s'en charge.
     MAX_SECTEURS: int = int(os.getenv("MAX_SECTEURS", "3"))
+    # Fonctions retirées de l'offre le 12/11/2026, faute d'usage (tables
+    # vides depuis leur mise en ligne): leurs pages répondent 404 et leurs
+    # liens disparaissent. Le code reste; retirer un nom de cette liste
+    # rouvre la fonction. Vide (FONCTIONS_MASQUEES=) = tout visible.
+    FONCTIONS_MASQUEES: tuple = tuple(
+        x.strip() for x in os.getenv(
+            "FONCTIONS_MASQUEES", "sous-traitance,groupements,financement,documents,api").split(",")
+        if x.strip())
+    # Reclassement nocturne des avis par le modèle de langage: chaque avis
+    # relu coûte un appel d'API. Coupé par défaut; le classement par
+    # mots-clés et le modèle interne suffisent tant que la base reste
+    # petite. CLASSEMENT_IA=1 (avec ANTHROPIC_API_KEY) le rallume.
+    CLASSEMENT_IA: bool = os.getenv("CLASSEMENT_IA", "0").lower() in ("1", "true")
+
+    # Préfixe d'URL de chaque fonction qui peut être masquée.
+    _PREFIXES_FONCTIONS = {"sous-traitance": "/sous-traitance", "groupements": "/groupements",
+                           "financement": "/financement", "documents": "/documents", "api": "/api/v1"}
+
+    def visible(self, fonction: str) -> bool:
+        """La fonction fait-elle partie de l'offre ?"""
+        return fonction not in self.FONCTIONS_MASQUEES
+
+    def prefixes_masques(self) -> tuple:
+        return tuple(p for f, p in self._PREFIXES_FONCTIONS.items() if f in self.FONCTIONS_MASQUEES)
     # Plans (paiement encaissé hors plateforme puis enregistré par l'admin)
     PLANS: dict = field(default_factory=lambda: {
         # Le drapeau `telegram` a disparu avec le canal: plus rien ne le

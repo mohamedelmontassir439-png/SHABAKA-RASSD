@@ -230,18 +230,6 @@
   </section>
   {% endif %}
 
-  <section class="set-block">
-    <div class="set-block-h">{{ tr('set_referral_h') }}</div>
-    <div class="set-block-sub">{{ tr('set_referral_sub', n=referral_count) }}</div>
-    <div class="field">
-      <label>{{ tr('set_referral_link') }}</label>
-      <div style="display:flex; gap:8px;">
-        <input aria-label="{{ tr('aria_recherche') }}" id="refLink" class="inp mono" readonly value="{{ cfg.SITE_URL }}/register?ref={{ member.referral_code }}">
-        <button type="button" class="btn btn-outline" onclick="navigator.clipboard.writeText(document.getElementById('refLink').value); this.textContent='{{ tr('set_referral_copied') }}'; setTimeout(()=>this.textContent='{{ tr('set_referral_copy') }}',2000);">{{ tr('set_referral_copy') }}</button>
-      </div>
-    </div>
-  </section>
-
   <section class="set-block danger-block">
     <div class="set-block-h">{{ tr('set_danger_h') }}</div>
     <div class="set-block-sub">{{ tr('set_danger_sub') }}</div>

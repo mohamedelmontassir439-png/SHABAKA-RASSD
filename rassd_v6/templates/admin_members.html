@@ -134,9 +134,9 @@ details.del summary::-webkit-details-marker{display:none}
             <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
             <select name="plan" class="sel" onchange="this.form.submit()">
               <option value="free" {% if m.plan=='free' %}selected{% endif %}>Inactif</option>
-              <option value="monthly" {% if m.plan=='monthly' %}selected{% endif %}>Mensuel 250</option>
+              {% if m.plan=='monthly' %}<option value="monthly" selected>Mensuel 249 (ancienne offre)</option>{% endif %}
               <option value="pro" {% if m.plan=='pro' %}selected{% endif %}>Annuel {{ cfg.PLANS.pro.price }}</option>
-              <option value="business" {% if m.plan=='business' %}selected{% endif %}>Biennal 4299</option>
+              {% if m.plan=='business' %}<option value="business" selected>Biennal 4299 (ancienne offre)</option>{% endif %}
             </select>
           </form>
         </td>

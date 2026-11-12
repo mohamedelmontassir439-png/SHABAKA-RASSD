@@ -188,3 +188,30 @@ def keyword_hits(keyword: str, haystack_norm: str) -> bool:
         stem = k[:_STEM_LEN]
         return any(word.startswith(stem) for word in haystack_norm.split())
     return False
+
+
+def raison(member: dict, tender: dict) -> str:
+    """Pourquoi ce marché est envoyé à ce membre, en une ligne.
+
+    L'alerte disait « correspond à votre profil » sans dire en quoi. Le
+    membre ne pouvait ni vérifier la correspondance, ni corriger ses
+    réglages quand elle était mauvaise. La ligne nomme ce qui a joué: le
+    secteur, la région si elle est filtrée, le mot-clé qui a répondu.
+    """
+    from app.core.sectors import get_label
+    f = member_filters(member)
+    parts = []
+    code = tender.get("secteur") or ""
+    if code and (not f["secteurs"] or code in f["secteurs"]):
+        parts.append(f"secteur « {get_label(code)} »")
+    if f["regions"] and tender.get("region"):
+        parts.append(f"région {tender['region']}")
+    if f["keywords"]:
+        haystack = _norm(" ".join([str(tender.get("objet", "")), str(tender.get("acheteur", "")),
+                                   str(tender.get("description", ""))[:1500]]))
+        trouves = [k for k in f["keywords"] if keyword_hits(k, haystack)]
+        if trouves:
+            parts.append("mot-clé « " + " », « ".join(trouves[:3]) + " »")
+    if f["types"]:
+        parts.append("type d'avis demandé")
+    return " · ".join(parts)

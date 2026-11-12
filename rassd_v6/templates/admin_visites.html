@@ -1,0 +1,69 @@
+{% extends "admin_base.html" %}
+{% block titre %}Visites{% endblock %}
+{% block soustitre %}<div class="entete-sur">Audience des {{ t.jours }} derniers jours — compteur interne, sans script tiers</div>{% endblock %}
+{% block actions %}
+  {% for n in (7, 30, 90) %}<a class="btn btn-o" href="/admin/visites?jours={{ n }}" {% if t.jours == n %}aria-current="page" style="font-weight:700"{% endif %}>{{ n }} j</a> {% endfor %}
+{% endblock %}
+{% block style %}
+.kpis { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 24px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r2); padding: 18px; }
+.kpi-n { font-size: var(--f8); font-weight: 800; color: var(--t1); font-variant-numeric: tabular-nums; line-height: 1; }
+.kpi-l { font-size: var(--f2); color: var(--t3); margin-top: 8px; }
+.courbe { display: grid; grid-template-columns: repeat({{ t.serie|length }}, minmax(0, 1fr)); gap: 3px; align-items: end; height: 140px; padding: 12px 0 0; }
+.courbe div { background: var(--navy, #1e3a5f); border-radius: var(--r1) var(--r1) 0 0; min-height: 2px; position: relative; }
+.courbe div:hover::after { content: attr(data-l); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); white-space: nowrap; background: var(--t1); color: #fff; font-size: var(--f1); padding: 4px 8px; border-radius: var(--r1); margin-bottom: 4px; }
+.courbe-pied { display: flex; justify-content: space-between; font-size: var(--f1); color: var(--t4); margin-top: 6px; }
+.deux { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+table.liste { width: 100%; border-collapse: collapse; font-size: var(--f3); }
+table.liste td, table.liste th { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: start; }
+table.liste td.n, table.liste th.n { text-align: end; font-variant-numeric: tabular-nums; }
+.vide { color: var(--t4); font-size: var(--f3); padding: 12px 0; }
+@media (max-width: 1000px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } .deux { grid-template-columns: minmax(0, 1fr); } }
+{% endblock %}
+{% block contenu %}
+<div class="kpis">
+  <div class="kpi"><div class="kpi-n">{{ t.totaux.visiteurs }}</div><div class="kpi-l">Visiteurs (personnes-jours)</div></div>
+  <div class="kpi"><div class="kpi-n">{{ t.totaux.pages }}</div><div class="kpi-l">Pages vues</div></div>
+  <div class="kpi"><div class="kpi-n">{{ t.totaux.tarifs }}</div><div class="kpi-l">Ont vu la page Tarifs</div></div>
+  <div class="kpi"><div class="kpi-n">{{ t.totaux.whatsapp }}</div><div class="kpi-l">Clics « S'abonner sur WhatsApp » ({{ t.totaux.taux_whatsapp }} % des visiteurs de Tarifs)</div></div>
+  <div class="kpi"><div class="kpi-n">{{ t.totaux.inscriptions }}</div><div class="kpi-l">Inscriptions</div></div>
+</div>
+
+<div class="card">
+  <div class="card-h"><span class="card-ht">Pages vues par jour</span></div>
+  <div class="courbe">
+    {% for j in t.serie %}<div style="height:{{ (100 * j.pages / pic)|round(0) }}%" data-l="{{ j.jour[8:] }}/{{ j.jour[5:7] }} · {{ j.pages }} pages · {{ j.visiteurs }} visiteurs{% if j.whatsapp %} · {{ j.whatsapp }} WhatsApp{% endif %}{% if j.inscriptions %} · {{ j.inscriptions }} inscr.{% endif %}"></div>{% endfor %}
+  </div>
+  <div class="courbe-pied"><span>{{ t.serie[0].jour }}</span><span>{{ t.serie[-1].jour }}</span></div>
+</div>
+
+<div class="deux">
+  <div class="card">
+    <div class="card-h"><span class="card-ht">Pages les plus vues</span></div>
+    {% if t.pages %}
+    <div class="tableau-cadre"><table class="liste"><tr><th>Page</th><th class="n">Vues</th><th class="n">Visiteurs</th></tr>
+      {% for p in t.pages %}<tr><td>{{ p.chemin }}</td><td class="n">{{ p.n }}</td><td class="n">{{ p.visiteurs }}</td></tr>{% endfor %}
+    </table></div>
+    {% else %}<div class="vide">Aucune page vue sur la période.</div>{% endif %}
+  </div>
+  <div>
+    <div class="card">
+      <div class="card-h"><span class="card-ht">D'où viennent-ils</span></div>
+      {% if t.referents %}
+      <div class="tableau-cadre"><table class="liste"><tr><th>Site d'origine</th><th class="n">Visiteurs</th></tr>
+        {% for r in t.referents %}<tr><td>{{ r.referent }}</td><td class="n">{{ r.visiteurs }}</td></tr>{% endfor %}
+      </table></div>
+      {% else %}<div class="vide">Aucun site d'origine enregistré: accès directs, ou navigateurs qui ne transmettent pas la page précédente.</div>{% endif %}
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="card-h"><span class="card-ht">Canaux de campagne (?src=…)</span></div>
+      {% if t.canaux %}
+      <div class="tableau-cadre"><table class="liste"><tr><th>Canal</th><th class="n">Visiteurs</th><th class="n">WhatsApp</th><th class="n">Inscr.</th></tr>
+        {% for c in t.canaux %}<tr><td>{{ c.canal }}</td><td class="n">{{ c.visiteurs }}</td><td class="n">{{ c.whatsapp }}</td><td class="n">{{ c.inscriptions }}</td></tr>{% endfor %}
+      </table></div>
+      {% else %}<div class="vide">Aucun lien de campagne suivi sur la période.</div>{% endif %}
+    </div>
+  </div>
+</div>
+<p class="vide" style="margin-top:16px">Un visiteur est compté une fois par jour, à partir d'une empreinte irréversible (adresse, navigateur, jour, clé secrète) qui change chaque jour. Les robots d'indexation sont exclus. Aucun cookie n'est déposé pour cette mesure.</p>
+{% endblock %}

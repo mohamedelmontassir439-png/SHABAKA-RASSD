@@ -22,6 +22,15 @@ os.environ.setdefault("ADMIN_PASS", "test_admin_password_1234567890")
 os.environ.setdefault("SECRET_KEY", "test-secret-key-for-pytest-only-0123456789")
 
 
+@pytest.fixture(autouse=True)
+def toutes_fonctions_visibles(monkeypatch):
+    """Les tests exercent chaque fonction, y compris celles retirées de
+    l'offre le 12/11/2026 (cfg.FONCTIONS_MASQUEES). tests/test_recentrage.py
+    vérifie, lui, le masquage avec le réglage réel."""
+    from app.core.config import cfg
+    monkeypatch.setattr(cfg, "FONCTIONS_MASQUEES", ())
+
+
 @pytest.fixture()
 def essai_72h(monkeypatch):
     """Rétablit l'essai de trois jours le temps d'un test: le parcours des

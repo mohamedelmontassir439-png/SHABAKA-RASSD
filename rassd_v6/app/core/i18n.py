@@ -407,6 +407,16 @@ T = {
     "dash_locked_title":  {"fr": "Votre compte est en attente d'activation", "ar": "حسابك في انتظار التفعيل"},
     "dash_locked_text":   {"fr": "Votre inscription est bien enregistrée. Les marchés, résultats et alertes seront visibles dès que votre abonnement sera confirmé par notre équipe.", "ar": "تسجيلكم مسجل بنجاح. ستصبح الصفقات والنتائج والتنبيهات مرئية بمجرد تأكيد اشتراككم من طرف فريقنا."},
     "dash_locked_cta":    {"fr": "Voir les offres d'abonnement →", "ar": "عرض عروض الاشتراك ←"},
+    # ── Preuve de valeur du compte en attente (main._preuve_valeur) ──
+    "preuve_titre":    {"fr": "Depuis {j} jours, {n} marchés ont été publiés dans vos secteurs",
+                        "ar": "خلال آخر {j} يوماً، نُشرت {n} صفقة في قطاعاتك"},
+    "preuve_ouverts":  {"fr": "{n} sont encore ouverts aujourd'hui.", "ar": "{n} منها ما زالت مفتوحة اليوم."},
+    "preuve_detail":   {"fr": "Détails, synthèse, dates et dossier dès l'activation de votre abonnement.",
+                        "ar": "التفاصيل والخلاصة والمواعيد والملف فور تفعيل اشتراكك."},
+    "preuve_exemples": {"fr": "Les trois derniers", "ar": "آخر ثلاث صفقات"},
+    "preuve_limite":   {"fr": "Limite", "ar": "آخر أجل"},
+    "preuve_vide":     {"fr": "Aucun marché publié dans vos secteurs ces {j} derniers jours.",
+                        "ar": "لم تُنشر صفقات في قطاعاتك خلال آخر {j} يوماً."},
     "faq_home_title":     {"fr": "Questions <em>fréquentes</em>", "ar": "الأسئلة <em>الشائعة</em>"},
 
     "nav_subtraitance":   {"fr": "Sous-traitance", "ar": "المناولة"},

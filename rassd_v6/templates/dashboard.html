@@ -101,6 +101,14 @@
 .locked-panel { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 16px; padding: 72px 28px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r3); }
 .locked-panel-title { font-family: var(--serif); font-weight: 700; font-size:var(--f6); color: var(--text1); max-width: 420px; }
 .locked-panel-text { font-size:var(--f4); color: var(--text3); max-width: 440px; line-height: 1.65; }
+.preuve { width: 100%; max-width: 560px; text-align: start; background: var(--bg2); border: 1px solid var(--line); border-radius: var(--r2); padding: 18px 20px; }
+.preuve-n { font-family: var(--serif); font-weight: 700; font-size: var(--f5); color: var(--text1); line-height: 1.35; }
+.preuve-s { font-size: var(--f3); color: var(--text3); margin-top: 6px; line-height: 1.6; }
+.preuve-l { font-size: var(--f1); font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--text4); margin: 14px 0 6px; }
+.preuve-liste { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.preuve-liste li { display: grid; gap: 2px; padding: 10px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
+.preuve-liste b { font-size: var(--f3); color: var(--text1); font-weight: 600; line-height: 1.4; }
+.preuve-liste span { font-size: var(--f2); color: var(--text3); }
 
 @media(max-width: 1200px) {
   .mid-row { grid-template-columns: minmax(0, 1fr); }
@@ -127,6 +135,27 @@
   <div class="locked-panel">
     <div class="locked-panel-title">{{ tr('dash_locked_title') }}</div>
     <div class="locked-panel-text">{{ tr('dash_locked_text') }}</div>
+    {# Ce que le compte en attente manque, en chiffres vérifiables: les
+       marchés de ses secteurs depuis trente jours, et les trois derniers
+       titres — sans le détail, qui vient avec l'abonnement. #}
+    {% if preuve %}
+    <div class="preuve">
+      {% if preuve.total %}
+      <div class="preuve-n">{{ tr('preuve_titre', j=preuve.jours, n=preuve.total) }}</div>
+      <div class="preuve-s">{{ tr('preuve_ouverts', n=preuve.ouverts) }} {{ tr('preuve_detail') }}</div>
+      {% if preuve.exemples %}
+      <div class="preuve-l">{{ tr('preuve_exemples') }}</div>
+      <ul class="preuve-liste">
+        {% for e in preuve.exemples %}
+        <li><b>{{ e.objet[:110] }}</b><span>{{ e.acheteur }}{% if e.region %} · {{ e.region }}{% endif %} · {{ tr('preuve_limite') }} {{ e.date_limite }}</span></li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      {% else %}
+      <div class="preuve-s">{{ tr('preuve_vide', j=preuve.jours) }}</div>
+      {% endif %}
+    </div>
+    {% endif %}
     <a href="/tarifs" class="btn btn-accent btn-lg">{{ tr('dash_locked_cta') }}</a>
   </div>
 {% else %}

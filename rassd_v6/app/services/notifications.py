@@ -10,7 +10,7 @@ from app.core.sectors   import get_label
 
 logger = logging.getLogger("atlas.notif")
 
-from app.services.matching import matches
+from app.services.matching import matches, raison as raison_alerte
 
 try:
     from app.services.whatsapp import (send_wa, format_tender_wa, twilio_configured,
@@ -172,7 +172,7 @@ def libelle_type(t: dict) -> str:
             else "marché")
 
 
-def build_email(t: dict, nom: str = "") -> str:
+def build_email(t: dict, nom: str = "", raison: str = "") -> str:
     dl              = t.get("date_limite", "—") or "—"
     _n, dl_label    = days_left(t.get("date_limite", ""))
     site            = cfg.SITE_URL
@@ -192,6 +192,9 @@ def build_email(t: dict, nom: str = "") -> str:
     badge_html      = f'''<div class="dl-badge">⏰ {dl_label}</div>''' if dl_label else ""
     region_row      = f'<tr><td class="lbl">📍 Région</td><td class="val">{t.get("region","")}</td></tr>' if t.get("region") else ""
     montant_row     = f'<tr><td class="lbl">💰 Montant</td><td class="val">{t.get("montant","")}</td></tr>' if t.get("montant") else ""
+    # Ce qui a fait partir l'alerte, pour que le membre puisse juger la
+    # correspondance et régler ses filtres (app/services/matching.raison).
+    raison_row      = f'<tr><td class="lbl">🎯 Pourquoi</td><td class="val">{raison}</td></tr>' if raison else ""
     return f"""<!DOCTYPE html>
 <html lang="fr"><head><meta charset="UTF-8">
 <style>
@@ -223,6 +226,7 @@ td{{padding:10px 0;border-bottom:1px solid #e3e7ef;vertical-align:top;font-size:
 <table>
 <tr><td class="lbl">🏢 Acheteur</td><td class="val">{acheteur_lisible(t.get("acheteur","")) or "—"}</td></tr>
 <tr><td class="lbl">🏷 Secteur</td><td class="val val-g">{get_label(t.get("secteur",""))}</td></tr>
+{raison_row}
 {region_row}
 {montant_row}
 <tr><td class="lbl">⏰ Date limite</td><td class="val val-r">{dl}</td></tr>
@@ -472,7 +476,7 @@ def dispatch_notifications(tenders: list, max_par_membre: int = 40):
                 if (member.get("notif_email") and member.get("email")
                         and member.get("email_verified", 1)
                         and (member.get("notif_rythme") or "direct") == "direct"):
-                    html = build_email(t, member.get("nom", ""))
+                    html = build_email(t, member.get("nom", ""), raison_alerte(member, t))
                     ok   = email_send(
                         member["email"],
                         f"📋 Nouveau {libelle_type(t)}: {t['objet'][:60]}",

@@ -60,7 +60,7 @@
         <ul class="iv-steps">
           <li>✓ <span>{{ tr('inv_step1', n=cfg.PRIX_TXT) }}</span></li>
           <li>✓ <span>{{ tr('inv_step2') }}</span></li>
-          <li>✓ <span>{{ tr('inv_step3') }}</span></li>
+          {% if visible('sous-traitance') %}<li>✓ <span>{{ tr('inv_step3') }}</span></li>{% endif %}
         </ul>
 
         {% if err %}<div class="alert alert-err" style="margin-bottom:16px;">{{ err }}</div>{% endif %}

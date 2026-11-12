@@ -420,7 +420,7 @@ html[dir="rtl"] .auth-photo-titre { font-family: 'Amiri', var(--serif); line-hei
     <a href="/dashboard" class="nav-link {% if request.url.path == '/dashboard' %}active{% endif %}">{{ tr('nav_dashboard') }}</a>
     <a href="/favorites" class="nav-link {% if request.url.path == '/favorites' %}active{% endif %}">{{ tr('nav_favorites') }}</a>
     <a href="/settings"  class="nav-link {% if request.url.path == '/settings' %}active{% endif %}">{{ tr('nav_alerts') }}</a>
-    <a href="/sous-traitance" class="nav-link {% if request.url.path.startswith('/sous-traitance') %}active{% endif %}">{{ tr('nav_subtraitance') }}</a>
+    {% if visible('sous-traitance') %}<a href="/sous-traitance" class="nav-link {% if request.url.path.startswith('/sous-traitance') %}active{% endif %}">{{ tr('nav_subtraitance') }}</a>{% endif %}
     {% endif %}
   </div>
   <div class="nav-right">

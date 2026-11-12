@@ -76,9 +76,10 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
       <div class="plan-price-row"><span class="plan-price"><bdi dir="ltr">{{ cfg.PRIX_TXT }}</bdi></span><span class="plan-period">{{ tr('pr_u_an') }}</span></div>
       <div class="plan-mois">{{ tr('pr_u_mois', m=(cfg.PRIX_ANNUEL / 12)|round(0, 'ceil')|int) }}</div>
       <ul class="plan-feats">
-        {% for k in range(1, 9) %}<li>{{ tr('pr_u_f' ~ k) }}</li>{% endfor %}
+        {% for k in range(1, 9) if k != 8 or visible('sous-traitance') %}<li>{{ tr('pr_u_f' ~ k) }}</li>{% endfor %}
       </ul>
-      <a href="{{ wa_abo }}" target="_blank" rel="noopener" class="btn btn-wa btn-full btn-lg">{{ tr('pr_u_cta') }}</a>
+      {# Le clic passe par /aller/whatsapp, qui le compte puis ouvre wa.me. #}
+      <a href="{{ wa_abo }}" data-wa="{{ wa_abo_direct }}" target="_blank" rel="noopener" class="btn btn-wa btn-full btn-lg">{{ tr('pr_u_cta') }}</a>
       <div class="plan-aide">{{ tr('pr_u_aide') }}</div>
     </div>
     <div class="abo-cote">

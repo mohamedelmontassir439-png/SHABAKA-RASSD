@@ -418,18 +418,24 @@ html[dir="rtl"] .mono-etiq { font-family: 'Tajawal', var(--sans); letter-spacing
           <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/><path d="M8 13l2-3 2 2 2-4"/></svg>
           <span>{{ tr('nav_intelligence') }}</span>
         </a>
+        {% if visible('groupements') %}
         <a href="/groupements" class="side-link {% if request.url.path.startswith('/groupements') %}active{% endif %}">
           <svg viewBox="0 0 24 24"><circle cx="8" cy="9" r="3.5"/><circle cx="16" cy="9" r="3.5"/><path d="M2 20c0-3 3-5 6-5s6 2 6 5M10 20c0-3 3-5 6-5s6 2 6 5"/></svg>
           <span>{{ tr('nav_groupements') }}</span>
         </a>
+        {% endif %}
+        {% if visible('sous-traitance') %}
         <a href="/sous-traitance" class="side-link {% if request.url.path.startswith('/sous-traitance') %}active{% endif %}">
           <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
           <span>{{ tr('nav_subtraitance') }}</span>
         </a>
+        {% endif %}
+        {% if visible('financement') %}
         <a href="/financement" class="side-link {% if request.url.path.startswith('/financement') %}active{% endif %}">
           <svg viewBox="0 0 24 24"><path d="M3 10h18L12 4 3 10z"/><path d="M5 10v8M9 10v8M15 10v8M19 10v8M3 20h18"/></svg>
           <span>{{ tr('nav_financement') }}</span>
         </a>
+        {% endif %}
         <a href="/prix-materiaux" class="side-link {% if request.url.path.startswith('/prix-materiaux') %}active{% endif %}">
           <svg viewBox="0 0 24 24"><path d="M3 21h18"/><rect x="4" y="11" width="6" height="10" rx="1"/><rect x="14" y="5" width="6" height="16" rx="1"/><path d="M7 7l3-3 3 3"/></svg>
           <span>{{ tr('nav_prix') }}</span>

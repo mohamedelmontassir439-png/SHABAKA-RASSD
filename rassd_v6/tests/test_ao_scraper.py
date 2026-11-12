@@ -4,9 +4,15 @@ Jusqu'ici la plateforme ne ramenait que des bons de commande: 400 « marchés »
 contre 16 432 bons de commande. Ces tests figent la lecture des pages du
 portail — fragments réels, aucun appel réseau.
 """
+from datetime import date, timedelta
+
 from bs4 import BeautifulSoup as BS
 
 from app.services import ao_scraper as ao
+
+# Les fragments portaient une date limite en dur; passée celle-ci, la
+# collecte écartait l'avis comme expiré et deux tests tombaient d'eux-mêmes.
+LIMITE = (date.today() + timedelta(days=60)).strftime("%d/%m/%Y")
 
 LIGNE = """<table><tr class="on">
   <td class="check-col"></td>
@@ -16,7 +22,7 @@ LIGNE = """<table><tr class="on">
       POLE URBAIN KSAR SGHIR. Lot : STATION D’EPURATION
       Acheteur public : SOCIETE REGIONALE MULTISERVICES TANGER-TETOUAN</td>
   <td class="col-90">- FAHS-ANJRA ... MAROC, FAHS-ANJRA ...</td>
-  <td class="col-60">11/11/2026 10:00 ...</td>
+  <td class="col-60">__LIMITE__ 10:00 ...</td>
   <td class="actions"></td>
   <td class="actions">: 0 : 0</td>
   <td><a href="https://www.marchespublics.gov.ma/?page=entreprise.EntrepriseDetailsConsultation&amp;refConsultation=1034700&amp;orgAcronyme=w7t">Détails</a></td>
@@ -25,7 +31,7 @@ LIGNE = """<table><tr class="on">
 FICHE = """<html><body>
 <div>Marchés publics électroniques Aller au menu Aller au contenu Mon panier
      Consultations Toutes les consultations Recherche avancée</div>
-<div>Date et heure limite de remise des plis : 11/11/2026 10:00</div>
+<div>Date et heure limite de remise des plis : __LIMITE__ 10:00</div>
 <div>Référence 11/2026/DRANEFFM Objet : Acquisition d’un véhicule vivier
      Acheteur public : ANEF / DRANEFFM
      Procédure : Appel d'offres ouvert | Sur offre de prix
@@ -35,6 +41,10 @@ FICHE = """<html><body>
      Réservé à la TPE et PME installées au Maroc, jeunes entreprises innovantes,
      Coopératives et auto-entrepreneurs * : Oui</div>
 </body></html>"""
+
+
+LIGNE = LIGNE.replace("__LIMITE__", LIMITE)
+FICHE = FICHE.replace("__LIMITE__", LIMITE)
 
 
 def _ligne(html=LIGNE):
@@ -48,7 +58,7 @@ class TestLigneDeResultats:
         assert f["objet"].startswith("Travaux d’assainissement liquide")
         assert "Acheteur public" not in f["objet"], "l'acheteur n'est pas dans l'objet"
         assert f["acheteur"] == "SOCIETE REGIONALE MULTISERVICES TANGER-TETOUAN"
-        assert f["date_limite"] == "11/11/2026"
+        assert f["date_limite"] == LIMITE
         assert f["categorie"] == "Travaux"
 
     def test_lieu_non_duplique(self):
@@ -94,8 +104,8 @@ class TestFicheDetaillee:
         """Elle précède « Référence » sur la page: la coupe la perdait."""
         from app.core.conditions import conditions_avis
         desc = ao.parse_fiche(FICHE)["description"]
-        assert desc.startswith("Date et heure limite de remise des plis : 11/11/2026 10:00")
-        assert conditions_avis(desc)["limite"] == "11/11/2026 10:00"
+        assert desc.startswith(f"Date et heure limite de remise des plis : {LIMITE} 10:00")
+        assert conditions_avis(desc)["limite"] == f"{LIMITE} 10:00"
 
 
 class TestCollecte:

@@ -31,6 +31,12 @@ JOURS_SANS_SAUVEGARDE = 2
 # aussi bien quand la source se taisait que quand la page avait changé de
 # structure — un arrêt pouvait passer inaperçu indéfiniment.
 JOURS_SANS_RESULTAT = 14
+# Le portail public n'accepte plus les connexions venues de l'étranger: la
+# collecte passe par un poste au Maroc (relais/relais_portail.py) qui dépose
+# toutes les dix minutes. Trois heures sans dépôt, c'est un poste éteint ou
+# une connexion coupée — et personne ne le voit depuis le serveur.
+HEURES_SANS_RELAIS = 3
+MESSAGE_RELAIS = "relais local"
 # Dossier surveillé pour la fraîcheur des sauvegardes (les tests le déplacent).
 DOSSIER_SAUVEGARDES = "data/backups"
 
@@ -92,6 +98,11 @@ def collecter_indicateurs() -> dict:
                                        WHERE status='SENT' AND REPLACE(sent_at,'T',' ')>=datetime('now','-24 hours')"""),
             "notif_echec_24h": _un(db, """SELECT COUNT(*) FROM notif_log
                                           WHERE status='FAILED' AND REPLACE(sent_at,'T',' ')>=datetime('now','-24 hours')"""),
+            "relais_depots": _un(db, "SELECT COUNT(*) FROM scraper_runs WHERE message LIKE ?",
+                                 MESSAGE_RELAIS + "%"),
+            "heures_sans_relais": round(24 * _jours_depuis(
+                _un(db, "SELECT MAX(started_at) FROM scraper_runs WHERE message LIKE ?",
+                    MESSAGE_RELAIS + "%") or ""), 1),
             "membres": _un(db, "SELECT COUNT(*) FROM members WHERE actif=1"),
             "essais": _un(db, "SELECT COUNT(*) FROM members WHERE subscription_status='TRIAL' AND actif=1"),
             "abonnes": _un(db, "SELECT COUNT(*) FROM members WHERE subscription_status='ACTIVE' AND actif=1"),
@@ -133,6 +144,11 @@ def anomalies(ind: dict) -> list:
     if ind["runs_ok_3h"] == 0:
         alertes.append("La collecte ne s'exécute plus depuis au moins 3 h "
                        f"(dernier marché reçu : {ind['dernier_marche'][:16] or 'jamais'})")
+    # Un relais qui a déjà déposé au moins une fois et qui se tait: le poste
+    # au Maroc est éteint, ou sa connexion est coupée.
+    if ind.get("relais_depots") and ind.get("heures_sans_relais", 0) > HEURES_SANS_RELAIS:
+        alertes.append(f"Le relais local n'a rien déposé depuis {ind['heures_sans_relais']} h — "
+                       "le poste au Maroc est-il allumé et connecté ?")
     if ind["runs_echec_24h"] >= ECHECS_RUNS_ALERTE:
         alertes.append(f"{ind['runs_echec_24h']} collecte(s) en échec sur 24 h")
     if ind["notif_echec_24h"] >= ECHECS_NOTIF_ALERTE:
@@ -162,6 +178,8 @@ def bilan_texte(ind: dict) -> str:
         "",
         f"Marchés actifs : <b>{ind['marches_actifs']}</b>  (+{ind['marches_24h']} en 24 h)",
         f"Dernière collecte : il y a {ind['heures_sans_marche']} h",
+        (f"Relais local : dernier dépôt il y a {ind['heures_sans_relais']} h"
+         if ind.get("relais_depots") else "Relais local : jamais vu"),
         f"Alertes envoyées : {ind['notif_ok_24h']}"
         + (f"  ⚠️ {ind['notif_echec_24h']} en échec" if ind["notif_echec_24h"] else ""),
         "",

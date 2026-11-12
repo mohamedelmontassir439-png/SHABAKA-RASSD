@@ -435,6 +435,10 @@ LON   5.5017° W
                      ('2', 'dossiers', 'pont-settat', '55% 55%', ['svc2a', 'svc2b', 'svc2c', 'svc2d']),
                      ('3', 'coche', 'tramway-casablanca', '40% 60%', ['svc3a', 'svc3b', 'svc3c', 'svc3d']),
                      ('4', 'trophee', 'noor-ouarzazate', '62% 60%', ['svc4a', 'svc4b', 'svc4c'])] %}
+    {# Les services retirés de l'offre (cfg.FONCTIONS_MASQUEES) ne sont pas promis. #}
+    {% set masques = (['svc3d'] if not visible('financement') else [])
+                   + (['svc4b'] if not visible('groupements') else [])
+                   + (['svc4c'] if not visible('sous-traitance') else []) %}
     <div class="etapes">
       {% for n, icone, photo, cadrage, services in etapes %}
       <article class="etape">
@@ -447,7 +451,7 @@ LON   5.5017° W
           <h3>{{ tr('svc' ~ n ~ '_t') }}</h3>
           <p class="etape-but">{{ tr('svc' ~ n ~ '_but') }}</p>
           <ul>
-            {% for k in services %}<li>{{ tr(k ~ '_t') }}</li>{% endfor %}
+            {% for k in services if k not in masques %}<li>{{ tr(k ~ '_t') }}</li>{% endfor %}
           </ul>
         </div>
       </article>
@@ -503,6 +507,7 @@ LON   5.5017° W
 </section>
 
 <!-- SOUS-TRAITANCE SPOTLIGHT -->
+{% if visible('sous-traitance') %}
 <section class="st-spot">
   <div class="container st-spot-grid">
     <div class="reveal">
@@ -537,6 +542,7 @@ LON   5.5017° W
     </div>
   </div>
 </section>
+{% endif %}
 
 <!-- MARCHÉS DU MOMENT -->
 <section class="latest" id="marches">
