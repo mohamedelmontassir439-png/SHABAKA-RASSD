@@ -561,5 +561,18 @@ document.querySelectorAll('.js-copier').forEach(function (a) {
   });
 });
 </script>
+<script>
+/* Mesure d'audience (app/services/visites.py): un signal par page, envoyé
+   par le navigateur — les robots qui lisent la page sans l'exécuter ne
+   l'envoient pas. Un lien marqué data-clic envoie le sien. */
+(function () {
+  if (!navigator.sendBeacon) return;
+  try { navigator.sendBeacon('/aller/vu?p=' + encodeURIComponent(location.pathname)); } catch (e) {}
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('a[data-clic]');
+    if (a) try { navigator.sendBeacon(a.getAttribute('data-clic')); } catch (e2) {}
+  });
+})();
+</script>
 </body>
 </html>

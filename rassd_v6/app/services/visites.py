@@ -46,6 +46,10 @@ _ROBOT = re.compile(r"bot|crawl|spider|slurp|facebookexternalhit|preview|monitor
 # Événements comptés à part des pages vues.
 INSCRIPTION = "inscription"
 WHATSAPP = "whatsapp"
+# Le navigateur a exécuté la page (signal envoyé par le script de mesure):
+# une personne, ou au moins un vrai navigateur — pas un robot qui lit le HTML.
+# Compté depuis le 15/11/2026; avant, la colonne reste à zéro.
+HUMAIN = "humain"
 
 def assurer_table(db) -> None:
     """La table se crée à la première mesure (CREATE IF NOT EXISTS, immédiat
@@ -146,6 +150,13 @@ def tableau(jours: int = 30) -> dict:
         tarifs = db.execute("SELECT COUNT(DISTINCT visiteur||jour) FROM visites WHERE jour>=? AND chemin='/tarifs'",
                             (depuis,)).fetchone()[0]
         totaux["tarifs"] = tarifs
+        totaux["humains"] = db.execute(
+            "SELECT COUNT(DISTINCT visiteur||jour) FROM visites WHERE jour>=? AND evenement=?",
+            (depuis, HUMAIN)).fetchone()[0]
+        # Les clics WhatsApp comptés avant le signal du navigateur l'étaient
+        # à l'ouverture du lien, robots compris: on le dit plutôt que de
+        # mélanger les deux mesures.
+        totaux["clics_fiables_depuis"] = "2026-11-15"
         totaux["taux_whatsapp"] = round(100 * totaux["whatsapp"] / tarifs, 1) if tarifs else 0.0
         return {"jours": jours, "depuis": depuis, "serie": serie, "pages": pages,
                 "referents": referents, "canaux": canaux, "totaux": totaux}

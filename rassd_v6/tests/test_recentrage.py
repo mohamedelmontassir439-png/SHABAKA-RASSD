@@ -94,17 +94,32 @@ class TestVisites:
         assert visites.referent_externe("https://marocentrepreneuriat.com/tarifs", "marocentrepreneuriat.com") == ""
         assert visites.referent_externe("", "marocentrepreneuriat.com") == ""
 
-    def test_le_clic_whatsapp_est_compte_puis_redirige(self, client, db):
+    def test_le_clic_whatsapp_est_signale_par_le_navigateur(self, client, db):
+        _marche(db)
+        # Le lien de la page va droit sur wa.me; le clic se signale en POST.
+        page = client.get("/tarifs?ao=ao_rc1").text
+        assert f'href="https://wa.me/{cfg.PAYMENT_PHONE}?text=' in page
+        assert 'data-clic="/aller/whatsapp?ao=ao_rc1"' in page
+        assert client.post("/aller/whatsapp?ao=ao_rc1", headers=NAVIGATEUR).status_code == 204
+        evt = db.execute("SELECT chemin, evenement FROM visites WHERE evenement!=''").fetchall()
+        assert [tuple(e) for e in evt] == [("/tarifs?ao=ao_rc1", "whatsapp")]
+
+    def test_ouvrir_le_lien_ne_compte_pas(self, client, db):
+        """Un robot ou un aperçu de lien qui ouvre l'adresse n'est pas un clic."""
         _marche(db)
         r = client.get("/aller/whatsapp?ao=ao_rc1", headers=NAVIGATEUR)
-        assert r.status_code == 302
-        assert r.headers["location"].startswith(f"https://wa.me/{cfg.PAYMENT_PHONE}?text=")
-        assert "Taroudant" in __import__("urllib.parse").parse.unquote(r.headers["location"])
-        evt = db.execute("SELECT chemin, evenement FROM visites").fetchall()
-        assert [tuple(e) for e in evt] == [("/tarifs?ao=ao_rc1", "whatsapp")]
-        # Le bouton de la page des tarifs passe par là.
-        page = client.get("/tarifs?ao=ao_rc1").text
-        assert 'href="/aller/whatsapp?ao=ao_rc1"' in page
+        assert r.status_code == 302 and r.headers["location"].startswith("https://wa.me/")
+        client.post("/aller/whatsapp", headers={"user-agent": "facebookexternalhit/1.1"})
+        from app.services import visites
+        assert visites.tableau(7)["totaux"]["whatsapp"] == 0
+        assert "Disallow: /aller/" in client.get("/robots.txt").text
+
+    def test_les_vrais_navigateurs_sont_comptes(self, client, db):
+        from app.services import visites
+        client.get("/", headers=NAVIGATEUR)
+        assert client.post("/aller/vu?p=/", headers=NAVIGATEUR).status_code == 204
+        assert "sendBeacon('/aller/vu" in client.get("/tarifs").text
+        assert visites.tableau(7)["totaux"]["humains"] == 1
 
     def test_l_inscription_est_comptee(self, client, db):
         client.get("/register", headers=NAVIGATEUR)

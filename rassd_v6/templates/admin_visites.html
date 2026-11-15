@@ -22,10 +22,10 @@ table.liste td.n, table.liste th.n { text-align: end; font-variant-numeric: tabu
 {% endblock %}
 {% block contenu %}
 <div class="kpis">
-  <div class="kpi"><div class="kpi-n">{{ t.totaux.visiteurs }}</div><div class="kpi-l">Visiteurs (personnes-jours)</div></div>
+  <div class="kpi"><div class="kpi-n">{{ t.totaux.visiteurs }}</div><div class="kpi-l">Visiteurs (personnes-jours), dont <b>{{ t.totaux.humains }}</b> vrais navigateurs (compté depuis le 15/11)</div></div>
   <div class="kpi"><div class="kpi-n">{{ t.totaux.pages }}</div><div class="kpi-l">Pages vues</div></div>
   <div class="kpi"><div class="kpi-n">{{ t.totaux.tarifs }}</div><div class="kpi-l">Ont vu la page Tarifs</div></div>
-  <div class="kpi"><div class="kpi-n">{{ t.totaux.whatsapp }}</div><div class="kpi-l">Clics « S'abonner sur WhatsApp » ({{ t.totaux.taux_whatsapp }} % des visiteurs de Tarifs)</div></div>
+  <div class="kpi"><div class="kpi-n">{{ t.totaux.whatsapp }}</div><div class="kpi-l">Clics « S'abonner sur WhatsApp » ({{ t.totaux.taux_whatsapp }} % des visiteurs de Tarifs). Fiables depuis le 15/11: avant, les robots étaient comptés. Un clic ouvre WhatsApp; le message part seulement si la personne appuie sur Envoyer</div></div>
   <div class="kpi"><div class="kpi-n">{{ t.totaux.inscriptions }}</div><div class="kpi-l">Inscriptions</div></div>
 </div>
 

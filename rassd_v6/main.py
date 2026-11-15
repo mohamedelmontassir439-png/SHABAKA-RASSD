@@ -1023,7 +1023,7 @@ CHEMINS_LIBRES_EXACTS = frozenset((
     "/webhooks/brevo",
 ))
 CHEMINS_LIBRES_PREFIXES = (
-    "/verifier-email", "/settings", "/static", "/video", "/admin", "/icon-",
+    "/verifier-email", "/settings", "/static", "/video", "/admin", "/icon-", "/aller",
     "/marches-publics", "/appel-offres", "/guide",
     # L'invitation est une page publique: l'entreprise invitée n'a pas encore
     # de compte, elle ne peut donc pas avoir confirmé d'adresse.
@@ -1228,6 +1228,8 @@ class VisitesMiddleware(BaseHTTPMiddleware):
 def _evenement_visite(req: Request, nom: str, chemin: str = "", membre: int = 0) -> None:
     """Un événement qui compte (inscription, clic WhatsApp), rattaché au
     même visiteur du jour que ses pages vues."""
+    if visites.robot(req.headers.get("user-agent", "")):
+        return
     try:
         jour = date.today().isoformat()
         visiteur = visites.empreinte(get_ip(req), req.headers.get("user-agent", ""), jour)
@@ -3509,11 +3511,33 @@ def _lien_wa_abo(req: Request, ao: str = "") -> tuple:
 
 @app.get("/aller/whatsapp")
 async def aller_whatsapp(req: Request, ao: str = ""):
-    """Compte le clic sur « S'abonner sur WhatsApp », puis ouvre WhatsApp."""
-    marche, lien = _lien_wa_abo(req, ao)
-    _evenement_visite(req, visites.WHATSAPP, "/tarifs" + (f"?ao={marche['id']}" if marche else ""),
-                      membre=1 if req.cookies.get("_session") else 0)
+    """Ouvre WhatsApp avec le message prêt. Ne compte rien: une adresse
+    qu'on ouvre se fait aussi ouvrir par les robots et les aperçus de liens
+    — 84 « clics » comptés ainsi du 12 au 15/11/2026, aucun message reçu."""
+    _marche, lien = _lien_wa_abo(req, ao)
     return RedirectResponse(lien, 302)
+
+
+@app.post("/aller/whatsapp")
+async def aller_whatsapp_clic(req: Request, ao: str = ""):
+    """Le clic, signalé par le navigateur (navigator.sendBeacon, en POST)."""
+    marche = None
+    if ao:
+        db = get_db()
+        r = db.execute("SELECT id FROM tenders WHERE id=?", (ao[:40],)).fetchone()
+        db.close()
+        marche = r["id"] if r else None
+    _evenement_visite(req, visites.WHATSAPP, "/tarifs" + (f"?ao={marche}" if marche else ""),
+                      membre=1 if req.cookies.get("_session") else 0)
+    return Response(status_code=204)
+
+
+@app.post("/aller/vu")
+async def aller_vu(req: Request, p: str = ""):
+    """Un navigateur a exécuté la page: c'est une personne, pas un robot."""
+    _evenement_visite(req, visites.HUMAIN, (p or "/")[:200],
+                      membre=1 if req.cookies.get("_session") else 0)
+    return Response(status_code=204)
 
 
 @app.get("/abonnement/paiement")
@@ -6390,7 +6414,7 @@ async def robots():
     # ouvertes, et le plan du site les liste.
     prives = ["/api/", "/settings", "/dashboard", "/favorites", "/tenders", "/bons-de-commande",
               "/resultats", "/recap/", "/invitation/", "/reset", "/verifier-email", "/webhooks/",
-              "/abonnement", "/documents/"]
+              "/abonnement", "/documents/", "/aller/"]
     regles = "".join(f"Disallow: {c}\n" for c in prives)
     return Response(f"User-agent: *\nAllow: /\n{regles}Sitemap: {cfg.SITE_URL}/sitemap.xml\n",
                     media_type="text/plain")
