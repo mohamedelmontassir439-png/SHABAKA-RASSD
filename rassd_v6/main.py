@@ -768,7 +768,57 @@ async def renewal_scheduler():
 
 
 BACKUP_DIR  = "data/backups"
-BACKUP_KEEP = 14
+# Quatorze copies de la base (≈ 30 Mo chacune) sur le volume qui la porte:
+# plus de 400 Mo, de quoi remplir un petit volume. Le 15/11/2026, toute
+# requête renvoyait une erreur 500. Cinq copies locales suffisent: la copie
+# qui compte part chaque semaine sur Telegram.
+BACKUP_KEEP = 5
+# Marge à garder libre sur le disque de la base: deux fois sa taille, pour
+# qu'une copie et la croissance du journal (WAL) passent encore.
+MARGE_DISQUE = 2
+
+
+def etat_disque() -> dict:
+    """Place libre et poids de ce qui occupe le volume: base, journal, copies."""
+    import shutil
+    dossier = os.path.dirname(os.path.abspath(cfg.DB_PATH)) or "."
+    taille = lambda f: os.path.getsize(f) if os.path.exists(f) else 0
+    copies = []
+    if os.path.isdir(BACKUP_DIR):
+        copies = [os.path.join(BACKUP_DIR, f) for f in os.listdir(BACKUP_DIR)]
+    try:
+        du = shutil.disk_usage(dossier)
+        libre, total = du.free, du.total
+    except OSError:
+        libre = total = -1
+    return {"libre_mo": round(libre / 1e6, 1), "total_mo": round(total / 1e6, 1),
+            "base_mo": round(taille(cfg.DB_PATH) / 1e6, 1),
+            "wal_mo": round(taille(cfg.DB_PATH + "-wal") / 1e6, 1),
+            "copies": len(copies), "copies_mo": round(sum(taille(f) for f in copies) / 1e6, 1)}
+
+
+def liberer_disque(garder: int = BACKUP_KEEP) -> int:
+    """Supprime les copies au-delà de `garder`, les restes d'archive (.gz) et,
+    si la place manque encore, les copies les plus anciennes jusqu'à une.
+    Retourne le nombre de fichiers supprimés."""
+    import shutil
+    if not os.path.isdir(BACKUP_DIR):
+        return 0
+    n = 0
+    for f in os.listdir(BACKUP_DIR):
+        if f.endswith(".gz") or f.endswith(".tmp"):
+            try: os.remove(os.path.join(BACKUP_DIR, f)); n += 1
+            except OSError: pass
+    copies = sorted(f for f in os.listdir(BACKUP_DIR) if f.startswith("atlas_") and f.endswith(".db"))
+    besoin = MARGE_DISQUE * (os.path.getsize(cfg.DB_PATH) if os.path.exists(cfg.DB_PATH) else 0)
+    def libre():
+        try: return shutil.disk_usage(BACKUP_DIR).free
+        except OSError: return besoin + 1
+    while copies and (len(copies) > garder or (len(copies) > 1 and libre() < besoin)):
+        try: os.remove(os.path.join(BACKUP_DIR, copies.pop(0))); n += 1
+        except OSError: pass
+    return n
+
 
 def make_db_backup():
     """Copie la base SQLite dans data/backups/ (protège contre un bug
@@ -780,6 +830,10 @@ def make_db_backup():
     if not os.path.exists(cfg.DB_PATH):
         return None
     os.makedirs(BACKUP_DIR, exist_ok=True)
+    liberer_disque(BACKUP_KEEP - 1)
+    if shutil.disk_usage(BACKUP_DIR).free < MARGE_DISQUE * os.path.getsize(cfg.DB_PATH):
+        logger.error(f"[backup] place insuffisante, copie annulée: {etat_disque()}")
+        return None
     ts   = datetime.now().strftime("%Y%m%d_%H%M%S")
     dest = os.path.join(BACKUP_DIR, f"atlas_{ts}.db")
     shutil.copy2(cfg.DB_PATH, dest)
@@ -1045,7 +1099,22 @@ def csrf_guard(req: Request, csrf_token: str = ""):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_db()
+    # Place d'abord: une base sur un disque plein ne s'ouvre plus en écriture.
+    try:
+        n = liberer_disque()
+        logger.info(f"[disque] {n} fichier(s) libéré(s) — {etat_disque()}")
+    except Exception as e:
+        logger.error(f"[disque] {e}")
+    try:
+        db = get_db(); db.execute("PRAGMA wal_checkpoint(TRUNCATE)"); db.close()
+    except Exception as e:
+        logger.error(f"[disque] checkpoint: {e}")
+    # Une base inaccessible ne doit pas empêcher le site de démarrer: les
+    # pages sans données restent servies et /health dit ce qui ne va pas.
+    try:
+        init_db()
+    except Exception as e:
+        logger.error(f"[démarrage] init_db: {e!r} — {etat_disque()}")
     try:
         from app.services.reports_officiels import appliquer
         appliquer()
@@ -6099,10 +6168,16 @@ async def wa_status(req: Request):
 # ══════════════════════════════════════════════════════════
 @app.get("/health")
 async def health():
-    db  = get_db()
-    act = db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif'").fetchone()[0]
-    db.close()
-    return {"status":"ok","version":cfg.APP_VERSION,"brand":cfg.APP_NAME,
+    try:
+        db  = get_db()
+        act = db.execute("SELECT COUNT(*) FROM tenders WHERE statut='actif'").fetchone()[0]
+        db.close()
+    except Exception as e:
+        # La cause en clair (type et message SQLite, aucune donnée) et l'état
+        # du disque: c'est ce qu'il faut pour réparer sans accès aux journaux.
+        return JSONResponse({"status": "erreur_base", "erreur": f"{type(e).__name__}: {e}"[:300],
+                             "disque": etat_disque()}, 503)
+    return {"status":"ok","version":cfg.APP_VERSION,"brand":cfg.APP_NAME,"disque":etat_disque(),
             "active":act,"running":State.running,"last_run":State.last_run,
             "multi_scraper":False}
 

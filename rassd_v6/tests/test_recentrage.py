@@ -196,3 +196,26 @@ class TestClassementIA:
         assert not classement_ia.disponible()
         monkeypatch.setattr(cfg, "CLASSEMENT_IA", True)
         assert classement_ia.disponible()
+
+
+class TestDisque:
+    def test_health_dit_la_cause_quand_la_base_tombe(self, client, db, monkeypatch):
+        import main
+        def casse():
+            raise __import__("sqlite3").OperationalError("database or disk is full")
+        monkeypatch.setattr(main, "get_db", casse)
+        r = client.get("/health")
+        assert r.status_code == 503
+        corps = r.json()
+        assert corps["status"] == "erreur_base" and "disk is full" in corps["erreur"]
+        assert "libre_mo" in corps["disque"]
+
+    def test_les_vieilles_copies_partent(self, tmp_path, monkeypatch):
+        import main
+        monkeypatch.setattr(main, "BACKUP_DIR", str(tmp_path))
+        for i in range(9):
+            (tmp_path / f"atlas_2026110{i}_000000.db").write_bytes(b"x")
+        (tmp_path / "atlas_20261101_000000.db.gz").write_bytes(b"x")
+        main.liberer_disque(garder=5)
+        restes = sorted(f.name for f in tmp_path.iterdir())
+        assert restes == [f"atlas_2026110{i}_000000.db" for i in range(4, 9)]
