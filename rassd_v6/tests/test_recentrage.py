@@ -219,3 +219,57 @@ class TestDisque:
         main.liberer_disque(garder=5)
         restes = sorted(f.name for f in tmp_path.iterdir())
         assert restes == [f"atlas_2026110{i}_000000.db" for i in range(4, 9)]
+
+
+class TestCopieExterne:
+    def test_grosse_archive_en_morceaux_puis_restauree(self, tmp_path, monkeypatch, db):
+        """Une base au-delà du plafond Telegram part en morceaux, et l'outil
+        de restauration la recolle à l'identique."""
+        import os, random, sqlite3, subprocess, sys
+        import main, requests
+        monkeypatch.setattr(main, "BACKUP_DIR", str(tmp_path / "copies"))
+        monkeypatch.setattr(main, "MORCEAU_MAX", 20_000)
+        monkeypatch.setattr(main.cfg, "TELEGRAM_BOT", "123:abc")
+        monkeypatch.setattr(main.cfg, "ADMIN_CHAT_ID", "4242")
+        # De quoi dépasser 20 ko une fois compressé: du texte peu répétitif.
+        rnd = random.Random(1)
+        for i in range(400):
+            db.execute("INSERT INTO tenders(id,objet,statut,scraped_at) VALUES(?,?,'actif','2026-11-15')",
+                       (f"ao_{i}", " ".join(str(rnd.random()) for _ in range(12))))
+        db.commit()
+        recus = tmp_path / "recus"; recus.mkdir()
+
+        class Rep:
+            status_code, text = 200, "{}"
+
+        def faux_post(url, data=None, files=None, timeout=None):
+            f = files["document"]
+            (recus / os.path.basename(f.name)).write_bytes(f.read())
+            return Rep()
+        monkeypatch.setattr(requests, "post", faux_post)
+
+        chemin = main.make_db_backup()
+        assert chemin and main.envoyer_sauvegarde_telegram(chemin) is True
+        etat = main._etat_externe()
+        assert etat["ok"] and etat["morceaux"] >= 2
+        assert len(list(recus.iterdir())) == etat["morceaux"]
+        assert not [f for f in os.listdir(main.BACKUP_DIR) if ".gz" in f], "pas de reste sur le disque"
+
+        sortie = tmp_path / "restauree.db"
+        r = subprocess.run([sys.executable, "outils/restaurer_sauvegarde.py", str(recus), str(sortie)],
+                           capture_output=True, text=True)
+        assert r.returncode == 0, r.stderr
+        assert ": ok, 400 march" in r.stdout
+        assert sqlite3.connect(sortie).execute("SELECT COUNT(*) FROM tenders").fetchone()[0] == 400
+
+    def test_echec_note_dans_l_etat(self, tmp_path, monkeypatch):
+        import main, requests
+        monkeypatch.setattr(main, "BACKUP_DIR", str(tmp_path))
+        monkeypatch.setattr(main.cfg, "TELEGRAM_BOT", "123:abc")
+        monkeypatch.setattr(main.cfg, "ADMIN_CHAT_ID", "4242")
+        class Rep:
+            status_code, text = 413, "Request Entity Too Large"
+        monkeypatch.setattr(requests, "post", lambda *a, **k: Rep())
+        f = tmp_path / "atlas_20261115_000000.db"; f.write_bytes(b"x" * 100)
+        assert main.envoyer_sauvegarde_telegram(str(f)) is False
+        assert main._etat_externe()["ok"] is False and "413" in main._etat_externe()["erreur"]

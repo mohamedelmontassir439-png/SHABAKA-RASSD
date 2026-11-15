@@ -794,7 +794,8 @@ def etat_disque() -> dict:
     return {"libre_mo": round(libre / 1e6, 1), "total_mo": round(total / 1e6, 1),
             "base_mo": round(taille(cfg.DB_PATH) / 1e6, 1),
             "wal_mo": round(taille(cfg.DB_PATH + "-wal") / 1e6, 1),
-            "copies": len(copies), "copies_mo": round(sum(taille(f) for f in copies) / 1e6, 1)}
+            "copies": len(copies), "copies_mo": round(sum(taille(f) for f in copies) / 1e6, 1),
+            "copie_externe": _etat_externe()}
 
 
 def liberer_disque(garder: int = BACKUP_KEEP) -> int:
@@ -836,53 +837,102 @@ def make_db_backup():
         return None
     ts   = datetime.now().strftime("%Y%m%d_%H%M%S")
     dest = os.path.join(BACKUP_DIR, f"atlas_{ts}.db")
-    shutil.copy2(cfg.DB_PATH, dest)
+    # VACUUM INTO plutôt qu'une copie du fichier: la base vit en mode WAL,
+    # et copier atlas.db pendant une écriture donne une image où manquent
+    # les pages encore dans le journal. L'instantané est cohérent, et
+    # compacté (les pages libres ne sont pas recopiées).
+    import sqlite3
+    tmp = dest + ".tmp"
+    src = sqlite3.connect(cfg.DB_PATH)
+    try:
+        src.execute("VACUUM INTO ?", (tmp,))
+    finally:
+        src.close()
+    os.replace(tmp, dest)
     backups = sorted(f for f in os.listdir(BACKUP_DIR) if f.startswith("atlas_") and f.endswith(".db"))
     while len(backups) > BACKUP_KEEP:
         try: os.remove(os.path.join(BACKUP_DIR, backups.pop(0)))
         except OSError: pass
     return dest
 
+# Telegram accepte 50 Mo par document envoyé par un robot. La base de
+# production pèse ~300 Mo: compressée, elle dépasse ce plafond, et l'ancien
+# envoi refusait simplement de partir — aucune copie ne quittait Railway.
+# L'archive part désormais en morceaux de 45 Mo, numérotés; on les recolle
+# avec outils/restaurer_sauvegarde.py.
+MORCEAU_MAX = 45 * 1024 * 1024
+ETAT_EXTERNE = "copie_externe.json"
+
+
+def _etat_externe(maj: dict = None) -> dict:
+    """Dernière copie partie hors Railway: date, taille, morceaux, réussite."""
+    chemin = os.path.join(BACKUP_DIR, ETAT_EXTERNE)
+    if maj is not None:
+        os.makedirs(BACKUP_DIR, exist_ok=True)
+        with open(chemin, "w", encoding="utf-8") as f:
+            json.dump(maj, f, ensure_ascii=False)
+        return maj
+    try:
+        with open(chemin, encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
 def envoyer_sauvegarde_telegram(chemin: str) -> bool:
     """Expédie la sauvegarde compressée sur Telegram, à l'administrateur.
 
     Une copie qui dort sur le même disque que la base ne protège de rien: si
-    le volume Railway disparaît, tout part avec lui. Telegram accepte 50 Mo
-    par document, et la base compressée tient largement dedans.
+    le volume Railway disparaît, tout part avec lui.
     """
     import gzip, shutil
     if not (cfg.TELEGRAM_BOT and cfg.ADMIN_CHAT_ID):
         return False
     archive = f"{chemin}.gz"
+    morceaux = []
     try:
         with open(chemin, "rb") as src, gzip.open(archive, "wb", compresslevel=6) as dst:
             shutil.copyfileobj(src, dst)
         taille = os.path.getsize(archive)
-        if taille > 49 * 1024 * 1024:
-            logger.warning(f"[backup] archive trop lourde pour Telegram ({taille/1e6:.0f} Mo)")
-            return False
+        nom = os.path.basename(archive)
+        if taille <= MORCEAU_MAX:
+            morceaux = [archive]
+        else:
+            n = -(-taille // MORCEAU_MAX)
+            with open(archive, "rb") as fh:
+                for i in range(1, n + 1):
+                    m = f"{archive}.part{i:02d}of{n:02d}"
+                    with open(m, "wb") as out:
+                        out.write(fh.read(MORCEAU_MAX))
+                    morceaux.append(m)
         import requests as _rq
-        with open(archive, "rb") as fh:
-            r = _rq.post(
-                f"https://api.telegram.org/bot{cfg.TELEGRAM_BOT}/sendDocument",
-                data={"chat_id": cfg.ADMIN_CHAT_ID,
-                      "caption": f"Sauvegarde {os.path.basename(chemin)} — "
-                                 f"{taille/1e6:.1f} Mo compressés"},
-                files={"document": fh}, timeout=180)
-        if r.status_code == 200:
-            logger.info("[backup] ✅ copie hors Railway envoyée sur Telegram")
-            return True
-        logger.error(f"[backup] Telegram {r.status_code}: {r.text[:200]}")
-        return False
+        for i, m in enumerate(morceaux, 1):
+            legende = (f"Sauvegarde {nom} — {taille/1e6:.1f} Mo compressés"
+                       + (f" — morceau {i}/{len(morceaux)}" if len(morceaux) > 1 else ""))
+            with open(m, "rb") as fh:
+                r = _rq.post(f"https://api.telegram.org/bot{cfg.TELEGRAM_BOT}/sendDocument",
+                             data={"chat_id": cfg.ADMIN_CHAT_ID, "caption": legende},
+                             files={"document": fh}, timeout=600)
+            if r.status_code != 200:
+                logger.error(f"[backup] Telegram {r.status_code} (morceau {i}): {r.text[:200]}")
+                _etat_externe({"date": datetime.now().isoformat(timespec="seconds"), "ok": False,
+                               "fichier": nom, "erreur": f"HTTP {r.status_code} au morceau {i}"})
+                return False
+        logger.info(f"[backup] ✅ copie hors Railway envoyée sur Telegram ({len(morceaux)} morceau(x))")
+        _etat_externe({"date": datetime.now().isoformat(timespec="seconds"), "ok": True,
+                       "fichier": nom, "mo": round(taille / 1e6, 1), "morceaux": len(morceaux)})
+        return True
     except Exception as e:
         logger.error(f"[backup] envoi Telegram: {e}")
+        _etat_externe({"date": datetime.now().isoformat(timespec="seconds"), "ok": False,
+                       "erreur": str(e)[:200]})
         return False
     finally:
-        try:
-            if os.path.exists(archive): os.remove(archive)
-        except OSError:
-            pass
-
+        for f in [archive] + morceaux:
+            try:
+                if os.path.exists(f): os.remove(f)
+            except OSError:
+                pass
 
 async def backup_scheduler():
     await asyncio.sleep(90)
@@ -893,9 +943,9 @@ async def backup_scheduler():
             path = await loop.run_in_executor(None, make_db_backup)
             if path:
                 logger.info(f"[backup] ✅ {path}")
-                # Une fois par semaine, la copie quitte Railway.
-                if jour % 7 == 0:
-                    await loop.run_in_executor(None, lambda: envoyer_sauvegarde_telegram(path))
+                # Chaque jour, la copie quitte Railway: c'est la seule qui
+                # survit à la perte du volume.
+                await loop.run_in_executor(None, lambda: envoyer_sauvegarde_telegram(path))
             jour += 1
         except Exception as e:
             logger.error(f"[backup_scheduler] {e}")
