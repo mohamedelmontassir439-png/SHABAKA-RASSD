@@ -85,7 +85,7 @@ def get_member(req: Request) -> Optional[dict]:
         db.close()
     return None
 
-PAID_PLANS = ("monthly", "pro", "business")
+PAID_PLANS = ("essai", "monthly", "pro", "business")
 
 def _parse_day(value: str):
     """Lit une date stockée soit en 'YYYY-MM-DD', soit en ISO complet."""
@@ -174,6 +174,29 @@ def subscription_state(member: Optional[dict]) -> dict:
 
     return {"status": member.get("subscription_status") or "NONE", "is_active": False,
             "days_left": 0, "heures_restantes": 0, "plan": plan, "end_date": "", "in_trial": False}
+
+def essai_ouvert(member: Optional[dict]) -> bool:
+    """Le mois d'essai à 99 MAD est-il encore proposé à ce compte?
+
+    Une seule fois, et seulement à qui n'a jamais rien payé: un visiteur
+    sans compte, ou un compte sans aucun abonnement payant passé. Après
+    l'essai (ou après un annuel), il ne reste que l'abonnement annuel."""
+    if not member or not member.get("id"):
+        return True
+    if member.get("plan") in PAID_PLANS:
+        return False
+    from app.core.database import get_db
+    db = get_db()
+    try:
+        r = db.execute("""SELECT 1 FROM subscriptions WHERE member_id=?
+                          AND plan_id NOT IN ('trial','free') LIMIT 1""",
+                       (member["id"],)).fetchone()
+        return r is None
+    except Exception:
+        return True
+    finally:
+        db.close()
+
 
 def has_access(member: Optional[dict]) -> bool:
     """Accès aux données réelles: essai gratuit en cours OU abonnement payant

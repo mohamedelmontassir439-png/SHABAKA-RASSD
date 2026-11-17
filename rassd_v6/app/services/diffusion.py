@@ -170,7 +170,7 @@ def publications(aujourdhui: date = None) -> list:
         "",
         "Maroc Entrepreneuriat rassemble les appels d'offres et vous envoie chaque matin ceux de votre secteur et de votre ville — avec les conditions déjà lues : caution, qualification, visite des lieux, heure limite.",
         "",
-        f"✅ Abonnement annuel : {cfg.PRIX_TXT} MAD, tout compris",
+        f"✅ Premier mois à {cfg.PRIX_ESSAI_TXT} MAD, puis {cfg.PRIX_TXT} MAD / an, tout compris",
         "👉 {LIEN}",
     ]))
 
@@ -219,7 +219,7 @@ def publications(aujourdhui: date = None) -> list:
         f"*{_n(m['actifs'])} marchés publics ouverts* 📢",
         *_lignes_marches(m["vitrine"][:2], "fr", "•"),
         "",
-        f"Ceux de votre secteur chaque matin — abonnement annuel {cfg.PRIX_TXT} MAD :",
+        f"Ceux de votre secteur chaque matin — premier mois à {cfg.PRIX_ESSAI_TXT} MAD :",
         "{LIEN}",
     ]))
     return pubs

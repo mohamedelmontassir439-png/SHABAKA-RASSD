@@ -66,21 +66,28 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
   <div class="blob blob-indigo" style="width:320px; height:320px; top:-80px; inset-inline-end:5%;"></div>
   <div class="section-label reveal" style="justify-content:center;">{{ tr('pr_label') }}</div>
   <h1 class="pricing-title reveal">{{ tr('pr_title')|safe }}</h1>
-  <p class="pricing-intro reveal">{{ tr('pr_intro') }}</p>
+  <p class="pricing-intro reveal">{{ tr('pr_intro', essai=cfg.PRIX_ESSAI_TXT, price=cfg.PRIX_TXT) if essai_ouvert else tr('pr_intro_abo') }}</p>
 </section>
 
 <div class="plans-wrap" id="abonnement">
   <div class="abo">
     <div class="plan-card">
+      {% if essai_ouvert %}
+      {# Mois d'essai payant, une fois par compte; ensuite l'annuel seul. #}
+      <div class="plan-name">{{ tr('pr_e_nom') }}</div>
+      <div class="plan-price-row"><span class="plan-price"><bdi dir="ltr">{{ cfg.PRIX_ESSAI_TXT }}</bdi></span><span class="plan-period">{{ tr('pr_e_mois') }}</span></div>
+      <div class="plan-mois">{{ tr('pr_e_puis', price=cfg.PRIX_TXT) }}<br>{{ tr('pr_e_unique') }}</div>
+      {% else %}
       <div class="plan-name">{{ tr('pr_u_nom') }}</div>
       <div class="plan-price-row"><span class="plan-price"><bdi dir="ltr">{{ cfg.PRIX_TXT }}</bdi></span><span class="plan-period">{{ tr('pr_u_an') }}</span></div>
       <div class="plan-mois">{{ tr('pr_u_mois', m=(cfg.PRIX_ANNUEL / 12)|round(0, 'ceil')|int) }}</div>
+      {% endif %}
       <ul class="plan-feats">
         {% for k in range(1, 9) if k != 8 or visible('sous-traitance') %}<li>{{ tr('pr_u_f' ~ k) }}</li>{% endfor %}
       </ul>
       {# Le lien ouvre wa.me directement; le navigateur signale le clic
          (data-clic, voir base_public.html) — un robot ne le compte pas. #}
-      <a href="{{ wa_abo_direct }}" data-clic="{{ wa_abo }}" target="_blank" rel="noopener nofollow" class="btn btn-wa btn-full btn-lg">{{ tr('pr_u_cta') }}</a>
+      <a href="{{ wa_abo_direct }}" data-clic="{{ wa_abo }}" target="_blank" rel="noopener nofollow" class="btn btn-wa btn-full btn-lg">{{ tr('pr_e_cta') if essai_ouvert else tr('pr_u_cta') }}</a>
       <div class="plan-aide">{{ tr('pr_u_aide') }}</div>
     </div>
     <div class="abo-cote">
@@ -115,7 +122,7 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
   <div class="faq-grid">
     <div class="faq-acc-item">
       <button class="faq-acc-q" type="button">{{ tr('pr_faq1_q') }}<span class="faq-acc-icon">+</span></button>
-      <div class="faq-acc-a"><div class="faq-acc-a-inner">{{ tr('pr_faq1_a', price=cfg.PRIX_TXT) }}</div></div>
+      <div class="faq-acc-a"><div class="faq-acc-a-inner">{{ tr('pr_faq1_a', price=cfg.PRIX_TXT, essai=cfg.PRIX_ESSAI_TXT) }}</div></div>
     </div>
     <div class="faq-acc-item">
       <button class="faq-acc-q" type="button">{{ tr('pr_faq2_q') }}<span class="faq-acc-icon">+</span></button>

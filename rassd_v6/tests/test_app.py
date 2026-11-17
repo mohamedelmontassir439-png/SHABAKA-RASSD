@@ -41,7 +41,9 @@ class TestPagesPubliques:
         page = client.get("/tarifs").text
         # Le prix vient de la configuration: un tarif écrit en dur ici
         # casserait au prochain changement sans rien démontrer.
-        assert cfg.PRIX_TXT in page and "Abonnement annuel" in page
+        # Depuis le 17/11/2026: le mois d'essai, puis l'annuel seul.
+        assert cfg.PRIX_TXT in page and "abonnement annuel" in page.lower()
+        assert cfg.PRIX_ESSAI_TXT in page
         assert "Mensuel" not in page and "Biennal" not in page
 
     def test_pages_legales_ont_du_contenu_reel(self, client):

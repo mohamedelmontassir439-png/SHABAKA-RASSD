@@ -347,10 +347,10 @@ html[dir="rtl"] .faq-acc-q { text-align: right; }
         <span class="puce">{{ tr('hero_eyebrow')|replace('✦ ', '') }}</span>
         <h1 class="une-titre"><span class="une-ligne"><span>{{ tr('hero_title')|safe }}</span></span></h1>
         <div class="une-actions">
-          <a href="/tarifs" class="btn btn-accent btn-xl">{{ tr('hero_cta_abo', price=cfg.PRIX_TXT) }}</a>
+          <a href="/tarifs" class="btn btn-accent btn-xl">{{ tr('hero_cta_essai', essai=cfg.PRIX_ESSAI_TXT) if essai_ouvert else tr('hero_cta_abo', price=cfg.PRIX_TXT) }}</a>
           <a href="#video" class="btn btn-outline btn-xl">▶ {{ tr('hero_cta_video') }}</a>
         </div>
-        <div class="une-note">{{ tr('une_note_abo') }}</div>
+        <div class="une-note">{{ tr('une_note_abo', essai=cfg.PRIX_ESSAI_TXT, price=cfg.PRIX_TXT) }}</div>
       </div>
     </div>
 
@@ -478,7 +478,7 @@ LON   5.5017° W
         <source src="/video/presentation_{{ 'ar' if lang == 'ar' else 'fr' }}.mp4" type="video/mp4">
       </video>
     </div>
-    <div class="video-actions"><a href="/tarifs" class="btn btn-accent btn-lg">{{ tr('hero_cta_abo', price=cfg.PRIX_TXT) }}</a></div>
+    <div class="video-actions"><a href="/tarifs" class="btn btn-accent btn-lg">{{ tr('hero_cta_essai', essai=cfg.PRIX_ESSAI_TXT) if essai_ouvert else tr('hero_cta_abo', price=cfg.PRIX_TXT) }}</a></div>
   </div>
 </section>
 
@@ -580,7 +580,7 @@ LON   5.5017° W
     <div class="faq-grid">
       <div class="faq-acc-item reveal reveal-1">
         <button class="faq-acc-q" type="button">{{ tr('pr_faq1_q') }}<span class="faq-acc-icon">+</span></button>
-        <div class="faq-acc-a"><div class="faq-acc-a-inner">{{ tr('pr_faq1_a', price=cfg.PRIX_TXT) }}</div></div>
+        <div class="faq-acc-a"><div class="faq-acc-a-inner">{{ tr('pr_faq1_a', price=cfg.PRIX_TXT, essai=cfg.PRIX_ESSAI_TXT) }}</div></div>
       </div>
       <div class="faq-acc-item reveal reveal-2">
         <button class="faq-acc-q" type="button">{{ tr('pr_faq2_q') }}<span class="faq-acc-icon">+</span></button>

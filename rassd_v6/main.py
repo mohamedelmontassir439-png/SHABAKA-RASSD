@@ -19,7 +19,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from app.core.config   import cfg
 from app.core.database import get_db, init_db
-from app.core.security import (hash_pw, verify_pw, make_token, make_session_token,
+from app.core.security import (essai_ouvert, hash_pw, verify_pw, make_token, make_session_token,
                                 get_member, has_access, email_ok, validate_email,
                                 validate_password, days_left, duree_txt,
                                 get_csrf_token, verify_csrf, subscription_state)
@@ -1494,6 +1494,7 @@ def render(req: Request, tpl: str, ctx: dict = None, status_code: int = 200):
         "tr":           make_t(lang),
         "csrf_token":   csrf_tok,
         "sub":          subscription_state(m),
+        "essai_ouvert": essai_ouvert(m),
         **ctx
     }, status_code=status_code)
     if req.query_params.get("lang") in SUPPORTED_LANGS:
@@ -3501,7 +3502,10 @@ def _lien_wa_abo(req: Request, ao: str = "") -> tuple:
         db.close()
         marche = dict(r) if r else None
     compte = (m.get("email") or "") if m else ""
-    msg = tr_("wa_msg_abo", lang, price=cfg.PRIX_TXT)
+    if essai_ouvert(m):
+        msg = tr_("wa_msg_essai", lang, essai=cfg.PRIX_ESSAI_TXT, price=cfg.PRIX_TXT)
+    else:
+        msg = tr_("wa_msg_abo", lang, price=cfg.PRIX_TXT)
     if compte:
         msg += " " + tr_("wa_msg_abo_compte", lang, compte=compte)
     if marche:
@@ -4157,7 +4161,8 @@ async def admin_panel(req: Request):
     plan_dist = {r["plan"]: r["n"] for r in plan_rows}
     pro_price  = cfg.PLANS.get("pro",{}).get("price",0)
     biz_price  = cfg.PLANS.get("business",{}).get("price",0)
-    mrr_estimate = round(plan_dist.get("pro",0) * (pro_price/12) + plan_dist.get("business",0) * (biz_price/24))
+    mrr_estimate = round(plan_dist.get("pro",0) * (pro_price/12) + plan_dist.get("business",0) * (biz_price/24)
+                         + plan_dist.get("essai",0) * cfg.PLANS["essai"]["price"])
     total_active_members = db.execute("SELECT COUNT(*) FROM members WHERE actif=1").fetchone()[0]
     recent_errors = [dict(r) for r in db.execute(
         "SELECT * FROM error_log ORDER BY created_at DESC LIMIT 10").fetchall()]
@@ -4966,8 +4971,9 @@ def _script_appel(entreprise: dict, ouverts: int, marches: list) -> list:
         ("L'offre — seulement après sa réponse",
          f"C'est exactement ce qu'on fait : chaque matin, les marchés de "
          f"votre secteur et de votre région, par WhatsApp et par email. "
-         f"Un seul abonnement : {cfg.PRIX_TXT} dirhams pour l'année, toutes "
-         f"les fonctions comprises."),
+         f"Vous commencez par un mois d'essai à {cfg.PRIX_ESSAI_TXT} dirhams, "
+         f"toutes les fonctions ouvertes. Ensuite, c'est {cfg.PRIX_TXT} dirhams "
+         f"pour l'année."),
         ("Clôture — obtenez le WhatsApp, pas un « rappelez-moi »",
          "Je vous envoie le lien sur WhatsApp là, maintenant, pendant qu'on "
          "se parle — c'est quoi votre numéro ? … Je vous rappelle demain "
@@ -5606,6 +5612,8 @@ async def set_plan(req: Request, mid:int, plan:str=Form(""), csrf_token:str=Form
     if not _is_admin(req): return JSONResponse({"ok":False},401)
     csrf_guard(req, csrf_token)
     if plan not in cfg.PLANS: return JSONResponse({"ok":False,"msg":"Plan invalide"})
+    if plan == "essai" and not _essai_possible(mid):
+        return RedirectResponse("/admin/members?err=essai_deja_utilise", 302)
     months = cfg.PLANS[plan].get("months", 0)
     now    = datetime.now()
     db = get_db()
@@ -5635,6 +5643,16 @@ async def set_plan(req: Request, mid:int, plan:str=Form(""), csrf_token:str=Form
             (plan, mid))
     db.commit(); db.close()
     return RedirectResponse("/admin",302)
+
+def _essai_possible(mid: int) -> bool:
+    """Le mois d'essai n'a encore jamais été pris par ce compte."""
+    db = get_db()
+    try:
+        r = db.execute("SELECT * FROM members WHERE id=?", (mid,)).fetchone()
+    finally:
+        db.close()
+    return bool(r) and essai_ouvert(dict(r))
+
 
 @app.get("/admin/payments", response_class=HTMLResponse)
 async def admin_payments(req: Request):
@@ -5670,6 +5688,9 @@ async def admin_record_payment(req: Request, member_id:int=Form(...), plan:str=F
     csrf_guard(req, csrf_token)
     if plan not in cfg.PLANS or plan == "free":
         return RedirectResponse("/admin/payments?err=plan", 302)
+    if plan == "essai" and not _essai_possible(member_id):
+        # Un seul mois d'essai par compte: ensuite, l'annuel uniquement.
+        return RedirectResponse("/admin/payments?err=essai_deja_utilise", 302)
     now    = datetime.now()
     months = cfg.PLANS[plan].get("months", 1) or 1
     price  = float(amount) if amount else float(cfg.PLANS[plan].get("price", 0))

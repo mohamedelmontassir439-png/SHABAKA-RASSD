@@ -83,7 +83,7 @@ class TestInscriptionSansEssai:
         confirmer_email("attente@example.com")
         assert client.get("/tenders", follow_redirects=False).status_code == 302
         tableau = client.get("/dashboard").text
-        assert "Abonnez-vous" in tableau and "/tarifs" in tableau
+        assert "Commencez par un mois" in tableau and "/tarifs" in tableau
 
 
 @pytest.mark.usefixtures("essai_72h")

@@ -536,7 +536,9 @@ html[dir="rtl"] .mono-etiq { font-family: 'Tajawal', var(--sans); letter-spacing
         {% if sub.status == 'TRIAL' %}
           {{ tr('trial_banner', n=duree(sub.heures_restantes)) }}
         {% elif sub.status == 'PENDING' %}
-          {{ tr('pending_banner', price=cfg.PRIX_TXT) }}
+          {{ tr('pending_banner', price=cfg.PRIX_TXT, essai=cfg.PRIX_ESSAI_TXT) }}
+        {% elif sub.plan == 'essai' %}
+          {{ tr('essai_fini_banner', price=cfg.PRIX_TXT) }}
         {% else %}
           {{ tr('trial_over_banner') }}
         {% endif %}

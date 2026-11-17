@@ -85,7 +85,7 @@
         </div>
         <div>
           {% set pd = plan_dist %}
-          {% set total_p = (pd.get('free',0) + pd.get('pro',0) + pd.get('business',0)) %}
+          {% set total_p = (pd.get('free',0) + pd.get('essai',0) + pd.get('pro',0) + pd.get('business',0)) %}
           {% if total_p > 0 %}
           {% set pro_pct = (pd.get('pro',0) / total_p * 100) %}
           {% set biz_pct = (pd.get('business',0) / total_p * 100) %}
@@ -93,6 +93,7 @@
           <div class="an-legend">
             <div class="an-legend-row"><span class="an-dot" style="background:var(--amber);"></span>Annuel · {{ pd.get('pro',0) }}</div>
             <div class="an-legend-row"><span class="an-dot" style="background:var(--blue);"></span>Biennal · {{ pd.get('business',0) }}</div>
+            <div class="an-legend-row"><span class="an-dot" style="background:var(--line2);"></span>Mois d'essai · {{ pd.get('essai',0) }}</div>
             <div class="an-legend-row"><span class="an-dot" style="background:var(--line2);"></span>Inactif · {{ pd.get('free',0) }}</div>
           </div>
           {% endif %}

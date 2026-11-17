@@ -29,7 +29,7 @@
   </div>
   {% endif %}
   {% if request.query_params.get('err') %}
-  <div class="alert-err">✕ Enregistrement impossible ({{ request.query_params.get('err') }}).</div>
+  <div class="alert-err">✕ Enregistrement impossible ({{ "ce compte a déjà eu son mois d'essai : seul l'annuel reste possible" if request.query_params.get('err') == 'essai_deja_utilise' else request.query_params.get('err') }}).</div>
   {% endif %}
 
   <div class="stats-row">

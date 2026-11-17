@@ -103,6 +103,15 @@ class Settings:
         """Le même, tel qu'on l'écrit: « 3 999 » (espace insécable)."""
         return f"{self.PRIX_ANNUEL:,}".replace(",", " ")
 
+    @property
+    def PRIX_ESSAI(self) -> int:
+        """Le prix du mois d'essai, proposé une seule fois par compte."""
+        return self.PLANS["essai"]["price"]
+
+    @property
+    def PRIX_ESSAI_TXT(self) -> str:
+        return f"{self.PRIX_ESSAI:,}".replace(",", " ")
+
     def essai(self, lang: str = "fr") -> str:
         """La durée de l'essai telle qu'on l'écrit: « 24 heures », « 24 ساعة »."""
         from app.core.security import duree_txt
@@ -178,6 +187,10 @@ class Settings:
         # Une seule offre en vente depuis le 11/11/2026: l'annuelle. Mensuel et
         # Biennal restent pour les membres qui les ont déjà (public=False).
         "monthly": {"name":"Mensuel", "price":249, "period":"mois",  "months":1, "tenders_day":0, "email":True, "whatsapp":True, "api":True, "public":False},
+        # Le mois d'essai payant (17/11/2026): toutes les fonctions, une
+        # seule fois par compte, à la première souscription. Ensuite, seul
+        # l'annuel est proposé (voir security.essai_ouvert).
+        "essai":   {"name":"Mois d'essai", "price":99, "period":"mois", "months":1, "tenders_day":0, "email":True, "whatsapp":True, "api":True, "public":True, "unique":True},
         "pro":     {"name":"Annuel",  "price":3999,"period":"an",    "months":12,"tenders_day":0, "email":True, "whatsapp":True, "api":True, "public":True},
         "business":{"name":"Biennal", "price":4299,"period":"2 ans", "months":24,"tenders_day":0, "email":True, "whatsapp":True, "api":True, "public":False},
     })

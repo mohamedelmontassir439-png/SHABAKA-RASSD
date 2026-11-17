@@ -36,7 +36,7 @@ class TestTarifs:
     def test_en_arabe(self, client):
         client.cookies.set("lang", "ar")
         page = client.get("/tarifs").text
-        assert "اشترك عبر واتساب" in page and "الاشتراك السنوي" in page
+        assert "ابدأ التجربة عبر واتساب" in page and "الاشتراك السنوي" in page
 
 
 class TestPlusDeCoordonneesBancaires:
