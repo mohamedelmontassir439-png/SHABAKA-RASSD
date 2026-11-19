@@ -412,6 +412,7 @@ html[dir="rtl"] .auth-photo-titre { font-family: 'Amiri', var(--serif); line-hei
     <a href="/" class="nav-link {% if request.url.path == '/' %}active{% endif %}">{{ tr('nav_home') }}</a>
     <a href="/tenders" class="nav-link {% if request.url.path.startswith('/tenders') %}active{% endif %}">{{ tr('nav_tenders') }}</a>
     <a href="/bons-de-commande" class="nav-link {% if request.url.path.startswith('/bons-de-commande') %}active{% endif %}">{{ tr('nav_bc') }}</a>
+    <a href="/encheres" class="nav-link {% if request.url.path.startswith('/encheres') %}active{% endif %}">{{ tr('nav_encheres') }}</a>
     {% if member %}
     <a href="/resultats" class="nav-link {% if request.url.path == '/resultats' %}active{% endif %}">{{ tr('nav_results') }}</a>
     {% endif %}

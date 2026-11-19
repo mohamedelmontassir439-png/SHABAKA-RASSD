@@ -234,6 +234,37 @@ def completer_fiches(c: dict, maximum: int = 400):
         livrer()
 
 
+def collecter_douane(c: dict):
+    """Ventes de la douane (douane.gov.ma), toutes les trois heures environ:
+    le site dit s'il faut passer et quels avis il connaît déjà — seuls les
+    PDF nouveaux sont téléchargés."""
+    from app.services import encheres
+    try:
+        r = requests.get(f"{c['site']}/api/relais/encheres", headers=entetes(c), timeout=60)
+        r.raise_for_status()
+        etat = r.json()
+    except Exception as e:
+        log(f"  ⚠ état des ventes de la douane illisible: {str(e)[:160]}")
+        return
+    if not etat.get("a_faire"):
+        return
+    debut = datetime.now()
+    lot = {"debut": debut.isoformat(timespec="seconds")}
+    try:
+        avis, presents = encheres.collecter(set(etat.get("connus") or []), lambda m: log("  " + m))
+        lot.update(avis=avis, presents=presents)
+    except ConnectionError as e:
+        log(f"  ⚠ douane.gov.ma injoignable: {str(e)[:160]}")
+        lot["panne"] = str(e)[:250]
+    try:
+        rep = requests.post(f"{c['site']}/api/relais/encheres", json=lot, headers=entetes(c), timeout=120)
+        log(f"  ↑ douane: {rep.json().get('enregistres')} nouvelle(s) vente(s)")
+    except Exception as e:
+        # Rien n'est perdu: les avis non livrés restent inconnus du site et
+        # seront relus au prochain passage.
+        log(f"  ⚠ ventes de la douane non livrées: {str(e)[:160]}")
+
+
 def collecte_demandee(c: dict) -> bool:
     try:
         r = requests.get(f"{c['site']}/api/relais/demande", headers=entetes(c), timeout=20)
@@ -257,6 +288,7 @@ def main():
         try:
             cycle(c)
             completer_fiches(c)
+            collecter_douane(c)
         except Exception as e:
             log(f"⚠ cycle interrompu: {e!r}")
         # Le rattrapage forcé ne vaut que pour le premier cycle; ensuite c'est

@@ -509,6 +509,32 @@ CREATE INDEX IF NOT EXISTS idx_co_wins     ON companies(wins DESC);
 CREATE INDEX IF NOT EXISTS idx_cosrc_co    ON company_sources(company_id);
 CREATE INDEX IF NOT EXISTS idx_srun_src    ON scraper_runs(source);
 CREATE INDEX IF NOT EXISTS idx_srun_start  ON scraper_runs(started_at DESC);
+-- Ventes de la douane (app/services/encheres.py): l'identifiant est celui
+-- du document sur douane.gov.ma. Listes JSON: cautions, pieces, lots.
+-- retire=1: l'avis n'est plus sur le site de la douane (gardé, pas montré).
+CREATE TABLE IF NOT EXISTS encheres (
+    doc_id      INTEGER PRIMARY KEY,
+    kind        TEXT DEFAULT 'aop',
+    region      TEXT DEFAULT '',
+    title       TEXT DEFAULT '',
+    short_date  TEXT DEFAULT '',
+    url         TEXT DEFAULT '',
+    date_iso    TEXT DEFAULT '',
+    heure       TEXT DEFAULT '',
+    visite      TEXT DEFAULT '',
+    ouverture   TEXT DEFAULT '',
+    cautions    TEXT DEFAULT '[]',
+    pieces      TEXT DEFAULT '[]',
+    lots        TEXT DEFAULT '[]',
+    apercu      TEXT DEFAULT '',
+    categorie   TEXT DEFAULT 'divers',
+    texte_len   INTEGER DEFAULT 0,
+    vu_le       TEXT DEFAULT '',
+    retire      INTEGER DEFAULT 0,
+    alerte      INTEGER DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_ench_date ON encheres(date_iso);
+CREATE INDEX IF NOT EXISTS idx_ench_cat  ON encheres(categorie);
 """
 
 def migrate_db():
@@ -614,6 +640,8 @@ def migrate_db():
         # Date à laquelle le parrain de ce membre a reçu son mois offert:
         # une seule récompense par filleul, même s'il renouvelle dix fois.
         "ALTER TABLE members ADD COLUMN parrainage_offert TEXT DEFAULT ''",
+        # Alerte email des nouvelles ventes de la douane (page /encheres).
+        "ALTER TABLE members ADD COLUMN notif_encheres INTEGER DEFAULT 0",
         # Montant de l'adjudication en nombre. La colonne texte reste la
         # source affichée; celle-ci n'existe que pour filtrer et trier, ce que
         # « 5.916.000,00 » et « 6.720.600.00 » — deux formats présents dans la

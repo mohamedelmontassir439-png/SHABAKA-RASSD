@@ -210,7 +210,7 @@ tbody tr:hover td{background:var(--surface2)}
                        '/admin/payments', '/admin/recap', '/admin/maintenance', '/admin/financement',
                        '/admin/prospection/plan', '/admin/campagne',
                        '/admin/prospection', '/admin/companies', '/admin/annuaires',
-                       '/admin/prospects', '/admin/sous-traitance'] %}
+                       '/admin/prospects', '/admin/sous-traitance', '/admin/encheres'] %}
 {#
   La destination courante est la plus longue qui corresponde, pas la première.
   Une fiche d'appel (/admin/prospection/12) doit allumer « File d'appel », mais
@@ -246,6 +246,7 @@ tbody tr:hover td{background:var(--surface2)}
     {{ lien('/admin', ico('graphique', 17), 'Tableau de bord') }}
     {{ lien('/admin/visites', ico('globe', 17), 'Visites') }}
     {{ lien('/admin/sources', ico('veille', 17), 'Sources') }}
+    {{ lien('/admin/encheres', ico('veille', 17), 'Ventes de la douane') }}
     {{ lien('/admin/classement', ico('etiquette', 17), 'Classement des secteurs') }}
     {{ lien('/admin/backups', ico('dossiers', 17), 'Sauvegardes') }}
     {{ lien('/admin/maintenance', ico('attention', 17), 'Maintenance') }}

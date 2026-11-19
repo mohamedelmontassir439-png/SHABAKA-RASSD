@@ -395,6 +395,10 @@ html[dir="rtl"] .mono-etiq { font-family: 'Tajawal', var(--sans); letter-spacing
           <svg viewBox="0 0 24 24"><path d="M9 2h6l1 4H8l1-4z"/><path d="M5 6h14l-1.2 14.2A2 2 0 0 1 15.8 22H8.2a2 2 0 0 1-2-1.8L5 6z"/><path d="M9 11h6M9 15h4"/></svg>
           <span>{{ tr('nav_bc') }}</span>
         </a>
+        <a href="/encheres" class="side-link {% if request.url.path.startswith('/encheres') %}active{% endif %}">
+          <svg viewBox="0 0 24 24"><path d="m14 4 6 6"/><path d="m11 7 6 6"/><path d="m12.5 5.5-5 5 6 6 5-5"/><path d="m10 13-7 7"/><path d="M4 21h9"/></svg>
+          <span>{{ tr('nav_encheres') }}</span>
+        </a>
         {% if member %}
         <a href="/resultats" class="side-link {% if request.url.path == '/resultats' %}active{% endif %}">
           <svg viewBox="0 0 24 24"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/></svg>
@@ -564,7 +568,7 @@ html[dir="rtl"] .mono-etiq { font-family: 'Tajawal', var(--sans); letter-spacing
     {% endif %}
     {# La photographie de la rubrique: une par grande partie de l'espace. #}
     {% set _p = request.url.path %}
-    {% set _photo = 'tanger-med' if _p == '/dashboard'
+    {% set _photo = 'tanger-med' if _p == '/dashboard' or _p.startswith('/encheres')
         else 'chantier-rabat' if _p.startswith('/tenders') or _p.startswith('/bons-de-commande')
         else 'casablanca-finance-city' if _p.startswith('/resultats') or _p.startswith('/intelligence') or _p.startswith('/acheteur')
         else 'pont-settat' if _p.startswith('/favorites') or _p.startswith('/suivi') or _p.startswith('/coffre')

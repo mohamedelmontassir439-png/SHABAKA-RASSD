@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}{{ a.title[:60] }} — Maroc Entrepreneuriat{% endblock %}
+{% block body %}
+<style>
+.ed-page { max-width: 1060px; margin: 0 auto; padding: 24px 32px 48px; }
+.ed-retour { display: inline-flex; gap: 8px; font-size: var(--f2); font-weight: 600; color: var(--text3); text-decoration: none; margin-bottom: 24px; }
+.ed-retour:hover { color: var(--ink); }
+.ed-tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.ed-titre { font-family: var(--serif); font-weight: 700; font-size: clamp(22px, 3.2vw, 34px); color: var(--text1); line-height: 1.25; margin: 0 0 22px; overflow-wrap: anywhere; }
+.ed-bandeau { padding: 16px 20px; border-radius: var(--r2); font-weight: 700; font-size: var(--f4); margin-bottom: 26px;
+  background: var(--surface); border: 1px solid var(--line2); border-inline-start: 4px solid var(--gold); }
+.ed-bandeau.proche { border-inline-start-color: var(--red); }
+.ed-bandeau small { display: block; font-size: var(--f2); font-weight: 600; color: var(--text3); margin-bottom: 4px; }
+.ed-grille { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; background: var(--line);
+  border: 1px solid var(--line); border-radius: var(--r3); overflow: hidden; margin-bottom: 26px; }
+.ed-case { background: var(--surface); padding: 16px 20px; }
+.ed-grille > .ed-case:last-child:nth-child(odd) { grid-column: 1 / -1; }
+.ed-cle { font-size: var(--f1); font-weight: 700; color: var(--amberd); letter-spacing: .04em; text-transform: uppercase; margin-bottom: 6px; }
+.ed-val { font-weight: 700; font-size: var(--f4); color: var(--text1); line-height: 1.45; overflow-wrap: anywhere; }
+.ed-bloc { border: 1px solid var(--line); border-radius: var(--r3); background: var(--surface); padding: 18px 22px; margin-bottom: 22px; }
+.ed-bloc h2 { font-family: var(--serif); font-size: var(--f5); color: var(--text1); margin: 0 0 12px; }
+.ed-table { width: 100%; border-collapse: collapse; font-size: var(--f3); }
+.ed-table th { text-align: start; font-size: var(--f1); text-transform: uppercase; letter-spacing: .04em; color: var(--text3); padding: 8px 6px; border-bottom: 1px solid var(--line2); }
+.ed-table td { padding: 9px 6px; border-bottom: 1px solid var(--line); color: var(--text1); overflow-wrap: anywhere; }
+.ed-table td.n { font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+.ed-cadre { overflow-x: auto; }
+.ed-note { font-size: var(--f2); color: var(--text3); line-height: 1.6; padding: 12px 16px; border-radius: var(--r2); background: var(--surface2); margin-bottom: 22px; }
+.ed-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 30px; }
+.ed-voisin { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); text-decoration: none; color: inherit; }
+.ed-voisin b { font-weight: 600; color: var(--text1); font-size: var(--f3); }
+.ed-voisin span { color: var(--text3); font-size: var(--f2); white-space: nowrap; }
+@media (max-width: 680px) {
+  .ed-page { padding: 18px 16px 36px; }
+  .ed-grille { grid-template-columns: minmax(0, 1fr); }
+}
+</style>
+
+<div class="ed-page">
+  <a href="/encheres" class="ed-retour">{{ '→' if dir=='rtl' else '←' }} {{ tr('enc_retour') }}</a>
+
+  <div class="ed-tags">
+    <span class="badge badge-gold">{{ ico(a.cat.icone, 14)|safe }} {{ a.cat.nom }}</span>
+    <span class="badge {% if a.kind == 'ep' %}badge-blue{% else %}badge-gray{% endif %}">{{ a.nature }}</span>
+    {% if a.lieu %}<span class="badge badge-gray" dir="auto">{{ a.lieu }}</span>{% endif %}
+  </div>
+  <h1 class="ed-titre" dir="auto">{{ a.title }}</h1>
+
+  {% if a.retire %}<div class="ed-note">{{ tr('enc_retiree') }}</div>{% endif %}
+
+  <div class="ed-bandeau {% if a.jours is not none and a.jours <= 3 %}proche{% endif %}">
+    <small>{{ tr('enc_date_ep') if a.kind == 'ep' else tr('enc_date_aop') }}</small>
+    {% if a.date_txt %}{{ a.date_txt }}{% if a.heure %} · {{ a.heure }}{% endif %}
+      {% if a.jours is not none and a.jours >= 0 %} — {{ tr('enc_aujourdhui') if a.jours == 0 else tr('enc_dans', n=a.jours) }}{% endif %}
+    {% else %}{{ tr('enc_sans_date') }}{% endif %}
+  </div>
+
+  <div class="ed-grille">
+    {% if a.cautions %}
+    <div class="ed-case"><div class="ed-cle">{{ tr('enc_caution') }}</div>
+      <div class="ed-val">{{ a.cautions|join(' DH / ') }} DH</div></div>
+    {% endif %}
+    {% if a.kind == 'aop' and a.ouverture_txt %}
+    <div class="ed-case"><div class="ed-cle">{{ tr('enc_ouverture') }}</div><div class="ed-val">{{ a.ouverture_txt }}</div></div>
+    {% endif %}
+    {% if a.visite_txt %}
+    <div class="ed-case"><div class="ed-cle">{{ tr('enc_visite') }}</div><div class="ed-val">{{ a.visite_txt }}</div></div>
+    {% endif %}
+    {% if a.pieces_txt %}
+    <div class="ed-case"><div class="ed-cle">{{ tr('enc_pieces') }}</div><div class="ed-val">{{ a.pieces_txt|join(' · ') }}</div></div>
+    {% endif %}
+    <div class="ed-case"><div class="ed-cle">{{ tr('enc_direction') }}</div><div class="ed-val" dir="auto">{{ a.region or '—' }}</div></div>
+  </div>
+
+  {% if a.lots %}
+  <div class="ed-bloc">
+    <h2>{{ tr('enc_lots') }}</h2>
+    <div style="font-size:var(--f2);color:var(--text3);margin-bottom:10px">{{ tr('enc_lots_total', n=a.total_lots, l=a.lots|length) }}</div>
+    <div class="ed-cadre"><table class="ed-table">
+      <tr><th>{{ tr('enc_lot_nom') }}</th><th>{{ tr('enc_lot_qte') }}</th><th>{{ tr('enc_lot_etat') }}</th></tr>
+      {% for l in a.lots %}
+      <tr><td dir="auto">{{ l.nom }}</td><td class="n">{{ l.qte }}</td><td>{{ tr('enc_neuf') if l.etat == 'neuf' else tr('enc_usage') }}</td></tr>
+      {% endfor %}
+    </table></div>
+  </div>
+  {% elif a.apercu %}
+  <div class="ed-bloc">
+    <h2>{{ tr('enc_apercu') }}</h2>
+    <div dir="auto" style="font-size:var(--f3);color:var(--text2);line-height:1.6">{{ a.apercu }}…</div>
+  </div>
+  {% elif not a.texte_len %}
+  <div class="ed-note">{{ tr('enc_scanne') }}</div>
+  {% endif %}
+
+  <div class="ed-note">{{ tr('enc_verifier') }}</div>
+
+  <div class="ed-actions">
+    <a href="{{ a.url }}" target="_blank" rel="noopener" class="btn btn-accent">{{ ico('dossiers', 16)|safe }} {{ tr('enc_avis_officiel') }}</a>
+    <form method="post" action="/encheres/alerte">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="actif" value="{{ 0 if alerte else 1 }}">
+      <button type="submit" class="btn btn-outline">{{ tr('enc_alerte_on') if alerte else tr('enc_alerte_off') }}</button>
+    </form>
+  </div>
+
+  {% if voisins %}
+  <div class="ed-bloc">
+    <h2>{{ a.cat.nom }}</h2>
+    {% for v in voisins %}
+    <a class="ed-voisin" href="/encheres/{{ v.doc_id }}"><b dir="auto">{{ v.title[:110] }}</b><span>{{ v.date_txt or '—' }}</span></a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

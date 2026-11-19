@@ -1,0 +1,147 @@
+{% extends "base.html" if member else "base_public.html" %}
+{% block title %}{{ tr('seo_titre_encheres') }}{% endblock %}
+{% block description %}{{ tr('seo_desc_encheres') }}{% endblock %}
+{% block body %}
+<style>
+.enc-page { max-width: 1120px; margin: 0 auto; padding: 24px 32px 48px; }
+.enc-intro { font-size: var(--f3); color: var(--text3); line-height: 1.65; max-width: 760px; margin-top: 14px;
+  padding: 14px 16px; background: var(--surface); border: 1px solid var(--line2);
+  border-inline-start: 3px solid var(--gold); border-radius: var(--r2); }
+.enc-filtres { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 20px 0 6px; }
+.enc-filtres .enc-q { flex: 1 1 100%; min-width: 200px; }
+.enc-filtres .inp-sm { flex: 0 1 260px; padding: 8px 10px; font-size: var(--f2); }
+.enc-cats { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 18px; }
+.enc-cat { font-size: var(--f2); font-weight: 600; padding: 6px 12px; border-radius: 99px; border: 1px solid var(--line2);
+  background: var(--surface); color: var(--text2); text-decoration: none; white-space: nowrap; }
+.enc-cat:hover { border-color: var(--ink); color: var(--ink); }
+.enc-cat.on { background: var(--ink); border-color: var(--ink); color: #fff; }
+.enc-alerte { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 4px 0 18px; font-size: var(--f2); color: var(--text2); }
+.enc-liste { display: flex; flex-direction: column; gap: 10px; }
+.enc-ligne { display: grid; grid-template-columns: 44px minmax(0, 1fr) 170px auto; gap: 16px; align-items: center;
+  padding: 16px 18px; border: 1px solid var(--line); border-radius: var(--r3); background: var(--surface);
+  color: inherit; text-decoration: none; transition: border-color .15s, box-shadow .15s; }
+.enc-ligne:hover { border-color: var(--ink); box-shadow: var(--sh2); }
+.enc-emoji { color: var(--goldd); display: flex; justify-content: center; }
+.enc-titre { font-weight: 600; font-size: var(--f4); color: var(--text1); line-height: 1.4; margin-bottom: 8px; overflow-wrap: anywhere; }
+.enc-tags { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.enc-quand { font-size: var(--f2); font-weight: 700; color: var(--text2); }
+.enc-quand small { display: block; font-weight: 500; color: var(--text3); margin-bottom: 3px; }
+.enc-quand.proche { color: var(--red); }
+.enc-fleche { color: var(--text4); }
+.enc-verrou { margin-top: 26px; padding: 22px 24px; border: 1px solid var(--line2); border-radius: var(--r3);
+  background: var(--surface); display: flex; gap: 18px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+.enc-verrou h2 { font-family: var(--serif); font-size: var(--f5); color: var(--text1); margin: 0 0 6px; }
+.enc-verrou p { font-size: var(--f3); color: var(--text3); line-height: 1.6; margin: 0; max-width: 620px; }
+.enc-verrou .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.pagination { display: flex; gap: 8px; justify-content: center; margin-top: 28px; flex-wrap: wrap; }
+.pag-btn { padding: 9px 14px; border: 1px solid var(--line2); font-size: var(--f2); font-weight: 600; color: var(--text3);
+  text-decoration: none; border-radius: var(--r2); background: var(--surface); }
+.pag-btn.current { background: var(--ink); color: #fff; border-color: var(--ink); }
+.enc-vide { text-align: center; padding: 70px 20px; }
+.enc-vide .t { font-family: var(--serif); font-weight: 700; font-size: var(--f6); color: var(--text1); }
+.enc-vide .x { font-size: var(--f4); color: var(--text3); margin-top: 8px; }
+@media (max-width: 760px) {
+  .enc-page { padding: 18px 16px 36px; }
+  .enc-ligne { grid-template-columns: 36px minmax(0, 1fr); gap: 10px 12px; }
+  .enc-quand { grid-column: 2; }
+  .enc-fleche { display: none; }
+  .enc-filtres .inp-sm { flex: 1 1 calc(50% - 4px); }
+}
+</style>
+
+<div class="enc-page">
+  <div class="section-label" style="margin-bottom: 8px;">{{ tr('enc_label') }}</div>
+  <h1 class="display-m">{{ tr('enc_title', n=total)|safe }}</h1>
+  <div class="enc-intro">{{ tr('enc_intro') }}</div>
+
+  <form method="get" class="enc-filtres">
+    <input aria-label="{{ tr('aria_recherche') }}" name="q" value="{{ q }}" class="inp enc-q" placeholder="{{ tr('enc_search') }}">
+    <select aria-label="{{ tr('enc_nature') }}" name="k" class="inp inp-sm">
+      <option value="">{{ tr('enc_all_kinds') }}</option>
+      <option value="ep"  {% if kf=='ep'  %}selected{% endif %}>{{ tr('enc_kind_ep') }}</option>
+      <option value="aop" {% if kf=='aop' %}selected{% endif %}>{{ tr('enc_kind_aop') }}</option>
+    </select>
+    {% if cf %}<input type="hidden" name="c" value="{{ cf }}">{% endif %}
+    <button type="submit" class="btn btn-outline btn-sm">{{ tr('tenders_filter') }}</button>
+    {% if q or cf or kf %}<a href="/encheres" class="btn btn-ghost btn-sm">{{ tr('tenders_clear') }}</a>{% endif %}
+  </form>
+
+  {% if cats %}
+  <nav class="enc-cats" aria-label="{{ tr('enc_all_cats') }}">
+    <a class="enc-cat {% if not cf %}on{% endif %}" href="?q={{ q|urlencode }}&k={{ kf }}">{{ tr('enc_all_cats') }}</a>
+    {% for c in cats %}
+    <a class="enc-cat {% if cf == c.cle %}on{% endif %}" href="?q={{ q|urlencode }}&k={{ kf }}&c={{ c.cle }}">{{ c.nom }}</a>
+    {% endfor %}
+  </nav>
+  {% endif %}
+
+  {% if acces %}
+  <form method="post" action="/encheres/alerte" class="enc-alerte">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    {% if alerte %}
+      <span class="badge badge-grn">{{ ico('coche', 14)|safe }} {{ tr('enc_alerte_on')[2:] }}</span>
+      <input type="hidden" name="actif" value="0">
+      <button type="submit" class="btn btn-ghost btn-sm">{{ tr('enc_alerte_couper') }}</button>
+    {% else %}
+      <input type="hidden" name="actif" value="1">
+      <button type="submit" class="btn btn-accent btn-sm">{{ ico('courriel', 16)|safe }} {{ tr('enc_alerte_off') }}</button>
+    {% endif %}
+  </form>
+  {% endif %}
+
+  {% if avis %}
+  <div class="enc-liste">
+    {% for a in avis %}
+    <a href="/encheres/{{ a.doc_id }}" class="enc-ligne">
+      <div class="enc-emoji">{{ ico(a.cat.icone, 26)|safe }}</div>
+      <div>
+        <div class="enc-titre" dir="auto">{{ a.title[:170] }}{% if a.title|length > 170 %}…{% endif %}</div>
+        <div class="enc-tags">
+          <span class="badge badge-gold">{{ a.cat.nom }}</span>
+          <span class="badge {% if a.kind == 'ep' %}badge-blue{% else %}badge-gray{% endif %}">{{ tr('enc_kind_ep') if a.kind == 'ep' else tr('enc_kind_aop') }}</span>
+          {% if a.lieu %}<span class="badge badge-gray" dir="auto">{{ a.lieu[:28] }}</span>{% endif %}
+          {% if acces and a.cautions %}<span class="badge badge-grn">{{ tr('enc_caution') }} {{ a.cautions[0] }} DH{% if a.cautions|length > 1 %} +{{ a.cautions|length - 1 }}{% endif %}</span>{% endif %}
+          {% if acces and a.total_lots %}<span class="badge badge-gray">{{ a.total_lots }} pcs</span>{% endif %}
+        </div>
+      </div>
+      <div class="enc-quand {% if a.jours is not none and a.jours <= 3 %}proche{% endif %}">
+        <small>{{ tr('enc_date_ep') if a.kind == 'ep' else tr('enc_date_aop') }}</small>
+        {% if a.date_txt %}{{ a.date_txt }}{% if a.heure %} · {{ a.heure }}{% endif %}
+          {% if a.jours is not none %}<small style="margin:3px 0 0">{{ tr('enc_aujourdhui') if a.jours == 0 else tr('enc_dans', n=a.jours) }}</small>{% endif %}
+        {% else %}{{ tr('enc_sans_date') }}{% endif %}
+      </div>
+      <span class="enc-fleche">{{ '←' if dir=='rtl' else '→' }}</span>
+    </a>
+    {% endfor %}
+  </div>
+
+  {% if pages > 1 %}
+  <div class="pagination">
+    {% for pp in range(1, pages+1) %}
+      {% if pp == page %}<span class="pag-btn current">{{ pp }}</span>
+      {% else %}<a class="pag-btn" href="?q={{ q|urlencode }}&k={{ kf }}&c={{ cf }}&page={{ pp }}">{{ pp }}</a>{% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% else %}
+  <div class="enc-vide">
+    <div class="t">{{ tr('enc_empty_title')|safe }}</div>
+    <div class="x">{% if q or cf or kf %}{{ tr('enc_empty_filtered') }}{% else %}{{ tr('enc_empty_none') }}{% endif %}</div>
+    {% if q or cf or kf %}<div style="margin-top: 20px;"><a href="/encheres" class="btn btn-outline">{{ tr('enc_view_all') }}</a></div>{% endif %}
+  </div>
+  {% endif %}
+
+  {% if not acces %}
+  <div class="enc-verrou">
+    <div>
+      <h2>{{ ico('verrou', 20)|safe }} {{ tr('enc_verrou_titre') }}</h2>
+      <p>{{ tr('enc_verrou_texte') }}</p>
+    </div>
+    <div class="actions">
+      <a href="/tarifs" class="btn btn-accent">{{ tr('enc_verrou_bouton') }}</a>
+      {% if not member %}<a href="/register" class="btn btn-outline">{{ tr('enc_verrou_compte') }}</a>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

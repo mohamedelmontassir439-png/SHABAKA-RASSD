@@ -1018,7 +1018,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
 CHEMINS_LIBRES_EXACTS = frozenset((
     "/", "/login", "/register", "/logout", "/forgot", "/reset", "/tarifs",
     "/contact", "/cgu", "/confidentialite", "/mentions-legales", "/health",
-    "/abonnement/paiement",
+    "/abonnement/paiement", "/encheres",
     "/robots.txt", "/sitemap.xml", "/manifest.json", "/sw.js",
     "/webhooks/brevo",
 ))
@@ -1182,6 +1182,7 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(coffre_scheduler())
     asyncio.create_task(suivi_scheduler())
     asyncio.create_task(classement_ia_scheduler())
+    asyncio.create_task(encheres_scheduler())
     yield
 
 class MasqueMiddleware(BaseHTTPMiddleware):
@@ -1831,6 +1832,286 @@ async def bons_commande_page(req: Request, q:str="", s:str="", r:str="", t:str="
         "tenders":rows,"total":total,"page":page,"pages":pages,
         "q":q,"sf":s,"rf":r,"tf":t,"ef":e,"sort":sort,"favs":favs,"regions":regions,
         "secteurs_dispo":secteurs_dispo,"my_secteurs":my_secteurs})
+
+# ══════════════════════════════════════════════════════════
+# VENTES DE LA DOUANE (/encheres) — app/services/encheres.py
+# ══════════════════════════════════════════════════════════
+# Même principe que les marchés: la liste est publique (titre, catégorie,
+# lieu, date), le détail — caution, lots, visite, pièces, avis officiel — et
+# l'alerte email sont réservés aux abonnés. La collecte passe par le relais
+# au Maroc; le serveur essaie lui-même quand le relais se tait.
+ENCHERES_SOURCE = "douane"
+ENCHERES_INTERVALLE_H = 3
+
+
+def _encheres_filtres(q: str, c: str, k: str, where: list, params: list):
+    from app.services import encheres
+    if q:
+        for mot in q.split()[:6]:
+            where.append("(title LIKE ? OR region LIKE ? OR lots LIKE ? OR apercu LIKE ?)")
+            params += [f"%{mot}%"] * 4
+    if c and c in {x["cle"] for x in encheres.categories()} | {"annulation"}:
+        where.append("categorie=?"); params.append(c)
+    if k in encheres.KINDS:
+        where.append("kind=?"); params.append(k)
+
+
+@app.get("/encheres", response_class=HTMLResponse)
+async def encheres_page(req: Request, q: str = "", c: str = "", k: str = "", page: int = 1):
+    from app.services import encheres
+    m0 = get_member(req)
+    acces = has_access(m0)
+    lang = get_lang(req)
+    q = q.strip()[:80]
+    db = get_db(); per = 30; page = max(1, page)
+    where, params = [encheres.a_venir_sql()], [date.today().isoformat()]
+    _encheres_filtres(q, c, k, where, params)
+    wh = " AND ".join(where)
+    total = db.execute(f"SELECT COUNT(*) FROM encheres WHERE {wh}", params).fetchone()[0]
+    lignes = db.execute(
+        f"SELECT * FROM encheres WHERE {wh} ORDER BY CASE WHEN date_iso='' THEN 1 ELSE 0 END, "
+        f"date_iso ASC, doc_id DESC LIMIT ? OFFSET ?", params + [per, (page - 1) * per]).fetchall()
+    # Les catégories proposées: celles qui ont au moins une vente à venir.
+    presentes = {r[0] for r in db.execute(
+        f"SELECT DISTINCT categorie FROM encheres WHERE {encheres.a_venir_sql()}",
+        [date.today().isoformat()])}
+    db.close()
+    avis = [encheres.pour_affichage(r, lang) for r in lignes]
+    if not acces:
+        # Ce qui fait la valeur du détail ne part pas dans la page publique.
+        for a in avis:
+            a.update(cautions=[], lots=[], apercu="", pieces=[], pieces_txt=[], visite_txt="", url="")
+    return render(req, "encheres.html", {
+        "avis": avis, "total": total, "page": page, "pages": max(1, (total + per - 1) // per),
+        "q": q, "cf": c, "kf": k, "acces": acces,
+        "cats": [x for x in encheres.categories(lang) if x["cle"] in presentes],
+        "alerte": bool(m0 and m0.get("notif_encheres"))})
+
+
+@app.get("/encheres/{doc_id}", response_class=HTMLResponse)
+async def enchere_detail(req: Request, doc_id: int):
+    from app.services import encheres
+    m0 = get_member(req)
+    if not m0:
+        return RedirectResponse(f"/login?next=/encheres/{doc_id}", 302)
+    if not has_access(m0):
+        return RedirectResponse("/tarifs?locked=1", 302)
+    db = get_db()
+    r = db.execute("SELECT * FROM encheres WHERE doc_id=?", (doc_id,)).fetchone()
+    voisins = []
+    if r:
+        voisins = db.execute(
+            f"SELECT * FROM encheres WHERE categorie=? AND doc_id!=? AND {encheres.a_venir_sql()} "
+            "ORDER BY date_iso LIMIT 4", (r["categorie"], doc_id, date.today().isoformat())).fetchall()
+    db.close()
+    if not r:
+        return render(req, "404.html", {}, status_code=404)
+    lang = get_lang(req)
+    return render(req, "enchere_detail.html", {
+        "a": encheres.pour_affichage(r, lang),
+        "voisins": [encheres.pour_affichage(v, lang) for v in voisins],
+        "alerte": bool(m0.get("notif_encheres"))})
+
+
+@app.post("/encheres/alerte")
+async def encheres_alerte(req: Request, actif: int = Form(0), csrf_token: str = Form("")):
+    csrf_guard(req, csrf_token)
+    m0 = get_member(req)
+    if not m0:
+        return RedirectResponse("/login?next=/encheres", 302)
+    if not has_access(m0):
+        return RedirectResponse("/tarifs?locked=1", 302)
+    db = get_db()
+    db.execute("UPDATE members SET notif_encheres=? WHERE id=?", (1 if actif else 0, m0["id"]))
+    db.commit(); db.close()
+    return RedirectResponse("/encheres", 303)
+
+
+def alerter_encheres(nouveaux: list) -> int:
+    """Un email par abonné ayant demandé l'alerte, listant les nouvelles ventes."""
+    from app.services import encheres
+    from app.services.notifications import email_send
+    from html import escape as esc
+    a_venir = [n for n in nouveaux if n.get("categorie") != "annulation"
+               and (not n.get("date_iso") or n["date_iso"] >= date.today().isoformat())]
+    if not a_venir:
+        return 0
+    db = get_db()
+    membres = [dict(m) for m in db.execute(
+        "SELECT * FROM members WHERE actif=1 AND notif_encheres=1 AND COALESCE(notif_suspendues,0)=0").fetchall()]
+    db.close()
+    envoyes = 0
+    for m in membres:
+        if not has_access(m) or not email_ok(m):
+            continue
+        lang = (m.get("lang") or "fr") if (m.get("lang") or "fr") in SUPPORTED_LANGS else "fr"
+        lignes = []
+        for n in a_venir[:30]:
+            d = encheres.pour_affichage(n, lang)
+            quand = d["date_txt"] or tr_("enc_sans_date", lang)
+            caution = (" · " + tr_("enc_caution", lang) + " " + " / ".join(d["cautions"]) + " DH") if d["cautions"] else ""
+            lignes.append(
+                f'<tr><td style="padding:10px 0;border-bottom:1px solid #eee">'
+                f'<a href="{cfg.SITE_URL}/encheres/{d["doc_id"]}" style="color:#1e1611;font-weight:600;text-decoration:none">'
+                f'{d["cat"]["emoji"]} {esc(d["title"][:160])}</a>'
+                f'<div style="color:#6b6b6b;font-size:13px;margin-top:4px">{esc(d["cat"]["nom"])} · {esc(d["lieu"])} · '
+                f'{esc(quand)}{esc(caution)}</div></td></tr>')
+        sujet = tr_("enc_email_sujet", lang, n=len(a_venir))
+        corps = f"""<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:auto" dir="{'rtl' if lang == 'ar' else 'ltr'}">
+          <h2 style="color:#1e1611;font-size:20px">{esc(sujet)}</h2>
+          <table style="width:100%;border-collapse:collapse">{''.join(lignes)}</table>
+          <p style="margin-top:20px"><a href="{cfg.SITE_URL}/encheres" style="display:inline-block;padding:12px 24px;background:#f2662d;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">{esc(tr_("enc_retour", lang))}</a></p>
+          <p style="color:#98a1b3;font-size:11px;margin-top:24px">MAROC ENTREPRENEURIAT · <a href="{cfg.SITE_URL}/encheres" style="color:#6b7488">{esc(tr_("enc_alerte_couper", lang))}</a></p>
+        </div>"""
+        try:
+            if email_send(m["email"], sujet, corps):
+                envoyes += 1
+        except Exception as e:
+            logger.warning(f"[encheres] alerte {m.get('email')}: {e}")
+    return envoyes
+
+
+def _encheres_deposer(avis: list, presents: list, debut: datetime, message: str = "") -> list:
+    from app.services import encheres
+    db = get_db()
+    try:
+        nouveaux = encheres.enregistrer(db, avis, presents)
+    finally:
+        db.close()
+    _record_run(ENCHERES_SOURCE, "SUCCESS", len(avis), len(nouveaux), started=debut, message=message)
+    State.log(f"✅ Douane: {len(nouveaux)} nouvelle(s) vente(s) sur {len(avis)} reçue(s)")
+    if nouveaux:
+        try:
+            n = alerter_encheres(nouveaux)
+            if n:
+                State.log(f"✉ Douane: alerte envoyée à {n} membre(s)")
+        except Exception as e:
+            logger.error(f"[encheres] alertes: {e}")
+    return nouveaux
+
+
+def collecter_encheres() -> dict:
+    """Collecte directe depuis le serveur (bouton admin, ou relais muet)."""
+    from app.services import encheres
+    debut = datetime.now()
+    db = get_db()
+    connus = encheres.ids_connus(db)
+    db.close()
+    try:
+        avis, presents = encheres.collecter(connus, State.log)
+    except ConnectionError as e:
+        _record_run(ENCHERES_SOURCE, "FAILED", errors=1, started=debut, message=str(e))
+        State.log(f"❌ Douane: {e}")
+        return {"ok": False, "erreur": str(e)[:200]}
+    nouveaux = _encheres_deposer(avis, presents, debut, "serveur")
+    return {"ok": True, "nouveaux": len(nouveaux), "en_ligne": len(presents)}
+
+
+def _encheres_dernier_succes() -> str:
+    db = get_db()
+    try:
+        return db.execute("SELECT MAX(started_at) FROM scraper_runs WHERE source=? AND status='SUCCESS'",
+                          (ENCHERES_SOURCE,)).fetchone()[0] or ""
+    finally:
+        db.close()
+
+
+async def encheres_scheduler():
+    """Le relais collecte la douane à chaque cycle; le serveur ne s'en charge
+    que si rien n'est arrivé depuis plus de ENCHERES_INTERVALLE_H heures."""
+    await asyncio.sleep(120)
+    while True:
+        try:
+            limite = (datetime.now() - timedelta(hours=ENCHERES_INTERVALLE_H)).isoformat()
+            if _encheres_dernier_succes() < limite:
+                await asyncio.get_event_loop().run_in_executor(None, collecter_encheres)
+        except Exception as e:
+            logger.error(f"[encheres] {e}")
+        await asyncio.sleep(30 * 60)
+
+
+@app.get("/api/relais/encheres")
+async def relais_encheres_etat(req: Request):
+    """Les ventes déjà connues: le relais ne télécharge que les PDF nouveaux."""
+    if not _relais_ok(req):
+        return JSONResponse({"ok": False}, 401)
+    from app.services import encheres
+    db = get_db()
+    connus = sorted(encheres.ids_connus(db))
+    db.close()
+    limite = (datetime.now() - timedelta(hours=ENCHERES_INTERVALLE_H)).isoformat()
+    # Le relais passe toutes les dix minutes: la douane publie quelques avis
+    # par semaine, inutile de relire ses pages à chaque fois.
+    return JSONResponse({"ok": True, "connus": connus,
+                         "a_faire": _encheres_dernier_succes() < limite or bool(_relais_valeur("demande_douane"))})
+
+
+@app.post("/api/relais/encheres")
+async def relais_encheres_depot(req: Request):
+    if not _relais_ok(req):
+        return JSONResponse({"ok": False}, 401)
+    try:
+        corps = await req.json()
+    except Exception:
+        return JSONResponse({"ok": False, "erreur": "JSON illisible"}, 400)
+    debut = datetime.now()
+    try:
+        debut = datetime.fromisoformat(str(corps.get("debut", ""))) or debut
+    except ValueError:
+        pass
+    _relais_valeur("demande_douane", "")
+    panne = str(corps.get("panne") or "")[:250]
+    if panne:
+        _record_run(ENCHERES_SOURCE, "FAILED", errors=1, started=debut, message=f"{MESSAGE_RELAIS} — {panne}")
+        State.log(f"❌ Relais local · douane: {panne}")
+        return JSONResponse({"ok": True, "enregistres": 0})
+    avis = [a for a in (corps.get("avis") or []) if isinstance(a, dict)][:500]
+    presents = [int(i) for i in (corps.get("presents") or []) if isinstance(i, int) or str(i).isdigit()][:2000]
+    loop = asyncio.get_event_loop()
+    nouveaux = await loop.run_in_executor(
+        None, lambda: _encheres_deposer(avis, presents, debut, MESSAGE_RELAIS))
+    return JSONResponse({"ok": True, "recus": len(avis), "enregistres": len(nouveaux)})
+
+
+@app.get("/admin/encheres", response_class=HTMLResponse)
+async def admin_encheres(req: Request, msg: str = ""):
+    """Ventes à venir avec leur publication WhatsApp prête à copier."""
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    from app.services import encheres
+    db = get_db()
+    lignes = db.execute(f"SELECT * FROM encheres WHERE {encheres.a_venir_sql()} ORDER BY vu_le DESC, doc_id DESC",
+                        [date.today().isoformat()]).fetchall()
+    runs = [dict(r) for r in db.execute(
+        "SELECT * FROM scraper_runs WHERE source=? ORDER BY started_at DESC LIMIT 8", (ENCHERES_SOURCE,)).fetchall()]
+    abonnes = db.execute("SELECT COUNT(*) FROM members WHERE actif=1 AND notif_encheres=1").fetchone()[0]
+    total = db.execute("SELECT COUNT(*) FROM encheres").fetchone()[0]
+    db.close()
+    avis = []
+    for r in lignes:
+        d = encheres.pour_affichage(r, "ar")
+        d["message"] = encheres.message_whatsapp(d, "ar")
+        avis.append(d)
+    return templates.TemplateResponse(req, "admin_encheres.html", {
+        "request": req, "cfg": cfg, "avis": avis, "runs": runs, "abonnes": abonnes, "total": total,
+        "msg": msg, "csrf_token": get_csrf_token(req) or secrets.token_urlsafe(24)})
+
+
+@app.post("/admin/encheres/collecter")
+async def admin_encheres_collecter(req: Request, csrf_token: str = Form("")):
+    if not _is_admin(req): return RedirectResponse("/admin/login", 302)
+    csrf_guard(req, csrf_token)
+    res = await asyncio.get_event_loop().run_in_executor(None, collecter_encheres)
+    if res["ok"]:
+        msg = f"{res['nouveaux']} nouvelle(s) vente(s), {res['en_ligne']} avis en ligne."
+    else:
+        # Le serveur est hors du Maroc: si la douane le refuse, le relais prend
+        # la demande à son prochain passage.
+        _relais_valeur("demande_douane", datetime.now().isoformat(timespec="seconds"))
+        _relais_valeur("demande", datetime.now().isoformat(timespec="seconds"))
+        msg = "Le serveur n'a pas pu lire douane.gov.ma — collecte demandée au relais."
+    from urllib.parse import quote
+    return RedirectResponse("/admin/encheres?msg=" + quote(msg), 303)
+
 
 @app.get("/tenders/{tid}", response_class=HTMLResponse)
 async def tender_detail(req: Request, tid: str):
@@ -6416,7 +6697,7 @@ async def sitemap():
     from xml.sax.saxutils import escape
     site = cfg.SITE_URL.rstrip("/")
     urls = [(f"{site}{c}", "") for c in (
-        "/", "/tarifs", "/register", "/contact", "/marches-publics", "/sous-traitance",
+        "/", "/tarifs", "/register", "/contact", "/encheres", "/marches-publics", "/sous-traitance",
         "/mentions-legales", "/cgu", "/confidentialite", "/guide/depot-electronique")]
     urls += [(f"{site}/marches-publics/{p['slug']}", "") for p in _secteurs_publics() if p["n"]]
     urls += [(f"{site}/marches-publics/ville/{v['slug']}", "") for v in seo.villes_publiques()]
@@ -6434,7 +6715,7 @@ async def robots():
     # moteur: on lui épargne de les parcourir. Les pages publiques restent
     # ouvertes, et le plan du site les liste.
     prives = ["/api/", "/settings", "/dashboard", "/favorites", "/tenders", "/bons-de-commande",
-              "/resultats", "/recap/", "/invitation/", "/reset", "/verifier-email", "/webhooks/",
+              "/resultats", "/encheres/", "/recap/", "/invitation/", "/reset", "/verifier-email", "/webhooks/",
               "/abonnement", "/documents/", "/aller/"]
     regles = "".join(f"Disallow: {c}\n" for c in prives)
     return Response(f"User-agent: *\nAllow: /\n{regles}Sitemap: {cfg.SITE_URL}/sitemap.xml\n",
